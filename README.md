@@ -12,6 +12,39 @@ This application helps a family of 4 (2 adults, 2 teenagers) to:
 - Optimize grocery budget with price comparisons
 - Work offline with full PWA capabilities
 
+## ✨ Key Features
+
+### Recipe Management
+- **Create & Edit Recipes**: Full CRUD operations with step-by-step wizard
+- **Import from URLs**: Automatically scrape recipes from any website
+- **Image Caching**: IndexedDB-based caching for faster loading and offline access
+- **Smart Search**: Filter by cuisine, meal type, difficulty, and dietary restrictions
+
+### Image Caching System
+- **Offline Support**: Images cached locally using IndexedDB
+- **Faster Loading**: Images loaded from cache instead of network
+- **Automatic Expiration**: 7-day cache with automatic cleanup
+- **Bandwidth Savings**: Images only downloaded once
+- See [docs/IMAGE_CACHING.md](./docs/IMAGE_CACHING.md) for details
+
+### Meal Planning
+- Weekly meal calendar with drag-and-drop
+- Smart recipe recommendations based on preferences
+- Dietary restriction management
+- Family member preferences tracking
+
+### Grocery Shopping
+- Auto-generated shopping lists from meal plans
+- Price comparison and budget optimization
+- Pantry inventory tracking
+- Expiration date alerts
+
+### Security & Performance
+- JWT-based authentication with refresh tokens
+- Redis caching for improved performance
+- Rate limiting and security headers
+- Comprehensive logging and monitoring
+
 ## 🏗️ Architecture
 
 ### Technology Stack
