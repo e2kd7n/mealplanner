@@ -44,6 +44,13 @@ const Login: React.FC = () => {
     await dispatch(login({ email, password }));
   };
 
+  const handleTestLogin = async () => {
+    await dispatch(login({
+      email: 'testuser@example.com',
+      password: 'TestPassword123!'
+    }));
+  };
+
   return (
     <Container component="main" maxWidth="xs">
       <Box
@@ -101,6 +108,16 @@ const Login: React.FC = () => {
               disabled={loading}
             >
               {loading ? 'Signing In...' : 'Sign In'}
+            </Button>
+            <Button
+              fullWidth
+              variant="outlined"
+              color="secondary"
+              sx={{ mb: 2 }}
+              onClick={handleTestLogin}
+              disabled={loading}
+            >
+              Quick Test Login (Smith Family)
             </Button>
             <Box sx={{ textAlign: 'center' }}>
               <Link component={RouterLink} to="/register" variant="body2">
