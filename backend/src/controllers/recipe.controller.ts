@@ -131,10 +131,11 @@ export async function getRecipes(
     const skip = (pageNum - 1) * limitNum;
 
     // Build where clause
+    const userId = getUserId(req);
     const where: any = {
       OR: [
         { isPublic: true },
-        { userId: req.user?.userId },
+        { userId },
       ],
     };
 
@@ -263,7 +264,8 @@ export async function getRecipeById(
     }
 
     // Check if user has access
-    if (!canAccessRecipe(recipe, req.user?.id)) {
+    const userId = getUserId(req);
+    if (!canAccessRecipe(recipe, userId)) {
       throw new AppError('Access denied', 403);
     }
 

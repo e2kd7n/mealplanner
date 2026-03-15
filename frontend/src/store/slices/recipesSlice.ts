@@ -79,7 +79,7 @@ export const fetchRecipes = createAsyncThunk(
   } = {}, { rejectWithValue }) => {
     try {
       const response = await recipeAPI.getAll(params);
-      return response.data.data;
+      return response.data;
     } catch (error: any) {
       return rejectWithValue(error.response?.data?.message || 'Failed to fetch recipes');
     }
@@ -91,7 +91,7 @@ export const fetchRecipeById = createAsyncThunk(
   async (id: string, { rejectWithValue }) => {
     try {
       const response = await recipeAPI.getById(id);
-      return response.data.data;
+      return response.data;
     } catch (error: any) {
       return rejectWithValue(error.response?.data?.message || 'Failed to fetch recipe');
     }
@@ -103,7 +103,7 @@ export const createRecipe = createAsyncThunk(
   async (recipeData: any, { rejectWithValue }) => {
     try {
       const response = await recipeAPI.create(recipeData);
-      return response.data.data;
+      return response.data;
     } catch (error: any) {
       return rejectWithValue(error.response?.data?.message || 'Failed to create recipe');
     }
@@ -115,7 +115,7 @@ export const updateRecipe = createAsyncThunk(
   async ({ id, data }: { id: string; data: any }, { rejectWithValue }) => {
     try {
       const response = await recipeAPI.update(id, data);
-      return response.data.data;
+      return response.data;
     } catch (error: any) {
       return rejectWithValue(error.response?.data?.message || 'Failed to update recipe');
     }
