@@ -28,6 +28,7 @@ model User {
   pantryInventory PantryInventory[]
   recipeRatings   RecipeRating[]
 
+  @@index([email])
   @@map("users")
 }
 
@@ -83,6 +84,14 @@ model Recipe {
   plannedMeals      PlannedMeal[]
   ratings           RecipeRating[]
 
+  @@index([userId])
+  @@index([mealType])
+  @@index([difficulty])
+  @@index([cuisineType])
+  @@index([kidFriendly])
+  @@index([isPublic])
+  @@index([createdAt])
+  @@index([title])
   @@map("recipes")
 }
 
@@ -165,6 +174,9 @@ model MealPlan {
   plannedMeals  PlannedMeal[]
   groceryLists  GroceryList[]
 
+  @@index([userId])
+  @@index([weekStartDate])
+  @@index([status])
   @@map("meal_plans")
 }
 
@@ -189,6 +201,9 @@ model PlannedMeal {
   recipe       Recipe       @relation(fields: [recipeId], references: [id], onDelete: Cascade)
   assignedCook FamilyMember? @relation(fields: [assignedCookId], references: [id], onDelete: SetNull)
 
+  @@index([mealPlanId])
+  @@index([recipeId])
+  @@index([date])
   @@map("planned_meals")
 }
 
@@ -207,6 +222,9 @@ model GroceryList {
   user     User              @relation(fields: [userId], references: [id], onDelete: Cascade)
   items    GroceryListItem[]
 
+  @@index([userId])
+  @@index([mealPlanId])
+  @@index([status])
   @@map("grocery_lists")
 }
 
@@ -250,6 +268,9 @@ model RecipeRating {
   user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
   familyMember FamilyMember? @relation(fields: [familyMemberId], references: [id], onDelete: SetNull)
 
+  @@index([recipeId])
+  @@index([userId])
+  @@index([rating])
   @@map("recipe_ratings")
 }
 
@@ -292,6 +313,9 @@ model PantryInventory {
   user       User       @relation(fields: [userId], references: [id], onDelete: Cascade)
   ingredient Ingredient @relation(fields: [ingredientId], references: [id], onDelete: Cascade)
 
+  @@index([userId])
+  @@index([ingredientId])
+  @@index([expirationDate])
   @@map("pantry_inventory")
 }
 
