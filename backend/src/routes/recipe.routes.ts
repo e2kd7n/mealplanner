@@ -17,6 +17,7 @@ import {
   searchRecipes,
   getRecommendations,
   getSimilarRecipes,
+  importRecipe,
 } from '../controllers/recipe.controller';
 
 const router: Router = Router();
@@ -34,6 +35,13 @@ router.get('/search', optionalAuthenticate, searchRecipes);
  * @access  Private
  */
 router.get('/recommendations', authenticate, getRecommendations);
+
+/**
+ * @route   POST /api/recipes/import
+ * @desc    Import recipe from URL
+ * @access  Private
+ */
+router.post('/import', authenticate, importRecipe);
 
 /**
  * @route   GET /api/recipes
