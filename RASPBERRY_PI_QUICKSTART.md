@@ -11,14 +11,16 @@ Get your Meal Planner app running on Raspberry Pi in under 10 minutes!
 sudo apt-get update && sudo apt-get upgrade -y
 
 # Install required packages
-sudo apt-get install -y podman python3-pip git
+sudo apt-get install -y podman git
 
-# Install podman-compose
-pip3 install podman-compose
+# Install podman-compose (use system package or pipx)
+# Option 1: Try system package first (recommended)
+sudo apt-get install -y podman-compose
 
-# Add to PATH
-echo 'export PATH=$PATH:~/.local/bin' >> ~/.bashrc
-source ~/.bashrc
+# Option 2: If system package not available, use pipx
+# sudo apt-get install -y pipx
+# pipx install podman-compose
+# pipx ensurepath
 ```
 
 ### 2. Clone and Deploy

@@ -660,4 +660,184 @@ export const removeItemFromList = async (
   }
 };
 
+/**
+ * Store section mapping for common ingredient categories
+ * This helps organize grocery lists by store layout
+ */
+const STORE_SECTION_MAP: Record<string, string> = {
+  'produce': 'Produce',
+  'vegetables': 'Produce',
+  'fruits': 'Produce',
+  'meat': 'Meat & Seafood',
+  'poultry': 'Meat & Seafood',
+  'seafood': 'Meat & Seafood',
+  'dairy': 'Dairy & Eggs',
+  'eggs': 'Dairy & Eggs',
+  'cheese': 'Dairy & Eggs',
+  'bakery': 'Bakery',
+  'bread': 'Bakery',
+  'grains': 'Grains & Pasta',
+  'pasta': 'Grains & Pasta',
+  'rice': 'Grains & Pasta',
+  'canned': 'Canned Goods',
+  'condiments': 'Condiments & Sauces',
+  'sauces': 'Condiments & Sauces',
+  'spices': 'Spices & Seasonings',
+  'seasonings': 'Spices & Seasonings',
+  'frozen': 'Frozen Foods',
+  'snacks': 'Snacks',
+  'beverages': 'Beverages',
+  'other': 'Other',
+};
+
+/**
+ * Get store section for an ingredient category
+ */
+function getStoreSection(category: string): string {
+  const normalizedCategory = category.toLowerCase().trim();
+  return STORE_SECTION_MAP[normalizedCategory] || 'Other';
+}
+
+/**
+ * @route   POST /api/grocery-lists/:id/optimize
+ * @desc    Optimize grocery list by store sections and pricing
+ * @access  Private
+ */
+export const optimizeGroceryList = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void> => {
+  try {
+    const userId = getUserId(req);
+    const { id } = req.params as { id: string };
+    const { optimizeBy = 'store' } = req.body; // 'store' or 'price'
+
+    // Check if grocery list exists and belongs to user
+    const groceryList = await prisma.groceryList.findFirst({
+      where: {
+        id,
+        userId,
+      },
+      include: {
+        items: {
+          include: {
+            ingredient: true,
+          },
+        },
+      },
+    });
+
+    if (!groceryList) {
+      throw new AppError('Grocery list not found', 404);
+    }
+
+    // Optimize by store sections
+    if (optimizeBy === 'store') {
+      // Update each item with its store section
+      const updatePromises = groceryList.items.map((item) => {
+        const storeSection = getStoreSection(item.ingredient.category);
+        return prisma.groceryListItem.update({
+          where: { id: item.id },
+          data: { storeSection },
+        });
+      });
+
+      await Promise.all(updatePromises);
+
+      logger.info(`Grocery list optimized by store sections: ${id} by user ${userId}`);
+    }
+
+    // Optimize by price (group similar items, suggest alternatives)
+    if (optimizeBy === 'price') {
+      // Calculate total cost and identify expensive items
+      let totalCost = 0;
+      const expensiveItems: Array<{
+        id: string;
+        name: string;
+        price: number;
+        suggestion: string;
+      }> = [];
+
+      for (const item of groceryList.items) {
+        const itemCost = Number(item.estimatedPrice);
+        totalCost += itemCost;
+
+        // Flag items over $10 as potentially expensive
+        if (itemCost > 10) {
+          expensiveItems.push({
+            id: item.id,
+            name: item.ingredient.name,
+            price: itemCost,
+            suggestion: 'Consider store brand or bulk purchase for savings',
+          });
+        }
+      }
+
+      // Update total estimated cost
+      await prisma.groceryList.update({
+        where: { id },
+        data: { totalEstimatedCost: totalCost },
+      });
+
+      logger.info(`Grocery list optimized by price: ${id} by user ${userId}, total: $${totalCost.toFixed(2)}`);
+
+      // Return optimization suggestions
+      const updatedList = await prisma.groceryList.findUnique({
+        where: { id },
+        include: {
+          items: {
+            include: {
+              ingredient: true,
+            },
+            orderBy: {
+              estimatedPrice: 'desc', // Most expensive first
+            },
+          },
+        },
+      });
+
+      res.json({
+        success: true,
+        data: {
+          groceryList: updatedList,
+          optimization: {
+            totalCost: totalCost.toFixed(2),
+            itemCount: groceryList.items.length,
+            expensiveItems,
+            savings: expensiveItems.length > 0
+              ? 'Potential savings available - see suggestions'
+              : 'No major savings opportunities identified',
+          },
+        },
+      });
+      return;
+    }
+
+    // Fetch optimized list
+    const optimizedList = await prisma.groceryList.findUnique({
+      where: { id },
+      include: {
+        items: {
+          include: {
+            ingredient: true,
+          },
+          orderBy: [
+            { storeSection: 'asc' },
+            { ingredient: { category: 'asc' } },
+          ],
+        },
+      },
+    });
+
+    res.json({
+      success: true,
+      data: optimizedList,
+      message: `Grocery list optimized by ${optimizeBy}`,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
 // Made with Bob
