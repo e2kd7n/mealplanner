@@ -1,4 +1,11 @@
-import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit';
+/**
+ * Copyright (c) 2026 Erik Didriksen
+ * All rights reserved.
+ */
+
+
+import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
+import type { PayloadAction } from '@reduxjs/toolkit';
 import { authAPI } from '../../services/api';
 
 interface User {
@@ -33,7 +40,7 @@ export const login = createAsyncThunk(
   async (credentials: { email: string; password: string }, { rejectWithValue }) => {
     try {
       const response = await authAPI.login(credentials);
-      const { user, accessToken, refreshToken } = response.data.data;
+      const { user, accessToken, refreshToken } = response.data;
       
       // Store tokens
       localStorage.setItem('accessToken', accessToken);
@@ -54,7 +61,7 @@ export const register = createAsyncThunk(
   ) => {
     try {
       const response = await authAPI.register(userData);
-      const { user, accessToken, refreshToken } = response.data.data;
+      const { user, accessToken, refreshToken } = response.data;
       
       // Store tokens
       localStorage.setItem('accessToken', accessToken);
@@ -92,7 +99,7 @@ export const refreshAccessToken = createAsyncThunk(
       }
       
       const response = await authAPI.refreshToken(refreshToken);
-      const { accessToken } = response.data.data;
+      const { accessToken } = response.data;
       
       localStorage.setItem('accessToken', accessToken);
       

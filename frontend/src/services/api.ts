@@ -1,3 +1,9 @@
+/**
+ * Copyright (c) 2026 Erik Didriksen
+ * All rights reserved.
+ */
+
+
 import axios from 'axios';
 import type { AxiosInstance, AxiosError } from 'axios';
 

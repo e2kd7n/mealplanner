@@ -1,8 +1,25 @@
+/**
+ * Copyright (c) 2026 Erik Didriksen
+ * All rights reserved.
+ */
+
 import { Request, Response, NextFunction } from 'express';
 import { Prisma } from '@prisma/client';
 import prisma from '../utils/prisma';
 import { AppError } from '../middleware/errorHandler';
 import logger from '../utils/logger';
+
+/**
+ * Extract and validate user ID from request
+ * Throws AppError if user is not authenticated
+ */
+function getUserId(req: Request): string {
+  const userId = req.user?.id;
+  if (!userId) {
+    throw new AppError('User not authenticated', 401);
+  }
+  return userId;
+}
 
 /**
  * Interface for aggregated ingredient data
@@ -51,10 +68,7 @@ export const getGroceryLists = async (
   next: NextFunction
 ): Promise<void> => {
   try {
-    const userId = req.user?.id;
-    if (!userId) {
-      throw new AppError('User not authenticated', 401);
-    }
+    const userId = getUserId(req);
 
     const { status } = req.query;
 
@@ -109,10 +123,7 @@ export const getGroceryListById = async (
   next: NextFunction
 ): Promise<void> => {
   try {
-    const userId = req.user?.id;
-    if (!userId) {
-      throw new AppError('User not authenticated', 401);
-    }
+    const userId = getUserId(req);
 
     const { id } = req.params as { id: string };
 
@@ -173,28 +184,22 @@ export const createGroceryList = async (
   next: NextFunction
 ): Promise<void> => {
   try {
-    const userId = req.user?.id;
-    if (!userId) {
-      throw new AppError('User not authenticated', 401);
-    }
+    const userId = getUserId(req);
 
     const { name, mealPlanId } = req.body;
 
     // Validate required fields
-    if (!name) {
+    if (!name || typeof name !== 'string' || !name.trim()) {
       throw new AppError('Name is required', 400);
     }
 
     // If meal plan ID provided, verify it exists and belongs to user
     if (mealPlanId) {
-      const mealPlan = await prisma.mealPlan.findFirst({
-        where: {
-          id: mealPlanId,
-          userId,
-        },
+      const mealPlan = await prisma.mealPlan.findUnique({
+        where: { id: mealPlanId },
       });
 
-      if (!mealPlan) {
+      if (!mealPlan || mealPlan.userId !== userId) {
         throw new AppError('Meal plan not found', 404);
       }
     }
@@ -204,10 +209,6 @@ export const createGroceryList = async (
         userId,
         mealPlanId,
         status: 'draft',
-      },
-      include: {
-        items: true,
-        mealPlan: true,
       },
     });
 
@@ -291,10 +292,7 @@ export const generateFromMealPlan = async (
   next: NextFunction
 ): Promise<void> => {
   try {
-    const userId = req.user?.id;
-    if (!userId) {
-      throw new AppError('User not authenticated', 401);
-    }
+    const userId = getUserId(req);
 
     const { mealPlanId } = req.params;
     const mealPlanIdStr = String(mealPlanId);
@@ -389,10 +387,7 @@ export const updateGroceryList = async (
   next: NextFunction
 ): Promise<void> => {
   try {
-    const userId = req.user?.id;
-    if (!userId) {
-      throw new AppError('User not authenticated', 401);
-    }
+    const userId = getUserId(req);
 
     const { id } = req.params as { id: string };
     const { status } = req.body;
@@ -448,10 +443,7 @@ export const deleteGroceryList = async (
   next: NextFunction
 ): Promise<void> => {
   try {
-    const userId = req.user?.id;
-    if (!userId) {
-      throw new AppError('User not authenticated', 401);
-    }
+    const userId = getUserId(req);
 
     const { id } = req.params as { id: string };
 
@@ -493,10 +485,7 @@ export const addItemToList = async (
   next: NextFunction
 ): Promise<void> => {
   try {
-    const userId = req.user?.id;
-    if (!userId) {
-      throw new AppError('User not authenticated', 401);
-    }
+    const userId = getUserId(req);
 
     const { id } = req.params as { id: string };
     const { ingredientId, quantity, unit, notes } = req.body;
@@ -564,7 +553,7 @@ export const updateListItem = async (
   next: NextFunction
 ): Promise<void> => {
   try {
-    const userId = req.user!.id; // Guaranteed by authenticate middleware
+    const userId = getUserId(req);
     const { listId, itemId } = req.params as { listId: string; itemId: string };
     const { quantity, unit, checked, notes } = req.body;
 
@@ -628,10 +617,7 @@ export const removeItemFromList = async (
   next: NextFunction
 ): Promise<void> => {
   try {
-    const userId = req.user?.id;
-    if (!userId) {
-      throw new AppError('User not authenticated', 401);
-    }
+    const userId = getUserId(req);
 
     const { listId, itemId } = req.params as { listId: string; itemId: string };
 

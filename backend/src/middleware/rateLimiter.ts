@@ -1,3 +1,9 @@
+/**
+ * Copyright (c) 2026 Erik Didriksen
+ * All rights reserved.
+ */
+
+
 import rateLimit from 'express-rate-limit';
 import { logger } from '../utils/logger';
 

@@ -1,3 +1,9 @@
+/**
+ * Copyright (c) 2026 Erik Didriksen
+ * All rights reserved.
+ */
+
+
 import { PrismaClient } from '@prisma/client';
 import { logger } from './logger';
 

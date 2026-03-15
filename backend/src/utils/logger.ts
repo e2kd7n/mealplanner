@@ -1,3 +1,9 @@
+/**
+ * Copyright (c) 2026 Erik Didriksen
+ * All rights reserved.
+ */
+
+
 import winston from 'winston';
 
 const logLevel = process.env.LOG_LEVEL || 'info';

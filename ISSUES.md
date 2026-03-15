@@ -15,20 +15,28 @@
 ---
 
 ### Issue #2: Add copyright notices to all source files
-**Status:** In Progress
+**Status:** Closed
 **Priority:** High
+**Closed:** March 15, 2026
 **Description:** Add proper copyright notices to all source code files to establish ownership and legal protections.
 
-**Tasks:**
-- [x] Create standard copyright header template (in plan document)
-- [ ] Add copyright notices to all source files (during implementation)
-- [ ] Set up pre-commit hook to ensure new files include copyright
+**Completed:**
+- [x] Create standard copyright header template
+- [x] Add copyright notices to all 47 source files (backend and frontend)
+- [x] Created automated script (`scripts/add-copyright.sh`) for adding copyright notices
+- [ ] Set up pre-commit hook to ensure new files include copyright (optional future enhancement)
 
-**Template Created:**
+**Template Used:**
 ```
-Copyright (c) 2026 Erik Didriksen
-All rights reserved.
+/**
+ * Copyright (c) 2026 Erik Didriksen
+ * All rights reserved.
+ */
 ```
+
+**Files Updated:**
+- All TypeScript (.ts) and TSX (.tsx) files in `backend/src/` and `frontend/src/`
+- Total: 47 files with copyright notices added
 
 ---
 
@@ -61,114 +69,54 @@ All rights reserved.
 ---
 
 ### Issue #5: Refactor auth.controller.ts register function
-**Status:** Open
+**Status:** Closed
 **Priority:** Medium
-**File:** `backend/src/controllers/auth.controller.ts` (lines 10-65)
+**File:** `backend/src/controllers/auth.controller.ts`
+**Closed:** March 15, 2026
 **Description:** Improve security, code quality, and maintainability of the user registration function.
 
-**Security Improvements (High Priority):**
-- [ ] Mask email in logs (line 52) - Currently logs full email which is PII
-  - Change to log only email domain: `emailDomain: user.email.split('@')[1]`
-- [ ] Add email format validation before database operations
-  - Implement regex validation: `/^[^\s@]+@[^\s@]+\.[^\s@]+$/`
-- [ ] Add password strength requirements
-  - Minimum 8 characters (configurable)
-  - Consider additional complexity requirements
+**Completed:**
+- [x] Added copyright notice to file
+- [x] Mask email in logs - Now logs only email domain for PII protection
+- [x] Add email format validation with regex: `/^[^\s@]+@[^\s@]+\.[^\s@]+$/`
+- [x] Add password strength requirements (minimum 8 characters, configurable)
+- [x] Extract input validation into `validateRegistrationInput()` function
+- [x] Extract user response formatter into `formatUserResponse()` helper
+- [x] Add TypeScript interfaces for request bodies (`RegisterRequestBody`, `LoginRequestBody`, `RefreshTokenRequestBody`)
+- [x] Normalize email to lowercase before storage
+- [x] Applied same improvements to `login` and `refreshToken` functions
 
-**Code Quality Improvements (Medium Priority):**
-- [ ] Extract input validation into separate function `validateRegistrationInput()`
-  - Improves readability and reusability
-  - Can be shared with other auth functions
-- [ ] Extract user response formatter into helper function `formatUserResponse()`
-  - Eliminates duplication across register, login, and refreshToken
-- [ ] Add TypeScript interfaces for request bodies
-  - Create `RegisterRequestBody` interface
-  - Improves type safety and IDE support
-
-**Optional Enhancements (Low Priority):**
-- [ ] Normalize email to lowercase before storage
-  - Prevents case-sensitivity issues (user@example.com vs User@Example.com)
-  - Ensure database schema supports this
-- [ ] Consider transaction wrapper for atomic operations
-  - Only if token generation failure after user creation is a concern
-  - Current synchronous approach is acceptable
-
-**Benefits:**
+**Benefits Achieved:**
 - Enhanced security through PII protection and input validation
 - Improved code maintainability and reusability
 - Better type safety and developer experience
 - Consistent email handling across the application
-
-**Notes:**
-- All changes maintain backward compatibility
 - No breaking changes to API contracts
-- Similar patterns should be applied to `login` function (lines 71-121)
 
 ---
 
 ### Issue #6: Refactor groceryList.controller.ts createGroceryList function
-**Status:** Open
+**Status:** Closed
 **Priority:** Medium
-**File:** `backend/src/controllers/groceryList.controller.ts` (lines 130-184)
+**File:** `backend/src/controllers/groceryList.controller.ts`
+**Closed:** March 15, 2026
 **Description:** Improve performance, code quality, and maintainability of the createGroceryList function.
 
-**High Priority Refactorings:**
-- [ ] Use `findUnique` instead of `findFirst` for meal plan lookup (line 150)
-  - Current: `prisma.mealPlan.findFirst({ where: { id: mealPlanId, userId } })`
-  - Recommended: `prisma.mealPlan.findUnique({ where: { id: mealPlanId } })` with separate ownership check
-  - Benefits: More efficient query (uses primary key index), semantically clearer, follows Prisma best practices
-  - Risk: Low - requires separate ownership check but negligible performance impact
-  
-- [ ] Remove unnecessary `include` from create operation (lines 169-172)
-  - Current: `include: { items: true, mealPlan: true }`
-  - Recommended: Remove entirely unless response actually needs this data
-  - Benefits: Reduces database query overhead, smaller payload, faster response time
-  - Risk: Medium - verify frontend/API consumers don't rely on this data
-  - Note: Newly created list will have no items anyway (`items: []`)
+**Completed:**
+- [x] Added copyright notice to file
+- [x] Use `findUnique` instead of `findFirst` for meal plan lookup with separate ownership check
+- [x] Remove unnecessary `include` from create operation (reduces database overhead)
+- [x] Extract authentication check to reusable `getUserId(req: Request): string` helper function
+- [x] Applied `getUserId` helper to all 9 controller functions in the file
+- [x] Simplify validation logic with `.trim()` for more robust name validation
 
-**Medium Priority Refactorings:**
-- [ ] Extract authentication check to reusable helper function
-  - Pattern repeated in all 11 controller functions:
-    ```typescript
-    const userId = req.user?.id;
-    if (!userId) {
-      throw new AppError('User not authenticated', 401);
-    }
-    ```
-  - Recommended: Create `getUserId(req: Request): string` helper
-  - Benefits: DRY principle, consistent error handling, type safety (returns string not string | undefined)
-  - Scope: Apply file-wide to all controller functions
-  
-- [ ] Simplify validation logic (lines 143-146)
-  - Current: `if (!name)`
-  - Recommended: `if (!name?.trim())`
-  - Benefits: Catches empty strings and whitespace-only names, more robust validation
-  - Risk: Low
-
-**Low Priority / Optional Refactorings:**
-- [ ] Consolidate meal plan validation into reusable function
-  - Extract validation (lines 149-160) to `validateMealPlanOwnership(mealPlanId, userId)`
-  - Benefits: Reusable across controllers (also used in `generateFromMealPlan`), testable in isolation
-  - Risk: Low
-
-**Implementation Order:**
-1. Use `findUnique` for meal plan lookup (performance gain)
-2. Remove unnecessary `include` (after verifying consumers)
-3. Extract `getUserId` helper (apply file-wide)
-4. Add `.trim()` to name validation
-5. Consider meal plan validation extraction if needed elsewhere
-
-**Benefits:**
-- Improved query performance through proper Prisma method usage
+**Benefits Achieved:**
+- Improved query performance through proper Prisma method usage (findUnique uses primary key index)
 - Reduced database overhead and response payload size
-- Better code maintainability through DRY principle
+- Better code maintainability through DRY principle (getUserId helper)
 - Enhanced type safety and error handling consistency
 - More robust input validation
-
-**Notes:**
-- All refactorings maintain current functionality and error handling
 - No breaking changes to API contracts
-- Similar patterns apply to other controller functions in this file
 
 ---
 
@@ -187,4 +135,121 @@ All rights reserved.
 - Anti-piracy measures deemed unnecessary for private, self-hosted use
 - Copyright headers will be added to source files during implementation phase
 - Pre-commit hook for copyright enforcement will be set up during development
+
+---
+
+## Open Issues (New - Identified from Plan Review)
+
+### Issue #7: Missing Recipe Rating Endpoints
+**Status:** Open
+**Priority:** High
+**Description:** Recipe rating functionality is in the database schema but missing API endpoints.
+
+**Missing Endpoints:**
+- [ ] `POST /api/recipes/:id/rate` - Add/update rating for a recipe
+- [ ] `GET /api/recipes/:id/ratings` - Get all ratings for a recipe
+
+**Implementation Tasks:**
+- [ ] Add rating methods to recipe.controller.ts
+- [ ] Create routes in recipe.routes.ts
+- [ ] Test rating functionality
+
+**Priority:** High - Core MVP feature per plan
+
+---
+
+### Issue #8: Missing User Profile & Preferences Endpoints
+**Status:** Open
+**Priority:** High
+**Description:** User profile and preferences management is missing from the API.
+
+**Missing Endpoints:**
+- [ ] `GET /api/users/profile` - Get user profile
+- [ ] `PUT /api/users/profile` - Update user profile
+- [ ] `GET /api/users/preferences` - Get user preferences
+- [ ] `PUT /api/users/preferences` - Update preferences
+
+**Implementation Tasks:**
+- [ ] Create user.controller.ts with profile/preferences methods
+- [ ] Update user.routes.ts with new endpoints
+- [ ] Add validation for preference updates
+
+**Priority:** High - Required for personalization features
+
+---
+
+### Issue #9: Missing Family Member Management Endpoints
+**Status:** Open
+**Priority:** High
+**Description:** Family member CRUD operations are missing from the API.
+
+**Missing Endpoints:**
+- [ ] `GET /api/family-members` - List family members
+- [ ] `POST /api/family-members` - Add family member
+- [ ] `PUT /api/family-members/:id` - Update family member
+- [ ] `DELETE /api/family-members/:id` - Remove family member
+
+**Implementation Tasks:**
+- [ ] Create familyMember.controller.ts
+- [ ] Create familyMember.routes.ts
+- [ ] Add to main router in index.ts
+
+**Priority:** High - Core MVP feature for family management
+
+---
+
+### Issue #10: Missing Recipe Search & Recommendations
+**Status:** Open
+**Priority:** Medium
+**Description:** Advanced recipe features are missing from the API.
+
+**Missing Endpoints:**
+- [ ] `GET /api/recipes/search` - Search recipes with filters
+- [ ] `GET /api/recipes/recommendations` - Get personalized recommendations
+- [ ] `POST /api/recipes/import` - Import recipe from URL
+- [ ] `GET /api/recipes/:id/similar` - Get similar recipes
+
+**Implementation Tasks:**
+- [ ] Implement search functionality in recipe.controller.ts
+- [ ] Create recommendation algorithm based on plan (Section 5)
+- [ ] Add recipe import functionality
+- [ ] Implement similar recipe finder
+
+**Priority:** Medium - Enhanced features per plan
+
+---
+
+### Issue #11: Missing Grocery List Optimization
+**Status:** Open
+**Priority:** Medium
+**Description:** Grocery list optimization features are missing.
+
+**Missing Endpoints:**
+- [ ] `POST /api/grocery-lists/:id/optimize` - Optimize list by store/price
+- [ ] Store section grouping functionality
+- [ ] Multi-store price comparison
+
+**Implementation Tasks:**
+- [ ] Implement optimization algorithm from plan (Section 8)
+- [ ] Add store section grouping
+- [ ] Create price comparison logic
+
+**Priority:** Medium - Enhanced feature per plan
+
+---
+
+### Issue #12: Add Input Validation Middleware
+**Status:** Open
+**Priority:** High
+**Description:** Consistent input validation is missing across controllers.
+
+**Implementation Tasks:**
+- [ ] Create validation middleware using express-validator or zod
+- [ ] Add request body validation schemas for all endpoints
+- [ ] Apply validation middleware to all routes
+- [ ] Add consistent error responses
+
+**Priority:** High - Security and data integrity
+
+---
 - Terms of service only needed if application is shared with other families

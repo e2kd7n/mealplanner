@@ -1,3 +1,9 @@
+/**
+ * Copyright (c) 2026 Erik Didriksen
+ * All rights reserved.
+ */
+
+
 import { Request, Response, NextFunction } from 'express';
 import { logger } from '../utils/logger';
 

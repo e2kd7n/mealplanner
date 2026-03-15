@@ -33,21 +33,29 @@ This application helps a family of 4 (2 adults, 2 teenagers) to:
 - JWT authentication
 
 **DevOps:**
-- Podman & Podman Compose
+- Docker & Docker Compose (or Podman & Podman Compose)
 - Nginx (reverse proxy)
-- Self-hosted on Raspberry Pi
+- Self-hosted deployment ready (Raspberry Pi compatible)
 
 ## 📋 Prerequisites
 
-Before you begin, ensure you have the following installed:
+### For Development:
 - Node.js 20+ LTS
 - pnpm 8+
-- Podman & Podman Compose
+- PostgreSQL 16+
+- Redis 7+
 - Git
+
+### For Production (Raspberry Pi):
+- Podman & podman-compose
+- Git
+- Python 3 & pip3
 
 See [SETUP.md](./SETUP.md) for detailed installation instructions.
 
 ## 🚀 Quick Start
+
+### Development Mode (Local)
 
 ### 1. Clone the repository (if not already done)
 ```bash
@@ -85,10 +93,13 @@ cp .env.example .env
 # Edit .env with your configuration
 ```
 
-### 4. Start Podman services
+### 4. Start database services
 ```bash
-# From project root
-podman-compose up -d
+# Using Docker
+docker-compose up -d postgres redis
+
+# OR using Podman
+podman-compose -f podman-compose.yml up -d postgres redis
 ```
 
 ### 5. Initialize database
@@ -115,7 +126,22 @@ pnpm dev
 ### 7. Access the application
 - Frontend: http://localhost:5173
 - Backend API: http://localhost:3000
-- API Documentation: http://localhost:3000/api-docs
+
+### Production Deployment (Raspberry Pi)
+
+For deploying to Raspberry Pi with Podman, see:
+- **Quick Start**: [RASPBERRY_PI_QUICKSTART.md](./RASPBERRY_PI_QUICKSTART.md)
+- **Full Guide**: [DEPLOYMENT.md](./DEPLOYMENT.md)
+
+**TL;DR:**
+```bash
+# On your Raspberry Pi
+git clone <your-repo-url> meal-planner
+cd meal-planner
+./scripts/generate-secrets.sh
+./scripts/deploy-podman.sh
+# Access at http://raspberrypi.local:8080
+```
 
 ## 📁 Project Structure
 

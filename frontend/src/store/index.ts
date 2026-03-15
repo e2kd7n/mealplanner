@@ -1,9 +1,15 @@
+/**
+ * Copyright (c) 2026 Erik Didriksen
+ * All rights reserved.
+ */
+
+
 import { configureStore } from '@reduxjs/toolkit';
-import authReducer from './slices/authSlice.ts';
-import recipesReducer from './slices/recipesSlice.ts';
-import mealPlansReducer from './slices/mealPlansSlice.ts';
-import groceryListsReducer from './slices/groceryListsSlice.ts';
-import pantryReducer from './slices/pantrySlice.ts';
+import authReducer from './slices/authSlice';
+import recipesReducer from './slices/recipesSlice';
+import mealPlansReducer from './slices/mealPlansSlice';
+import groceryListsReducer from './slices/groceryListsSlice';
+import pantryReducer from './slices/pantrySlice';
 
 export const store = configureStore({
   reducer: {
