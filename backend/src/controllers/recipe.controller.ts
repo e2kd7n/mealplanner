@@ -1,0 +1,440 @@
+import { Request, Response, NextFunction } from 'express';
+import prisma from '../utils/prisma';
+import { AppError } from '../middleware/errorHandler';
+import { logger } from '../utils/logger';
+import { cacheGet, cacheSet, cacheDelPattern } from '../utils/redis';
+
+/**
+ * Get all recipes with filtering and pagination
+ */
+export async function getRecipes(
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void> {
+  try {
+    const {
+      page = '1',
+      limit = '20',
+      search,
+      mealType,
+      difficulty,
+      kidFriendly,
+      cuisineType,
+      maxPrepTime,
+      maxCookTime,
+    } = req.query;
+
+    const pageNum = parseInt(page as string);
+    const limitNum = parseInt(limit as string);
+    const skip = (pageNum - 1) * limitNum;
+
+    // Build where clause
+    const where: any = {
+      OR: [
+        { isPublic: true },
+        { userId: req.user?.userId },
+      ],
+    };
+
+    if (search) {
+      where.OR = [
+        { title: { contains: search as string, mode: 'insensitive' } },
+        { description: { contains: search as string, mode: 'insensitive' } },
+      ];
+    }
+
+    if (mealType) {
+      where.mealType = mealType;
+    }
+
+    if (difficulty) {
+      where.difficulty = difficulty;
+    }
+
+    if (kidFriendly === 'true') {
+      where.kidFriendly = true;
+    }
+
+    if (cuisineType) {
+      where.cuisineType = cuisineType;
+    }
+
+    if (maxPrepTime) {
+      where.prepTime = { lte: parseInt(maxPrepTime as string) };
+    }
+
+    if (maxCookTime) {
+      where.cookTime = { lte: parseInt(maxCookTime as string) };
+    }
+
+    // Try to get from cache
+    const cacheKey = `recipes:${JSON.stringify({ where, skip, limitNum })}`;
+    const cached = await cacheGet(cacheKey);
+
+    if (cached) {
+      res.json(cached);
+      return;
+    }
+
+    // Get recipes from database
+    const [recipes, total] = await Promise.all([
+      prisma.recipe.findMany({
+        where,
+        skip,
+        take: limitNum,
+        include: {
+          ingredients: {
+            include: {
+              ingredient: true,
+            },
+          },
+          ratings: {
+            select: {
+              rating: true,
+            },
+          },
+        },
+        orderBy: {
+          createdAt: 'desc',
+        },
+      }),
+      prisma.recipe.count({ where }),
+    ]);
+
+    // Calculate average ratings
+    const recipesWithRatings = recipes.map((recipe) => {
+      const ratings = recipe.ratings.map((r) => r.rating);
+      const avgRating = ratings.length > 0
+        ? ratings.reduce((a, b) => a + b, 0) / ratings.length
+        : null;
+
+      return {
+        ...recipe,
+        averageRating: avgRating,
+        ratingCount: ratings.length,
+      };
+    });
+
+    const result = {
+      recipes: recipesWithRatings,
+      pagination: {
+        page: pageNum,
+        limit: limitNum,
+        total,
+        totalPages: Math.ceil(total / limitNum),
+      },
+    };
+
+    // Cache for 5 minutes
+    await cacheSet(cacheKey, result, 300);
+
+    res.json(result);
+  } catch (error) {
+    next(error);
+  }
+}
+
+/**
+ * Get recipe by ID
+ */
+export async function getRecipeById(
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void> {
+  try {
+    const { id } = req.params;
+
+    // Try cache first
+    const cacheKey = `recipe:${id}`;
+    const cached = await cacheGet(cacheKey);
+
+    if (cached) {
+      res.json(cached);
+      return;
+    }
+
+    const recipe = await prisma.recipe.findUnique({
+      where: { id },
+      include: {
+        ingredients: {
+          include: {
+            ingredient: true,
+          },
+        },
+        ratings: {
+          include: {
+            familyMember: {
+              select: {
+                name: true,
+              },
+            },
+          },
+        },
+        user: {
+          select: {
+            familyName: true,
+          },
+        },
+      },
+    });
+
+    if (!recipe) {
+      throw new AppError('Recipe not found', 404);
+    }
+
+    // Check if user has access
+    if (!recipe.isPublic && recipe.userId !== req.user?.userId) {
+      throw new AppError('Access denied', 403);
+    }
+
+    // Calculate average rating
+    const ratings = recipe.ratings.map((r) => r.rating);
+    const avgRating = ratings.length > 0
+      ? ratings.reduce((a, b) => a + b, 0) / ratings.length
+      : null;
+
+    const result = {
+      ...recipe,
+      averageRating: avgRating,
+      ratingCount: ratings.length,
+    };
+
+    // Cache for 10 minutes
+    await cacheSet(cacheKey, result, 600);
+
+    res.json(result);
+  } catch (error) {
+    next(error);
+  }
+}
+
+/**
+ * Create new recipe
+ */
+export async function createRecipe(
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void> {
+  try {
+    const userId = req.user?.userId;
+
+    if (!userId) {
+      throw new AppError('User not authenticated', 401);
+    }
+
+    const {
+      title,
+      description,
+      prepTime,
+      cookTime,
+      servings,
+      difficulty,
+      kidFriendly,
+      cuisineType,
+      mealType,
+      imageUrl,
+      instructions,
+      nutritionInfo,
+      costEstimate,
+      isPublic,
+      ingredients,
+    } = req.body;
+
+    // Validate required fields
+    if (!title || !prepTime || !cookTime || !servings || !difficulty || !mealType) {
+      throw new AppError('Missing required fields', 400);
+    }
+
+    // Create recipe with ingredients
+    const recipe = await prisma.recipe.create({
+      data: {
+        userId,
+        title,
+        description,
+        source: 'custom',
+        prepTime,
+        cookTime,
+        servings,
+        difficulty,
+        kidFriendly: kidFriendly || false,
+        cuisineType,
+        mealType,
+        imageUrl,
+        instructions,
+        nutritionInfo,
+        costEstimate,
+        isPublic: isPublic || false,
+        ingredients: {
+          create: ingredients?.map((ing: any) => ({
+            ingredientId: ing.ingredientId,
+            quantity: ing.quantity,
+            unit: ing.unit,
+            notes: ing.notes,
+            isOptional: ing.isOptional || false,
+          })) || [],
+        },
+      },
+      include: {
+        ingredients: {
+          include: {
+            ingredient: true,
+          },
+        },
+      },
+    });
+
+    // Invalidate recipe list cache
+    await cacheDelPattern('recipes:*');
+
+    logger.info('Recipe created', { recipeId: recipe.id, userId });
+
+    res.status(201).json({
+      message: 'Recipe created successfully',
+      recipe,
+    });
+  } catch (error) {
+    next(error);
+  }
+}
+
+/**
+ * Update recipe
+ */
+export async function updateRecipe(
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void> {
+  try {
+    const { id } = req.params;
+    const userId = req.user?.userId;
+
+    // Check if recipe exists and user owns it
+    const existingRecipe = await prisma.recipe.findUnique({
+      where: { id },
+    });
+
+    if (!existingRecipe) {
+      throw new AppError('Recipe not found', 404);
+    }
+
+    if (existingRecipe.userId !== userId) {
+      throw new AppError('Access denied', 403);
+    }
+
+    const {
+      title,
+      description,
+      prepTime,
+      cookTime,
+      servings,
+      difficulty,
+      kidFriendly,
+      cuisineType,
+      mealType,
+      imageUrl,
+      instructions,
+      nutritionInfo,
+      costEstimate,
+      isPublic,
+    } = req.body;
+
+    // Update recipe
+    const recipe = await prisma.recipe.update({
+      where: { id },
+      data: {
+        title,
+        description,
+        prepTime,
+        cookTime,
+        servings,
+        difficulty,
+        kidFriendly,
+        cuisineType,
+        mealType,
+        imageUrl,
+        instructions,
+        nutritionInfo,
+        costEstimate,
+        isPublic,
+      },
+      include: {
+        ingredients: {
+          include: {
+            ingredient: true,
+          },
+        },
+      },
+    });
+
+    // Invalidate caches
+    await cacheDelPattern('recipes:*');
+    await cacheDelPattern(`recipe:${id}`);
+
+    logger.info('Recipe updated', { recipeId: id, userId });
+
+    res.json({
+      message: 'Recipe updated successfully',
+      recipe,
+    });
+  } catch (error) {
+    next(error);
+  }
+}
+
+/**
+ * Delete recipe
+ */
+export async function deleteRecipe(
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void> {
+  try {
+    const { id } = req.params;
+    const userId = req.user?.userId;
+
+    // Check if recipe exists and user owns it
+    const existingRecipe = await prisma.recipe.findUnique({
+      where: { id },
+    });
+
+    if (!existingRecipe) {
+      throw new AppError('Recipe not found', 404);
+    }
+
+    if (existingRecipe.userId !== userId) {
+      throw new AppError('Access denied', 403);
+    }
+
+    // Delete recipe (cascade will handle related records)
+    await prisma.recipe.delete({
+      where: { id },
+    });
+
+    // Invalidate caches
+    await cacheDelPattern('recipes:*');
+    await cacheDelPattern(`recipe:${id}`);
+
+    logger.info('Recipe deleted', { recipeId: id, userId });
+
+    res.json({
+      message: 'Recipe deleted successfully',
+    });
+  } catch (error) {
+    next(error);
+  }
+}
+
+export default {
+  getRecipes,
+  getRecipeById,
+  createRecipe,
+  updateRecipe,
+  deleteRecipe,
+};
+
+// Made with Bob
