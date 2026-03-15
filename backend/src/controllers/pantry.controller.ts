@@ -1,4 +1,5 @@
 import { Request, Response, NextFunction } from 'express';
+import { Prisma } from '@prisma/client';
 import prisma from '../utils/prisma';
 import { AppError } from '../middleware/errorHandler';
 import logger from '../utils/logger';
@@ -14,12 +15,12 @@ export const getPantryItems = async (
   next: NextFunction
 ): Promise<void> => {
   try {
-    const userId = req.user?.userId;
+    const userId = req.user?.id;
     if (!userId) {
       throw new AppError('User not authenticated', 401);
     }
 
-    const { category, lowStock } = req.query;
+    const { category } = req.query;
 
     const where: any = { userId };
 
@@ -29,13 +30,12 @@ export const getPantryItems = async (
       };
     }
 
-    if (lowStock === 'true') {
-      where.quantity = {
-        lte: prisma.pantryItem.fields.minQuantity,
-      };
-    }
+    // Note: lowStock filter removed as minQuantity field doesn't exist in schema
+    // if (lowStock === 'true') {
+    //   where.quantity = { lte: 1 }; // Could use a hardcoded threshold
+    // }
 
-    const pantryItems = await prisma.pantryItem.findMany({
+    const pantryItems = await prisma.pantryInventory.findMany({
       where,
       include: {
         ingredient: true,
@@ -66,14 +66,14 @@ export const getPantryItemById = async (
   next: NextFunction
 ): Promise<void> => {
   try {
-    const userId = req.user?.userId;
+    const userId = req.user?.id;
     if (!userId) {
       throw new AppError('User not authenticated', 401);
     }
 
-    const { id } = req.params;
+    const { id } = req.params as { id: string };
 
-    const pantryItem = await prisma.pantryItem.findFirst({
+    const pantryItem = await prisma.pantryInventory.findFirst({
       where: {
         id,
         userId,
@@ -107,7 +107,7 @@ export const addPantryItem = async (
   next: NextFunction
 ): Promise<void> => {
   try {
-    const userId = req.user?.userId;
+    const userId = req.user?.id;
     if (!userId) {
       throw new AppError('User not authenticated', 401);
     }
@@ -118,8 +118,6 @@ export const addPantryItem = async (
       unit,
       location,
       expirationDate,
-      minQuantity,
-      notes,
     } = req.body;
 
     // Validate required fields
@@ -137,7 +135,7 @@ export const addPantryItem = async (
     }
 
     // Check if item already exists in pantry
-    const existing = await prisma.pantryItem.findFirst({
+    const existing = await prisma.pantryInventory.findFirst({
       where: {
         userId,
         ingredientId,
@@ -147,12 +145,11 @@ export const addPantryItem = async (
 
     if (existing) {
       // Update existing item quantity
-      const pantryItem = await prisma.pantryItem.update({
+      const pantryItem = await prisma.pantryInventory.update({
         where: { id: existing.id },
         data: {
-          quantity: existing.quantity + quantity,
+          quantity: Number(existing.quantity) + Number(quantity),
           expirationDate: expirationDate ? new Date(expirationDate) : existing.expirationDate,
-          notes: notes || existing.notes,
         },
         include: {
           ingredient: true,
@@ -170,7 +167,7 @@ export const addPantryItem = async (
     }
 
     // Create new pantry item
-    const pantryItem = await prisma.pantryItem.create({
+    const pantryItem = await prisma.pantryInventory.create({
       data: {
         userId,
         ingredientId,
@@ -178,8 +175,6 @@ export const addPantryItem = async (
         unit,
         location,
         expirationDate: expirationDate ? new Date(expirationDate) : null,
-        minQuantity: minQuantity || 0,
-        notes,
       },
       include: {
         ingredient: true,
@@ -208,23 +203,21 @@ export const updatePantryItem = async (
   next: NextFunction
 ): Promise<void> => {
   try {
-    const userId = req.user?.userId;
+    const userId = req.user?.id;
     if (!userId) {
       throw new AppError('User not authenticated', 401);
     }
 
-    const { id } = req.params;
+    const { id } = req.params as { id: string };
     const {
       quantity,
       unit,
       location,
       expirationDate,
-      minQuantity,
-      notes,
     } = req.body;
 
     // Check if pantry item exists and belongs to user
-    const existing = await prisma.pantryItem.findFirst({
+    const existing = await prisma.pantryInventory.findFirst({
       where: {
         id,
         userId,
@@ -235,17 +228,16 @@ export const updatePantryItem = async (
       throw new AppError('Pantry item not found', 404);
     }
 
-    const updateData: any = {};
-    if (quantity !== undefined) updateData.quantity = quantity;
-    if (unit) updateData.unit = unit;
-    if (location !== undefined) updateData.location = location;
-    if (expirationDate !== undefined) {
-      updateData.expirationDate = expirationDate ? new Date(expirationDate) : null;
-    }
-    if (minQuantity !== undefined) updateData.minQuantity = minQuantity;
-    if (notes !== undefined) updateData.notes = notes;
+    const updateData: Prisma.PantryInventoryUpdateInput = {
+      ...(quantity !== undefined && { quantity }),
+      ...(unit && { unit }),
+      ...(location !== undefined && { location }),
+      ...(expirationDate !== undefined && {
+        expirationDate: expirationDate ? new Date(expirationDate) : null
+      }),
+    };
 
-    const pantryItem = await prisma.pantryItem.update({
+    const pantryItem = await prisma.pantryInventory.update({
       where: { id },
       data: updateData,
       include: {
@@ -275,15 +267,15 @@ export const deletePantryItem = async (
   next: NextFunction
 ): Promise<void> => {
   try {
-    const userId = req.user?.userId;
+    const userId = req.user?.id;
     if (!userId) {
       throw new AppError('User not authenticated', 401);
     }
 
-    const { id } = req.params;
+    const { id } = req.params as { id: string };
 
     // Check if pantry item exists and belongs to user
-    const existing = await prisma.pantryItem.findFirst({
+    const existing = await prisma.pantryInventory.findFirst({
       where: {
         id,
         userId,
@@ -294,7 +286,7 @@ export const deletePantryItem = async (
       throw new AppError('Pantry item not found', 404);
     }
 
-    await prisma.pantryItem.delete({
+    await prisma.pantryInventory.delete({
       where: { id },
     });
 
@@ -320,12 +312,12 @@ export const consumePantryItem = async (
   next: NextFunction
 ): Promise<void> => {
   try {
-    const userId = req.user?.userId;
+    const userId = req.user?.id;
     if (!userId) {
       throw new AppError('User not authenticated', 401);
     }
 
-    const { id } = req.params;
+    const { id } = req.params as { id: string };
     const { quantity } = req.body;
 
     if (!quantity || quantity <= 0) {
@@ -333,7 +325,7 @@ export const consumePantryItem = async (
     }
 
     // Check if pantry item exists and belongs to user
-    const existing = await prisma.pantryItem.findFirst({
+    const existing = await prisma.pantryInventory.findFirst({
       where: {
         id,
         userId,
@@ -344,7 +336,7 @@ export const consumePantryItem = async (
       throw new AppError('Pantry item not found', 404);
     }
 
-    const newQuantity = existing.quantity - quantity;
+    const newQuantity = Number(existing.quantity) - Number(quantity);
 
     if (newQuantity < 0) {
       throw new AppError('Cannot consume more than available quantity', 400);
@@ -352,7 +344,7 @@ export const consumePantryItem = async (
 
     if (newQuantity === 0) {
       // Delete item if quantity reaches zero
-      await prisma.pantryItem.delete({
+      await prisma.pantryInventory.delete({
         where: { id },
       });
 
@@ -365,7 +357,7 @@ export const consumePantryItem = async (
       return;
     }
 
-    const pantryItem = await prisma.pantryItem.update({
+    const pantryItem = await prisma.pantryInventory.update({
       where: { id },
       data: {
         quantity: newQuantity,
@@ -397,16 +389,17 @@ export const getLowStockItems = async (
   next: NextFunction
 ): Promise<void> => {
   try {
-    const userId = req.user?.userId;
+    const userId = req.user?.id;
     if (!userId) {
       throw new AppError('User not authenticated', 401);
     }
 
-    const pantryItems = await prisma.pantryItem.findMany({
+    // Note: Low stock detection simplified as minQuantity field doesn't exist
+    const pantryItems = await prisma.pantryInventory.findMany({
       where: {
         userId,
         quantity: {
-          lte: prisma.pantryItem.fields.minQuantity,
+          lte: 1, // Hardcoded threshold since minQuantity doesn't exist in schema
         },
       },
       include: {
@@ -438,7 +431,7 @@ export const getExpiringSoonItems = async (
   next: NextFunction
 ): Promise<void> => {
   try {
-    const userId = req.user?.userId;
+    const userId = req.user?.id;
     if (!userId) {
       throw new AppError('User not authenticated', 401);
     }
@@ -449,7 +442,7 @@ export const getExpiringSoonItems = async (
     const expirationDate = new Date();
     expirationDate.setDate(expirationDate.getDate() + daysNum);
 
-    const pantryItems = await prisma.pantryItem.findMany({
+    const pantryItems = await prisma.pantryInventory.findMany({
       where: {
         userId,
         expirationDate: {

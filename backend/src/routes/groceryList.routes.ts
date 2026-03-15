@@ -12,7 +12,7 @@ import {
   removeItemFromList,
 } from '../controllers/groceryList.controller';
 
-const router = Router();
+const router: Router = Router();
 
 // All grocery list routes require authentication
 router.use(authenticate);

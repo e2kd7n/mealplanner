@@ -10,7 +10,7 @@ import {
   getSearchSuggestions,
 } from '../controllers/ingredient.controller';
 
-const router = Router();
+const router: Router = Router();
 
 /**
  * @route   GET /api/ingredients/categories

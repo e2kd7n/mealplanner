@@ -8,7 +8,7 @@ import {
   deleteRecipe,
 } from '../controllers/recipe.controller';
 
-const router = Router();
+const router: Router = Router();
 
 /**
  * @route   GET /api/recipes

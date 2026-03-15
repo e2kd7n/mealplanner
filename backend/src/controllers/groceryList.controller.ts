@@ -1,4 +1,5 @@
 import { Request, Response, NextFunction } from 'express';
+import { Prisma } from '@prisma/client';
 import prisma from '../utils/prisma';
 import { AppError } from '../middleware/errorHandler';
 import logger from '../utils/logger';
@@ -70,15 +71,16 @@ export const getGroceryLists = async (
             ingredient: true,
           },
           orderBy: {
-            category: 'asc',
+            ingredient: {
+              category: 'asc',
+            },
           },
         },
         mealPlan: {
           select: {
             id: true,
-            name: true,
-            startDate: true,
-            endDate: true,
+            weekStartDate: true,
+            status: true,
           },
         },
       },
@@ -112,7 +114,7 @@ export const getGroceryListById = async (
       throw new AppError('User not authenticated', 401);
     }
 
-    const { id } = req.params;
+    const { id } = req.params as { id: string };
 
     const groceryList = await prisma.groceryList.findFirst({
       where: {
@@ -125,12 +127,14 @@ export const getGroceryListById = async (
             ingredient: true,
           },
           orderBy: {
-            category: 'asc',
+            ingredient: {
+              category: 'asc',
+            },
           },
         },
         mealPlan: {
           include: {
-            meals: {
+            plannedMeals: {
               include: {
                 recipe: {
                   select: {
@@ -198,9 +202,8 @@ export const createGroceryList = async (
     const groceryList = await prisma.groceryList.create({
       data: {
         userId,
-        name,
         mealPlanId,
-        status: 'ACTIVE',
+        status: 'draft',
       },
       include: {
         items: true,
@@ -391,8 +394,8 @@ export const updateGroceryList = async (
       throw new AppError('User not authenticated', 401);
     }
 
-    const { id } = req.params;
-    const { name, status } = req.body;
+    const { id } = req.params as { id: string };
+    const { status } = req.body;
 
     // Check if grocery list exists and belongs to user
     const existingList = await prisma.groceryList.findFirst({
@@ -406,9 +409,9 @@ export const updateGroceryList = async (
       throw new AppError('Grocery list not found', 404);
     }
 
-    const updateData: any = {};
-    if (name) updateData.name = name;
-    if (status) updateData.status = status;
+    const updateData: Prisma.GroceryListUpdateInput = {
+      ...(status && { status }),
+    };
 
     const groceryList = await prisma.groceryList.update({
       where: { id },
@@ -450,7 +453,7 @@ export const deleteGroceryList = async (
       throw new AppError('User not authenticated', 401);
     }
 
-    const { id } = req.params;
+    const { id } = req.params as { id: string };
 
     // Check if grocery list exists and belongs to user
     const existingList = await prisma.groceryList.findFirst({
@@ -495,8 +498,8 @@ export const addItemToList = async (
       throw new AppError('User not authenticated', 401);
     }
 
-    const { id } = req.params;
-    const { ingredientId, quantity, unit, category, notes } = req.body;
+    const { id } = req.params as { id: string };
+    const { ingredientId, quantity, unit, notes } = req.body;
 
     // Validate required fields
     if (!ingredientId || !quantity || !unit) {
@@ -530,9 +533,9 @@ export const addItemToList = async (
         ingredientId,
         quantity,
         unit,
-        category: category || ingredient.category,
+        estimatedPrice: ingredient.averagePrice,
+        isChecked: false,
         notes,
-        checked: false,
       },
       include: {
         ingredient: true,
@@ -561,27 +564,11 @@ export const updateListItem = async (
   next: NextFunction
 ): Promise<void> => {
   try {
-    const userId = req.user?.id;
-    if (!userId) {
-      throw new AppError('User not authenticated', 401);
-    }
-
-    const { listId, itemId } = req.params;
+    const userId = req.user!.id; // Guaranteed by authenticate middleware
+    const { listId, itemId } = req.params as { listId: string; itemId: string };
     const { quantity, unit, checked, notes } = req.body;
 
-    // Check if grocery list exists and belongs to user
-    const groceryList = await prisma.groceryList.findFirst({
-      where: {
-        id: listId,
-        userId,
-      },
-    });
-
-    if (!groceryList) {
-      throw new AppError('Grocery list not found', 404);
-    }
-
-    // Check if item exists in this list
+    // Verify item exists and belongs to the correct list
     const existingItem = await prisma.groceryListItem.findFirst({
       where: {
         id: itemId,
@@ -590,14 +577,26 @@ export const updateListItem = async (
     });
 
     if (!existingItem) {
-      throw new AppError('Item not found', 404);
+      throw new AppError('Grocery list item not found', 404);
     }
 
-    const updateData: any = {};
-    if (quantity !== undefined) updateData.quantity = quantity;
-    if (unit) updateData.unit = unit;
-    if (checked !== undefined) updateData.checked = checked;
-    if (notes !== undefined) updateData.notes = notes;
+    // Verify the list belongs to the user
+    const groceryList = await prisma.groceryList.findUnique({
+      where: { id: listId },
+      select: { userId: true },
+    });
+
+    if (!groceryList || groceryList.userId !== userId) {
+      throw new AppError('Grocery list item not found', 404);
+    }
+
+    // Build typed update data with conditional fields
+    const updateData: Prisma.GroceryListItemUpdateInput = {
+      ...(quantity !== undefined && { quantity }),
+      ...(unit && { unit }),
+      ...(checked !== undefined && { isChecked: checked }),
+      ...(notes !== undefined && { notes }),
+    };
 
     const item = await prisma.groceryListItem.update({
       where: { id: itemId },
@@ -634,7 +633,7 @@ export const removeItemFromList = async (
       throw new AppError('User not authenticated', 401);
     }
 
-    const { listId, itemId } = req.params;
+    const { listId, itemId } = req.params as { listId: string; itemId: string };
 
     // Check if grocery list exists and belongs to user
     const groceryList = await prisma.groceryList.findFirst({

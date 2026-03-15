@@ -1,6 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
-import { prisma } from '../utils/prisma';
-import { redisClient } from '../utils/redis';
+import { Prisma } from '@prisma/client';
+import prisma from '../utils/prisma';
 import { AppError } from '../middleware/errorHandler';
 import logger from '../utils/logger';
 
@@ -20,25 +20,25 @@ export const getMealPlans = async (
       throw new AppError('User not authenticated', 401);
     }
 
-    const { startDate, endDate, familyMemberId } = req.query;
+    const { startDate, endDate } = req.query;
 
     // Build where clause
     const where: any = { userId };
 
     if (startDate || endDate) {
-      where.startDate = {};
+      where.weekStartDate = {};
       if (startDate) {
-        where.startDate.gte = new Date(startDate as string);
+        where.weekStartDate.gte = new Date(startDate as string);
       }
       if (endDate) {
-        where.startDate.lte = new Date(endDate as string);
+        where.weekStartDate.lte = new Date(endDate as string);
       }
     }
 
     const mealPlans = await prisma.mealPlan.findMany({
       where,
       include: {
-        meals: {
+        plannedMeals: {
           include: {
             recipe: {
               select: {
@@ -50,13 +50,12 @@ export const getMealPlans = async (
                 servings: true,
               },
             },
-            assignedTo: familyMemberId
-              ? {
-                  where: {
-                    id: familyMemberId as string,
-                  },
-                }
-              : true,
+            assignedCook: {
+              select: {
+                id: true,
+                name: true,
+              },
+            },
           },
           orderBy: {
             date: 'asc',
@@ -64,7 +63,7 @@ export const getMealPlans = async (
         },
       },
       orderBy: {
-        startDate: 'desc',
+        weekStartDate: 'desc',
       },
     });
 
@@ -93,7 +92,7 @@ export const getMealPlanById = async (
       throw new AppError('User not authenticated', 401);
     }
 
-    const { id } = req.params;
+    const { id } = req.params as { id: string };
 
     const mealPlan = await prisma.mealPlan.findFirst({
       where: {
@@ -101,10 +100,10 @@ export const getMealPlanById = async (
         userId,
       },
       include: {
-        meals: {
+        plannedMeals: {
           include: {
             recipe: true,
-            assignedTo: true,
+            assignedCook: true,
           },
           orderBy: {
             date: 'asc',
@@ -142,29 +141,21 @@ export const createMealPlan = async (
       throw new AppError('User not authenticated', 401);
     }
 
-    const { name, startDate, endDate } = req.body;
+    const { weekStartDate, status } = req.body;
 
     // Validate required fields
-    if (!name || !startDate || !endDate) {
-      throw new AppError('Name, start date, and end date are required', 400);
-    }
-
-    // Validate date range
-    const start = new Date(startDate);
-    const end = new Date(endDate);
-    if (start >= end) {
-      throw new AppError('End date must be after start date', 400);
+    if (!weekStartDate) {
+      throw new AppError('Week start date is required', 400);
     }
 
     const mealPlan = await prisma.mealPlan.create({
       data: {
         userId,
-        name,
-        startDate: start,
-        endDate: end,
+        weekStartDate: new Date(weekStartDate),
+        status: status || 'draft',
       },
       include: {
-        meals: true,
+        plannedMeals: true,
       },
     });
 
@@ -195,8 +186,8 @@ export const updateMealPlan = async (
       throw new AppError('User not authenticated', 401);
     }
 
-    const { id } = req.params;
-    const { name, startDate, endDate } = req.body;
+    const { id } = req.params as { id: string };
+    const { status } = req.body;
 
     // Check if meal plan exists and belongs to user
     const existingPlan = await prisma.mealPlan.findFirst({
@@ -210,28 +201,18 @@ export const updateMealPlan = async (
       throw new AppError('Meal plan not found', 404);
     }
 
-    // Validate date range if provided
-    if (startDate && endDate) {
-      const start = new Date(startDate);
-      const end = new Date(endDate);
-      if (start >= end) {
-        throw new AppError('End date must be after start date', 400);
-      }
-    }
-
-    const updateData: any = {};
-    if (name) updateData.name = name;
-    if (startDate) updateData.startDate = new Date(startDate);
-    if (endDate) updateData.endDate = new Date(endDate);
+    const updateData: Prisma.MealPlanUpdateInput = {
+      ...(status && { status }),
+    };
 
     const mealPlan = await prisma.mealPlan.update({
       where: { id },
       data: updateData,
       include: {
-        meals: {
+        plannedMeals: {
           include: {
             recipe: true,
-            assignedTo: true,
+            assignedCook: true,
           },
         },
       },
@@ -264,7 +245,7 @@ export const deleteMealPlan = async (
       throw new AppError('User not authenticated', 401);
     }
 
-    const { id } = req.params;
+    const { id } = req.params as { id: string };
 
     // Check if meal plan exists and belongs to user
     const existingPlan = await prisma.mealPlan.findFirst({
@@ -309,8 +290,8 @@ export const addMealToPlan = async (
       throw new AppError('User not authenticated', 401);
     }
 
-    const { id } = req.params;
-    const { recipeId, date, mealType, servings, notes, assignedToIds } = req.body;
+    const { id } = req.params as { id: string };
+    const { recipeId, date, mealType, servings, notes, assignedCookId } = req.body;
 
     // Validate required fields
     if (!recipeId || !date || !mealType) {
@@ -338,30 +319,20 @@ export const addMealToPlan = async (
       throw new AppError('Recipe not found', 404);
     }
 
-    // Validate date is within meal plan range
-    const mealDate = new Date(date);
-    if (mealDate < mealPlan.startDate || mealDate > mealPlan.endDate) {
-      throw new AppError('Meal date must be within meal plan date range', 400);
-    }
-
-    // Create meal
-    const meal = await prisma.meal.create({
+    // Create planned meal
+    const meal = await prisma.plannedMeal.create({
       data: {
         mealPlanId: id,
         recipeId,
-        date: mealDate,
+        date: new Date(date),
         mealType,
         servings: servings || recipe.servings,
         notes,
-        assignedTo: assignedToIds
-          ? {
-              connect: assignedToIds.map((memberId: string) => ({ id: memberId })),
-            }
-          : undefined,
+        assignedCookId,
       },
       include: {
         recipe: true,
-        assignedTo: true,
+        assignedCook: true,
       },
     });
 
@@ -392,8 +363,8 @@ export const updateMeal = async (
       throw new AppError('User not authenticated', 401);
     }
 
-    const { planId, mealId } = req.params;
-    const { date, mealType, servings, notes, assignedToIds } = req.body;
+    const { planId, mealId } = req.params as { planId: string; mealId: string };
+    const { date, mealType, servings, notes, assignedCookId } = req.body;
 
     // Check if meal plan exists and belongs to user
     const mealPlan = await prisma.mealPlan.findFirst({
@@ -408,7 +379,7 @@ export const updateMeal = async (
     }
 
     // Check if meal exists in this plan
-    const existingMeal = await prisma.meal.findFirst({
+    const existingMeal = await prisma.plannedMeal.findFirst({
       where: {
         id: mealId,
         mealPlanId: planId,
@@ -419,46 +390,20 @@ export const updateMeal = async (
       throw new AppError('Meal not found', 404);
     }
 
-    // Validate date if provided
-    if (date) {
-      const mealDate = new Date(date);
-      if (mealDate < mealPlan.startDate || mealDate > mealPlan.endDate) {
-        throw new AppError('Meal date must be within meal plan date range', 400);
-      }
-    }
+    const updateData: Prisma.PlannedMealUpdateInput = {
+      ...(date && { date: new Date(date) }),
+      ...(mealType && { mealType }),
+      ...(servings && { servings }),
+      ...(notes !== undefined && { notes }),
+      ...(assignedCookId !== undefined && { assignedCookId }),
+    };
 
-    const updateData: any = {};
-    if (date) updateData.date = new Date(date);
-    if (mealType) updateData.mealType = mealType;
-    if (servings) updateData.servings = servings;
-    if (notes !== undefined) updateData.notes = notes;
-
-    // Handle assigned family members
-    if (assignedToIds !== undefined) {
-      // First, disconnect all existing assignments
-      await prisma.meal.update({
-        where: { id: mealId },
-        data: {
-          assignedTo: {
-            set: [],
-          },
-        },
-      });
-
-      // Then connect new assignments
-      if (assignedToIds.length > 0) {
-        updateData.assignedTo = {
-          connect: assignedToIds.map((memberId: string) => ({ id: memberId })),
-        };
-      }
-    }
-
-    const meal = await prisma.meal.update({
+    const meal = await prisma.plannedMeal.update({
       where: { id: mealId },
       data: updateData,
       include: {
         recipe: true,
-        assignedTo: true,
+        assignedCook: true,
       },
     });
 
@@ -489,7 +434,7 @@ export const removeMealFromPlan = async (
       throw new AppError('User not authenticated', 401);
     }
 
-    const { planId, mealId } = req.params;
+    const { planId, mealId } = req.params as { planId: string; mealId: string };
 
     // Check if meal plan exists and belongs to user
     const mealPlan = await prisma.mealPlan.findFirst({
@@ -504,7 +449,7 @@ export const removeMealFromPlan = async (
     }
 
     // Check if meal exists in this plan
-    const existingMeal = await prisma.meal.findFirst({
+    const existingMeal = await prisma.plannedMeal.findFirst({
       where: {
         id: mealId,
         mealPlanId: planId,
@@ -515,7 +460,7 @@ export const removeMealFromPlan = async (
       throw new AppError('Meal not found', 404);
     }
 
-    await prisma.meal.delete({
+    await prisma.plannedMeal.delete({
       where: { id: mealId },
     });
 

@@ -17,16 +17,14 @@ export function errorHandler(
   err: Error | AppError,
   req: Request,
   res: Response,
-  next: NextFunction
+  _next: NextFunction
 ): void {
   let statusCode = 500;
   let message = 'Internal Server Error';
-  let isOperational = false;
 
   if (err instanceof AppError) {
     statusCode = err.statusCode;
     message = err.message;
-    isOperational = err.isOperational;
   } else if (err.name === 'ValidationError') {
     statusCode = 400;
     message = err.message;

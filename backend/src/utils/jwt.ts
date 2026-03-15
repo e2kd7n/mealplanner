@@ -26,7 +26,7 @@ export interface TokenPair {
  */
 export function generateAccessToken(payload: TokenPayload): string {
   return jwt.sign(payload, JWT_SECRET, {
-    expiresIn: JWT_EXPIRES_IN as string | number,
+    expiresIn: JWT_EXPIRES_IN as any,
   });
 }
 
@@ -35,7 +35,7 @@ export function generateAccessToken(payload: TokenPayload): string {
  */
 export function generateRefreshToken(payload: TokenPayload): string {
   return jwt.sign(payload, JWT_REFRESH_SECRET, {
-    expiresIn: JWT_REFRESH_EXPIRES_IN as string | number,
+    expiresIn: JWT_REFRESH_EXPIRES_IN as any,
   });
 }
 
