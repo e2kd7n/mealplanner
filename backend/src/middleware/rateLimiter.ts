@@ -1,5 +1,4 @@
 import rateLimit from 'express-rate-limit';
-import { getRedisClient } from '../utils/redis';
 import { logger } from '../utils/logger';
 
 // Create rate limiter with Redis store

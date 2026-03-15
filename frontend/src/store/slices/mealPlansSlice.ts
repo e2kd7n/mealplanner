@@ -1,4 +1,4 @@
-import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit';
+import { createSlice, createAsyncThunk, type PayloadAction } from '@reduxjs/toolkit';
 import { mealPlanAPI } from '../../services/api';
 
 export interface PlannedMeal {
@@ -44,7 +44,7 @@ const initialState: MealPlansState = {
 // Async thunks
 export const fetchMealPlans = createAsyncThunk(
   'mealPlans/fetchMealPlans',
-  async (params?: { status?: string }, { rejectWithValue }) => {
+  async (params: { status?: string } | undefined, { rejectWithValue }) => {
     try {
       const response = await mealPlanAPI.getAll(params);
       return response.data.data;

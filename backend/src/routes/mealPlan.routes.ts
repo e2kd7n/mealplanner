@@ -11,7 +11,7 @@ import {
   removeMealFromPlan,
 } from '../controllers/mealPlan.controller';
 
-const router = Router();
+const router: Router = Router();
 
 // All meal plan routes require authentication
 router.use(authenticate);

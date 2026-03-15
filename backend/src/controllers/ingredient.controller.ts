@@ -1,10 +1,12 @@
 import { Request, Response, NextFunction } from 'express';
+import { Prisma } from '@prisma/client';
 import prisma from '../utils/prisma';
-import { redisClient } from '../utils/redis';
+import { getRedisClient } from '../utils/redis';
 import { AppError } from '../middleware/errorHandler';
 import logger from '../utils/logger';
 
 const INGREDIENT_CACHE_TTL = 3600; // 1 hour
+const redisClient = getRedisClient();
 
 /**
  * @route   GET /api/ingredients
@@ -37,10 +39,7 @@ export const getIngredients = async (
     const where: any = {};
 
     if (search) {
-      where.OR = [
-        { name: { contains: search as string, mode: 'insensitive' } },
-        { alternateNames: { has: search as string } },
-      ];
+      where.name = { contains: search as string, mode: 'insensitive' };
     }
 
     if (category) {
@@ -90,7 +89,7 @@ export const getIngredientById = async (
   next: NextFunction
 ): Promise<void> => {
   try {
-    const { id } = req.params;
+    const { id } = req.params as { id: string };
 
     const cacheKey = `ingredient:${id}`;
     const cached = await redisClient.get(cacheKey);
@@ -105,7 +104,7 @@ export const getIngredientById = async (
         _count: {
           select: {
             recipeIngredients: true,
-            pantryItems: true,
+            pantryInventory: true,
           },
         },
       },
@@ -142,16 +141,15 @@ export const createIngredient = async (
     const {
       name,
       category,
-      defaultUnit,
-      alternateNames,
-      nutritionPer100g,
+      unit,
+      seasonalMonths,
+      averagePrice,
       allergens,
-      isCommon,
     } = req.body;
 
     // Validate required fields
-    if (!name || !category || !defaultUnit) {
-      throw new AppError('Name, category, and default unit are required', 400);
+    if (!name || !category || !unit || averagePrice === undefined) {
+      throw new AppError('Name, category, unit, and average price are required', 400);
     }
 
     // Check if ingredient already exists
@@ -172,11 +170,10 @@ export const createIngredient = async (
       data: {
         name,
         category,
-        defaultUnit,
-        alternateNames: alternateNames || [],
-        nutritionPer100g: nutritionPer100g || {},
+        unit,
+        seasonalMonths: seasonalMonths || [],
+        averagePrice,
         allergens: allergens || [],
-        isCommon: isCommon || false,
       },
     });
 
@@ -205,15 +202,14 @@ export const updateIngredient = async (
   next: NextFunction
 ): Promise<void> => {
   try {
-    const { id } = req.params;
+    const { id } = req.params as { id: string };
     const {
       name,
       category,
-      defaultUnit,
-      alternateNames,
-      nutritionPer100g,
+      unit,
+      seasonalMonths,
+      averagePrice,
       allergens,
-      isCommon,
     } = req.body;
 
     // Check if ingredient exists
@@ -244,14 +240,14 @@ export const updateIngredient = async (
       }
     }
 
-    const updateData: any = {};
-    if (name) updateData.name = name;
-    if (category) updateData.category = category;
-    if (defaultUnit) updateData.defaultUnit = defaultUnit;
-    if (alternateNames) updateData.alternateNames = alternateNames;
-    if (nutritionPer100g) updateData.nutritionPer100g = nutritionPer100g;
-    if (allergens) updateData.allergens = allergens;
-    if (isCommon !== undefined) updateData.isCommon = isCommon;
+    const updateData: Prisma.IngredientUpdateInput = {
+      ...(name && { name }),
+      ...(category && { category }),
+      ...(unit && { unit }),
+      ...(seasonalMonths && { seasonalMonths }),
+      ...(averagePrice !== undefined && { averagePrice }),
+      ...(allergens && { allergens }),
+    };
 
     const ingredient = await prisma.ingredient.update({
       where: { id },
@@ -284,7 +280,7 @@ export const deleteIngredient = async (
   next: NextFunction
 ): Promise<void> => {
   try {
-    const { id } = req.params;
+    const { id } = req.params as { id: string };
 
     // Check if ingredient exists
     const existing = await prisma.ingredient.findUnique({
@@ -293,7 +289,7 @@ export const deleteIngredient = async (
         _count: {
           select: {
             recipeIngredients: true,
-            pantryItems: true,
+            pantryInventory: true,
             groceryListItems: true,
           },
         },
@@ -307,7 +303,7 @@ export const deleteIngredient = async (
     // Check if ingredient is being used
     const usageCount =
       existing._count.recipeIngredients +
-      existing._count.pantryItems +
+      existing._count.pantryInventory +
       existing._count.groceryListItems;
 
     if (usageCount > 0) {
@@ -342,7 +338,7 @@ export const deleteIngredient = async (
  * @access  Public
  */
 export const getCategories = async (
-  req: Request,
+  _req: Request,
   res: Response,
   next: NextFunction
 ): Promise<void> => {
@@ -412,22 +408,18 @@ export const getSearchSuggestions = async (
 
     const ingredients = await prisma.ingredient.findMany({
       where: {
-        OR: [
-          { name: { contains: searchTerm, mode: 'insensitive' } },
-          { alternateNames: { has: searchTerm } },
-        ],
+        name: { contains: searchTerm, mode: 'insensitive' },
       },
       select: {
         id: true,
         name: true,
         category: true,
-        defaultUnit: true,
+        unit: true,
       },
       take: limitNum,
-      orderBy: [
-        { isCommon: 'desc' },
-        { name: 'asc' },
-      ],
+      orderBy: {
+        name: 'asc',
+      },
     });
 
     const response = {

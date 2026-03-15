@@ -28,7 +28,7 @@ import {
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import { useAppDispatch, useAppSelector } from '../store/hooks';
-import { fetchRecipes } from '../store/slices/recipeSlice';
+import { fetchRecipes } from '../store/slices/recipesSlice';
 
 const Recipes: React.FC = () => {
   const navigate = useNavigate();
@@ -251,10 +251,10 @@ const Recipes: React.FC = () => {
             </Box>
 
             {/* Pagination */}
-            {pagination.pages > 1 && (
+            {pagination.totalPages > 1 && (
               <Box sx={{ display: 'flex', justifyContent: 'center', mt: 4 }}>
                 <Pagination
-                  count={pagination.pages}
+                  count={pagination.totalPages}
                   page={currentPage}
                   onChange={handlePageChange}
                   color="primary"

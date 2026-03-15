@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import { authenticate } from '../middleware/auth';
 
-const router = Router();
+const router: Router = Router();
 
 // All user routes require authentication
 router.use(authenticate);
@@ -11,7 +11,7 @@ router.use(authenticate);
  * @desc    Get user profile
  * @access  Private
  */
-router.get('/profile', (req, res) => {
+router.get('/profile', (_req, res) => {
   res.json({ message: 'User profile endpoint - to be implemented' });
 });
 
@@ -20,7 +20,7 @@ router.get('/profile', (req, res) => {
  * @desc    Update user profile
  * @access  Private
  */
-router.put('/profile', (req, res) => {
+router.put('/profile', (_req, res) => {
   res.json({ message: 'Update profile endpoint - to be implemented' });
 });
 
