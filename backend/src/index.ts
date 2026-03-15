@@ -1,3 +1,9 @@
+/**
+ * Copyright (c) 2026 Erik Didriksen
+ * All rights reserved.
+ */
+
+
 import express, { Application } from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
@@ -45,6 +51,26 @@ app.use(requestLogger);
 
 // Rate limiting
 app.use('/api/', rateLimiter);
+
+// Welcome endpoint
+app.get('/', (_req, res) => {
+  res.json({
+    name: 'Meal Planner API',
+    version: '1.0.0',
+    status: 'running',
+    endpoints: {
+      health: '/health',
+      auth: '/api/auth',
+      users: '/api/users',
+      recipes: '/api/recipes',
+      mealPlans: '/api/meal-plans',
+      groceryLists: '/api/grocery-lists',
+      ingredients: '/api/ingredients',
+      pantry: '/api/pantry',
+    },
+    documentation: 'See README.md for API documentation',
+  });
+});
 
 // Health check endpoint
 app.get('/health', (_req, res) => {

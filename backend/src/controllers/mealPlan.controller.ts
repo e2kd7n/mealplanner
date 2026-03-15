@@ -1,3 +1,9 @@
+/**
+ * Copyright (c) 2026 Erik Didriksen
+ * All rights reserved.
+ */
+
+
 import { Request, Response, NextFunction } from 'express';
 import { Prisma } from '@prisma/client';
 import prisma from '../utils/prisma';

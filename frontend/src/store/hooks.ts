@@ -1,3 +1,9 @@
+/**
+ * Copyright (c) 2026 Erik Didriksen
+ * All rights reserved.
+ */
+
+
 import { useDispatch, useSelector } from 'react-redux';
 import type { TypedUseSelectorHook } from 'react-redux';
 import type { RootState, AppDispatch } from './index';

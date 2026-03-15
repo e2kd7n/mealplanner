@@ -1,3 +1,9 @@
+/**
+ * Copyright (c) 2026 Erik Didriksen
+ * All rights reserved.
+ */
+
+
 import { Request, Response, NextFunction } from 'express';
 import prisma from '../utils/prisma';
 import { AppError } from '../middleware/errorHandler';
@@ -421,12 +427,178 @@ export async function deleteRecipe(
   }
 }
 
+/**
+ * @route   POST /api/recipes/:id/rate
+ * @desc    Add or update rating for a recipe
+ * @access  Private
+ */
+export async function rateRecipe(
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void> {
+  try {
+    const { id } = req.params as { id: string };
+    const userId = req.user?.id;
+
+    if (!userId) {
+      throw new AppError('User not authenticated', 401);
+    }
+
+    const { rating, notes, wouldMakeAgain, familyMemberId } = req.body;
+
+    // Validate rating
+    if (!rating || rating < 1 || rating > 5) {
+      throw new AppError('Rating must be between 1 and 5', 400);
+    }
+
+    if (typeof wouldMakeAgain !== 'boolean') {
+      throw new AppError('wouldMakeAgain must be a boolean', 400);
+    }
+
+    // Check if recipe exists
+    const recipe = await prisma.recipe.findUnique({
+      where: { id },
+    });
+
+    if (!recipe) {
+      throw new AppError('Recipe not found', 404);
+    }
+
+    // Check if user already rated this recipe
+    const existingRating = await prisma.recipeRating.findFirst({
+      where: {
+        recipeId: id,
+        userId,
+        familyMemberId: familyMemberId || null,
+      },
+    });
+
+    let recipeRating;
+
+    if (existingRating) {
+      // Update existing rating
+      recipeRating = await prisma.recipeRating.update({
+        where: { id: existingRating.id },
+        data: {
+          rating,
+          notes,
+          wouldMakeAgain,
+        },
+        include: {
+          familyMember: true,
+        },
+      });
+    } else {
+      // Create new rating
+      recipeRating = await prisma.recipeRating.create({
+        data: {
+          recipeId: id,
+          userId,
+          familyMemberId: familyMemberId || null,
+          rating,
+          notes,
+          wouldMakeAgain,
+        },
+        include: {
+          familyMember: true,
+        },
+      });
+    }
+
+    // Invalidate recipe cache
+    await cacheDelPattern(`recipe:${id}`);
+    await cacheDelPattern('recipes:*');
+
+    logger.info('Recipe rated', { recipeId: id, userId, rating });
+
+    res.status(existingRating ? 200 : 201).json({
+      message: existingRating ? 'Rating updated successfully' : 'Rating added successfully',
+      data: recipeRating,
+    });
+  } catch (error) {
+    next(error);
+  }
+}
+
+/**
+ * @route   GET /api/recipes/:id/ratings
+ * @desc    Get all ratings for a recipe
+ * @access  Public
+ */
+export async function getRecipeRatings(
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void> {
+  try {
+    const { id } = req.params as { id: string };
+
+    // Check if recipe exists
+    const recipe = await prisma.recipe.findUnique({
+      where: { id },
+    });
+
+    if (!recipe) {
+      throw new AppError('Recipe not found', 404);
+    }
+
+    // Get all ratings for the recipe
+    const ratings = await prisma.recipeRating.findMany({
+      where: { recipeId: id },
+      include: {
+        user: {
+          select: {
+            id: true,
+            familyName: true,
+          },
+        },
+        familyMember: {
+          select: {
+            id: true,
+            name: true,
+          },
+        },
+      },
+      orderBy: {
+        createdAt: 'desc',
+      },
+    });
+
+    // Calculate average rating
+    const averageRating = ratings.length > 0
+      ? ratings.reduce((sum, r) => sum + r.rating, 0) / ratings.length
+      : 0;
+
+    // Calculate would make again percentage
+    const wouldMakeAgainCount = ratings.filter(r => r.wouldMakeAgain).length;
+    const wouldMakeAgainPercentage = ratings.length > 0
+      ? (wouldMakeAgainCount / ratings.length) * 100
+      : 0;
+
+    res.json({
+      data: {
+        ratings,
+        summary: {
+          totalRatings: ratings.length,
+          averageRating: Math.round(averageRating * 10) / 10,
+          wouldMakeAgainPercentage: Math.round(wouldMakeAgainPercentage),
+        },
+      },
+    });
+  } catch (error) {
+    next(error);
+  }
+}
+
 export default {
   getRecipes,
   getRecipeById,
   createRecipe,
   updateRecipe,
   deleteRecipe,
+  rateRecipe,
+  getRecipeRatings,
 };
 
 // Made with Bob

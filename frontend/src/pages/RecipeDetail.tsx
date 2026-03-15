@@ -1,3 +1,9 @@
+/**
+ * Copyright (c) 2026 Erik Didriksen
+ * All rights reserved.
+ */
+
+
 import React, { useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
@@ -25,7 +31,7 @@ import {
   Edit as EditIcon,
 } from '@mui/icons-material';
 import { useAppDispatch, useAppSelector } from '../store/hooks';
-import { fetchRecipeById, clearCurrentRecipe } from '../store/slices/recipeSlice';
+import { fetchRecipeById, setCurrentRecipe } from '../store/slices/recipesSlice';
 
 const RecipeDetail: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -38,7 +44,7 @@ const RecipeDetail: React.FC = () => {
       dispatch(fetchRecipeById(id));
     }
     return () => {
-      dispatch(clearCurrentRecipe());
+      dispatch(setCurrentRecipe(null));
     };
   }, [dispatch, id]);
 

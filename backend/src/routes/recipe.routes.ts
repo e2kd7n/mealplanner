@@ -1,3 +1,9 @@
+/**
+ * Copyright (c) 2026 Erik Didriksen
+ * All rights reserved.
+ */
+
+
 import { Router } from 'express';
 import { authenticate, optionalAuthenticate } from '../middleware/auth';
 import {
@@ -6,6 +12,8 @@ import {
   createRecipe,
   updateRecipe,
   deleteRecipe,
+  rateRecipe,
+  getRecipeRatings,
 } from '../controllers/recipe.controller';
 
 const router: Router = Router();
@@ -44,6 +52,20 @@ router.put('/:id', authenticate, updateRecipe);
  * @access  Private
  */
 router.delete('/:id', authenticate, deleteRecipe);
+
+/**
+ * @route   POST /api/recipes/:id/rate
+ * @desc    Add or update rating for a recipe
+ * @access  Private
+ */
+router.post('/:id/rate', authenticate, rateRecipe);
+
+/**
+ * @route   GET /api/recipes/:id/ratings
+ * @desc    Get all ratings for a recipe
+ * @access  Public
+ */
+router.get('/:id/ratings', getRecipeRatings);
 
 export default router;
 
