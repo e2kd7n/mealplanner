@@ -40,6 +40,7 @@ export const login = createAsyncThunk(
   async (credentials: { email: string; password: string }, { rejectWithValue }) => {
     try {
       const response = await authAPI.login(credentials);
+      // Backend returns data directly, not nested in data.data
       const { user, accessToken, refreshToken } = response.data;
       
       // Store tokens
@@ -99,6 +100,7 @@ export const refreshAccessToken = createAsyncThunk(
       }
       
       const response = await authAPI.refreshToken(refreshToken);
+      // Backend returns data directly, not nested in data.data
       const { accessToken } = response.data;
       
       localStorage.setItem('accessToken', accessToken);
