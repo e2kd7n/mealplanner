@@ -55,7 +55,8 @@ api.interceptors.response.use(
           { withCredentials: true }
         );
 
-        const { accessToken } = response.data.data;
+        // Backend returns data directly, not nested in data.data
+        const { accessToken } = response.data;
         localStorage.setItem('accessToken', accessToken);
 
         // Retry the original request with new token
