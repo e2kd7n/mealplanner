@@ -1,28 +1,27 @@
 # Project Issues
 
-**Last Updated:** March 15, 2026 (18:28 UTC)
+**Last Updated:** March 15, 2026 (18:36 UTC)
 
 ---
 
 ## 📊 Quick Statistics
 
-- **Total Open Issues:** 10
-- **High Priority:** 5
+- **Total Open Issues:** 9
+- **High Priority:** 4
 - **Medium Priority:** 5
 - **Low Priority:** 0
-- **In Progress:** 1 (Issue #24 - 5/9 bugs fixed)
+- **In Progress:** 2 (Issue #19 - Backend complete, frontend pending; Issue #24 - 5/9 bugs fixed)
 - **Recently Completed:** 12
 
 ---
 
 ## 🎯 Issues by Priority
 
-### 🟠 High Priority (5 issues)
+### 🟠 High Priority (4 issues)
 
 | # | Issue | Tags | Status |
 |---|-------|------|--------|
 | 11 | Grocery List Optimization | `backend`, `optimization`, `grocery` | Open |
-| 19 | URL-Based Recipe Import | `backend`, `integration`, `recipes`, `docling` | Open |
 | 20 | Integrate Nutrition Database | `backend`, `nutrition`, `api-integration` | Open |
 | 21 | Nutrition Dashboard | `frontend`, `nutrition`, `dashboard`, `charts` | Open |
 | 22 | Nutrition Guideline Warnings | `frontend`, `backend`, `nutrition`, `health` | Open |
@@ -37,10 +36,11 @@
 | 23 | System Architecture Documentation | `documentation`, `architecture` | Open |
 | 25 | Sortable and Filterable Tables/Lists | `frontend`, `ui`, `enhancement`, `ux` | Open |
 
-### 🔵 In Progress (1 issue)
+### 🔵 In Progress (2 issues)
 
 | # | Issue | Tags | Status |
 |---|-------|------|--------|
+| 19 | URL-Based Recipe Import | `backend`, `frontend`, `integration`, `recipes` | Backend complete, frontend UI pending |
 | 24 | Fix Frontend Console Errors | `frontend`, `bugfix`, `accessibility` | 5 of 9 bugs fixed |
 
 ---
