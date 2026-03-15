@@ -224,13 +224,23 @@ const RecipeDetail: React.FC = () => {
             </Typography>
             <Divider sx={{ mb: 2 }} />
             <List>
-              {/* Placeholder - will be populated from recipe.ingredients */}
-              <ListItem>
-                <ListItemText
-                  primary="Ingredients will be loaded from the API"
-                  secondary="This section will display all recipe ingredients with quantities"
-                />
-              </ListItem>
+              {recipe.ingredients && recipe.ingredients.length > 0 ? (
+                recipe.ingredients.map((item: any, index: number) => (
+                  <ListItem key={index}>
+                    <ListItemText
+                      primary={`${item.quantity} ${item.unit} ${item.ingredient?.name || item.ingredientName || 'Unknown ingredient'}`}
+                      secondary={item.notes}
+                    />
+                  </ListItem>
+                ))
+              ) : (
+                <ListItem>
+                  <ListItemText
+                    primary="No ingredients listed"
+                    secondary="Add ingredients when editing this recipe"
+                  />
+                </ListItem>
+              )}
             </List>
           </Paper>
 
@@ -241,13 +251,24 @@ const RecipeDetail: React.FC = () => {
             </Typography>
             <Divider sx={{ mb: 2 }} />
             <List>
-              {/* Placeholder - will be populated from recipe.instructions */}
-              <ListItem>
-                <ListItemText
-                  primary="Step-by-step instructions will be loaded from the API"
-                  secondary="This section will display cooking instructions in order"
-                />
-              </ListItem>
+              {recipe.instructions && Array.isArray(recipe.instructions) && recipe.instructions.length > 0 ? (
+                recipe.instructions.map((step: any, index: number) => (
+                  <ListItem key={index} sx={{ alignItems: 'flex-start' }}>
+                    <ListItemText
+                      primary={`Step ${step.step || index + 1}`}
+                      secondary={step.instruction || step.text || step}
+                      primaryTypographyProps={{ fontWeight: 'bold', mb: 0.5 }}
+                    />
+                  </ListItem>
+                ))
+              ) : (
+                <ListItem>
+                  <ListItemText
+                    primary="No instructions available"
+                    secondary="Add instructions when editing this recipe"
+                  />
+                </ListItem>
+              )}
             </List>
           </Paper>
         </Box>
