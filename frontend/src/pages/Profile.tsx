@@ -126,7 +126,13 @@ const Profile: React.FC = () => {
   const [memberNewIngredient, setMemberNewIngredient] = useState('');
 
   useEffect(() => {
-    loadData();
+    // Only load data if we have an access token
+    const token = localStorage.getItem('accessToken');
+    if (token) {
+      loadData();
+    } else {
+      setLoading(false);
+    }
   }, []);
 
   const loadData = async () => {
@@ -146,7 +152,10 @@ const Profile: React.FC = () => {
 
       setFamilyMembers(membersRes.data.data);
     } catch (error: any) {
-      showSnackbar(error.response?.data?.message || 'Failed to load profile data', 'error');
+      // Only show error if it's not a 401 (which means user needs to login)
+      if (error.response?.status !== 401) {
+        showSnackbar(error.response?.data?.message || 'Failed to load profile data', 'error');
+      }
     } finally {
       setLoading(false);
     }
@@ -520,7 +529,14 @@ const Profile: React.FC = () => {
       </Paper>
 
       {/* Family Member Dialog */}
-      <Dialog open={memberDialog} onClose={handleCloseMemberDialog} maxWidth="sm" fullWidth>
+      <Dialog
+        open={memberDialog}
+        onClose={handleCloseMemberDialog}
+        maxWidth="sm"
+        fullWidth
+        disablePortal={false}
+        keepMounted={false}
+      >
         <DialogTitle>{editingMember ? 'Edit Family Member' : 'Add Family Member'}</DialogTitle>
         <DialogContent>
           <Stack spacing={2} sx={{ mt: 1 }}>
