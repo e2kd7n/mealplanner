@@ -591,6 +591,414 @@ export async function getRecipeRatings(
   }
 }
 
+/**
+ * @route   GET /api/recipes/search
+ * @desc    Advanced recipe search with full-text search
+ * @access  Public
+ */
+export async function searchRecipes(
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void> {
+  try {
+    const {
+      q, // search query
+      page = '1',
+      limit = '20',
+      mealType,
+      difficulty,
+      kidFriendly,
+      cuisineType,
+      maxPrepTime,
+      maxCookTime,
+      minRating,
+    } = req.query;
+
+    if (!q) {
+      throw new AppError('Search query is required', 400);
+    }
+
+    const pageNum = parseInt(page as string);
+    const limitNum = parseInt(limit as string);
+    const skip = (pageNum - 1) * limitNum;
+
+    // Build where clause with full-text search
+    const where: any = {
+      AND: [
+        {
+          OR: [
+            { isPublic: true },
+            { userId: req.user?.userId },
+          ],
+        },
+        {
+          OR: [
+            { title: { contains: q as string, mode: 'insensitive' } },
+            { description: { contains: q as string, mode: 'insensitive' } },
+            { cuisineType: { contains: q as string, mode: 'insensitive' } },
+          ],
+        },
+      ],
+    };
+
+    // Apply filters
+    if (mealType) {
+      where.AND.push({ mealType });
+    }
+    if (difficulty) {
+      where.AND.push({ difficulty });
+    }
+    if (kidFriendly === 'true') {
+      where.AND.push({ kidFriendly: true });
+    }
+    if (cuisineType) {
+      where.AND.push({ cuisineType });
+    }
+    if (maxPrepTime) {
+      where.AND.push({ prepTime: { lte: parseInt(maxPrepTime as string) } });
+    }
+    if (maxCookTime) {
+      where.AND.push({ cookTime: { lte: parseInt(maxCookTime as string) } });
+    }
+
+    // Get recipes
+    const [recipes] = await Promise.all([
+      prisma.recipe.findMany({
+        where,
+        skip,
+        take: limitNum,
+        include: {
+          ingredients: {
+            include: {
+              ingredient: true,
+            },
+          },
+          ratings: {
+            select: {
+              rating: true,
+            },
+          },
+        },
+        orderBy: {
+          createdAt: 'desc',
+        },
+      }),
+      prisma.recipe.count({ where }),
+    ]);
+
+    // Calculate average ratings and filter by minRating if specified
+    let recipesWithRatings = recipes.map((recipe) => {
+      const ratings = recipe.ratings.map((r) => r.rating);
+      const avgRating = ratings.length > 0
+        ? ratings.reduce((a, b) => a + b, 0) / ratings.length
+        : 0;
+
+      return {
+        ...recipe,
+        averageRating: avgRating,
+        ratingCount: ratings.length,
+      };
+    });
+
+    // Filter by minimum rating if specified
+    if (minRating) {
+      const minRatingNum = parseFloat(minRating as string);
+      recipesWithRatings = recipesWithRatings.filter(
+        (r) => r.averageRating >= minRatingNum
+      );
+    }
+
+    res.json({
+      data: {
+        recipes: recipesWithRatings,
+        pagination: {
+          page: pageNum,
+          limit: limitNum,
+          total: recipesWithRatings.length,
+          totalPages: Math.ceil(recipesWithRatings.length / limitNum),
+        },
+        query: q,
+      },
+    });
+  } catch (error) {
+    next(error);
+  }
+}
+
+/**
+ * @route   GET /api/recipes/recommendations
+ * @desc    Get personalized recipe recommendations
+ * @access  Private
+ */
+export async function getRecommendations(
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void> {
+  try {
+    const userId = req.user?.userId;
+
+    if (!userId) {
+      throw new AppError('User not authenticated', 401);
+    }
+
+    const { limit = '10' } = req.query;
+    const limitNum = parseInt(limit as string);
+
+    // Get user preferences
+    const userPreferences = await prisma.userPreferences.findUnique({
+      where: { userId },
+    });
+
+    // Get user's highly rated recipes to understand preferences
+    const userRatings = await prisma.recipeRating.findMany({
+      where: {
+        userId,
+        rating: { gte: 4 }, // 4 stars or higher
+      },
+      include: {
+        recipe: true,
+      },
+      take: 20,
+      orderBy: {
+        rating: 'desc',
+      },
+    });
+
+    // Extract preferred meal types and cuisines
+    const preferredMealTypes = [...new Set(userRatings.map(r => r.recipe.mealType))];
+    const preferredCuisines = [...new Set(userRatings.map(r => r.recipe.cuisineType).filter(Boolean))];
+
+    // Build recommendation query
+    const where: any = {
+      AND: [
+        { isPublic: true },
+        { userId: { not: userId } }, // Exclude user's own recipes
+      ],
+    };
+
+    // Apply user preferences
+    if (userPreferences) {
+      // Filter by dietary preferences (stored as JSON)
+      // This would require tags or dietary info in recipe schema
+      // For now, we'll skip this filter
+
+      // Filter by skill level
+      if (userPreferences.cookingSkillLevel) {
+        const skillLevels = ['easy', 'medium', 'hard'];
+        const userSkillIndex = skillLevels.indexOf(userPreferences.cookingSkillLevel);
+        if (userSkillIndex >= 0) {
+          where.AND.push({
+            difficulty: {
+              in: skillLevels.slice(0, userSkillIndex + 1),
+            },
+          });
+        }
+      }
+    }
+
+    // Prefer meal types and cuisines user has rated highly
+    if (preferredMealTypes.length > 0 || preferredCuisines.length > 0) {
+      where.AND.push({
+        OR: [
+          ...(preferredMealTypes.length > 0 ? [{ mealType: { in: preferredMealTypes } }] : []),
+          ...(preferredCuisines.length > 0 ? [{ cuisineType: { in: preferredCuisines } }] : []),
+        ],
+      });
+    }
+
+    // Get recommended recipes
+    const recipes = await prisma.recipe.findMany({
+      where,
+      take: limitNum * 2, // Get more to filter by rating
+      include: {
+        ingredients: {
+          include: {
+            ingredient: true,
+          },
+        },
+        ratings: {
+          select: {
+            rating: true,
+          },
+        },
+      },
+      orderBy: {
+        createdAt: 'desc',
+      },
+    });
+
+    // Calculate average ratings and sort by rating
+    const recipesWithRatings = recipes
+      .map((recipe) => {
+        const ratings = recipe.ratings.map((r) => r.rating);
+        const avgRating = ratings.length > 0
+          ? ratings.reduce((a, b) => a + b, 0) / ratings.length
+          : 0;
+
+        return {
+          ...recipe,
+          averageRating: avgRating,
+          ratingCount: ratings.length,
+        };
+      })
+      .filter((r) => r.averageRating >= 3.5) // Only recommend well-rated recipes
+      .sort((a, b) => b.averageRating - a.averageRating)
+      .slice(0, limitNum);
+
+    res.json({
+      data: {
+        recipes: recipesWithRatings,
+        recommendationBasis: {
+          preferredMealTypes,
+          preferredCuisines,
+          userSkillLevel: userPreferences?.cookingSkillLevel,
+        },
+      },
+    });
+  } catch (error) {
+    next(error);
+  }
+}
+
+/**
+ * @route   GET /api/recipes/:id/similar
+ * @desc    Get similar recipes based on ingredients and attributes
+ * @access  Public
+ */
+export async function getSimilarRecipes(
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void> {
+  try {
+    const { id } = req.params as { id: string };
+    const { limit = '5' } = req.query;
+    const limitNum = parseInt(limit as string);
+
+    // Get the source recipe
+    const sourceRecipe = await prisma.recipe.findUnique({
+      where: { id },
+      include: {
+        ingredients: {
+          include: {
+            ingredient: true,
+          },
+        },
+      },
+    });
+
+    if (!sourceRecipe) {
+      throw new AppError('Recipe not found', 404);
+    }
+
+    // Extract ingredient IDs
+    const sourceIngredientIds = sourceRecipe.ingredients.map(ri => ri.ingredientId);
+
+    // Find recipes with similar attributes
+    const where: any = {
+      AND: [
+        { id: { not: id } }, // Exclude the source recipe
+        {
+          OR: [
+            { isPublic: true },
+            { userId: req.user?.userId },
+          ],
+        },
+      ],
+    };
+
+    // Match meal type and cuisine
+    const similarityFilters: any[] = [];
+    
+    if (sourceRecipe.mealType) {
+      similarityFilters.push({ mealType: sourceRecipe.mealType });
+    }
+    
+    if (sourceRecipe.cuisineType) {
+      similarityFilters.push({ cuisineType: sourceRecipe.cuisineType });
+    }
+
+    if (similarityFilters.length > 0) {
+      where.AND.push({ OR: similarityFilters });
+    }
+
+    // Get candidate recipes
+    const candidates = await prisma.recipe.findMany({
+      where,
+      take: limitNum * 3, // Get more candidates to score
+      include: {
+        ingredients: {
+          include: {
+            ingredient: true,
+          },
+        },
+        ratings: {
+          select: {
+            rating: true,
+          },
+        },
+      },
+    });
+
+    // Calculate similarity scores
+    const recipesWithScores = candidates.map((recipe) => {
+      const recipeIngredientIds = recipe.ingredients.map(ri => ri.ingredientId);
+      
+      // Calculate ingredient overlap (Jaccard similarity)
+      const intersection = sourceIngredientIds.filter(id =>
+        recipeIngredientIds.includes(id)
+      ).length;
+      const union = new Set([...sourceIngredientIds, ...recipeIngredientIds]).size;
+      const ingredientSimilarity = union > 0 ? intersection / union : 0;
+
+      // Calculate attribute similarity
+      let attributeScore = 0;
+      if (recipe.mealType === sourceRecipe.mealType) attributeScore += 0.3;
+      if (recipe.cuisineType === sourceRecipe.cuisineType) attributeScore += 0.3;
+      if (recipe.difficulty === sourceRecipe.difficulty) attributeScore += 0.2;
+      if (recipe.kidFriendly === sourceRecipe.kidFriendly) attributeScore += 0.2;
+
+      // Combined similarity score
+      const similarityScore = (ingredientSimilarity * 0.6) + (attributeScore * 0.4);
+
+      // Calculate average rating
+      const ratings = recipe.ratings.map((r) => r.rating);
+      const avgRating = ratings.length > 0
+        ? ratings.reduce((a, b) => a + b, 0) / ratings.length
+        : 0;
+
+      return {
+        ...recipe,
+        similarityScore,
+        averageRating: avgRating,
+        ratingCount: ratings.length,
+        sharedIngredients: intersection,
+      };
+    });
+
+    // Sort by similarity score and take top results
+    const similarRecipes = recipesWithScores
+      .sort((a, b) => b.similarityScore - a.similarityScore)
+      .slice(0, limitNum);
+
+    res.json({
+      data: {
+        sourceRecipe: {
+          id: sourceRecipe.id,
+          title: sourceRecipe.title,
+          mealType: sourceRecipe.mealType,
+          cuisineType: sourceRecipe.cuisineType,
+        },
+        similarRecipes,
+      },
+    });
+  } catch (error) {
+    next(error);
+  }
+}
+
 export default {
   getRecipes,
   getRecipeById,
@@ -599,6 +1007,9 @@ export default {
   deleteRecipe,
   rateRecipe,
   getRecipeRatings,
+  searchRecipes,
+  getRecommendations,
+  getSimilarRecipes,
 };
 
 // Made with Bob

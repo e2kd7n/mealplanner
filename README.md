@@ -294,10 +294,15 @@ git push origin feature/your-feature-name
 
 ## 📚 Documentation
 
+- [System Architecture](./docs/ARCHITECTURE.md) - Complete architecture documentation
 - [Technical Plan](./meal-planner-app-plan.md) - Comprehensive technical specification
 - [Setup Guide](./SETUP.md) - Development environment setup
 - [API Documentation](http://localhost:3000/api-docs) - Interactive API docs (when running)
 - [Database Schema](./backend/prisma/schema.prisma) - Prisma schema
+- [Docling Integration](./docs/DOCLING_INTEGRATION.md) - Document handling and recipe import
+- [Issues & Roadmap](./ISSUES.md) - Feature requests and bug tracking
+- [Issues Prioritization](./ISSUES_PRIORITIZATION.md) - Prioritized task list
+- [Weekly Maintenance](./WEEKLY_MAINTENANCE.md) - Regular maintenance tasks and procedures
 
 ## 🤝 Contributing
 

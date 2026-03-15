@@ -16,6 +16,7 @@ dotenv.config();
 // Import routes
 import authRoutes from './routes/auth.routes';
 import userRoutes from './routes/user.routes';
+import familyMemberRoutes from './routes/familyMember.routes';
 import recipeRoutes from './routes/recipe.routes';
 import mealPlanRoutes from './routes/mealPlan.routes';
 import groceryListRoutes from './routes/groceryList.routes';
@@ -62,6 +63,7 @@ app.get('/', (_req, res) => {
       health: '/health',
       auth: '/api/auth',
       users: '/api/users',
+      familyMembers: '/api/family-members',
       recipes: '/api/recipes',
       mealPlans: '/api/meal-plans',
       groceryLists: '/api/grocery-lists',
@@ -84,6 +86,7 @@ app.get('/health', (_req, res) => {
 // API routes
 app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
+app.use('/api/family-members', familyMemberRoutes);
 app.use('/api/recipes', recipeRoutes);
 app.use('/api/meal-plans', mealPlanRoutes);
 app.use('/api/grocery-lists', groceryListRoutes);

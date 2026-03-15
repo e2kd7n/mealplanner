@@ -290,14 +290,14 @@ const Pantry: React.FC = () => {
                           </Box>
                         }
                         secondary={
-                          <Stack direction="row" spacing={2} sx={{ mt: 0.5 }}>
-                            <Typography variant="body2" color="text.secondary">
+                          <Stack direction="row" spacing={2} sx={{ mt: 0.5 }} component="span">
+                            <Typography variant="body2" color="text.secondary" component="span">
                               Quantity: {item.quantity} {item.unit}
                             </Typography>
-                            <Typography variant="body2" color="text.secondary">
+                            <Typography variant="body2" color="text.secondary" component="span">
                               Location: {item.location}
                             </Typography>
-                            <Typography variant="body2" color="text.secondary">
+                            <Typography variant="body2" color="text.secondary" component="span">
                               Category: {item.category}
                             </Typography>
                           </Stack>
