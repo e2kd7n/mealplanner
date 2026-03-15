@@ -144,7 +144,7 @@ export async function getRecipeById(
   next: NextFunction
 ): Promise<void> {
   try {
-    const { id } = req.params;
+    const { id } = req.params as { id: string };
 
     // Try cache first
     const cacheKey = `recipe:${id}`;
@@ -154,7 +154,7 @@ export async function getRecipeById(
       res.json(cached);
       return;
     }
-
+    
     const recipe = await prisma.recipe.findUnique({
       where: { id },
       include: {
@@ -163,15 +163,7 @@ export async function getRecipeById(
             ingredient: true,
           },
         },
-        ratings: {
-          include: {
-            familyMember: {
-              select: {
-                name: true,
-              },
-            },
-          },
-        },
+        ratings: true,
         user: {
           select: {
             familyName: true,
@@ -185,14 +177,14 @@ export async function getRecipeById(
     }
 
     // Check if user has access
-    if (!recipe.isPublic && recipe.userId !== req.user?.userId) {
+    if (!recipe.isPublic && recipe.userId !== req.user?.id) {
       throw new AppError('Access denied', 403);
     }
 
     // Calculate average rating
-    const ratings = recipe.ratings.map((r) => r.rating);
+    const ratings = recipe.ratings.map((r: any) => r.rating);
     const avgRating = ratings.length > 0
-      ? ratings.reduce((a, b) => a + b, 0) / ratings.length
+      ? ratings.reduce((a: number, b: number) => a + b, 0) / ratings.length
       : null;
 
     const result = {
@@ -309,8 +301,8 @@ export async function updateRecipe(
   next: NextFunction
 ): Promise<void> {
   try {
-    const { id } = req.params;
-    const userId = req.user?.userId;
+    const { id } = req.params as { id: string };
+    const userId = req.user?.id;
 
     // Check if recipe exists and user owns it
     const existingRecipe = await prisma.recipe.findUnique({
@@ -394,8 +386,8 @@ export async function deleteRecipe(
   next: NextFunction
 ): Promise<void> {
   try {
-    const { id } = req.params;
-    const userId = req.user?.userId;
+    const { id } = req.params as { id: string };
+    const userId = req.user?.id;
 
     // Check if recipe exists and user owns it
     const existingRecipe = await prisma.recipe.findUnique({

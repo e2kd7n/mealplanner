@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import { register, login, refreshToken, logout } from '../controllers/auth.controller';
 
-const router = Router();
+const router: Router = Router();
 
 /**
  * @route   POST /api/auth/register

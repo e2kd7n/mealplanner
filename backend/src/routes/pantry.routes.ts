@@ -11,7 +11,7 @@ import {
   getExpiringSoonItems,
 } from '../controllers/pantry.controller';
 
-const router = Router();
+const router: Router = Router();
 
 // All pantry routes require authentication
 router.use(authenticate);

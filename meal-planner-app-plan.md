@@ -217,7 +217,7 @@ A Progressive Web App (PWA) designed for a family of 4 (2 adults, 2 teenagers) t
 - **Nutrition**: Integrated with recipe APIs
 
 ### DevOps & Hosting
-- **Containerization**: Docker with Docker Compose (multi-container setup)
+- **Containerization**: Podman with Podman Compose (multi-container setup)
 - **Target Platform**: Raspberry Pi (ARM64 architecture)
 - **Deployment**: Self-hosted on home network
 - **Reverse Proxy**: Nginx for routing and SSL termination
@@ -1158,12 +1158,12 @@ sequenceDiagram
 - UPS/battery backup for power stability
 - Case with active cooling
 
-### Docker Architecture for Raspberry Pi
+### Podman Architecture for Raspberry Pi
 
 #### Multi-Container Setup
 
 ```yaml
-# docker-compose.yml structure
+# podman-compose.yml structure
 services:
   nginx:          # Reverse proxy and static file server
   frontend:       # React PWA (production build)
@@ -1296,13 +1296,13 @@ volumes:
 #### Initial Setup
 
 ```bash
-# 1. Install Docker on Raspberry Pi
-curl -fsSL https://get.docker.com -o get-docker.sh
-sudo sh get-docker.sh
-sudo usermod -aG docker $USER
+# 1. Install podman on Raspberry Pi
+curl -fsSL https://get.podman.com -o get-podman.sh
+sudo sh get-podman.sh
+sudo usermod -aG podman $USER
 
-# 2. Install Docker Compose
-sudo apt-get install docker-compose
+# 2. Install podman Compose
+sudo apt-get install podman-compose
 
 # 3. Clone repository
 git clone <repo-url> meal-planner
@@ -1313,11 +1313,11 @@ cp .env.example .env
 nano .env  # Edit configuration
 
 # 5. Build and start containers
-docker-compose up -d
+podman-compose up -d
 
 # 6. Initialize database
-docker-compose exec backend npm run migrate
-docker-compose exec backend npm run seed
+podman-compose exec backend npm run migrate
+podman-compose exec backend npm run seed
 ```
 
 #### Update Process
@@ -1327,12 +1327,12 @@ docker-compose exec backend npm run seed
 git pull origin main
 
 # Rebuild and restart containers
-docker-compose down
-docker-compose build
-docker-compose up -d
+podman-compose down
+podman-compose build
+podman-compose up -d
 
 # Run migrations if needed
-docker-compose exec backend npm run migrate
+podman-compose exec backend npm run migrate
 ```
 
 ### Monitoring and Maintenance
@@ -1340,7 +1340,7 @@ docker-compose exec backend npm run migrate
 #### Health Checks
 
 ```yaml
-# docker-compose.yml health checks
+# podman-compose.yml health checks
 healthcheck:
   test: ["CMD", "curl", "-f", "http://localhost:3001/health"]
   interval: 30s
@@ -1351,19 +1351,19 @@ healthcheck:
 
 #### Monitoring Tools
 
-- **Portainer**: Web UI for Docker management (`http://raspberrypi.local:9000`)
+- **Portainer**: Web UI for podman management (`http://raspberrypi.local:9000`)
 - **Prometheus + Grafana**: Optional metrics and dashboards
-- **Log aggregation**: Docker logs with rotation
+- **Log aggregation**: podman logs with rotation
 
 ```bash
 # View logs
-docker-compose logs -f backend
+podman-compose logs -f backend
 
 # Check resource usage
-docker stats
+podman stats
 
 # Backup database
-docker-compose exec postgres pg_dump -U user dbname > backup.sql
+podman-compose exec postgres pg_dump -U user dbname > backup.sql
 ```
 
 ### Backup Strategy
@@ -1378,7 +1378,7 @@ DATE=$(date +%Y%m%d_%H%M%S)
 BACKUP_DIR="/mnt/usb-ssd/backups"
 
 # Database backup
-docker-compose exec -T postgres pg_dump -U user dbname | \
+podman-compose exec -T postgres pg_dump -U user dbname | \
   gzip > "$BACKUP_DIR/db_$DATE.sql.gz"
 
 # Recipe images backup
@@ -1393,7 +1393,7 @@ find "$BACKUP_DIR" -name "*.gz" -mtime +30 -delete
 ```bash
 # Restore database
 gunzip < backup.sql.gz | \
-  docker-compose exec -T postgres psql -U user dbname
+  podman-compose exec -T postgres psql -U user dbname
 
 # Restore images
 tar -xzf images_backup.tar.gz -C ./data/
@@ -1406,7 +1406,7 @@ tar -xzf images_backup.tar.gz -C ./data/
 - Run containers as non-root users
 - Use read-only file systems where possible
 - Limit network exposure (only nginx exposed)
-- Regular security updates via `docker-compose pull`
+- Regular security updates via `podman-compose pull`
 
 #### Network Security
 
@@ -1434,7 +1434,7 @@ sudo ufw enable
 #### Resource Management
 
 ```yaml
-# docker-compose.yml restart policies
+# podman-compose.yml restart policies
 restart: unless-stopped
 
 # Automatic container restart on failure
@@ -1880,9 +1880,9 @@ app.post('/api/user-stores', async (req, res) => {
 - ✅ Price comparison across stores
 
 
-## 17. Docker Configuration Files
+## 17. podman Configuration Files
 
-### docker-compose.yml
+### podman-compose.yml
 
 ```yaml
 version: '3.8'
@@ -2024,7 +2024,7 @@ services:
           memory: 128M
           cpus: '0.25'
 
-  # Optional: Portainer for Docker management
+  # Optional: Portainer for podman management
   portainer:
     image: portainer/portainer-ce:latest
     container_name: meal-planner-portainer
@@ -2032,7 +2032,7 @@ services:
     ports:
       - "9000:9000"
     volumes:
-      - /var/run/docker.sock:/var/run/docker.sock
+      - /var/run/podman.sock:/var/run/podman.sock
       - portainer_data:/data
     networks:
       - meal-planner-network
@@ -2351,12 +2351,12 @@ mkdir -p data/backups
 mkdir -p data/ssl
 
 # Build images
-echo "🔨 Building Docker images..."
-docker-compose build --no-cache
+echo "🔨 Building podman images..."
+podman-compose build --no-cache
 
 # Start services
 echo "🐳 Starting services..."
-docker-compose up -d
+podman-compose up -d
 
 # Wait for database
 echo "⏳ Waiting for database..."
@@ -2364,24 +2364,24 @@ sleep 10
 
 # Run migrations
 echo "🗄️  Running database migrations..."
-docker-compose exec -T backend npx prisma migrate deploy
+podman-compose exec -T backend npx prisma migrate deploy
 
 # Seed database (optional)
 echo "🌱 Seeding database..."
-docker-compose exec -T backend npm run seed
+podman-compose exec -T backend npm run seed
 
 # Show status
 echo "✅ Deployment complete!"
 echo ""
 echo "📊 Service Status:"
-docker-compose ps
+podman-compose ps
 
 echo ""
 echo "🌐 Access the application at:"
 echo "   http://raspberrypi.local"
 echo "   http://$(hostname -I | awk '{print $1}')"
 echo ""
-echo "🔧 Portainer (Docker management):"
+echo "🔧 Portainer (podman management):"
 echo "   http://raspberrypi.local:9000"
 ```
 
@@ -2398,24 +2398,24 @@ echo "📥 Pulling latest changes..."
 git pull origin main
 
 # Rebuild images
-echo "🔨 Rebuilding Docker images..."
-docker-compose build
+echo "🔨 Rebuilding podman images..."
+podman-compose build
 
 # Stop services
 echo "🛑 Stopping services..."
-docker-compose down
+podman-compose down
 
 # Start services
 echo "🐳 Starting services..."
-docker-compose up -d
+podman-compose up -d
 
 # Run migrations
 echo "🗄️  Running database migrations..."
 sleep 10
-docker-compose exec -T backend npx prisma migrate deploy
+podman-compose exec -T backend npx prisma migrate deploy
 
 echo "✅ Update complete!"
-docker-compose ps
+podman-compose ps
 ```
 
 ```bash
@@ -2431,7 +2431,7 @@ echo "💾 Starting backup at $DATE..."
 
 # Backup database
 echo "📦 Backing up database..."
-docker-compose exec -T postgres pg_dump -U mealplanner mealplanner | \
+podman-compose exec -T postgres pg_dump -U mealplanner mealplanner | \
     gzip > "$BACKUP_DIR/db_$DATE.sql.gz"
 
 # Backup images
@@ -2469,12 +2469,12 @@ echo "♻️  Restoring from backup: $DATE"
 
 # Stop services
 echo "🛑 Stopping services..."
-docker-compose down
+podman-compose down
 
 # Restore database
 echo "🗄️  Restoring database..."
 gunzip < "$BACKUP_DIR/db_$DATE.sql.gz" | \
-    docker-compose exec -T postgres psql -U mealplanner mealplanner
+    podman-compose exec -T postgres psql -U mealplanner mealplanner
 
 # Restore images
 echo "🖼️  Restoring images..."
@@ -2486,7 +2486,7 @@ tar -xzf "$BACKUP_DIR/uploads_$DATE.tar.gz"
 
 # Start services
 echo "🐳 Starting services..."
-docker-compose up -d
+podman-compose up -d
 
 echo "✅ Restore complete!"
 ```
@@ -2502,8 +2502,8 @@ echo "✅ Restore complete!"
 # Weekly cleanup of old logs
 0 3 * * 0 find /home/pi/meal-planner/logs -name "*.log" -mtime +30 -delete
 
-# Monthly Docker cleanup
-0 4 1 * * docker system prune -af --volumes >> /home/pi/meal-planner/logs/cleanup.log 2>&1
+# Monthly podman cleanup
+0 4 1 * * podman system prune -af --volumes >> /home/pi/meal-planner/logs/cleanup.log 2>&1
 ```
 
 ### Monitoring Script
@@ -2518,12 +2518,12 @@ echo ""
 
 # Container status
 echo "📦 Container Status:"
-docker-compose ps
+podman-compose ps
 echo ""
 
 # Resource usage
 echo "💻 Resource Usage:"
-docker stats --no-stream --format "table {{.Name}}\t{{.CPUPerc}}\t{{.MemUsage}}"
+podman stats --no-stream --format "table {{.Name}}\t{{.CPUPerc}}\t{{.MemUsage}}"
 echo ""
 
 # Disk usage
@@ -2533,13 +2533,13 @@ echo ""
 
 # Database size
 echo "🗄️  Database Size:"
-docker-compose exec -T postgres psql -U mealplanner -d mealplanner -c \
+podman-compose exec -T postgres psql -U mealplanner -d mealplanner -c \
     "SELECT pg_size_pretty(pg_database_size('mealplanner'));"
 echo ""
 
 # Recent logs
 echo "📋 Recent Errors (last 10):"
-docker-compose logs --tail=10 | grep -i error || echo "No errors found"
+podman-compose logs --tail=10 | grep -i error || echo "No errors found"
 echo ""
 
 # Uptime

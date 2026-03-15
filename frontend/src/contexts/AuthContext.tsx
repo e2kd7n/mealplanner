@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useEffect } from 'react';
-import { useAppDispatch, useAppSelector } from '../store/hooks';
+import { useAppDispatch, useAppSelector } from '../store/hooks.ts';
 import { refreshAccessToken } from '../store/slices/authSlice';
 
 interface AuthContextType {

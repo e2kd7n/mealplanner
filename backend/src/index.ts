@@ -47,7 +47,7 @@ app.use(requestLogger);
 app.use('/api/', rateLimiter);
 
 // Health check endpoint
-app.get('/health', (req, res) => {
+app.get('/health', (_req, res) => {
   res.json({
     status: 'ok',
     timestamp: new Date().toISOString(),
@@ -86,7 +86,7 @@ async function startServer() {
     logger.info('Redis connected successfully');
 
     // Start server
-    server.listen(PORT, HOST, () => {
+    server.listen(PORT, () => {
       logger.info(`Server running on http://${HOST}:${PORT}`);
       logger.info(`Environment: ${process.env.NODE_ENV || 'development'}`);
       logger.info('Press CTRL+C to stop');
