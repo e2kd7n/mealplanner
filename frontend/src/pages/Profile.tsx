@@ -147,8 +147,14 @@ const Profile: React.FC = () => {
       setProfile(profileRes.data.data);
       setProfileForm({ familyName: profileRes.data.data.familyName });
 
-      setPreferences(preferencesRes.data.data);
-      setPreferencesForm(preferencesRes.data.data);
+      // Ensure dietaryRestrictions is always an array
+      const prefsData = {
+        ...preferencesRes.data.data,
+        dietaryRestrictions: preferencesRes.data.data.dietaryRestrictions || [],
+        avoidedIngredients: preferencesRes.data.data.avoidedIngredients || [],
+      };
+      setPreferences(prefsData);
+      setPreferencesForm(prefsData);
 
       setFamilyMembers(membersRes.data.data);
     } catch (error: any) {

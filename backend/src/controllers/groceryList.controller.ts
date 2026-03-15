@@ -14,7 +14,7 @@ import logger from '../utils/logger';
  * Throws AppError if user is not authenticated
  */
 function getUserId(req: Request): string {
-  const userId = req.user?.id;
+  const userId = req.user?.userId || req.user?.id;
   if (!userId) {
     throw new AppError('User not authenticated', 401);
   }

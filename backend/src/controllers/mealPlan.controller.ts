@@ -21,7 +21,7 @@ export const getMealPlans = async (
   next: NextFunction
 ): Promise<void> => {
   try {
-    const userId = req.user?.id;
+    const userId = req.user?.userId || req.user?.id;
     if (!userId) {
       throw new AppError('User not authenticated', 401);
     }
@@ -93,7 +93,7 @@ export const getMealPlanById = async (
   next: NextFunction
 ): Promise<void> => {
   try {
-    const userId = req.user?.id;
+    const userId = req.user?.userId || req.user?.id;
     if (!userId) {
       throw new AppError('User not authenticated', 401);
     }
@@ -142,7 +142,7 @@ export const createMealPlan = async (
   next: NextFunction
 ): Promise<void> => {
   try {
-    const userId = req.user?.id;
+    const userId = req.user?.userId || req.user?.id;
     if (!userId) {
       throw new AppError('User not authenticated', 401);
     }
@@ -187,7 +187,7 @@ export const updateMealPlan = async (
   next: NextFunction
 ): Promise<void> => {
   try {
-    const userId = req.user?.id;
+    const userId = req.user?.userId || req.user?.id;
     if (!userId) {
       throw new AppError('User not authenticated', 401);
     }
@@ -246,7 +246,7 @@ export const deleteMealPlan = async (
   next: NextFunction
 ): Promise<void> => {
   try {
-    const userId = req.user?.id;
+    const userId = req.user?.userId || req.user?.id;
     if (!userId) {
       throw new AppError('User not authenticated', 401);
     }
@@ -291,7 +291,7 @@ export const addMealToPlan = async (
   next: NextFunction
 ): Promise<void> => {
   try {
-    const userId = req.user?.id;
+    const userId = req.user?.userId || req.user?.id;
     if (!userId) {
       throw new AppError('User not authenticated', 401);
     }
@@ -364,7 +364,7 @@ export const updateMeal = async (
   next: NextFunction
 ): Promise<void> => {
   try {
-    const userId = req.user?.id;
+    const userId = req.user?.userId || req.user?.id;
     if (!userId) {
       throw new AppError('User not authenticated', 401);
     }
@@ -435,7 +435,7 @@ export const removeMealFromPlan = async (
   next: NextFunction
 ): Promise<void> => {
   try {
-    const userId = req.user?.id;
+    const userId = req.user?.userId || req.user?.id;
     if (!userId) {
       throw new AppError('User not authenticated', 401);
     }

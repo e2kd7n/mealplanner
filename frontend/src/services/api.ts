@@ -18,6 +18,24 @@ const api: AxiosInstance = axios.create({
   withCredentials: true, // Important for cookies
 });
 
+// Mutex to prevent multiple simultaneous token refresh attempts
+let isRefreshing = false;
+let failedQueue: Array<{
+  resolve: (value?: any) => void;
+  reject: (reason?: any) => void;
+}> = [];
+
+const processQueue = (error: any, token: string | null = null) => {
+  failedQueue.forEach((prom) => {
+    if (error) {
+      prom.reject(error);
+    } else {
+      prom.resolve(token);
+    }
+  });
+  failedQueue = [];
+};
+
 // Request interceptor to add auth token
 api.interceptors.request.use(
   (config) => {
@@ -40,7 +58,27 @@ api.interceptors.response.use(
 
     // If error is 401 and we haven't tried to refresh yet
     if (error.response?.status === 401 && !originalRequest._retry) {
+      if (isRefreshing) {
+        // If already refreshing, queue this request
+        return new Promise((resolve, reject) => {
+          failedQueue.push({ resolve, reject });
+        })
+          .then((token) => {
+            // Ensure headers object exists
+            if (!originalRequest.headers) {
+              originalRequest.headers = {};
+            }
+            originalRequest.headers.Authorization = `Bearer ${token}`;
+            // Use axios directly to bypass interceptors
+            return axios(originalRequest);
+          })
+          .catch((err) => {
+            return Promise.reject(err);
+          });
+      }
+
       originalRequest._retry = true;
+      isRefreshing = true;
 
       try {
         // Try to refresh the token
@@ -59,15 +97,26 @@ api.interceptors.response.use(
         const { accessToken } = response.data;
         localStorage.setItem('accessToken', accessToken);
 
-        // Retry the original request with new token
+        // Update the failed queue with new token
+        processQueue(null, accessToken);
+
+        // Ensure headers object exists before setting Authorization
+        if (!originalRequest.headers) {
+          originalRequest.headers = {};
+        }
+        
+        // Retry the original request with new token - use axios directly to bypass interceptors
         originalRequest.headers.Authorization = `Bearer ${accessToken}`;
-        return api(originalRequest);
+        return axios(originalRequest);
       } catch (refreshError) {
         // Refresh failed, logout user
+        processQueue(refreshError, null);
         localStorage.removeItem('accessToken');
         localStorage.removeItem('refreshToken');
         window.location.href = '/login';
         return Promise.reject(refreshError);
+      } finally {
+        isRefreshing = false;
       }
     }
 

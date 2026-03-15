@@ -12,7 +12,7 @@ import { logger } from '../utils/logger';
  * Extract and validate user ID from request
  */
 function getUserId(req: Request): string {
-  const userId = req.user?.id;
+  const userId = req.user?.userId || req.user?.id;
   if (!userId) {
     throw new AppError('User not authenticated', 401);
   }
