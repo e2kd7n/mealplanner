@@ -17,6 +17,13 @@ dist/
 .env.local
 .env.*.local
 
+# Secrets (CRITICAL - Never commit!)
+secrets/
+*.secret
+*.key
+*.pem
+secrets.backup.*
+
 # IDE
 .vscode/
 .idea/

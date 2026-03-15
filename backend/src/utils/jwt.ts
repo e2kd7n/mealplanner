@@ -1,10 +1,13 @@
 import jwt from 'jsonwebtoken';
 import { logger } from './logger';
+import { getJwtConfig } from './secrets';
 
-const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-change-in-production';
-const JWT_REFRESH_SECRET = process.env.JWT_REFRESH_SECRET || 'your-refresh-secret-key';
-const JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN || '15m';
-const JWT_REFRESH_EXPIRES_IN = process.env.JWT_REFRESH_EXPIRES_IN || '7d';
+// Load JWT configuration from secrets
+const jwtConfig = getJwtConfig();
+const JWT_SECRET = jwtConfig.secret;
+const JWT_REFRESH_SECRET = jwtConfig.refreshSecret;
+const JWT_EXPIRES_IN = jwtConfig.expiresIn;
+const JWT_REFRESH_EXPIRES_IN = jwtConfig.refreshExpiresIn;
 
 export interface TokenPayload {
   userId: string;
@@ -23,7 +26,7 @@ export interface TokenPair {
  */
 export function generateAccessToken(payload: TokenPayload): string {
   return jwt.sign(payload, JWT_SECRET, {
-    expiresIn: JWT_EXPIRES_IN,
+    expiresIn: JWT_EXPIRES_IN as string | number,
   });
 }
 
@@ -32,7 +35,7 @@ export function generateAccessToken(payload: TokenPayload): string {
  */
 export function generateRefreshToken(payload: TokenPayload): string {
   return jwt.sign(payload, JWT_REFRESH_SECRET, {
-    expiresIn: JWT_REFRESH_EXPIRES_IN,
+    expiresIn: JWT_REFRESH_EXPIRES_IN as string | number,
   });
 }
 

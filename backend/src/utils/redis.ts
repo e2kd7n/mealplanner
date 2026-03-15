@@ -1,5 +1,6 @@
 import Redis from 'ioredis';
 import { logger } from './logger';
+import { getRedisUrl } from './secrets';
 
 let redisClient: Redis | null = null;
 
@@ -8,7 +9,8 @@ export async function connectRedis(): Promise<Redis> {
     return redisClient;
   }
 
-  const redisUrl = process.env.REDIS_URL || 'redis://localhost:6379';
+  // Get Redis URL with password from secrets
+  const redisUrl = getRedisUrl();
   
   redisClient = new Redis(redisUrl, {
     maxRetriesPerRequest: 3,
