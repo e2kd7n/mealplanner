@@ -1,3 +1,9 @@
+/**
+ * Copyright (c) 2026 Erik Didriksen
+ * All rights reserved.
+ */
+
+
 import jwt from 'jsonwebtoken';
 import { logger } from './logger';
 import { getJwtConfig } from './secrets';

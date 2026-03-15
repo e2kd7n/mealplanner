@@ -1,3 +1,9 @@
+/**
+ * Copyright (c) 2026 Erik Didriksen
+ * All rights reserved.
+ */
+
+
 import { createTheme } from '@mui/material/styles';
 
 export const theme = createTheme({

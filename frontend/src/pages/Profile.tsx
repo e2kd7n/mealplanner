@@ -1,3 +1,9 @@
+/**
+ * Copyright (c) 2026 Erik Didriksen
+ * All rights reserved.
+ */
+
+
 import React from 'react';
 import { Container, Typography, Box } from '@mui/material';
 

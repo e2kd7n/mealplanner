@@ -1,3 +1,9 @@
+/**
+ * Copyright (c) 2026 Erik Didriksen
+ * All rights reserved.
+ */
+
+
 import { Router } from 'express';
 import { authenticate } from '../middleware/auth';
 import {
