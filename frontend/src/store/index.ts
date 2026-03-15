@@ -1,16 +1,16 @@
 import { configureStore } from '@reduxjs/toolkit';
 import authReducer from './slices/authSlice';
-import recipeReducer from './slices/recipeSlice';
-import mealPlanReducer from './slices/mealPlanSlice';
-import groceryListReducer from './slices/groceryListSlice';
+import recipesReducer from './slices/recipesSlice';
+import mealPlansReducer from './slices/mealPlansSlice';
+import groceryListsReducer from './slices/groceryListsSlice';
 import pantryReducer from './slices/pantrySlice';
 
 export const store = configureStore({
   reducer: {
     auth: authReducer,
-    recipes: recipeReducer,
-    mealPlans: mealPlanReducer,
-    groceryLists: groceryListReducer,
+    recipes: recipesReducer,
+    mealPlans: mealPlansReducer,
+    groceryLists: groceryListsReducer,
     pantry: pantryReducer,
   },
   middleware: (getDefaultMiddleware) =>
