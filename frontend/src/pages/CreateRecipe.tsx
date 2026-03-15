@@ -3,25 +3,816 @@
  * All rights reserved.
  */
 
+import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+import {
+  Container,
+  Typography,
+  Box,
+  Paper,
+  Stepper,
+  Step,
+  StepLabel,
+  Button,
+  TextField,
+  Grid,
+  MenuItem,
+  FormControlLabel,
+  Checkbox,
+  IconButton,
+  List,
+  ListItem,
+  ListItemText,
+  ListItemSecondaryAction,
+  Autocomplete,
+  Alert,
+  CircularProgress,
+  Chip,
+} from '@mui/material';
+import {
+  Add as AddIcon,
+  Delete as DeleteIcon,
+  ArrowBack as BackIcon,
+  ArrowForward as ForwardIcon,
+  Save as SaveIcon,
+} from '@mui/icons-material';
+import api from '../services/api';
 
-import React from 'react';
-import { Container, Typography, Box } from '@mui/material';
+interface Ingredient {
+  id: string;
+  name: string;
+  category: string;
+  unit: string;
+}
 
-const CreateRecipe: React.FC = () => {
+interface RecipeIngredient {
+  ingredientId: string;
+  ingredientName: string;
+  quantity: number;
+  unit: string;
+  notes?: string;
+}
+
+interface InstructionStep {
+  step: number;
+  instruction: string;
+}
+
+interface RecipeFormData {
+  title: string;
+  description: string;
+  prepTime: number;
+  cookTime: number;
+  servings: number;
+  difficulty: 'easy' | 'medium' | 'hard';
+  mealType: 'breakfast' | 'lunch' | 'dinner' | 'snack' | 'dessert';
+  cuisineType: string;
+  kidFriendly: boolean;
+  isPublic: boolean;
+  imageUrl: string;
+  costEstimate: number;
+  ingredients: RecipeIngredient[];
+  instructions: InstructionStep[];
+  nutritionInfo?: {
+    calories?: number;
+    protein?: number;
+    carbs?: number;
+    fat?: number;
+    fiber?: number;
+  };
+}
+
+const steps = ['Basic Info', 'Ingredients', 'Instructions', 'Review'];
+
+const cuisineTypes = [
+  'American',
+  'Italian',
+  'Mexican',
+  'Chinese',
+  'Japanese',
+  'Indian',
+  'Thai',
+  'French',
+  'Mediterranean',
+  'Greek',
+  'Korean',
+  'Vietnamese',
+  'Other',
+];
+
+export default function CreateRecipe() {
+  const navigate = useNavigate();
+  const [activeStep, setActiveStep] = useState(0);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
+  const [availableIngredients, setAvailableIngredients] = useState<Ingredient[]>([]);
+  
+  const [formData, setFormData] = useState<RecipeFormData>({
+    title: '',
+    description: '',
+    prepTime: 15,
+    cookTime: 30,
+    servings: 4,
+    difficulty: 'medium',
+    mealType: 'dinner',
+    cuisineType: '',
+    kidFriendly: false,
+    isPublic: false,
+    imageUrl: '',
+    costEstimate: 0,
+    ingredients: [],
+    instructions: [{ step: 1, instruction: '' }],
+    nutritionInfo: {},
+  });
+
+  // New ingredient form state
+  const [newIngredient, setNewIngredient] = useState({
+    ingredientId: '',
+    ingredientName: '',
+    quantity: 1,
+    unit: '',
+    notes: '',
+  });
+
+  useEffect(() => {
+    loadIngredients();
+  }, []);
+
+  const loadIngredients = async () => {
+    try {
+      const response = await api.get('/ingredients');
+      setAvailableIngredients(response.data);
+    } catch (err) {
+      console.error('Failed to load ingredients:', err);
+    }
+  };
+
+  const handleNext = () => {
+    // Validate current step
+    if (activeStep === 0 && !validateBasicInfo()) {
+      return;
+    }
+    if (activeStep === 1 && formData.ingredients.length === 0) {
+      setError('Please add at least one ingredient');
+      return;
+    }
+    if (activeStep === 2 && !validateInstructions()) {
+      return;
+    }
+    
+    setError('');
+    setActiveStep((prevStep) => prevStep + 1);
+  };
+
+  const handleBack = () => {
+    setActiveStep((prevStep) => prevStep - 1);
+  };
+
+  const validateBasicInfo = () => {
+    if (!formData.title.trim()) {
+      setError('Recipe title is required');
+      return false;
+    }
+    if (formData.prepTime < 0 || formData.cookTime < 0) {
+      setError('Time values must be positive');
+      return false;
+    }
+    if (formData.servings < 1) {
+      setError('Servings must be at least 1');
+      return false;
+    }
+    return true;
+  };
+
+  const validateInstructions = () => {
+    const hasInstructions = formData.instructions.some(
+      (inst) => inst.instruction.trim() !== ''
+    );
+    if (!hasInstructions) {
+      setError('Please add at least one instruction step');
+      return false;
+    }
+    return true;
+  };
+
+  const handleAddIngredient = () => {
+    if (!newIngredient.ingredientId || newIngredient.quantity <= 0) {
+      setError('Please select an ingredient and enter a valid quantity');
+      return;
+    }
+
+    const ingredient = availableIngredients.find(
+      (ing) => ing.id === newIngredient.ingredientId
+    );
+    if (!ingredient) return;
+
+    setFormData({
+      ...formData,
+      ingredients: [
+        ...formData.ingredients,
+        {
+          ingredientId: ingredient.id,
+          ingredientName: ingredient.name,
+          quantity: newIngredient.quantity,
+          unit: newIngredient.unit || ingredient.unit,
+          notes: newIngredient.notes,
+        },
+      ],
+    });
+
+    // Reset form
+    setNewIngredient({
+      ingredientId: '',
+      ingredientName: '',
+      quantity: 1,
+      unit: '',
+      notes: '',
+    });
+    setError('');
+  };
+
+  const handleRemoveIngredient = (index: number) => {
+    setFormData({
+      ...formData,
+      ingredients: formData.ingredients.filter((_, i) => i !== index),
+    });
+  };
+
+  const handleAddInstructionStep = () => {
+    setFormData({
+      ...formData,
+      instructions: [
+        ...formData.instructions,
+        { step: formData.instructions.length + 1, instruction: '' },
+      ],
+    });
+  };
+
+  const handleUpdateInstruction = (index: number, value: string) => {
+    const updated = [...formData.instructions];
+    updated[index].instruction = value;
+    setFormData({ ...formData, instructions: updated });
+  };
+
+  const handleRemoveInstruction = (index: number) => {
+    const updated = formData.instructions
+      .filter((_, i) => i !== index)
+      .map((inst, i) => ({ ...inst, step: i + 1 }));
+    setFormData({ ...formData, instructions: updated });
+  };
+
+  const handleSubmit = async () => {
+    try {
+      setLoading(true);
+      setError('');
+
+      // Prepare data for API
+      const recipeData = {
+        title: formData.title,
+        description: formData.description,
+        prepTime: formData.prepTime,
+        cookTime: formData.cookTime,
+        servings: formData.servings,
+        difficulty: formData.difficulty,
+        mealType: formData.mealType,
+        cuisineType: formData.cuisineType || null,
+        kidFriendly: formData.kidFriendly,
+        isPublic: formData.isPublic,
+        imageUrl: formData.imageUrl || null,
+        costEstimate: formData.costEstimate || null,
+        source: 'custom',
+        instructions: formData.instructions.filter((inst) => inst.instruction.trim()),
+        nutritionInfo: Object.keys(formData.nutritionInfo || {}).length > 0
+          ? formData.nutritionInfo
+          : null,
+        ingredients: formData.ingredients.map((ing) => ({
+          ingredientId: ing.ingredientId,
+          quantity: ing.quantity,
+          unit: ing.unit,
+          notes: ing.notes || null,
+        })),
+      };
+
+      const response = await api.post('/recipes', recipeData);
+      setSuccess('Recipe created successfully!');
+      
+      // Redirect to recipe detail page after a short delay
+      setTimeout(() => {
+        navigate(`/recipes/${response.data.id}`);
+      }, 1500);
+    } catch (err: any) {
+      setError(err.response?.data?.message || 'Failed to create recipe');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const renderBasicInfo = () => (
+    <Grid container spacing={3}>
+      <Grid size={{ xs: 12 }}>
+        <TextField
+          fullWidth
+          required
+          label="Recipe Title"
+          value={formData.title}
+          onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+          placeholder="e.g., Grandma's Chocolate Chip Cookies"
+        />
+      </Grid>
+      
+      <Grid size={{ xs: 12 }}>
+        <TextField
+          fullWidth
+          multiline
+          rows={3}
+          label="Description"
+          value={formData.description}
+          onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+          placeholder="Brief description of your recipe..."
+        />
+      </Grid>
+
+      <Grid size={{ xs: 12, sm: 4 }}>
+        <TextField
+          fullWidth
+          required
+          type="number"
+          label="Prep Time (minutes)"
+          value={formData.prepTime}
+          onChange={(e) => setFormData({ ...formData, prepTime: parseInt(e.target.value) || 0 })}
+          inputProps={{ min: 0 }}
+        />
+      </Grid>
+
+      <Grid size={{ xs: 12, sm: 4 }}>
+        <TextField
+          fullWidth
+          required
+          type="number"
+          label="Cook Time (minutes)"
+          value={formData.cookTime}
+          onChange={(e) => setFormData({ ...formData, cookTime: parseInt(e.target.value) || 0 })}
+          inputProps={{ min: 0 }}
+        />
+      </Grid>
+
+      <Grid size={{ xs: 12, sm: 4 }}>
+        <TextField
+          fullWidth
+          required
+          type="number"
+          label="Servings"
+          value={formData.servings}
+          onChange={(e) => setFormData({ ...formData, servings: parseInt(e.target.value) || 1 })}
+          inputProps={{ min: 1 }}
+        />
+      </Grid>
+
+      <Grid size={{ xs: 12, sm: 6 }}>
+        <TextField
+          fullWidth
+          required
+          select
+          label="Difficulty"
+          value={formData.difficulty}
+          onChange={(e) => setFormData({ ...formData, difficulty: e.target.value as any })}
+        >
+          <MenuItem value="easy">Easy</MenuItem>
+          <MenuItem value="medium">Medium</MenuItem>
+          <MenuItem value="hard">Hard</MenuItem>
+        </TextField>
+      </Grid>
+
+      <Grid size={{ xs: 12, sm: 6 }}>
+        <TextField
+          fullWidth
+          required
+          select
+          label="Meal Type"
+          value={formData.mealType}
+          onChange={(e) => setFormData({ ...formData, mealType: e.target.value as any })}
+        >
+          <MenuItem value="breakfast">Breakfast</MenuItem>
+          <MenuItem value="lunch">Lunch</MenuItem>
+          <MenuItem value="dinner">Dinner</MenuItem>
+          <MenuItem value="snack">Snack</MenuItem>
+          <MenuItem value="dessert">Dessert</MenuItem>
+        </TextField>
+      </Grid>
+
+      <Grid size={{ xs: 12, sm: 6 }}>
+        <Autocomplete
+          freeSolo
+          options={cuisineTypes}
+          value={formData.cuisineType}
+          onChange={(_, value) => setFormData({ ...formData, cuisineType: value || '' })}
+          renderInput={(params) => (
+            <TextField {...params} label="Cuisine Type" placeholder="Select or type..." />
+          )}
+        />
+      </Grid>
+
+      <Grid size={{ xs: 12, sm: 6 }}>
+        <TextField
+          fullWidth
+          type="number"
+          label="Estimated Cost ($)"
+          value={formData.costEstimate}
+          onChange={(e) => setFormData({ ...formData, costEstimate: parseFloat(e.target.value) || 0 })}
+          inputProps={{ min: 0, step: 0.01 }}
+        />
+      </Grid>
+
+      <Grid size={{ xs: 12 }}>
+        <TextField
+          fullWidth
+          label="Image URL"
+          value={formData.imageUrl}
+          onChange={(e) => setFormData({ ...formData, imageUrl: e.target.value })}
+          placeholder="https://example.com/image.jpg"
+        />
+      </Grid>
+
+      <Grid size={{ xs: 12, sm: 6 }}>
+        <FormControlLabel
+          control={
+            <Checkbox
+              checked={formData.kidFriendly}
+              onChange={(e) => setFormData({ ...formData, kidFriendly: e.target.checked })}
+            />
+          }
+          label="Kid Friendly"
+        />
+      </Grid>
+
+      <Grid size={{ xs: 12, sm: 6 }}>
+        <FormControlLabel
+          control={
+            <Checkbox
+              checked={formData.isPublic}
+              onChange={(e) => setFormData({ ...formData, isPublic: e.target.checked })}
+            />
+          }
+          label="Make Public (visible to all users)"
+        />
+      </Grid>
+    </Grid>
+  );
+
+  const renderIngredients = () => (
+    <Box>
+      <Typography variant="h6" gutterBottom>
+        Add Ingredients
+      </Typography>
+      
+      <Grid container spacing={2} mb={3}>
+        <Grid size={{ xs: 12, sm: 5 }}>
+          <Autocomplete
+            options={availableIngredients}
+            getOptionLabel={(option) => option.name}
+            value={availableIngredients.find((ing) => ing.id === newIngredient.ingredientId) || null}
+            onChange={(_, value) => {
+              setNewIngredient({
+                ...newIngredient,
+                ingredientId: value?.id || '',
+                ingredientName: value?.name || '',
+                unit: value?.unit || '',
+              });
+            }}
+            renderInput={(params) => (
+              <TextField {...params} label="Ingredient" placeholder="Search ingredients..." />
+            )}
+          />
+        </Grid>
+
+        <Grid size={{ xs: 6, sm: 2 }}>
+          <TextField
+            fullWidth
+            type="number"
+            label="Quantity"
+            value={newIngredient.quantity}
+            onChange={(e) => setNewIngredient({ ...newIngredient, quantity: parseFloat(e.target.value) || 0 })}
+            inputProps={{ min: 0, step: 0.25 }}
+          />
+        </Grid>
+
+        <Grid size={{ xs: 6, sm: 2 }}>
+          <TextField
+            fullWidth
+            label="Unit"
+            value={newIngredient.unit}
+            onChange={(e) => setNewIngredient({ ...newIngredient, unit: e.target.value })}
+            placeholder="cups, oz, etc."
+          />
+        </Grid>
+
+        <Grid size={{ xs: 10, sm: 2 }}>
+          <TextField
+            fullWidth
+            label="Notes"
+            value={newIngredient.notes}
+            onChange={(e) => setNewIngredient({ ...newIngredient, notes: e.target.value })}
+            placeholder="optional"
+          />
+        </Grid>
+
+        <Grid size={{ xs: 2, sm: 1 }}>
+          <IconButton
+            color="primary"
+            onClick={handleAddIngredient}
+            sx={{ mt: 1 }}
+          >
+            <AddIcon />
+          </IconButton>
+        </Grid>
+      </Grid>
+
+      <Typography variant="subtitle1" gutterBottom>
+        Ingredients List ({formData.ingredients.length})
+      </Typography>
+      
+      {formData.ingredients.length === 0 ? (
+        <Alert severity="info">No ingredients added yet. Add at least one ingredient to continue.</Alert>
+      ) : (
+        <List>
+          {formData.ingredients.map((ingredient, index) => (
+            <ListItem key={index} divider>
+              <ListItemText
+                primary={`${ingredient.quantity} ${ingredient.unit} ${ingredient.ingredientName}`}
+                secondary={ingredient.notes}
+              />
+              <ListItemSecondaryAction>
+                <IconButton edge="end" onClick={() => handleRemoveIngredient(index)}>
+                  <DeleteIcon />
+                </IconButton>
+              </ListItemSecondaryAction>
+            </ListItem>
+          ))}
+        </List>
+      )}
+    </Box>
+  );
+
+  const renderInstructions = () => (
+    <Box>
+      <Typography variant="h6" gutterBottom>
+        Cooking Instructions
+      </Typography>
+      
+      {formData.instructions.map((instruction, index) => (
+        <Box key={index} mb={2}>
+          <Grid container spacing={2} alignItems="flex-start">
+            <Grid size={{ xs: 11 }}>
+              <TextField
+                fullWidth
+                multiline
+                rows={2}
+                label={`Step ${instruction.step}`}
+                value={instruction.instruction}
+                onChange={(e) => handleUpdateInstruction(index, e.target.value)}
+                placeholder="Describe this step..."
+              />
+            </Grid>
+            <Grid size={{ xs: 1 }}>
+              {formData.instructions.length > 1 && (
+                <IconButton
+                  color="error"
+                  onClick={() => handleRemoveInstruction(index)}
+                  sx={{ mt: 1 }}
+                >
+                  <DeleteIcon />
+                </IconButton>
+              )}
+            </Grid>
+          </Grid>
+        </Box>
+      ))}
+
+      <Button
+        startIcon={<AddIcon />}
+        onClick={handleAddInstructionStep}
+        variant="outlined"
+      >
+        Add Step
+      </Button>
+
+      <Box mt={4}>
+        <Typography variant="h6" gutterBottom>
+          Nutrition Information (Optional)
+        </Typography>
+        <Grid container spacing={2}>
+          <Grid size={{ xs: 6, sm: 4 }}>
+            <TextField
+              fullWidth
+              type="number"
+              label="Calories"
+              value={formData.nutritionInfo?.calories || ''}
+              onChange={(e) => setFormData({
+                ...formData,
+                nutritionInfo: { ...formData.nutritionInfo, calories: parseInt(e.target.value) || undefined }
+              })}
+            />
+          </Grid>
+          <Grid size={{ xs: 6, sm: 4 }}>
+            <TextField
+              fullWidth
+              type="number"
+              label="Protein (g)"
+              value={formData.nutritionInfo?.protein || ''}
+              onChange={(e) => setFormData({
+                ...formData,
+                nutritionInfo: { ...formData.nutritionInfo, protein: parseInt(e.target.value) || undefined }
+              })}
+            />
+          </Grid>
+          <Grid size={{ xs: 6, sm: 4 }}>
+            <TextField
+              fullWidth
+              type="number"
+              label="Carbs (g)"
+              value={formData.nutritionInfo?.carbs || ''}
+              onChange={(e) => setFormData({
+                ...formData,
+                nutritionInfo: { ...formData.nutritionInfo, carbs: parseInt(e.target.value) || undefined }
+              })}
+            />
+          </Grid>
+          <Grid size={{ xs: 6, sm: 4 }}>
+            <TextField
+              fullWidth
+              type="number"
+              label="Fat (g)"
+              value={formData.nutritionInfo?.fat || ''}
+              onChange={(e) => setFormData({
+                ...formData,
+                nutritionInfo: { ...formData.nutritionInfo, fat: parseInt(e.target.value) || undefined }
+              })}
+            />
+          </Grid>
+          <Grid size={{ xs: 6, sm: 4 }}>
+            <TextField
+              fullWidth
+              type="number"
+              label="Fiber (g)"
+              value={formData.nutritionInfo?.fiber || ''}
+              onChange={(e) => setFormData({
+                ...formData,
+                nutritionInfo: { ...formData.nutritionInfo, fiber: parseInt(e.target.value) || undefined }
+              })}
+            />
+          </Grid>
+        </Grid>
+      </Box>
+    </Box>
+  );
+
+  const renderReview = () => (
+    <Box>
+      <Typography variant="h6" gutterBottom>
+        Review Your Recipe
+      </Typography>
+
+      <Grid container spacing={2}>
+        <Grid size={{ xs: 12 }}>
+          <Typography variant="subtitle1" fontWeight="bold">
+            {formData.title}
+          </Typography>
+          <Typography variant="body2" color="text.secondary" paragraph>
+            {formData.description}
+          </Typography>
+        </Grid>
+
+        <Grid size={{ xs: 12 }}>
+          <Box display="flex" gap={1} flexWrap="wrap">
+            <Chip label={`${formData.prepTime + formData.cookTime} min total`} size="small" />
+            <Chip label={`${formData.servings} servings`} size="small" />
+            <Chip label={formData.difficulty} size="small" color="primary" />
+            <Chip label={formData.mealType} size="small" />
+            {formData.kidFriendly && <Chip label="Kid Friendly" size="small" color="success" />}
+            {formData.isPublic && <Chip label="Public" size="small" color="info" />}
+          </Box>
+        </Grid>
+
+        <Grid size={{ xs: 12 }}>
+          <Typography variant="subtitle2" gutterBottom>
+            Ingredients ({formData.ingredients.length})
+          </Typography>
+          <List dense>
+            {formData.ingredients.map((ing, index) => (
+              <ListItem key={index}>
+                <ListItemText
+                  primary={`${ing.quantity} ${ing.unit} ${ing.ingredientName}`}
+                  secondary={ing.notes}
+                />
+              </ListItem>
+            ))}
+          </List>
+        </Grid>
+
+        <Grid size={{ xs: 12 }}>
+          <Typography variant="subtitle2" gutterBottom>
+            Instructions ({formData.instructions.filter(i => i.instruction.trim()).length} steps)
+          </Typography>
+          <List dense>
+            {formData.instructions
+              .filter((inst) => inst.instruction.trim())
+              .map((inst, index) => (
+                <ListItem key={index}>
+                  <ListItemText
+                    primary={`Step ${inst.step}`}
+                    secondary={inst.instruction}
+                  />
+                </ListItem>
+              ))}
+          </List>
+        </Grid>
+      </Grid>
+    </Box>
+  );
+
+  const getStepContent = (step: number) => {
+    switch (step) {
+      case 0:
+        return renderBasicInfo();
+      case 1:
+        return renderIngredients();
+      case 2:
+        return renderInstructions();
+      case 3:
+        return renderReview();
+      default:
+        return 'Unknown step';
+    }
+  };
+
   return (
-    <Container maxWidth="lg">
-      <Box sx={{ mb: 4 }}>
+    <Container maxWidth="lg" sx={{ py: 4 }}>
+      <Box mb={4}>
         <Typography variant="h4" gutterBottom>
-          Create Recipe
+          Create New Recipe
         </Typography>
         <Typography variant="body1" color="text.secondary">
-          Recipe creation form coming soon...
+          Share your favorite recipe with the community
         </Typography>
       </Box>
+
+      {error && (
+        <Alert severity="error" onClose={() => setError('')} sx={{ mb: 2 }}>
+          {error}
+        </Alert>
+      )}
+
+      {success && (
+        <Alert severity="success" sx={{ mb: 2 }}>
+          {success}
+        </Alert>
+      )}
+
+      <Paper sx={{ p: 3 }}>
+        <Stepper activeStep={activeStep} sx={{ mb: 4 }}>
+          {steps.map((label) => (
+            <Step key={label}>
+              <StepLabel>{label}</StepLabel>
+            </Step>
+          ))}
+        </Stepper>
+
+        <Box mb={4}>{getStepContent(activeStep)}</Box>
+
+        <Box display="flex" justifyContent="space-between">
+          <Button
+            disabled={activeStep === 0}
+            onClick={handleBack}
+            startIcon={<BackIcon />}
+          >
+            Back
+          </Button>
+
+          <Box>
+            {activeStep === steps.length - 1 ? (
+              <Button
+                variant="contained"
+                onClick={handleSubmit}
+                disabled={loading}
+                startIcon={loading ? <CircularProgress size={20} /> : <SaveIcon />}
+              >
+                {loading ? 'Creating...' : 'Create Recipe'}
+              </Button>
+            ) : (
+              <Button
+                variant="contained"
+                onClick={handleNext}
+                endIcon={<ForwardIcon />}
+              >
+                Next
+              </Button>
+            )}
+          </Box>
+        </Box>
+      </Paper>
     </Container>
   );
-};
-
-export default CreateRecipe;
+}
 
 // Made with Bob
