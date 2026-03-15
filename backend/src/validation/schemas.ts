@@ -133,9 +133,14 @@ export const updateProfileSchema = z.object({
 });
 
 export const updatePreferencesSchema = z.object({
-  dietaryRestrictions: z.array(z.enum(['vegetarian', 'vegan', 'gluten-free', 'dairy-free', 'nut-free'])).optional(),
+  weeklyBudget: z.number().positive().nullable().optional(),
+  preferredCuisines: z.array(z.string()).optional(),
   cookingSkillLevel: z.enum(['beginner', 'intermediate', 'advanced']).optional(),
-  avoidedIngredients: z.array(z.string()).optional(),
+  maxPrepTimeWeeknight: z.number().int().positive().optional(),
+  maxPrepTimeWeekend: z.number().int().positive().optional(),
+  dietaryPreferences: z.record(z.string(), z.unknown()).optional(),
+  notificationSettings: z.record(z.string(), z.unknown()).optional(),
+  avoidedIngredientIds: z.array(z.string().uuid()).optional(),
 });
 
 // Family Member schemas

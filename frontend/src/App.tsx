@@ -25,6 +25,7 @@ const MealPlanner = lazy(() => import('./pages/MealPlanner'));
 const GroceryList = lazy(() => import('./pages/GroceryList'));
 const Pantry = lazy(() => import('./pages/Pantry'));
 const Profile = lazy(() => import('./pages/Profile'));
+const AdminDashboard = lazy(() => import('./pages/AdminDashboard'));
 
 // Loading fallback component
 const LoadingFallback = () => (
@@ -71,6 +72,7 @@ function App() {
                   <Route path="grocery-list" element={<GroceryList />} />
                   <Route path="pantry" element={<Pantry />} />
                   <Route path="profile" element={<Profile />} />
+                  <Route path="admin" element={<AdminDashboard />} />
                 </Route>
 
                 {/* Catch all */}

@@ -89,7 +89,7 @@ export async function getUserById(
   next: NextFunction
 ): Promise<void> {
   try {
-    const { id } = req.params;
+    const id = req.params.id as string;
 
     const user = await prisma.user.findUnique({
       where: { id },
@@ -130,6 +130,64 @@ export async function getUserById(
     next(error);
   }
 }
+/**
+ * Update user role (SuperAdmin only)
+ * PATCH /api/admin/users/:id/role
+ */
+export async function updateUserRole(
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void> {
+  try {
+    const id = req.params.id as string;
+    const { role } = req.body;
+
+    // Validate role
+    if (!['user', 'admin', 'superadmin'].includes(role)) {
+      throw new AppError('Invalid role. Must be user, admin, or superadmin', 400);
+    }
+
+    // Check if user exists
+    const user = await prisma.user.findUnique({
+      where: { id },
+    });
+
+    if (!user) {
+      throw new AppError('User not found', 404);
+    }
+
+    // Prevent changing own role
+    if (user.id === req.user?.userId) {
+      throw new AppError('Cannot change your own role', 403);
+    }
+
+    // Update user role
+    const updatedUser = await prisma.user.update({
+      where: { id },
+      data: { role: role as any },
+      select: {
+        id: true,
+        email: true,
+        familyName: true,
+        role: true,
+        isBlocked: true,
+        createdAt: true,
+        updatedAt: true,
+      },
+    });
+
+    logger.info(`SuperAdmin ${req.user?.userId} changed role of user ${id} to ${role}`);
+
+    res.json({
+      message: 'User role updated successfully',
+      user: updatedUser,
+    });
+  } catch (error) {
+    next(error);
+  }
+}
+
 
 /**
  * Reset user password (admin-initiated)
@@ -141,7 +199,7 @@ export async function resetUserPassword(
   next: NextFunction
 ): Promise<void> {
   try {
-    const { id } = req.params;
+    const id = req.params.id as string;
     const { newPassword } = req.body;
 
     if (!newPassword || newPassword.length < 8) {
@@ -151,7 +209,7 @@ export async function resetUserPassword(
     const user = await prisma.user.findUnique({
       where: { id },
       select: { id: true, email: true, role: true },
-    });
+    }) as any;
 
     if (!user) {
       throw new AppError('User not found', 404);
@@ -193,7 +251,7 @@ export async function blockUser(
   next: NextFunction
 ): Promise<void> {
   try {
-    const { id } = req.params;
+    const id = req.params.id as string;
 
     const user = await prisma.user.findUnique({
       where: { id },
@@ -247,7 +305,7 @@ export async function unblockUser(
   next: NextFunction
 ): Promise<void> {
   try {
-    const { id } = req.params;
+    const id = req.params.id as string;
 
     const user = await prisma.user.findUnique({
       where: { id },
@@ -288,7 +346,7 @@ export async function deleteUser(
   next: NextFunction
 ): Promise<void> {
   try {
-    const { id } = req.params;
+    const id = req.params.id as string;
 
     const user = await prisma.user.findUnique({
       where: { id },
