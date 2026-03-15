@@ -4,7 +4,7 @@
  */
 
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, memo, useCallback } from 'react';
 import {
   Container,
   Typography,
@@ -36,6 +36,102 @@ import { useNavigate } from 'react-router-dom';
 import { useAppDispatch, useAppSelector } from '../store/hooks';
 import { fetchRecipes } from '../store/slices/recipesSlice';
 
+// Memoized Recipe Card Component for better performance
+interface RecipeCardProps {
+  recipe: any;
+  onNavigate: (id: string) => void;
+}
+
+const RecipeCard = memo(({ recipe, onNavigate }: RecipeCardProps) => {
+  const getDifficultyColor = (diff: string) => {
+    switch (diff.toLowerCase()) {
+      case 'easy':
+        return 'success';
+      case 'medium':
+        return 'warning';
+      case 'hard':
+        return 'error';
+      default:
+        return 'default';
+    }
+  };
+
+  return (
+    <Card
+      sx={{
+        height: '100%',
+        display: 'flex',
+        flexDirection: 'column',
+        transition: 'transform 0.2s, box-shadow 0.2s',
+        '&:hover': {
+          transform: 'translateY(-4px)',
+          boxShadow: 4,
+          cursor: 'pointer',
+        },
+      }}
+      onClick={() => onNavigate(recipe.id)}
+    >
+      <CardMedia
+        component="img"
+        height="200"
+        image={recipe.imageUrl || 'https://via.placeholder.com/400x300?text=No+Image'}
+        alt={recipe.title}
+        sx={{ objectFit: 'cover' }}
+      />
+      <CardContent sx={{ flexGrow: 1 }}>
+        <Typography variant="h6" gutterBottom noWrap>
+          {recipe.title}
+        </Typography>
+        <Typography
+          variant="body2"
+          color="text.secondary"
+          sx={{
+            mb: 2,
+            overflow: 'hidden',
+            textOverflow: 'ellipsis',
+            display: '-webkit-box',
+            WebkitLineClamp: 2,
+            WebkitBoxOrient: 'vertical',
+          }}
+        >
+          {recipe.description || 'No description available'}
+        </Typography>
+        <Stack direction="row" spacing={1} flexWrap="wrap" gap={1}>
+          <Chip
+            label={recipe.difficulty}
+            size="small"
+            color={getDifficultyColor(recipe.difficulty)}
+          />
+          <Chip
+            icon={<TimeIcon />}
+            label={`${recipe.prepTime + recipe.cookTime} min`}
+            size="small"
+            variant="outlined"
+          />
+          <Chip
+            label={recipe.mealType}
+            size="small"
+            variant="outlined"
+          />
+        </Stack>
+      </CardContent>
+      <CardActions>
+        <Button
+          size="small"
+          onClick={(e) => {
+            e.stopPropagation();
+            onNavigate(recipe.id);
+          }}
+        >
+          View Recipe
+        </Button>
+      </CardActions>
+    </Card>
+  );
+});
+
+RecipeCard.displayName = 'RecipeCard';
+
 const Recipes: React.FC = () => {
   const navigate = useNavigate();
   const dispatch = useAppDispatch();
@@ -55,28 +151,19 @@ const Recipes: React.FC = () => {
     dispatch(fetchRecipes(params));
   }, [dispatch, currentPage, searchTerm, difficulty, mealType]);
 
-  const handleSearch = (value: string) => {
+  const handleSearch = useCallback((value: string) => {
     setSearchTerm(value);
     setCurrentPage(1);
-  };
+  }, []);
 
-  const handlePageChange = (_event: React.ChangeEvent<unknown>, value: number) => {
+  const handlePageChange = useCallback((_event: React.ChangeEvent<unknown>, value: number) => {
     setCurrentPage(value);
     window.scrollTo({ top: 0, behavior: 'smooth' });
-  };
+  }, []);
 
-  const getDifficultyColor = (diff: string) => {
-    switch (diff.toLowerCase()) {
-      case 'easy':
-        return 'success';
-      case 'medium':
-        return 'warning';
-      case 'hard':
-        return 'error';
-      default:
-        return 'default';
-    }
-  };
+  const handleNavigate = useCallback((id: string) => {
+    navigate(`/recipes/${id}`);
+  }, [navigate]);
 
   return (
     <Container maxWidth="lg">
@@ -182,77 +269,11 @@ const Recipes: React.FC = () => {
               }}
             >
               {recipes.map((recipe) => (
-                <Card
+                <RecipeCard
                   key={recipe.id}
-                  sx={{
-                    height: '100%',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    transition: 'transform 0.2s, box-shadow 0.2s',
-                    '&:hover': {
-                      transform: 'translateY(-4px)',
-                      boxShadow: 4,
-                      cursor: 'pointer',
-                    },
-                  }}
-                  onClick={() => navigate(`/recipes/${recipe.id}`)}
-                >
-                  <CardMedia
-                    component="img"
-                    height="200"
-                    image={recipe.imageUrl || 'https://via.placeholder.com/400x300?text=No+Image'}
-                    alt={recipe.title}
-                    sx={{ objectFit: 'cover' }}
-                  />
-                  <CardContent sx={{ flexGrow: 1 }}>
-                    <Typography variant="h6" gutterBottom noWrap>
-                      {recipe.title}
-                    </Typography>
-                    <Typography
-                      variant="body2"
-                      color="text.secondary"
-                      sx={{
-                        mb: 2,
-                        overflow: 'hidden',
-                        textOverflow: 'ellipsis',
-                        display: '-webkit-box',
-                        WebkitLineClamp: 2,
-                        WebkitBoxOrient: 'vertical',
-                      }}
-                    >
-                      {recipe.description || 'No description available'}
-                    </Typography>
-                    <Stack direction="row" spacing={1} flexWrap="wrap" gap={1}>
-                      <Chip
-                        label={recipe.difficulty}
-                        size="small"
-                        color={getDifficultyColor(recipe.difficulty)}
-                      />
-                      <Chip
-                        icon={<TimeIcon />}
-                        label={`${recipe.prepTime + recipe.cookTime} min`}
-                        size="small"
-                        variant="outlined"
-                      />
-                      <Chip
-                        label={recipe.mealType}
-                        size="small"
-                        variant="outlined"
-                      />
-                    </Stack>
-                  </CardContent>
-                  <CardActions>
-                    <Button
-                      size="small"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        navigate(`/recipes/${recipe.id}`);
-                      }}
-                    >
-                      View Recipe
-                    </Button>
-                  </CardActions>
-                </Card>
+                  recipe={recipe}
+                  onNavigate={handleNavigate}
+                />
               ))}
             </Box>
 

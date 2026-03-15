@@ -7,7 +7,7 @@
 import { PrismaClient } from '@prisma/client';
 import { logger } from './logger';
 
-// Singleton pattern for Prisma Client
+// Singleton pattern for Prisma Client with performance optimizations
 let prisma: PrismaClient;
 
 declare global {
