@@ -1,7 +1,5 @@
 import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit';
-import axios from 'axios';
-
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000/api';
+import { authAPI } from '../../services/api';
 
 interface User {
   id: string;
@@ -34,7 +32,7 @@ export const login = createAsyncThunk(
   'auth/login',
   async (credentials: { email: string; password: string }, { rejectWithValue }) => {
     try {
-      const response = await axios.post(`${API_URL}/auth/login`, credentials);
+      const response = await authAPI.login(credentials);
       const { user, accessToken, refreshToken } = response.data.data;
       
       // Store tokens
@@ -51,11 +49,11 @@ export const login = createAsyncThunk(
 export const register = createAsyncThunk(
   'auth/register',
   async (
-    userData: { email: string; password: string; name: string },
+    userData: { email: string; password: string; familyName: string },
     { rejectWithValue }
   ) => {
     try {
-      const response = await axios.post(`${API_URL}/auth/register`, userData);
+      const response = await authAPI.register(userData);
       const { user, accessToken, refreshToken } = response.data.data;
       
       // Store tokens
@@ -69,14 +67,9 @@ export const register = createAsyncThunk(
   }
 );
 
-export const logout = createAsyncThunk('auth/logout', async (_, { getState }) => {
+export const logout = createAsyncThunk('auth/logout', async () => {
   try {
-    const state = getState() as { auth: AuthState };
-    const refreshToken = state.auth.refreshToken;
-    
-    if (refreshToken) {
-      await axios.post(`${API_URL}/auth/logout`, { refreshToken });
-    }
+    await authAPI.logout();
   } catch (error) {
     // Ignore errors during logout
     console.error('Logout error:', error);
@@ -98,7 +91,7 @@ export const refreshAccessToken = createAsyncThunk(
         throw new Error('No refresh token available');
       }
       
-      const response = await axios.post(`${API_URL}/auth/refresh`, { refreshToken });
+      const response = await authAPI.refreshToken(refreshToken);
       const { accessToken } = response.data.data;
       
       localStorage.setItem('accessToken', accessToken);

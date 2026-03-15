@@ -1,7 +1,43 @@
 import { Request, Response, NextFunction } from 'express';
-import { prisma } from '../utils/prisma';
+import prisma from '../utils/prisma';
 import { AppError } from '../middleware/errorHandler';
 import logger from '../utils/logger';
+
+/**
+ * Interface for aggregated ingredient data
+ */
+interface AggregatedIngredient {
+  ingredient: {
+    id: string;
+    name: string;
+    category: string;
+    averagePrice: any; // Prisma Decimal type
+  };
+  quantity: any; // Prisma Decimal type
+  unit: string;
+  category: string;
+}
+
+/**
+ * Type for meal data used in ingredient aggregation
+ */
+type MealWithRecipe = {
+  servings: number;
+  recipe: {
+    servings: number;
+    ingredients: Array<{
+      ingredientId: string;
+      quantity: any; // Prisma Decimal type
+      unit: string;
+      ingredient: {
+        id: string;
+        name: string;
+        category: string;
+        averagePrice: any; // Prisma Decimal type
+      };
+    }>;
+  };
+};
 
 /**
  * @route   GET /api/grocery-lists
@@ -184,6 +220,64 @@ export const createGroceryList = async (
 };
 
 /**
+ * Helper function to generate a unique key for ingredients with different units
+ */
+function getIngredientKey(
+  ingredientId: string,
+  unit: string,
+  existingMap: Map<string, AggregatedIngredient>
+): string {
+  const baseKey = ingredientId;
+  
+  if (!existingMap.has(baseKey)) {
+    return baseKey;
+  }
+  
+  const existing = existingMap.get(baseKey)!;
+  if (existing.unit === unit) {
+    return baseKey;
+  }
+  
+  return `${baseKey}-${unit}`;
+}
+
+/**
+ * Helper function to aggregate ingredients from multiple meals
+ * Handles serving size adjustments and unit consolidation
+ */
+function aggregateIngredientsFromMeals(
+  meals: MealWithRecipe[]
+): Map<string, AggregatedIngredient> {
+  const ingredientMap = new Map<string, AggregatedIngredient>();
+
+  for (const meal of meals) {
+    const servingMultiplier = meal.servings / meal.recipe.servings;
+
+    for (const recipeIngredient of meal.recipe.ingredients) {
+      const adjustedQuantity = recipeIngredient.quantity * servingMultiplier;
+      const key = getIngredientKey(
+        recipeIngredient.ingredientId,
+        recipeIngredient.unit,
+        ingredientMap
+      );
+
+      if (ingredientMap.has(key)) {
+        ingredientMap.get(key)!.quantity += adjustedQuantity;
+      } else {
+        ingredientMap.set(key, {
+          ingredient: recipeIngredient.ingredient,
+          quantity: adjustedQuantity,
+          unit: recipeIngredient.unit,
+          category: recipeIngredient.ingredient.category,
+        });
+      }
+    }
+  }
+
+  return ingredientMap;
+}
+
+/**
  * @route   POST /api/grocery-lists/from-meal-plan/:mealPlanId
  * @desc    Generate grocery list from meal plan
  * @access  Private
@@ -200,15 +294,16 @@ export const generateFromMealPlan = async (
     }
 
     const { mealPlanId } = req.params;
+    const mealPlanIdStr = String(mealPlanId);
 
     // Get meal plan with all meals and recipes
     const mealPlan = await prisma.mealPlan.findFirst({
       where: {
-        id: mealPlanId,
+        id: mealPlanIdStr,
         userId,
       },
       include: {
-        meals: {
+        plannedMeals: {
           include: {
             recipe: {
               include: {
@@ -228,83 +323,51 @@ export const generateFromMealPlan = async (
       throw new AppError('Meal plan not found', 404);
     }
 
-    // Create grocery list
-    const groceryList = await prisma.groceryList.create({
-      data: {
-        userId,
-        name: `Grocery List for ${mealPlan.name}`,
-        mealPlanId,
-        status: 'ACTIVE',
-      },
+    // Use transaction to ensure data consistency
+    const result = await prisma.$transaction(async (tx) => {
+      // Create grocery list
+      const groceryList = await tx.groceryList.create({
+        data: {
+          userId,
+          mealPlanId: mealPlanIdStr,
+          status: 'draft',
+        },
+      });
+
+      // Aggregate ingredients from all meals
+      const ingredientMap = aggregateIngredientsFromMeals(mealPlan.plannedMeals);
+
+      // Batch create grocery list items
+      await tx.groceryListItem.createMany({
+        data: Array.from(ingredientMap.values()).map((item) => ({
+          groceryListId: groceryList.id,
+          ingredientId: item.ingredient.id,
+          quantity: item.quantity,
+          unit: item.unit,
+          estimatedPrice: item.ingredient.averagePrice.mul(item.quantity),
+          isChecked: false,
+          storeSection: null,
+          notes: null,
+        })),
+      });
+
+      // Fetch created items with ingredient relations
+      const items = await tx.groceryListItem.findMany({
+        where: { groceryListId: groceryList.id },
+        include: { ingredient: true },
+        orderBy: { ingredient: { category: 'asc' } },
+      });
+
+      return { groceryList, items };
     });
 
-    // Aggregate ingredients from all meals
-    const ingredientMap = new Map<string, {
-      ingredient: any;
-      quantity: number;
-      unit: string;
-      category: string;
-    }>();
-
-    for (const meal of mealPlan.meals) {
-      const servingMultiplier = meal.servings / meal.recipe.servings;
-
-      for (const recipeIngredient of meal.recipe.ingredients) {
-        const key = recipeIngredient.ingredientId;
-        const adjustedQuantity = recipeIngredient.quantity * servingMultiplier;
-
-        if (ingredientMap.has(key)) {
-          const existing = ingredientMap.get(key)!;
-          // Only add if same unit, otherwise create separate item
-          if (existing.unit === recipeIngredient.unit) {
-            existing.quantity += adjustedQuantity;
-          } else {
-            // Create with unique key for different unit
-            const uniqueKey = `${key}-${recipeIngredient.unit}`;
-            ingredientMap.set(uniqueKey, {
-              ingredient: recipeIngredient.ingredient,
-              quantity: adjustedQuantity,
-              unit: recipeIngredient.unit,
-              category: recipeIngredient.ingredient.category,
-            });
-          }
-        } else {
-          ingredientMap.set(key, {
-            ingredient: recipeIngredient.ingredient,
-            quantity: adjustedQuantity,
-            unit: recipeIngredient.unit,
-            category: recipeIngredient.ingredient.category,
-          });
-        }
-      }
-    }
-
-    // Create grocery list items
-    const items = await Promise.all(
-      Array.from(ingredientMap.values()).map((item) =>
-        prisma.groceryListItem.create({
-          data: {
-            groceryListId: groceryList.id,
-            ingredientId: item.ingredient.id,
-            quantity: item.quantity,
-            unit: item.unit,
-            category: item.category,
-            checked: false,
-          },
-          include: {
-            ingredient: true,
-          },
-        })
-      )
-    );
-
-    logger.info(`Grocery list generated from meal plan ${mealPlanId}: ${groceryList.id}`);
+    logger.info(`Grocery list generated from meal plan ${mealPlanId}: ${result.groceryList.id}`);
 
     res.status(201).json({
       success: true,
       data: {
-        ...groceryList,
-        items,
+        ...result.groceryList,
+        items: result.items,
       },
     });
   } catch (error) {

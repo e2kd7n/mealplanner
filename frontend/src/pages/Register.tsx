@@ -50,7 +50,7 @@ const Register: React.FC = () => {
       return;
     }
 
-    await dispatch(register({ name, email, password }));
+    await dispatch(register({ familyName: name, email, password }));
   };
 
   return (
