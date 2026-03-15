@@ -1,6 +1,6 @@
 # Issues Prioritization
 
-**Last Updated:** March 15, 2026
+**Last Updated:** March 15, 2026 (15:35 UTC)
 
 This document provides a quick overview of all open issues, organized by priority, to help with task planning and prioritization.
 
@@ -8,7 +8,7 @@ This document provides a quick overview of all open issues, organized by priorit
 
 ## 🔴 Critical Priority
 
-No critical issues at this time.
+| 13 | Implement Admin Dashboard | `frontend`, `backend`, `admin`, `security` | Open | [View Details](#issue-13-implement-admin-dashboard-for-user-management) |
 
 ---
 
@@ -20,6 +20,12 @@ No critical issues at this time.
 |---|-------|------|--------|------|
 | 14 | Implement Profile Page UI | `frontend`, `ui`, `user-management` | Open | [View Details](#issue-14-implement-profile-page-ui) |
 | 15 | Implement Create Recipe Page UI | `frontend`, `ui`, `recipes` | Open | [View Details](#issue-15-implement-create-recipe-page-ui) |
+| 10 | Recipe Search & Recommendations | `backend`, `search`, `ai`, `recommendations` | Open | [View Details](#issue-10-missing-recipe-search--recommendations) |
+| 11 | Grocery List Optimization | `backend`, `optimization`, `grocery` | Open | [View Details](#issue-11-missing-grocery-list-optimization) |
+| 19 | Implement URL-Based Recipe Import | `backend`, `integration`, `recipes`, `docling` | Open | [View Details](#issue-19-implement-url-based-recipe-import) |
+| 20 | Integrate Nutrition Database | `backend`, `nutrition`, `api-integration` | Open | [View Details](#issue-20-integrate-nutrition-database-for-auto-population) |
+| 21 | Implement Nutrition Dashboard | `frontend`, `nutrition`, `dashboard`, `charts` | Open | [View Details](#issue-21-implement-nutrition-dashboard) |
+| 22 | Implement Nutrition Guideline Warnings | `frontend`, `backend`, `nutrition`, `health` | Open | [View Details](#issue-22-implement-nutrition-guideline-warnings) |
 
 ### Backend Features
 
@@ -27,16 +33,13 @@ No critical issues at this time.
 |---|-------|------|--------|------|
 | 17 | Implement AllRecipes.com Recipe Import | `backend`, `integration`, `recipes` | Open | [View Details](#issue-17-implement-allrecipescom-recipe-import) |
 | 18 | Implement Recipe Card OCR Import | `backend`, `ai`, `ocr`, `recipes` | Open | [View Details](#issue-18-implement-recipe-card-ocr-import) |
-| 19 | Implement URL-Based Recipe Import | `backend`, `integration`, `recipes`, `docling` | Open | [View Details](#issue-19-implement-url-based-recipe-import) |
-| 20 | Integrate Nutrition Database | `backend`, `nutrition`, `api-integration` | Open | [View Details](#issue-20-integrate-nutrition-database-for-auto-population) |
-| 21 | Implement Nutrition Dashboard | `frontend`, `nutrition`, `dashboard`, `charts` | Open | [View Details](#issue-21-implement-nutrition-dashboard) |
-| 22 | Implement Nutrition Guideline Warnings | `frontend`, `backend`, `nutrition`, `health` | Open | [View Details](#issue-22-implement-nutrition-guideline-warnings) |
+
 
 ### Admin & Security
 
 | # | Issue | Tags | Status | Link |
 |---|-------|------|--------|------|
-| 13 | Implement Admin Dashboard | `frontend`, `backend`, `admin`, `security` | Open | [View Details](#issue-13-implement-admin-dashboard-for-user-management) |
+
 
 ---
 
@@ -46,10 +49,10 @@ No critical issues at this time.
 
 | # | Issue | Tags | Status | Link |
 |---|-------|------|--------|------|
-| 10 | Recipe Search & Recommendations | `backend`, `search`, `ai`, `recommendations` | Open | [View Details](#issue-10-missing-recipe-search--recommendations) |
-| 11 | Grocery List Optimization | `backend`, `optimization`, `grocery` | Open | [View Details](#issue-11-missing-grocery-list-optimization) |
+
 | 16 | MyFitnessPal Integration | `backend`, `integration`, `nutrition`, `api` | Open | [View Details](#issue-16-implement-myfitnesspal-integration) |
 | 23 | Create System Architecture Documentation | `documentation`, `architecture` | Open | [View Details](#issue-23-create-system-architecture-documentation) |
+| 25 | Add Sortable and Filterable Tables/Lists | `frontend`, `ui`, `enhancement`, `ux` | Open | [View Details](#issue-25-add-sortable-and-filterable-tableslists) |
 
 ---
 
@@ -59,10 +62,21 @@ No low priority issues at this time.
 
 ---
 
+## 🔵 In Progress
+
+| # | Issue | Tags | Status | Link |
+|---|-------|------|--------|------|
+| 24 | Fix Frontend Console Errors | `frontend`, `bugfix`, `accessibility` | Partially Resolved | [View Details](#issue-24-fix-frontend-console-errors) |
+
+**Issue #24 Status:** 5 of 9 bugs fixed (Critical authentication and data access issues resolved)
+
+---
+
 ## ✅ Recently Completed
 
 | # | Issue | Completed | Tags |
 |---|-------|-----------|------|
+| 26 | Add Meal Detail View and Day Summary | Mar 15, 2026 | `frontend`, `ui`, `meal-planner`, `ux` |
 | 2 | Add copyright notices | Mar 15, 2026 | `legal`, `maintenance` |
 | 5 | Refactor auth.controller.ts | Mar 15, 2026 | `backend`, `security`, `refactor` |
 | 6 | Refactor groceryList.controller.ts | Mar 15, 2026 | `backend`, `performance`, `refactor` |
@@ -70,16 +84,16 @@ No low priority issues at this time.
 | 8 | Add user profile & preferences endpoints | Mar 15, 2026 | `backend`, `user-management`, `api` |
 | 9 | Add family member management endpoints | Mar 15, 2026 | `backend`, `user-management`, `api` |
 | 12 | Add input validation middleware | Mar 15, 2026 | `backend`, `security`, `validation` |
-| 24 | Fix frontend console errors | Mar 15, 2026 | `frontend`, `bugfix` |
 
 ---
 
 ## 📊 Statistics
 
-- **Total Open Issues:** 13
+- **Total Open Issues:** 14
 - **High Priority:** 9
-- **Medium Priority:** 4
+- **Medium Priority:** 5
 - **Low Priority:** 0
+- **In Progress:** 1 (Issue #24 - 5/9 bugs fixed)
 - **Recently Completed:** 8
 
 ---
@@ -366,3 +380,54 @@ Create comprehensive architecture documentation with diagrams.
 ---
 
 **Note:** This document is auto-generated from ISSUES.md. For full issue details, implementation tasks, and technical specifications, refer to [ISSUES.md](./ISSUES.md).
+
+---
+
+### Issue #24: Fix Frontend Console Errors
+**Priority:** High | **Tags:** `frontend`, `bugfix`, `accessibility`
+**Status:** Partially Resolved (5 of 9 bugs fixed)
+
+Multiple console errors occurring in the browser console. Critical authentication and data access issues have been resolved.
+
+**Fixed (✅):**
+1. Fast Refresh warning in AuthContext - Named function declarations
+2. 401 Unauthorized errors - JWT token property mismatch fixed in all controllers
+3. TypeError in Profile.tsx - Defensive data normalization for arrays
+4. Aria-hidden accessibility warning - Proper Dialog configuration
+5. MUI wheel event listener - Documented as third-party library issue
+
+**Remaining (Open):**
+6. Redux state error in recipesSlice.ts
+7. HTML nesting violations in Pantry.tsx
+8. Performance warnings from setInterval handlers
+9. React StrictMode double rendering (expected behavior in development)
+
+**Backend Status:** ✅ Complete (All controllers fixed)
+**Frontend Status:** 🔵 In Progress (Critical issues resolved, minor issues remain)
+
+[Full Details in ISSUES.md](./ISSUES.md#issue-24-fix-frontend-console-errors)
+
+---
+
+### Issue #25: Add Sortable and Filterable Tables/Lists
+**Priority:** Medium | **Tags:** `frontend`, `ui`, `enhancement`, `ux`
+
+Enhancement to allow users to sort and filter data by clicking column headers in tables and lists.
+
+**Key Features:**
+- Column header click handlers for sorting
+- Filter inputs/dropdowns per column
+- Persist preferences in localStorage
+- Visual indicators for active sort
+- Support for multi-column sorting
+
+**Affected Components:**
+- Recipe list, Pantry inventory, Grocery list, Meal plan, Family members
+
+**Dependencies:** None
+
+[Full Details in ISSUES.md](./ISSUES.md#issue-25-add-sortable-and-filterable-tableslists)
+
+
+---
+

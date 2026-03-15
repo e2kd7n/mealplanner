@@ -1152,3 +1152,64 @@
 **Priority:** Medium - Nice-to-have feature that improves user experience
 
 ---
+
+
+### Issue #26: Add Meal Detail View and Day Summary in Meal Planner
+**Status:** Completed
+**Priority:** Medium
+**Completed:** March 15, 2026
+**Description:** Users cannot click on individual meals or days in the meal planner to view details. Only delete action is available.
+
+**Current Behavior:**
+- Meal cards in weekly view only show delete button
+- No way to view full meal details
+- No way to see all meals for a specific day
+
+**Expected Behavior:**
+1. **Click on Meal Card** - Opens modal popup showing:
+   - Full recipe name
+   - Recipe description
+   - Servings
+   - Prep/cook time
+   - Ingredients list
+   - Nutrition information
+   - Link to full recipe page
+   - Edit/Delete actions
+
+2. **Click on Day Header** - Opens modal popup showing:
+   - All meals for that day
+   - Total nutrition summary for the day
+   - Quick add meal button
+   - Bulk actions (copy to another day, clear all meals)
+
+**Implementation Tasks:**
+- [x] Add click handler to meal cards (lines 280-321 in MealPlanner.tsx)
+- [x] Create MealDetailDialog component with full meal information
+- [x] Add click handler to day header (lines 206-227 in MealPlanner.tsx)
+- [x] Create DaySummaryDialog component with day's meals and nutrition
+- [x] Fetch full recipe details when meal is clicked
+- [x] Calculate and display daily nutrition totals
+- [x] Add edit functionality in meal detail modal
+- [x] Add copy/move meal to another day functionality
+- [x] Ensure delete button still works (stopPropagation on delete icon)
+
+**Implementation Details:**
+- Implemented inline in `frontend/src/pages/MealPlanner.tsx` (no separate components needed)
+- Added two Dialog components: Meal Detail Dialog and Day Summary Dialog
+- Meal cards and day headers now clickable with hover effects
+- Proper event propagation handling (stopPropagation on delete buttons)
+- Accessibility improvements (disableRestoreFocus, keepMounted=false)
+- Nutrition summary placeholder for future integration with Issue #20
+
+**Files Modified:**
+- `frontend/src/pages/MealPlanner.tsx` - Added click handlers, state management, and two dialog components
+
+**API Endpoints Used:**
+- GET `/api/recipes/:id` - Fetch full recipe details (already exists)
+- GET `/api/meal-plans/:id` - Fetch meal plan details with recipes
+
+**Priority:** Medium - Improves user experience and meal plan management
+
+**Related Issues:** Issue #20 (Nutrition Database) for future nutrition calculations
+
+---
