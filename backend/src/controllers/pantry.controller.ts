@@ -21,7 +21,7 @@ export const getPantryItems = async (
   next: NextFunction
 ): Promise<void> => {
   try {
-    const userId = req.user?.id;
+    const userId = req.user?.userId || req.user?.id;
     if (!userId) {
       throw new AppError('User not authenticated', 401);
     }
@@ -72,7 +72,7 @@ export const getPantryItemById = async (
   next: NextFunction
 ): Promise<void> => {
   try {
-    const userId = req.user?.id;
+    const userId = req.user?.userId || req.user?.id;
     if (!userId) {
       throw new AppError('User not authenticated', 401);
     }
@@ -113,7 +113,7 @@ export const addPantryItem = async (
   next: NextFunction
 ): Promise<void> => {
   try {
-    const userId = req.user?.id;
+    const userId = req.user?.userId || req.user?.id;
     if (!userId) {
       throw new AppError('User not authenticated', 401);
     }
@@ -209,7 +209,7 @@ export const updatePantryItem = async (
   next: NextFunction
 ): Promise<void> => {
   try {
-    const userId = req.user?.id;
+    const userId = req.user?.userId || req.user?.id;
     if (!userId) {
       throw new AppError('User not authenticated', 401);
     }
@@ -273,7 +273,7 @@ export const deletePantryItem = async (
   next: NextFunction
 ): Promise<void> => {
   try {
-    const userId = req.user?.id;
+    const userId = req.user?.userId || req.user?.id;
     if (!userId) {
       throw new AppError('User not authenticated', 401);
     }
@@ -318,7 +318,7 @@ export const consumePantryItem = async (
   next: NextFunction
 ): Promise<void> => {
   try {
-    const userId = req.user?.id;
+    const userId = req.user?.userId || req.user?.id;
     if (!userId) {
       throw new AppError('User not authenticated', 401);
     }
@@ -395,7 +395,7 @@ export const getLowStockItems = async (
   next: NextFunction
 ): Promise<void> => {
   try {
-    const userId = req.user?.id;
+    const userId = req.user?.userId || req.user?.id;
     if (!userId) {
       throw new AppError('User not authenticated', 401);
     }
@@ -437,7 +437,7 @@ export const getExpiringSoonItems = async (
   next: NextFunction
 ): Promise<void> => {
   try {
-    const userId = req.user?.id;
+    const userId = req.user?.userId || req.user?.id;
     if (!userId) {
       throw new AppError('User not authenticated', 401);
     }

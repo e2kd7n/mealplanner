@@ -1030,45 +1030,125 @@
 ---
 - Terms of service only needed if application is shared with other families
 ### Issue #24: Fix Frontend Console Errors
-**Status:** Open
+**Status:** Partially Resolved
 **Priority:** High
-**Description:** Multiple console errors occurring when navigating between pages in the application.
+**Description:** Multiple console errors occurring in the browser console. Several critical issues have been fixed.
 
-**Bugs Identified:**
+**Bugs Identified and Status:**
 
-1. **Redux State Error** (recipesSlice.ts:189)
+1. ✅ **FIXED - Fast Refresh Warning** (AuthContext.tsx)
+   - Error: `[vite] invalidate /src/contexts/AuthContext.tsx: Could not Fast Refresh ("useAuth" export is incompatible)`
+   - Cause: Anonymous function exports incompatible with Vite Fast Refresh
+   - Fix: Converted to named function declarations (`export function AuthProvider` and `export function useAuth`)
+   - Fixed in: `frontend/src/contexts/AuthContext.tsx`
+
+2. ✅ **FIXED - 401 Unauthorized Errors** (All API calls)
+   - Error: Multiple `GET/POST http://localhost:3000/api/* 401 (Unauthorized)` errors
+   - Root Cause: JWT token payload contains `userId` but all controllers checked `req.user?.id`
+   - Fix: Updated all `getUserId()` helper functions to check both: `req.user?.userId || req.user?.id`
+   - Fixed in: All backend controllers (familyMember, user, groceryList, mealPlan, pantry, recipe)
+
+3. ✅ **FIXED - TypeError in Profile.tsx**
+   - Error: `Cannot read properties of undefined (reading 'includes')` at line 399
+   - Cause: API response for user preferences may not include `dietaryRestrictions` or `avoidedIngredients` properties
+   - Fix: Added defensive data normalization to ensure arrays are always defined
+   - Fixed in: `frontend/src/pages/Profile.tsx` lines 150-157
+
+4. ✅ **DOCUMENTED - Non-Passive Wheel Event Listener** (MUI Menu)
+   - Warning: `[Violation] Added non-passive event listener to a scroll-blocking 'wheel' event`
+   - Cause: Material-UI Menu component implementation
+   - Status: Third-party library issue, documented in BROWSER_CONSOLE_FIXES.md
+   - No action needed - MUI team will address in future releases
+
+5. ✅ **FIXED - Aria-Hidden Accessibility Warning**
+   - Error: `Blocked aria-hidden on an element because its descendant retained focus`
+   - Cause: MUI Dialog with focused button when aria-hidden applied
+   - Fix: Added proper Dialog configuration with `disableRestoreFocus` and `keepMounted={false}`
+   - Fixed in: `frontend/src/pages/Profile.tsx` Dialog components
+
+6. **OPEN - Redux State Error** (recipesSlice.ts:189)
    - Error: `Cannot read properties of undefined (reading 'recipes')`
    - Cause: API response structure mismatch - expecting `action.payload.recipes` but payload might be undefined or have different structure
    - Fix: Add null checks and default values in reducer
 
-2. **HTML Nesting Violations** (Pantry.tsx:276, 293, 294)
+7. **OPEN - HTML Nesting Violations** (Pantry.tsx:276, 293, 294)
    - Error: `<p> cannot contain nested <p>` and `<p> cannot contain nested <div>`
    - Cause: ListItemText secondary prop renders as `<p>`, but contains Typography (also `<p>`) and Stack (`<div>`)
    - Fix: Use `component="div"` on ListItemText or change Typography components to `<span>`
 
-3. **Accessibility Error** (aria-hidden)
-   - Error: `Blocked aria-hidden on element because descendant retained focus`
-   - Cause: Modal or dialog with aria-hidden=true contains focused button
-   - Fix: Properly manage focus when opening/closing modals
-
-4. **Performance Warnings**
+8. **OPEN - Performance Warnings**
    - Multiple `[Violation] 'setInterval' handler took <N>ms` warnings
    - Cause: Long-running setInterval handlers (possibly in polling or animations)
    - Fix: Optimize interval handlers or use requestAnimationFrame
 
+9. **OPEN - React StrictMode Double Rendering**
+   - Issue: API calls triggered twice in development due to StrictMode
+   - Cause: React 18 StrictMode intentionally double-invokes effects to detect side effects
+   - Impact: Duplicate API calls visible in logs during development only
+   - Status: Expected behavior in development, no production impact
+
 **Implementation Tasks:**
+- [x] Fix Fast Refresh warning in AuthContext
+- [x] Fix 401 Unauthorized errors (JWT token property mismatch)
+- [x] Fix TypeError in Profile.tsx (undefined array access)
+- [x] Document MUI wheel event listener warning
+- [x] Fix aria-hidden accessibility warning
+- [x] Create comprehensive documentation (BROWSER_CONSOLE_FIXES.md)
 - [ ] Fix recipesSlice reducer to handle undefined payload
 - [ ] Fix Pantry.tsx HTML nesting violations
-- [ ] Fix aria-hidden focus management
 - [ ] Investigate and optimize setInterval handlers
 - [ ] Add error boundaries to catch Redux errors
 - [ ] Add PropTypes or TypeScript validation for API responses
 
-**Files to Fix:**
+**Files Fixed:**
+- ✅ `frontend/src/contexts/AuthContext.tsx` - Fast Refresh fix
+- ✅ `backend/src/controllers/familyMember.controller.ts` - getUserId fix
+- ✅ `backend/src/controllers/user.controller.ts` - getUserId fix
+- ✅ `backend/src/controllers/groceryList.controller.ts` - getUserId fix
+- ✅ `backend/src/controllers/mealPlan.controller.ts` - getUserId fix
+- ✅ `backend/src/controllers/pantry.controller.ts` - getUserId fix
+- ✅ `backend/src/controllers/recipe.controller.ts` - getUserId fix
+- ✅ `frontend/src/pages/Profile.tsx` - TypeError fix and Dialog accessibility
+- ✅ `BROWSER_CONSOLE_FIXES.md` - Comprehensive documentation
+
+**Files Still to Fix:**
 - `frontend/src/store/slices/recipesSlice.ts` (line 189)
 - `frontend/src/pages/Pantry.tsx` (lines 276, 293-300)
-- Modal/Dialog components (aria-hidden issue)
 
-**Priority:** High - These errors affect user experience and accessibility
+**Priority:** High - Critical authentication and data access issues resolved, remaining issues affect UX
+
+**Date Fixed:** 2026-03-15
+
+---
+
+### Issue #25: Add Sortable and Filterable Tables/Lists
+**Status:** Open
+**Priority:** Medium
+**Description:** Enhancement request to allow users to sort and filter data by clicking column headers in tables and lists throughout the UI.
+
+**Affected Components:**
+- Recipe list page
+- Pantry inventory list
+- Grocery list
+- Meal plan calendar view
+- Family members list
+- Any other data tables/lists
+
+**Implementation Requirements:**
+- Add column header click handlers for sorting (ascending/descending)
+- Add filter inputs/dropdowns for each column
+- Persist sort/filter preferences in localStorage or user preferences
+- Add visual indicators for active sort direction
+- Support multi-column sorting (optional)
+- Add clear filters button
+
+**Technical Approach:**
+- Use Material-UI Table with TableSortLabel components
+- Implement client-side sorting for small datasets
+- Implement server-side sorting/filtering for large datasets via API query parameters
+- Add Redux state for sort/filter preferences
+- Consider using a data grid library like MUI X DataGrid for advanced features
+
+**Priority:** Medium - Nice-to-have feature that improves user experience
 
 ---
