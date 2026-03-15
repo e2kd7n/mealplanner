@@ -32,6 +32,7 @@ import {
   ShoppingCart as ShoppingCartIcon,
   Kitchen as KitchenIcon,
   AccountCircle as AccountCircleIcon,
+  AdminPanelSettings as AdminIcon,
 } from '@mui/icons-material';
 import { useAppDispatch, useAppSelector } from '../store/hooks';
 import { logout } from '../store/slices/authSlice';
@@ -44,6 +45,7 @@ const menuItems = [
   { text: 'Meal Planner', icon: <CalendarIcon />, path: '/meal-planner' },
   { text: 'Grocery List', icon: <ShoppingCartIcon />, path: '/grocery-list' },
   { text: 'Pantry', icon: <KitchenIcon />, path: '/pantry' },
+  { text: 'Admin', icon: <AdminIcon />, path: '/admin', adminOnly: true },
 ];
 
 const Layout: React.FC = () => {
@@ -90,17 +92,23 @@ const Layout: React.FC = () => {
         </Typography>
       </Toolbar>
       <List>
-        {menuItems.map((item) => (
-          <ListItem key={item.text} disablePadding>
-            <ListItemButton
-              selected={location.pathname === item.path}
-              onClick={() => handleMenuClick(item.path)}
-            >
-              <ListItemIcon>{item.icon}</ListItemIcon>
-              <ListItemText primary={item.text} />
-            </ListItemButton>
-          </ListItem>
-        ))}
+        {menuItems.map((item) => {
+          // Hide admin menu for non-admin users
+          if (item.adminOnly && (user as any)?.role !== 'admin' && (user as any)?.role !== 'superadmin') {
+            return null;
+          }
+          return (
+            <ListItem key={item.text} disablePadding>
+              <ListItemButton
+                selected={location.pathname === item.path}
+                onClick={() => handleMenuClick(item.path)}
+              >
+                <ListItemIcon>{item.icon}</ListItemIcon>
+                <ListItemText primary={item.text} />
+              </ListItemButton>
+            </ListItem>
+          );
+        })}
       </List>
     </Box>
   );

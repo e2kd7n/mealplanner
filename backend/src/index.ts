@@ -22,6 +22,7 @@ import mealPlanRoutes from './routes/mealPlan.routes';
 import groceryListRoutes from './routes/groceryList.routes';
 import ingredientRoutes from './routes/ingredient.routes';
 import pantryRoutes from './routes/pantry.routes';
+import adminRoutes from './routes/admin.routes';
 
 // Import middleware
 import { errorHandler } from './middleware/errorHandler';
@@ -69,6 +70,7 @@ app.get('/', (_req, res) => {
       groceryLists: '/api/grocery-lists',
       ingredients: '/api/ingredients',
       pantry: '/api/pantry',
+      admin: '/api/admin',
     },
     documentation: 'See README.md for API documentation',
   });
@@ -92,6 +94,7 @@ app.use('/api/meal-plans', mealPlanRoutes);
 app.use('/api/grocery-lists', groceryListRoutes);
 app.use('/api/ingredients', ingredientRoutes);
 app.use('/api/pantry', pantryRoutes);
+app.use('/api/admin', adminRoutes);
 
 // 404 handler
 app.use((req, res) => {
