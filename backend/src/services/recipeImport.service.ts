@@ -237,23 +237,50 @@ export class RecipeImportService {
       logger.info(`Importing recipe from URL: ${validatedUrl}`);
 
       // Scrape recipe using @rethora/url-recipe-scraper
-      const scrapedRecipe = await scrapeRecipe(validatedUrl);
+      let scrapedRecipe;
+      try {
+        scrapedRecipe = await scrapeRecipe(validatedUrl);
+      } catch (scrapeError: any) {
+        logger.error(`Scraping failed for ${validatedUrl}: ${scrapeError.message}`);
+        throw new Error(`Unable to scrape recipe from this URL. The website may not be supported or may be blocking automated access.`);
+      }
 
       if (!scrapedRecipe || !scrapedRecipe.name) {
-        throw new Error('Failed to extract recipe data from URL');
+        logger.error(`No recipe data found at ${validatedUrl}`);
+        throw new Error('No recipe data found at this URL. Please ensure the URL points to a recipe page with structured data.');
       }
+
+      logger.info(`Scraped recipe: ${scrapedRecipe.name}`);
 
       // Parse times
       const prepTime = this.parseTime(scrapedRecipe.prepTime);
       const cookTime = this.parseTime(scrapedRecipe.cookTime);
 
       // Parse ingredients and filter out nulls
-      const ingredients = (scrapedRecipe.recipeIngredient || [])
+      const rawIngredients = scrapedRecipe.recipeIngredient || [];
+      if (!Array.isArray(rawIngredients) || rawIngredients.length === 0) {
+        logger.warn(`No ingredients found for recipe: ${scrapedRecipe.name}`);
+      }
+      
+      const ingredients = rawIngredients
         .map((ing: any) => this.parseIngredient(ing))
         .filter((ing: any) => ing !== null);
 
+      if (ingredients.length === 0) {
+        throw new Error('Recipe must have at least one ingredient. Unable to parse ingredients from this URL.');
+      }
+
       // Parse instructions
       const instructions = this.parseInstructions(scrapedRecipe.recipeInstructions);
+      
+      if (instructions.length === 0) {
+        logger.warn(`No instructions found for recipe: ${scrapedRecipe.name}`);
+        // Add a placeholder instruction
+        instructions.push({
+          step: 1,
+          instruction: 'Instructions not available. Please refer to the original recipe URL.',
+        });
+      }
 
       // Determine difficulty and meal type
       const difficulty = this.determineDifficulty(prepTime, cookTime, ingredients.length);
@@ -279,11 +306,19 @@ export class RecipeImportService {
         sourceUrl: validatedUrl,
       };
 
-      logger.info(`Successfully imported recipe: ${parsedRecipe.title}`);
+      logger.info(`Successfully imported recipe: ${parsedRecipe.title} with ${ingredients.length} ingredients and ${instructions.length} steps`);
 
       return parsedRecipe;
     } catch (error: any) {
-      logger.error(`Failed to import recipe from URL: ${error.message}`);
+      logger.error(`Failed to import recipe from URL: ${error.message}`, {
+        stack: error.stack,
+        url,
+      });
+      
+      // Re-throw with user-friendly message
+      if (error.message.includes('Recipe import failed:')) {
+        throw error; // Already formatted
+      }
       throw new Error(`Recipe import failed: ${error.message}`);
     }
   }

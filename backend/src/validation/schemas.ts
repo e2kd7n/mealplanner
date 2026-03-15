@@ -165,4 +165,44 @@ export const createIngredientSchema = z.object({
 
 export const updateIngredientSchema = createIngredientSchema.partial();
 
+// Recipe Import schemas
+export const importRecipeUrlSchema = z.object({
+  url: z.string().url('Invalid URL format'),
+});
+
+export const saveImportedRecipeSchema = z.object({
+  title: z.string().min(1, 'Title is required').max(200, 'Title too long').trim(),
+  description: z.string().default(''),
+  prepTime: z.number().int().min(0, 'Prep time must be positive'),
+  cookTime: z.number().int().min(0, 'Cook time must be positive'),
+  servings: z.number().int().min(1, 'Servings must be at least 1'),
+  difficulty: z.enum(['easy', 'medium', 'hard'], {
+    message: 'Difficulty must be easy, medium, or hard',
+  }),
+  mealType: z.enum(['breakfast', 'lunch', 'dinner', 'snack', 'dessert'], {
+    message: 'Invalid meal type',
+  }),
+  cuisineType: z.string().nullable().optional(),
+  imageUrl: z.string().nullable().optional(),
+  ingredients: z.array(z.object({
+    name: z.string().min(1, 'Ingredient name is required'),
+    quantity: z.number().positive('Quantity must be positive'),
+    unit: z.string().min(1, 'Unit is required'),
+    notes: z.string().optional(),
+  })).min(1, 'At least one ingredient is required'),
+  instructions: z.array(z.object({
+    step: z.number().int().positive(),
+    instruction: z.string().min(1, 'Instruction text is required'),
+  })).min(1, 'At least one instruction is required'),
+  nutritionInfo: z.object({
+    calories: z.number().optional(),
+    protein: z.number().optional(),
+    carbs: z.number().optional(),
+    fat: z.number().optional(),
+    fiber: z.number().optional(),
+    sugar: z.number().optional(),
+  }).nullable().optional(),
+  sourceUrl: z.string().url('Invalid source URL').optional(),
+});
+
 // Made with Bob
