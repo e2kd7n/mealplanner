@@ -253,25 +253,30 @@ export default function CreateRecipe() {
   };
 
   const handleAddIngredient = () => {
-    if (!newIngredient.ingredientId || newIngredient.quantity <= 0) {
-      setError('Please select an ingredient and enter a valid quantity');
+    if (!newIngredient.ingredientName || newIngredient.quantity <= 0) {
+      setError('Please enter an ingredient name and a valid quantity');
       return;
     }
 
-    const ingredient = availableIngredients.find(
+    if (!newIngredient.unit) {
+      setError('Please enter a unit (e.g., cups, oz, grams)');
+      return;
+    }
+
+    // Check if ingredient exists
+    const existingIngredient = availableIngredients.find(
       (ing) => ing.id === newIngredient.ingredientId
     );
-    if (!ingredient) return;
 
     setFormData({
       ...formData,
       ingredients: [
         ...formData.ingredients,
         {
-          ingredientId: ingredient.id,
-          ingredientName: ingredient.name,
+          ingredientId: existingIngredient?.id || '', // Empty if new ingredient
+          ingredientName: newIngredient.ingredientName,
           quantity: newIngredient.quantity,
-          unit: newIngredient.unit || ingredient.unit,
+          unit: newIngredient.unit,
           notes: newIngredient.notes,
         },
       ],
@@ -361,9 +366,18 @@ export default function CreateRecipe() {
         setSuccess('Recipe created successfully!');
       }
       
+      // Get recipe ID from response
+      const recipeId = response.data?.id || response.data?.data?.id || id;
+      
+      if (!recipeId) {
+        console.error('No recipe ID in response:', response.data);
+        setError('Recipe saved but unable to navigate to detail page');
+        return;
+      }
+      
       // Redirect to recipe detail page after a short delay
       setTimeout(() => {
-        navigate(`/recipes/${response.data.id || id}`);
+        navigate(`/recipes/${recipeId}`);
       }, 1500);
     } catch (err: any) {
       setError(err.response?.data?.message || `Failed to ${isEditMode ? 'update' : 'create'} recipe`);
@@ -533,19 +547,45 @@ export default function CreateRecipe() {
       <Grid container spacing={2} mb={3}>
         <Grid size={{ xs: 12, sm: 5 }}>
           <Autocomplete
+            freeSolo
             options={availableIngredients}
-            getOptionLabel={(option) => option.name}
-            value={Array.isArray(availableIngredients) ? availableIngredients.find((ing) => ing.id === newIngredient.ingredientId) || null : null}
+            getOptionLabel={(option) => typeof option === 'string' ? option : option.name}
+            value={newIngredient.ingredientName || null}
             onChange={(_, value) => {
-              setNewIngredient({
-                ...newIngredient,
-                ingredientId: value?.id || '',
-                ingredientName: value?.name || '',
-                unit: value?.unit || '',
-              });
+              if (typeof value === 'string') {
+                // User typed a new ingredient name
+                setNewIngredient({
+                  ...newIngredient,
+                  ingredientId: '', // Will be created on save
+                  ingredientName: value,
+                  unit: newIngredient.unit || 'unit',
+                });
+              } else if (value) {
+                // User selected existing ingredient
+                setNewIngredient({
+                  ...newIngredient,
+                  ingredientId: value.id,
+                  ingredientName: value.name,
+                  unit: value.unit || '',
+                });
+              }
+            }}
+            onInputChange={(_, value) => {
+              // Update ingredient name as user types
+              if (value) {
+                setNewIngredient({
+                  ...newIngredient,
+                  ingredientName: value,
+                });
+              }
             }}
             renderInput={(params) => (
-              <TextField {...params} label="Ingredient" placeholder="Search ingredients..." />
+              <TextField
+                {...params}
+                label="Ingredient"
+                placeholder="Search or type new ingredient..."
+                helperText="Select existing or type new ingredient name"
+              />
             )}
           />
         </Grid>

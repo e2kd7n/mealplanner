@@ -92,7 +92,15 @@ export default function ImportRecipe() {
 
     try {
       const response = await recipeImportAPI.saveImported(parsedRecipe);
-      const recipeId = response.data.data.id;
+      const recipeId = response.data?.data?.id || response.data?.id;
+      
+      if (!recipeId) {
+        console.error('No recipe ID in response:', response.data);
+        setError('Recipe saved but unable to navigate to detail page');
+        setSaving(false);
+        return;
+      }
+      
       navigate(`/recipes/${recipeId}`);
     } catch (err: any) {
       setError(err.response?.data?.message || 'Failed to save recipe');
