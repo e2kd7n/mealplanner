@@ -8,6 +8,18 @@ import prisma from '../utils/prisma';
 import { AppError } from '../middleware/errorHandler';
 import { logger } from '../utils/logger';
 
+// Shared include configuration for user preferences
+const PREFERENCES_INCLUDE = {
+  avoidedIngredients: {
+    select: {
+      id: true,
+      name: true,
+      category: true,
+    },
+  },
+} as const;
+
+
 /**
  * Extract and validate user ID from request
  */
@@ -185,82 +197,55 @@ export async function updatePreferences(
       avoidedIngredientIds,
     } = req.body;
 
-    // Validate skill level if provided
-    if (cookingSkillLevel && !['beginner', 'intermediate', 'advanced'].includes(cookingSkillLevel)) {
-      throw new AppError('Invalid cooking skill level', 400);
-    }
+    // Build update data for direct fields
+    const directFields = [
+      'weeklyBudget',
+      'preferredCuisines',
+      'cookingSkillLevel',
+      'maxPrepTimeWeeknight',
+      'maxPrepTimeWeekend',
+      'dietaryPreferences',
+      'notificationSettings',
+    ] as const;
 
-    // Build update data
-    const updateData: any = {};
-    if (weeklyBudget !== undefined) updateData.weeklyBudget = weeklyBudget;
-    if (preferredCuisines !== undefined) updateData.preferredCuisines = preferredCuisines;
-    if (cookingSkillLevel !== undefined) updateData.cookingSkillLevel = cookingSkillLevel;
-    if (maxPrepTimeWeeknight !== undefined) updateData.maxPrepTimeWeeknight = maxPrepTimeWeeknight;
-    if (maxPrepTimeWeekend !== undefined) updateData.maxPrepTimeWeekend = maxPrepTimeWeekend;
-    if (dietaryPreferences !== undefined) updateData.dietaryPreferences = dietaryPreferences;
-    if (notificationSettings !== undefined) updateData.notificationSettings = notificationSettings;
+    const updateData: any = Object.fromEntries(
+      directFields
+        .map(field => [field, req.body[field]])
+        .filter(([_, value]) => value !== undefined)
+    );
 
-    // Handle avoided ingredients separately
+    // Handle avoided ingredients relation
     if (avoidedIngredientIds !== undefined) {
       updateData.avoidedIngredients = {
         set: avoidedIngredientIds.map((id: string) => ({ id })),
       };
     }
 
-    // Check if preferences exist
-    const existingPreferences = await prisma.userPreferences.findUnique({
+    // Upsert preferences (atomic operation)
+    const preferences = await prisma.userPreferences.upsert({
       where: { userId },
+      update: updateData,
+      create: {
+        userId,
+        weeklyBudget: weeklyBudget ?? null,
+        preferredCuisines: preferredCuisines ?? [],
+        cookingSkillLevel: cookingSkillLevel ?? 'beginner',
+        maxPrepTimeWeeknight: maxPrepTimeWeeknight ?? 45,
+        maxPrepTimeWeekend: maxPrepTimeWeekend ?? 90,
+        dietaryPreferences: dietaryPreferences ?? {},
+        notificationSettings: notificationSettings ?? {
+          mealReminders: true,
+          groceryReminders: true,
+          expirationAlerts: true,
+        },
+        ...(avoidedIngredientIds && {
+          avoidedIngredients: {
+            connect: avoidedIngredientIds.map((id: string) => ({ id })),
+          },
+        }),
+      },
+      include: PREFERENCES_INCLUDE,
     });
-
-    let preferences;
-    if (existingPreferences) {
-      // Update existing preferences
-      preferences = await prisma.userPreferences.update({
-        where: { userId },
-        data: updateData,
-        include: {
-          avoidedIngredients: {
-            select: {
-              id: true,
-              name: true,
-              category: true,
-            },
-          },
-        },
-      });
-    } else {
-      // Create new preferences with defaults
-      preferences = await prisma.userPreferences.create({
-        data: {
-          userId,
-          weeklyBudget: weeklyBudget || null,
-          preferredCuisines: preferredCuisines || [],
-          cookingSkillLevel: cookingSkillLevel || 'beginner',
-          maxPrepTimeWeeknight: maxPrepTimeWeeknight || 45,
-          maxPrepTimeWeekend: maxPrepTimeWeekend || 90,
-          dietaryPreferences: dietaryPreferences || {},
-          notificationSettings: notificationSettings || {
-            mealReminders: true,
-            groceryReminders: true,
-            expirationAlerts: true,
-          },
-          ...(avoidedIngredientIds && {
-            avoidedIngredients: {
-              connect: avoidedIngredientIds.map((id: string) => ({ id })),
-            },
-          }),
-        },
-        include: {
-          avoidedIngredients: {
-            select: {
-              id: true,
-              name: true,
-              category: true,
-            },
-          },
-        },
-      });
-    }
 
     logger.info('User preferences updated', { userId });
 
