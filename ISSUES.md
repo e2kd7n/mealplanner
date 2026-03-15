@@ -1,5 +1,99 @@
 # Project Issues
 
+**Last Updated:** March 15, 2026 (18:28 UTC)
+
+---
+
+## 📊 Quick Statistics
+
+- **Total Open Issues:** 10
+- **High Priority:** 5
+- **Medium Priority:** 5
+- **Low Priority:** 0
+- **In Progress:** 1 (Issue #24 - 5/9 bugs fixed)
+- **Recently Completed:** 12
+
+---
+
+## 🎯 Issues by Priority
+
+### 🟠 High Priority (5 issues)
+
+| # | Issue | Tags | Status |
+|---|-------|------|--------|
+| 11 | Grocery List Optimization | `backend`, `optimization`, `grocery` | Open |
+| 19 | URL-Based Recipe Import | `backend`, `integration`, `recipes`, `docling` | Open |
+| 20 | Integrate Nutrition Database | `backend`, `nutrition`, `api-integration` | Open |
+| 21 | Nutrition Dashboard | `frontend`, `nutrition`, `dashboard`, `charts` | Open |
+| 22 | Nutrition Guideline Warnings | `frontend`, `backend`, `nutrition`, `health` | Open |
+
+### 🟡 Medium Priority (5 issues)
+
+| # | Issue | Tags | Status |
+|---|-------|------|--------|
+| 16 | MyFitnessPal Integration | `backend`, `integration`, `nutrition`, `api` | Open |
+| 17 | AllRecipes.com Recipe Import | `backend`, `integration`, `recipes` | Open |
+| 18 | Recipe Card OCR Import | `backend`, `ai`, `ocr`, `recipes` | Open |
+| 23 | System Architecture Documentation | `documentation`, `architecture` | Open |
+| 25 | Sortable and Filterable Tables/Lists | `frontend`, `ui`, `enhancement`, `ux` | Open |
+
+### 🔵 In Progress (1 issue)
+
+| # | Issue | Tags | Status |
+|---|-------|------|--------|
+| 24 | Fix Frontend Console Errors | `frontend`, `bugfix`, `accessibility` | 5 of 9 bugs fixed |
+
+---
+
+## ✅ Recently Completed (12 issues)
+
+| # | Issue | Completed | Tags |
+|---|-------|-----------|------|
+| 10 | Recipe Search & Recommendations (Backend) | Mar 15, 2026 | `backend`, `search`, `api` |
+| 13 | Admin Dashboard for User Management | Mar 15, 2026 | `frontend`, `backend`, `admin`, `security` |
+| 14 | Profile Page UI | Mar 15, 2026 | `frontend`, `ui`, `user-management` |
+| 15 | Create Recipe Page UI | Mar 15, 2026 | `frontend`, `ui`, `recipes` |
+| 26 | Meal Detail View and Day Summary | Mar 15, 2026 | `frontend`, `ui`, `meal-planner`, `ux` |
+| 2 | Add copyright notices | Mar 15, 2026 | `legal`, `maintenance` |
+| 5 | Refactor auth.controller.ts | Mar 15, 2026 | `backend`, `security`, `refactor` |
+| 6 | Refactor groceryList.controller.ts | Mar 15, 2026 | `backend`, `performance`, `refactor` |
+| 7 | Recipe rating endpoints | Mar 15, 2026 | `backend`, `recipes`, `api` |
+| 8 | User profile & preferences endpoints | Mar 15, 2026 | `backend`, `user-management`, `api` |
+| 9 | Family member management endpoints | Mar 15, 2026 | `backend`, `user-management`, `api` |
+| 12 | Input validation middleware | Mar 15, 2026 | `backend`, `security`, `validation` |
+
+---
+
+## 🎯 Recommended Next Steps
+
+Based on priority and dependencies:
+
+1. **Issue #20** - Integrate Nutrition Database
+   - Enables Issues #21 and #22
+   - Foundation for nutrition features
+   - High user value
+
+2. **Issue #19** - URL-Based Recipe Import
+   - High user value for building recipe collection
+   - Uses Docling + multi-parser approach
+   - Enables recipe card OCR (#18)
+
+3. **Issue #18** - Recipe Card OCR Import
+   - Unique feature, high value
+   - Depends on multi-parser infrastructure from #19
+
+4. **Issue #21** - Nutrition Dashboard
+   - Requires Issue #20 first
+   - High visibility feature
+
+5. **Issue #11** - Grocery List Optimization
+   - Improves shopping experience
+   - Independent feature
+
+---
+
+# Project Issues
+
 ## Open Issues
 
 ### Issue #1: Implement anti-piracy features
