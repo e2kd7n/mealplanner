@@ -152,7 +152,7 @@ export function getDatabaseUrl(): string {
 
 /**
  * Build Redis URL from secrets
- * 
+ *
  * @returns Redis connection URL
  */
 export function getRedisUrl(): string {
@@ -160,7 +160,10 @@ export function getRedisUrl(): string {
   const host = process.env.REDIS_HOST || 'localhost';
   const port = process.env.REDIS_PORT || '6379';
   
-  return `redis://:${password}@${host}:${port}`;
+  // URL-encode the password to handle special characters
+  const encodedPassword = encodeURIComponent(password);
+  
+  return `redis://:${encodedPassword}@${host}:${port}`;
 }
 
 /**
