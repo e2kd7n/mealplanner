@@ -18,6 +18,7 @@ import authRoutes from './routes/auth.routes';
 import userRoutes from './routes/user.routes';
 import familyMemberRoutes from './routes/familyMember.routes';
 import recipeRoutes from './routes/recipe.routes';
+import recipeImportRoutes from './routes/recipeImport.routes';
 import mealPlanRoutes from './routes/mealPlan.routes';
 import groceryListRoutes from './routes/groceryList.routes';
 import ingredientRoutes from './routes/ingredient.routes';
@@ -66,6 +67,7 @@ app.get('/', (_req, res) => {
       users: '/api/users',
       familyMembers: '/api/family-members',
       recipes: '/api/recipes',
+      recipeImport: '/api/recipes/import',
       mealPlans: '/api/meal-plans',
       groceryLists: '/api/grocery-lists',
       ingredients: '/api/ingredients',
@@ -89,6 +91,7 @@ app.get('/health', (_req, res) => {
 app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/family-members', familyMemberRoutes);
+app.use('/api/recipes/import', recipeImportRoutes);
 app.use('/api/recipes', recipeRoutes);
 app.use('/api/meal-plans', mealPlanRoutes);
 app.use('/api/grocery-lists', groceryListRoutes);

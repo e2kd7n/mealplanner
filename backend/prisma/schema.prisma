@@ -71,6 +71,7 @@ model Recipe {
   title          String
   description    String?    @db.Text
   source         RecipeSource
+  sourceUrl      String?    @map("source_url") @db.Text
   externalId     String?    @map("external_id")
   prepTime       Int        @map("prep_time") // minutes
   cookTime       Int        @map("cook_time") // minutes
@@ -101,6 +102,7 @@ model Recipe {
   @@index([isPublic])
   @@index([createdAt])
   @@index([title])
+  @@index([sourceUrl])
   @@map("recipes")
 }
 
