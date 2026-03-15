@@ -74,6 +74,13 @@ function countCharacterTypes(password: string): {
 }
 
 /**
+ * Pluralize a word based on count
+ */
+function pluralize(count: number, singular: string, plural?: string): string {
+  return count === 1 ? singular : (plural || `${singular}s`);
+}
+
+/**
  * Validate password strength based on configurable policy
  */
 function validatePassword(password: string): void {
@@ -81,18 +88,10 @@ function validatePassword(password: string): void {
     throw new AppError('Password is required', 400);
   }
   
-  // Check minimum length
-  if (password.length < PASSWORD_POLICY.minLength) {
+  // Check length constraints
+  if (password.length < PASSWORD_POLICY.minLength || password.length > PASSWORD_POLICY.maxLength) {
     throw new AppError(
-      `Password must be at least ${PASSWORD_POLICY.minLength} characters long`,
-      400
-    );
-  }
-  
-  // Check maximum length
-  if (password.length > PASSWORD_POLICY.maxLength) {
-    throw new AppError(
-      `Password must not exceed ${PASSWORD_POLICY.maxLength} characters`,
+      `Password must be between ${PASSWORD_POLICY.minLength} and ${PASSWORD_POLICY.maxLength} characters`,
       400
     );
   }
@@ -100,36 +99,43 @@ function validatePassword(password: string): void {
   // Count character types
   const counts = countCharacterTypes(password);
   
-  // Validate uppercase requirement
-  if (PASSWORD_POLICY.requireUppercase && counts.uppercase < PASSWORD_POLICY.minUppercase) {
-    throw new AppError(
-      `Password must contain at least ${PASSWORD_POLICY.minUppercase} uppercase letter${PASSWORD_POLICY.minUppercase > 1 ? 's' : ''}`,
-      400
-    );
-  }
-  
-  // Validate lowercase requirement
-  if (PASSWORD_POLICY.requireLowercase && counts.lowercase < PASSWORD_POLICY.minLowercase) {
-    throw new AppError(
-      `Password must contain at least ${PASSWORD_POLICY.minLowercase} lowercase letter${PASSWORD_POLICY.minLowercase > 1 ? 's' : ''}`,
-      400
-    );
-  }
-  
-  // Validate number requirement
-  if (PASSWORD_POLICY.requireNumber && counts.numbers < PASSWORD_POLICY.minNumbers) {
-    throw new AppError(
-      `Password must contain at least ${PASSWORD_POLICY.minNumbers} number${PASSWORD_POLICY.minNumbers > 1 ? 's' : ''}`,
-      400
-    );
-  }
-  
-  // Validate special character requirement
-  if (PASSWORD_POLICY.requireSpecial && counts.special < PASSWORD_POLICY.minSpecial) {
-    throw new AppError(
-      `Password must contain at least ${PASSWORD_POLICY.minSpecial} special character${PASSWORD_POLICY.minSpecial > 1 ? 's' : ''} (!@#$%^&*()_+-=[]{}|;:,.<>?)`,
-      400
-    );
+  // Define validation rules for character types
+  const validationRules = [
+    {
+      enabled: PASSWORD_POLICY.requireUppercase,
+      count: counts.uppercase,
+      min: PASSWORD_POLICY.minUppercase,
+      type: 'uppercase letter',
+    },
+    {
+      enabled: PASSWORD_POLICY.requireLowercase,
+      count: counts.lowercase,
+      min: PASSWORD_POLICY.minLowercase,
+      type: 'lowercase letter',
+    },
+    {
+      enabled: PASSWORD_POLICY.requireNumber,
+      count: counts.numbers,
+      min: PASSWORD_POLICY.minNumbers,
+      type: 'number',
+    },
+    {
+      enabled: PASSWORD_POLICY.requireSpecial,
+      count: counts.special,
+      min: PASSWORD_POLICY.minSpecial,
+      type: 'special character',
+      suffix: ' (!@#$%^&*()_+-=[]{}|;:,.<>?)',
+    },
+  ];
+
+  // Validate each character type requirement
+  for (const rule of validationRules) {
+    if (rule.enabled && rule.count < rule.min) {
+      throw new AppError(
+        `Password must contain at least ${rule.min} ${pluralize(rule.min, rule.type)}${rule.suffix || ''}`,
+        400
+      );
+    }
   }
 }
 
@@ -165,6 +171,92 @@ function maskEmail(email: string): string {
 }
 
 /**
+ * Ensure user with given email does not exist
+ * @throws {AppError} If user already exists
+ */
+async function ensureUserNotExists(email: string): Promise<void> {
+  const existingUser = await prisma.user.findUnique({
+    where: { email },
+  });
+  
+  if (existingUser) {
+    throw new AppError('User with this email already exists', 409);
+  }
+}
+
+/**
+ * Find user by email and verify password
+ * @throws {AppError} If user not found or password invalid
+ */
+async function authenticateUser(email: string, password: string) {
+  const user = await prisma.user.findUnique({
+    where: { email },
+  });
+
+  if (!user) {
+    throw new AppError('Invalid email or password', 401);
+  }
+
+  const isPasswordValid = await bcrypt.compare(password, user.passwordHash);
+
+  if (!isPasswordValid) {
+    throw new AppError('Invalid email or password', 401);
+  }
+
+  return user;
+}
+
+/**
+ * Generate authentication response with tokens
+ */
+function generateAuthResponse(user: { id: string; email: string; familyName: string }) {
+  const tokens = generateTokenPair({
+    userId: user.id,
+    email: user.email,
+    familyName: user.familyName,
+  });
+
+  return {
+    user: formatUserResponse(user),
+    ...tokens,
+  };
+}
+
+/**
+ * Find user by ID and ensure they exist
+ * @throws {AppError} If user not found
+ */
+async function findUserById(userId: string) {
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+  });
+
+  if (!user) {
+    throw new AppError('User not found', 404);
+  }
+
+  return user;
+}
+
+/**
+ * Validate and normalize login credentials
+ * @throws {AppError} If validation fails
+ */
+function validateAndNormalizeLoginInput(email: string, password: string): {
+  normalizedEmail: string;
+} {
+  const normalizedEmail = email.toLowerCase().trim();
+  
+  validateEmail(normalizedEmail);
+  
+  if (!password || typeof password !== 'string') {
+    throw new AppError('Password is required', 400);
+  }
+
+  return { normalizedEmail };
+}
+
+/**
  * Register a new user
  */
 export async function register(
@@ -175,20 +267,15 @@ export async function register(
   try {
     const { email, password, familyName } = req.body as RegisterRequestBody;
 
-    // Validate input
-    validateRegistrationInput(email, password, familyName);
-
-    // Normalize email to lowercase
+    // Normalize inputs before validation
     const normalizedEmail = email.toLowerCase().trim();
+    const normalizedFamilyName = familyName.trim();
+
+    // Validate normalized inputs
+    validateRegistrationInput(normalizedEmail, password, normalizedFamilyName);
 
     // Check if user already exists
-    const existingUser = await prisma.user.findUnique({
-      where: { email: normalizedEmail },
-    });
-
-    if (existingUser) {
-      throw new AppError('User with this email already exists', 409);
-    }
+    await ensureUserNotExists(normalizedEmail);
 
     // Hash password
     const passwordHash = await bcrypt.hash(password, 12);
@@ -198,15 +285,8 @@ export async function register(
       data: {
         email: normalizedEmail,
         passwordHash,
-        familyName: familyName.trim(),
+        familyName: normalizedFamilyName,
       },
-    });
-
-    // Generate tokens
-    const tokens = generateTokenPair({
-      userId: user.id,
-      email: user.email,
-      familyName: user.familyName,
     });
 
     logger.info('User registered successfully', {
@@ -216,8 +296,7 @@ export async function register(
 
     res.status(201).json({
       message: 'User registered successfully',
-      user: formatUserResponse(user),
-      ...tokens,
+      ...generateAuthResponse(user),
     });
   } catch (error) {
     next(error);
@@ -235,38 +314,11 @@ export async function login(
   try {
     const { email, password } = req.body as LoginRequestBody;
 
-    // Validate input
-    validateEmail(email);
-    
-    if (!password || typeof password !== 'string') {
-      throw new AppError('Password is required', 400);
-    }
+    // Validate and normalize input
+    const { normalizedEmail } = validateAndNormalizeLoginInput(email, password);
 
-    // Normalize email to lowercase
-    const normalizedEmail = email.toLowerCase().trim();
-
-    // Find user
-    const user = await prisma.user.findUnique({
-      where: { email: normalizedEmail },
-    });
-
-    if (!user) {
-      throw new AppError('Invalid email or password', 401);
-    }
-
-    // Verify password
-    const isPasswordValid = await bcrypt.compare(password, user.passwordHash);
-
-    if (!isPasswordValid) {
-      throw new AppError('Invalid email or password', 401);
-    }
-
-    // Generate tokens
-    const tokens = generateTokenPair({
-      userId: user.id,
-      email: user.email,
-      familyName: user.familyName,
-    });
+    // Authenticate user
+    const user = await authenticateUser(normalizedEmail, password);
 
     logger.info('User logged in successfully', {
       userId: user.id,
@@ -275,8 +327,7 @@ export async function login(
 
     res.json({
       message: 'Login successful',
-      user: formatUserResponse(user),
-      ...tokens,
+      ...generateAuthResponse(user),
     });
   } catch (error) {
     next(error);
@@ -302,13 +353,7 @@ export async function refreshToken(
     const payload = verifyRefreshToken(token);
 
     // Verify user still exists
-    const user = await prisma.user.findUnique({
-      where: { id: payload.userId },
-    });
-
-    if (!user) {
-      throw new AppError('User not found', 404);
-    }
+    const user = await findUserById(payload.userId);
 
     // Generate new tokens
     const tokens = generateTokenPair({
