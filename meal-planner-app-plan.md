@@ -9,7 +9,7 @@
 
 **Copyright Notice Template:**
 ```
-Copyright (c) 2026 [Your Name/Organization]
+Copyright (c) 2026 Erik Didriksen
 All rights reserved.
 
 This software is proprietary and confidential.
