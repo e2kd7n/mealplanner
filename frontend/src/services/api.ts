@@ -247,6 +247,47 @@ export const ingredientAPI = {
     api.get('/ingredients/search', { params: { q: query } }),
 };
 
+// User API
+export const userAPI = {
+  getProfile: () =>
+    api.get('/users/profile'),
+  
+  updateProfile: (data: { familyName: string }) =>
+    api.put('/users/profile', data),
+  
+  getPreferences: () =>
+    api.get('/users/preferences'),
+  
+  updatePreferences: (data: {
+    dietaryRestrictions?: string[];
+    cookingSkillLevel?: string;
+    avoidedIngredients?: string[];
+  }) => api.put('/users/preferences', data),
+};
+
+// Family Member API
+export const familyMemberAPI = {
+  getAll: () =>
+    api.get('/family-members'),
+  
+  getById: (id: string) =>
+    api.get(`/family-members/${id}`),
+  
+  create: (data: {
+    name: string;
+    ageGroup: string;
+    dietaryRestrictions?: string[];
+    cookingSkillLevel?: string;
+    avoidedIngredients?: string[];
+  }) => api.post('/family-members', data),
+  
+  update: (id: string, data: any) =>
+    api.put(`/family-members/${id}`, data),
+  
+  delete: (id: string) =>
+    api.delete(`/family-members/${id}`),
+};
+
 export default api;
 
 // Made with Bob

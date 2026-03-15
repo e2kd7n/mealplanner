@@ -14,9 +14,26 @@ import {
   deleteRecipe,
   rateRecipe,
   getRecipeRatings,
+  searchRecipes,
+  getRecommendations,
+  getSimilarRecipes,
 } from '../controllers/recipe.controller';
 
 const router: Router = Router();
+
+/**
+ * @route   GET /api/recipes/search
+ * @desc    Search recipes with advanced filters
+ * @access  Public/Private
+ */
+router.get('/search', optionalAuthenticate, searchRecipes);
+
+/**
+ * @route   GET /api/recipes/recommendations
+ * @desc    Get personalized recipe recommendations
+ * @access  Private
+ */
+router.get('/recommendations', authenticate, getRecommendations);
 
 /**
  * @route   GET /api/recipes
@@ -66,6 +83,13 @@ router.post('/:id/rate', authenticate, rateRecipe);
  * @access  Public
  */
 router.get('/:id/ratings', getRecipeRatings);
+
+/**
+ * @route   GET /api/recipes/:id/similar
+ * @desc    Get similar recipes
+ * @access  Public/Private
+ */
+router.get('/:id/similar', optionalAuthenticate, getSimilarRecipes);
 
 export default router;
 
