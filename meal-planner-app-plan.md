@@ -2,6 +2,193 @@
 
 ## Executive Summary
 
+
+## Legal & Licensing Requirements
+
+### Copyright & Ownership
+
+**Copyright Notice Template:**
+```
+Copyright (c) 2026 [Your Name/Organization]
+All rights reserved.
+
+This software is proprietary and confidential.
+Unauthorized copying, distribution, or use is strictly prohibited.
+```
+
+**Implementation:**
+- Add copyright header to all source files (frontend, backend, scripts)
+- Include copyright in package.json files
+- Add copyright to documentation files
+- Set up pre-commit hook to ensure new files include copyright notice
+
+### License
+
+**License Type:** Proprietary/Private Use
+- This is a private, self-hosted application for personal/family use
+- Not intended for public distribution or commercial use
+- No open-source license required for private use
+- If sharing with other families in the future, consider:
+  - MIT License (permissive, allows commercial use)
+  - GPL v3 (copyleft, requires derivative works to be open source)
+  - Custom proprietary license with usage restrictions
+
+**LICENSE File:**
+```
+PROPRIETARY LICENSE
+
+Copyright (c) 2026 [Your Name]
+
+This software and associated documentation files (the "Software") are the 
+proprietary property of [Your Name]. 
+
+RESTRICTIONS:
+1. The Software is for personal, non-commercial use only
+2. No copying, modification, or distribution without explicit permission
+3. No reverse engineering or decompilation
+4. No removal of copyright notices
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND.
+```
+
+### Anti-Piracy & Protection Measures
+
+**For Self-Hosted Private Use:**
+Since this is a self-hosted application for personal use, traditional anti-piracy measures are not necessary. However, if you plan to share with other families:
+
+1. **Access Control:**
+   - Family-based authentication (already planned)
+   - Invite-only system (already planned)
+   - Rate limiting to prevent abuse
+
+2. **Usage Tracking (Optional):**
+   - Log family registrations
+   - Monitor API usage patterns
+   - Alert on suspicious activity
+
+3. **Code Protection (If Sharing):**
+   - Minification and obfuscation of frontend code
+   - Environment-specific configuration
+   - Secure API keys and secrets
+
+**Note:** For a private, self-hosted family application, extensive anti-piracy measures are typically unnecessary. Focus on secure deployment and access control.
+
+### Attribution & Third-Party Licenses
+
+**Required Attributions:**
+
+1. **Open Source Dependencies:**
+   - React (MIT License)
+   - Node.js (MIT License)
+   - PostgreSQL (PostgreSQL License)
+   - Express.js (MIT License)
+   - Prisma (Apache 2.0)
+   - All npm packages used
+
+2. **External APIs:**
+   - Spoonacular API (if used) - Commercial license required
+   - Edamam API (if used) - Attribution required
+   - USDA Data - Public domain, attribution appreciated
+   - Store APIs - Check individual terms of service
+
+3. **Attribution File (ATTRIBUTION.md):**
+```markdown
+# Third-Party Licenses and Attributions
+
+## Open Source Software
+
+This project uses the following open-source software:
+
+### Frontend
+- React (MIT License) - Copyright (c) Meta Platforms, Inc.
+- TypeScript (Apache 2.0) - Copyright (c) Microsoft Corporation
+- Material-UI (MIT License) - Copyright (c) MUI
+[... full list with licenses]
+
+### Backend
+- Node.js (MIT License)
+- Express.js (MIT License)
+- Prisma (Apache 2.0)
+[... full list with licenses]
+
+### External Services
+- Recipe data provided by [API Name]
+- Nutritional information from [Source]
+- Seasonal produce data from USDA
+
+## License Compatibility
+
+All dependencies are compatible with proprietary use.
+See individual LICENSE files in node_modules for full license texts.
+```
+
+### Terms of Service (If Sharing)
+
+**For Multi-Family Deployment:**
+
+```markdown
+# Terms of Service
+
+Last Updated: [Date]
+
+## Acceptance of Terms
+By using this meal planning application, you agree to these terms.
+
+## Use Restrictions
+- Personal, non-commercial use only
+- One family per account
+- No automated access or scraping
+- No resale or redistribution
+
+## Data Privacy
+- Your data is stored on a private server
+- No data sharing with third parties
+- You can export or delete your data at any time
+
+## Liability
+- Software provided "as is"
+- No warranty for accuracy of nutritional information
+- Not responsible for food allergies or dietary issues
+- Users responsible for verifying ingredient safety
+
+## Termination
+- Accounts may be terminated for terms violations
+- You may delete your account at any time
+```
+
+### Implementation Checklist
+
+**Phase 1 (Before First Commit):**
+- [x] Add copyright notice template to plan
+- [ ] Create LICENSE file
+- [ ] Create ATTRIBUTION.md file
+- [ ] Document third-party dependencies
+
+**Phase 2 (During Development):**
+- [ ] Add copyright headers to all source files
+- [ ] Set up pre-commit hook for copyright enforcement
+- [ ] Audit all dependencies for license compatibility
+- [ ] Document API terms of service compliance
+
+**Phase 3 (Before Deployment):**
+- [ ] Review and update all legal documents
+- [ ] Ensure all attributions are complete
+- [ ] Add terms of service if sharing with others
+- [ ] Document data privacy practices
+
+### Patent Considerations
+
+**For This Project:**
+- No known patent issues for meal planning applications
+- Standard web technologies are not patented
+- Recipe recommendation algorithms are generally not patentable
+- If using proprietary APIs, review their patent clauses
+
+**Defensive Measures:**
+- Document original work and development timeline
+- Keep records of design decisions
+- Prior art: Many meal planning apps exist (not novel)
+
 A Progressive Web App (PWA) designed for a family of 4 (2 adults, 2 teenagers) to simplify meal planning and grocery shopping. The app features a smart recommendation system, curated recipe collection, seasonal awareness, budget optimization, and offline functionality.
 
 ## 1. Application Architecture & Technology Stack
