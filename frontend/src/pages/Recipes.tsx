@@ -37,6 +37,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAppDispatch, useAppSelector } from '../store/hooks';
 import { fetchRecipes } from '../store/slices/recipesSlice';
 import { useDebounce } from '../hooks/useDebounce';
+import { useCachedImage } from '../hooks/useCachedImage';
 
 // Memoized Recipe Card Component for better performance
 interface RecipeCardProps {
@@ -45,6 +46,8 @@ interface RecipeCardProps {
 }
 
 const RecipeCard = memo(({ recipe, onNavigate }: RecipeCardProps) => {
+  const { src: imageSrc, isLoading: imageLoading } = useCachedImage(recipe.imageUrl);
+
   const getDifficultyColor = (diff: string) => {
     switch (diff.toLowerCase()) {
       case 'easy':
@@ -73,13 +76,32 @@ const RecipeCard = memo(({ recipe, onNavigate }: RecipeCardProps) => {
       }}
       onClick={() => onNavigate(recipe.id)}
     >
-      <CardMedia
-        component="img"
-        height="200"
-        image={recipe.imageUrl || 'https://via.placeholder.com/400x300?text=No+Image'}
-        alt={recipe.title}
-        sx={{ objectFit: 'cover' }}
-      />
+      <Box sx={{ position: 'relative', height: 200 }}>
+        <CardMedia
+          component="img"
+          height="200"
+          image={imageSrc}
+          alt={recipe.title}
+          sx={{ objectFit: 'cover' }}
+        />
+        {imageLoading && (
+          <Box
+            sx={{
+              position: 'absolute',
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              backgroundColor: 'rgba(0, 0, 0, 0.1)',
+            }}
+          >
+            <CircularProgress size={30} />
+          </Box>
+        )}
+      </Box>
       <CardContent sx={{ flexGrow: 1 }}>
         <Typography variant="h6" gutterBottom noWrap>
           {recipe.title}

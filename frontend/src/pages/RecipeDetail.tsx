@@ -32,12 +32,14 @@ import {
 } from '@mui/icons-material';
 import { useAppDispatch, useAppSelector } from '../store/hooks';
 import { fetchRecipeById, setCurrentRecipe } from '../store/slices/recipesSlice';
+import { useCachedImage } from '../hooks/useCachedImage';
 
 const RecipeDetail: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const dispatch = useAppDispatch();
   const { currentRecipe: recipe, loading, error } = useAppSelector((state) => state.recipes);
+  const { src: imageSrc, isLoading: imageLoading } = useCachedImage(recipe?.imageUrl);
 
   useEffect(() => {
     if (id) {
@@ -167,14 +169,31 @@ const RecipeDetail: React.FC = () => {
 
         {/* Image */}
         {recipe.imageUrl && (
-          <Card sx={{ mb: 4 }}>
+          <Card sx={{ mb: 4, position: 'relative' }}>
             <CardMedia
               component="img"
               height="400"
-              image={recipe.imageUrl}
+              image={imageSrc}
               alt={recipe.title}
               sx={{ objectFit: 'cover' }}
             />
+            {imageLoading && (
+              <Box
+                sx={{
+                  position: 'absolute',
+                  top: 0,
+                  left: 0,
+                  right: 0,
+                  bottom: 0,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  backgroundColor: 'rgba(0, 0, 0, 0.1)',
+                }}
+              >
+                <CircularProgress size={50} />
+              </Box>
+            )}
           </Card>
         )}
 

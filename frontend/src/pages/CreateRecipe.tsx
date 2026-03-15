@@ -4,7 +4,7 @@
  */
 
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import {
   Container,
   Typography,
@@ -102,8 +102,11 @@ const cuisineTypes = [
 
 export default function CreateRecipe() {
   const navigate = useNavigate();
+  const { id } = useParams<{ id: string }>();
+  const isEditMode = !!id;
   const [activeStep, setActiveStep] = useState(0);
   const [loading, setLoading] = useState(false);
+  const [initialLoading, setInitialLoading] = useState(isEditMode);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [availableIngredients, setAvailableIngredients] = useState<Ingredient[]>([]);
@@ -137,14 +140,67 @@ export default function CreateRecipe() {
 
   useEffect(() => {
     loadIngredients();
-  }, []);
+    if (isEditMode && id) {
+      loadRecipe(id);
+    }
+  }, [id, isEditMode]);
+
+  const loadRecipe = async (recipeId: string) => {
+    try {
+      setInitialLoading(true);
+      const response = await api.get(`/recipes/${recipeId}`);
+      const recipe = response.data;
+
+      // Transform recipe data to form format
+      const ingredients = recipe.ingredients?.map((ri: any) => ({
+        ingredientId: ri.ingredient.id,
+        ingredientName: ri.ingredient.name,
+        quantity: ri.quantity,
+        unit: ri.unit,
+        notes: ri.notes || '',
+      })) || [];
+
+      const instructions = Array.isArray(recipe.instructions)
+        ? recipe.instructions.map((inst: any, index: number) => ({
+            step: index + 1,
+            instruction: typeof inst === 'string' ? inst : inst.instruction || inst.text || '',
+          }))
+        : [{ step: 1, instruction: '' }];
+
+      setFormData({
+        title: recipe.title || '',
+        description: recipe.description || '',
+        prepTime: recipe.prepTime || 15,
+        cookTime: recipe.cookTime || 30,
+        servings: recipe.servings || 4,
+        difficulty: recipe.difficulty || 'medium',
+        mealType: recipe.mealType || 'dinner',
+        cuisineType: recipe.cuisineType || '',
+        kidFriendly: recipe.kidFriendly || false,
+        isPublic: recipe.isPublic || false,
+        imageUrl: recipe.imageUrl || '',
+        costEstimate: recipe.costEstimate || 0,
+        ingredients,
+        instructions,
+        nutritionInfo: recipe.nutritionInfo || {},
+      });
+    } catch (err: any) {
+      console.error('Failed to load recipe:', err);
+      setError('Failed to load recipe for editing');
+    } finally {
+      setInitialLoading(false);
+    }
+  };
 
   const loadIngredients = async () => {
     try {
       const response = await api.get('/ingredients');
-      setAvailableIngredients(response.data);
+      // Handle both direct array and nested data structure
+      const ingredients = Array.isArray(response.data) ? response.data : (response.data.data || []);
+      setAvailableIngredients(ingredients);
     } catch (err) {
       console.error('Failed to load ingredients:', err);
+      setAvailableIngredients([]); // Set empty array on error
     }
   };
 
@@ -294,15 +350,23 @@ export default function CreateRecipe() {
         })),
       };
 
-      const response = await api.post('/recipes', recipeData);
-      setSuccess('Recipe created successfully!');
+      let response;
+      if (isEditMode && id) {
+        // Update existing recipe
+        response = await api.put(`/recipes/${id}`, recipeData);
+        setSuccess('Recipe updated successfully!');
+      } else {
+        // Create new recipe
+        response = await api.post('/recipes', recipeData);
+        setSuccess('Recipe created successfully!');
+      }
       
       // Redirect to recipe detail page after a short delay
       setTimeout(() => {
-        navigate(`/recipes/${response.data.id}`);
+        navigate(`/recipes/${response.data.id || id}`);
       }, 1500);
     } catch (err: any) {
-      setError(err.response?.data?.message || 'Failed to create recipe');
+      setError(err.response?.data?.message || `Failed to ${isEditMode ? 'update' : 'create'} recipe`);
     } finally {
       setLoading(false);
     }
@@ -471,7 +535,7 @@ export default function CreateRecipe() {
           <Autocomplete
             options={availableIngredients}
             getOptionLabel={(option) => option.name}
-            value={availableIngredients.find((ing) => ing.id === newIngredient.ingredientId) || null}
+            value={Array.isArray(availableIngredients) ? availableIngredients.find((ing) => ing.id === newIngredient.ingredientId) || null : null}
             onChange={(_, value) => {
               setNewIngredient({
                 ...newIngredient,
@@ -746,14 +810,25 @@ export default function CreateRecipe() {
     }
   };
 
+  // Show loading state while fetching recipe data in edit mode
+  if (initialLoading) {
+    return (
+      <Container maxWidth="lg" sx={{ py: 4 }}>
+        <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '50vh' }}>
+          <CircularProgress />
+        </Box>
+      </Container>
+    );
+  }
+
   return (
     <Container maxWidth="lg" sx={{ py: 4 }}>
       <Box mb={4}>
         <Typography variant="h4" gutterBottom>
-          Create New Recipe
+          {isEditMode ? 'Edit Recipe' : 'Create New Recipe'}
         </Typography>
         <Typography variant="body1" color="text.secondary">
-          Share your favorite recipe with the community
+          {isEditMode ? 'Update your recipe details' : 'Share your favorite recipe with the community'}
         </Typography>
       </Box>
 
@@ -797,7 +872,7 @@ export default function CreateRecipe() {
                 disabled={loading}
                 startIcon={loading ? <CircularProgress size={20} /> : <SaveIcon />}
               >
-                {loading ? 'Creating...' : 'Create Recipe'}
+                {loading ? (isEditMode ? 'Updating...' : 'Creating...') : (isEditMode ? 'Update Recipe' : 'Create Recipe')}
               </Button>
             ) : (
               <Button

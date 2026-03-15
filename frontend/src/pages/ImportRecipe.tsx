@@ -23,13 +23,16 @@ import {
   Card,
   CardContent,
   CardMedia,
+  Link,
 } from '@mui/material';
 import {
   Link as LinkIcon,
   Check as CheckIcon,
   Edit as EditIcon,
+  OpenInNew as OpenInNewIcon,
 } from '@mui/icons-material';
 import { recipeImportAPI } from '../services/api';
+import { useCachedImage } from '../hooks/useCachedImage';
 
 interface ParsedRecipe {
   title: string;
@@ -59,6 +62,7 @@ export default function ImportRecipe() {
   const [error, setError] = useState('');
   const [parsedRecipe, setParsedRecipe] = useState<ParsedRecipe | null>(null);
   const [saving, setSaving] = useState(false);
+  const { src: cachedImageSrc, isLoading: imageLoading } = useCachedImage(parsedRecipe?.imageUrl);
 
   const handleImport = async () => {
     if (!url.trim()) {
@@ -180,14 +184,31 @@ export default function ImportRecipe() {
           <Grid container spacing={3}>
             {parsedRecipe.imageUrl && (
               <Grid size={{ xs: 12, md: 4 }}>
-                <Card>
+                <Card sx={{ position: 'relative' }}>
                   <CardMedia
                     component="img"
                     height="250"
-                    image={parsedRecipe.imageUrl}
+                    image={cachedImageSrc}
                     alt={parsedRecipe.title}
                     sx={{ objectFit: 'cover' }}
                   />
+                  {imageLoading && (
+                    <Box
+                      sx={{
+                        position: 'absolute',
+                        top: 0,
+                        left: 0,
+                        right: 0,
+                        bottom: 0,
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        backgroundColor: 'rgba(0, 0, 0, 0.1)',
+                      }}
+                    >
+                      <CircularProgress size={40} />
+                    </Box>
+                  )}
                 </Card>
               </Grid>
             )}
@@ -210,8 +231,23 @@ export default function ImportRecipe() {
                 )}
               </Box>
 
-              <Typography variant="caption" color="text.secondary">
-                Source: {parsedRecipe.sourceUrl}
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                <Typography variant="caption" color="text.secondary">
+                  Source:
+                </Typography>
+                <Link
+                  href={parsedRecipe.sourceUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  variant="caption"
+                  sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}
+                >
+                  {new URL(parsedRecipe.sourceUrl).hostname}
+                  <OpenInNewIcon sx={{ fontSize: 12 }} />
+                </Link>
+              </Box>
+              <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 0.5 }}>
+                Visit the source page to view additional images if needed
               </Typography>
             </Grid>
 
