@@ -355,6 +355,33 @@ export const familyMemberAPI = {
     api.delete(`/family-members/${id}`),
 };
 
+// Recipe Import API
+export const recipeImportAPI = {
+  importFromUrl: (url: string) =>
+    api.post('/recipes/import/url', { url }),
+  
+  saveImported: (data: {
+    title: string;
+    description?: string;
+    prepTime: number;
+    cookTime: number;
+    servings: number;
+    difficulty: string;
+    cuisineType?: string;
+    mealType: string;
+    imageUrl?: string;
+    ingredients: Array<{
+      name: string;
+      quantity: number;
+      unit: string;
+      notes?: string;
+    }>;
+    instructions: any;
+    nutritionInfo?: any;
+    sourceUrl?: string;
+  }) => api.post('/recipes/import/url/save', data),
+};
+
 export default api;
 
 // Made with Bob

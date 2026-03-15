@@ -31,6 +31,7 @@ import {
   AccessTime as TimeIcon,
   Restaurant as RestaurantIcon,
   Add as AddIcon,
+  Link as LinkIcon,
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import { useAppDispatch, useAppSelector } from '../store/hooks';
@@ -182,13 +183,22 @@ const Recipes: React.FC = () => {
           <Typography variant="h4">
             Recipes
           </Typography>
-          <Button
-            variant="contained"
-            startIcon={<AddIcon />}
-            onClick={() => navigate('/recipes/create')}
-          >
-            Create Recipe
-          </Button>
+          <Box sx={{ display: 'flex', gap: 2 }}>
+            <Button
+              variant="outlined"
+              startIcon={<LinkIcon />}
+              onClick={() => navigate('/recipes/import')}
+            >
+              Import from URL
+            </Button>
+            <Button
+              variant="contained"
+              startIcon={<AddIcon />}
+              onClick={() => navigate('/recipes/create')}
+            >
+              Create Recipe
+            </Button>
+          </Box>
         </Box>
 
         {/* Search and Filters */}
