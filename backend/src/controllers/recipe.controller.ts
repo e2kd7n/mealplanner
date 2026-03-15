@@ -11,6 +11,101 @@ import { logger } from '../utils/logger';
 import { cacheGet, cacheSet, cacheDelPattern } from '../utils/redis';
 
 /**
+ * TypeScript interfaces for recipe responses
+ */
+interface RecipeWithRating {
+  averageRating: number | null;
+  ratingCount: number;
+}
+
+/**
+ * Helper function to calculate average rating from ratings array
+ */
+function calculateAverageRating(ratings: { rating: number }[]): number | null {
+  if (ratings.length === 0) return null;
+  return ratings.reduce((sum, r) => sum + r.rating, 0) / ratings.length;
+}
+
+/**
+ * Helper function to generate cache key for a single recipe
+ */
+function getRecipeCacheKey(id: string): string {
+  return `recipe:${id}`;
+}
+
+/**
+ * Helper function to generate cache key for recipe list queries
+ */
+function getRecipeListCacheKey(params: object): string {
+  return `recipes:${JSON.stringify(params)}`;
+}
+
+/**
+ * Helper function to check if user can access a recipe
+ */
+function canAccessRecipe(
+  recipe: { isPublic: boolean; userId: string | null },
+  requestUserId?: string
+): boolean {
+  return recipe.isPublic || recipe.userId === requestUserId;
+}
+
+/**
+ * Helper function to get user ID from request (handles inconsistent auth structure)
+ */
+function getUserId(req: Request): string | undefined {
+  return req.user?.userId || req.user?.id;
+}
+
+/**
+ * Helper function to verify recipe ownership
+ */
+async function verifyRecipeOwnership(
+  recipeId: string,
+  userId: string
+): Promise<void> {
+  const recipe = await prisma.recipe.findUnique({
+    where: { id: recipeId },
+  });
+
+  if (!recipe) {
+    throw new AppError('Recipe not found', 404);
+  }
+
+  if (recipe.userId !== userId) {
+    throw new AppError('Access denied', 403);
+  }
+}
+
+/**
+ * Helper function to invalidate recipe-specific cache
+ */
+async function invalidateRecipeCache(recipeId: string): Promise<void> {
+  await Promise.all([
+    cacheDelPattern(`recipe:${recipeId}`),
+    cacheDelPattern('recipes:*'),
+  ]);
+}
+
+/**
+ * Helper function to invalidate recipe list cache
+ */
+async function invalidateRecipeListCache(): Promise<void> {
+  await cacheDelPattern('recipes:*');
+}
+
+/**
+ * Prisma include pattern for recipes with ingredients
+ */
+const RECIPE_INCLUDE_WITH_INGREDIENTS = {
+  ingredients: {
+    include: {
+      ingredient: true,
+    },
+  },
+} as const;
+
+/**
  * Get all recipes with filtering and pagination
  */
 export async function getRecipes(
@@ -75,7 +170,7 @@ export async function getRecipes(
     }
 
     // Try to get from cache
-    const cacheKey = `recipes:${JSON.stringify({ where, skip, limitNum })}`;
+    const cacheKey = getRecipeListCacheKey({ where, skip, limitNum });
     const cached = await cacheGet(cacheKey);
 
     if (cached) {
@@ -90,11 +185,7 @@ export async function getRecipes(
         skip,
         take: limitNum,
         include: {
-          ingredients: {
-            include: {
-              ingredient: true,
-            },
-          },
+          ...RECIPE_INCLUDE_WITH_INGREDIENTS,
           ratings: {
             select: {
               rating: true,
@@ -109,18 +200,11 @@ export async function getRecipes(
     ]);
 
     // Calculate average ratings
-    const recipesWithRatings = recipes.map((recipe) => {
-      const ratings = recipe.ratings.map((r) => r.rating);
-      const avgRating = ratings.length > 0
-        ? ratings.reduce((a, b) => a + b, 0) / ratings.length
-        : null;
-
-      return {
-        ...recipe,
-        averageRating: avgRating,
-        ratingCount: ratings.length,
-      };
-    });
+    const recipesWithRatings = recipes.map((recipe) => ({
+      ...recipe,
+      averageRating: calculateAverageRating(recipe.ratings),
+      ratingCount: recipe.ratings.length,
+    }));
 
     const result = {
       recipes: recipesWithRatings,
@@ -153,7 +237,7 @@ export async function getRecipeById(
     const { id } = req.params as { id: string };
 
     // Try cache first
-    const cacheKey = `recipe:${id}`;
+    const cacheKey = getRecipeCacheKey(id);
     const cached = await cacheGet(cacheKey);
 
     if (cached) {
@@ -164,11 +248,7 @@ export async function getRecipeById(
     const recipe = await prisma.recipe.findUnique({
       where: { id },
       include: {
-        ingredients: {
-          include: {
-            ingredient: true,
-          },
-        },
+        ...RECIPE_INCLUDE_WITH_INGREDIENTS,
         ratings: true,
         user: {
           select: {
@@ -183,20 +263,15 @@ export async function getRecipeById(
     }
 
     // Check if user has access
-    if (!recipe.isPublic && recipe.userId !== req.user?.id) {
+    if (!canAccessRecipe(recipe, req.user?.id)) {
       throw new AppError('Access denied', 403);
     }
 
-    // Calculate average rating
-    const ratings = recipe.ratings.map((r: any) => r.rating);
-    const avgRating = ratings.length > 0
-      ? ratings.reduce((a: number, b: number) => a + b, 0) / ratings.length
-      : null;
-
-    const result = {
+    // Calculate average rating and build result
+    const result: RecipeWithRating & typeof recipe = {
       ...recipe,
-      averageRating: avgRating,
-      ratingCount: ratings.length,
+      averageRating: calculateAverageRating(recipe.ratings),
+      ratingCount: recipe.ratings.length,
     };
 
     // Cache for 10 minutes
@@ -217,7 +292,7 @@ export async function createRecipe(
   next: NextFunction
 ): Promise<void> {
   try {
-    const userId = req.user?.userId;
+    const userId = getUserId(req);
 
     if (!userId) {
       throw new AppError('User not authenticated', 401);
@@ -275,17 +350,11 @@ export async function createRecipe(
           })) || [],
         },
       },
-      include: {
-        ingredients: {
-          include: {
-            ingredient: true,
-          },
-        },
-      },
+      include: RECIPE_INCLUDE_WITH_INGREDIENTS,
     });
 
     // Invalidate recipe list cache
-    await cacheDelPattern('recipes:*');
+    await invalidateRecipeListCache();
 
     logger.info('Recipe created', { recipeId: recipe.id, userId });
 
@@ -308,20 +377,14 @@ export async function updateRecipe(
 ): Promise<void> {
   try {
     const { id } = req.params as { id: string };
-    const userId = req.user?.userId || req.user?.id;
+    const userId = getUserId(req);
+
+    if (!userId) {
+      throw new AppError('User not authenticated', 401);
+    }
 
     // Check if recipe exists and user owns it
-    const existingRecipe = await prisma.recipe.findUnique({
-      where: { id },
-    });
-
-    if (!existingRecipe) {
-      throw new AppError('Recipe not found', 404);
-    }
-
-    if (existingRecipe.userId !== userId) {
-      throw new AppError('Access denied', 403);
-    }
+    await verifyRecipeOwnership(id, userId);
 
     const {
       title,
@@ -359,18 +422,11 @@ export async function updateRecipe(
         costEstimate,
         isPublic,
       },
-      include: {
-        ingredients: {
-          include: {
-            ingredient: true,
-          },
-        },
-      },
+      include: RECIPE_INCLUDE_WITH_INGREDIENTS,
     });
 
     // Invalidate caches
-    await cacheDelPattern('recipes:*');
-    await cacheDelPattern(`recipe:${id}`);
+    await invalidateRecipeCache(id);
 
     logger.info('Recipe updated', { recipeId: id, userId });
 
@@ -393,20 +449,14 @@ export async function deleteRecipe(
 ): Promise<void> {
   try {
     const { id } = req.params as { id: string };
-    const userId = req.user?.userId || req.user?.id;
+    const userId = getUserId(req);
+
+    if (!userId) {
+      throw new AppError('User not authenticated', 401);
+    }
 
     // Check if recipe exists and user owns it
-    const existingRecipe = await prisma.recipe.findUnique({
-      where: { id },
-    });
-
-    if (!existingRecipe) {
-      throw new AppError('Recipe not found', 404);
-    }
-
-    if (existingRecipe.userId !== userId) {
-      throw new AppError('Access denied', 403);
-    }
+    await verifyRecipeOwnership(id, userId);
 
     // Delete recipe (cascade will handle related records)
     await prisma.recipe.delete({
@@ -414,8 +464,7 @@ export async function deleteRecipe(
     });
 
     // Invalidate caches
-    await cacheDelPattern('recipes:*');
-    await cacheDelPattern(`recipe:${id}`);
+    await invalidateRecipeCache(id);
 
     logger.info('Recipe deleted', { recipeId: id, userId });
 
@@ -439,7 +488,7 @@ export async function rateRecipe(
 ): Promise<void> {
   try {
     const { id } = req.params as { id: string };
-    const userId = req.user?.userId || req.user?.id;
+    const userId = getUserId(req);
 
     if (!userId) {
       throw new AppError('User not authenticated', 401);
@@ -507,8 +556,7 @@ export async function rateRecipe(
     }
 
     // Invalidate recipe cache
-    await cacheDelPattern(`recipe:${id}`);
-    await cacheDelPattern('recipes:*');
+    await invalidateRecipeCache(id);
 
     logger.info('Recipe rated', { recipeId: id, userId, rating });
 
@@ -566,9 +614,7 @@ export async function getRecipeRatings(
     });
 
     // Calculate average rating
-    const averageRating = ratings.length > 0
-      ? ratings.reduce((sum, r) => sum + r.rating, 0) / ratings.length
-      : 0;
+    const averageRating = calculateAverageRating(ratings) || 0;
 
     // Calculate would make again percentage
     const wouldMakeAgainCount = ratings.filter(r => r.wouldMakeAgain).length;
@@ -669,11 +715,7 @@ export async function searchRecipes(
         skip,
         take: limitNum,
         include: {
-          ingredients: {
-            include: {
-              ingredient: true,
-            },
-          },
+          ...RECIPE_INCLUDE_WITH_INGREDIENTS,
           ratings: {
             select: {
               rating: true,
@@ -688,18 +730,11 @@ export async function searchRecipes(
     ]);
 
     // Calculate average ratings and filter by minRating if specified
-    let recipesWithRatings = recipes.map((recipe) => {
-      const ratings = recipe.ratings.map((r) => r.rating);
-      const avgRating = ratings.length > 0
-        ? ratings.reduce((a, b) => a + b, 0) / ratings.length
-        : 0;
-
-      return {
-        ...recipe,
-        averageRating: avgRating,
-        ratingCount: ratings.length,
-      };
-    });
+    let recipesWithRatings = recipes.map((recipe) => ({
+      ...recipe,
+      averageRating: calculateAverageRating(recipe.ratings) || 0,
+      ratingCount: recipe.ratings.length,
+    }));
 
     // Filter by minimum rating if specified
     if (minRating) {
@@ -998,6 +1033,55 @@ export async function getSimilarRecipes(
     next(error);
   }
 }
+/**
+ * Import recipe from URL
+ * POST /api/recipes/import
+ */
+export async function importRecipe(
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void> {
+  try {
+    const userId = getUserId(req);
+    const { url } = req.body;
+
+    if (!url || typeof url !== 'string') {
+      throw new AppError('Recipe URL is required', 400);
+    }
+
+    // Validate URL format
+    let parsedUrl: URL;
+    try {
+      parsedUrl = new URL(url);
+    } catch (error) {
+      throw new AppError('Invalid URL format', 400);
+    }
+
+    // For now, return a placeholder response
+    // Full implementation would involve:
+    // 1. Fetching the URL content
+    // 2. Parsing the HTML/JSON for recipe data
+    // 3. Extracting recipe information (title, ingredients, instructions, etc.)
+    // 4. Creating a new recipe in the database
+    
+    logger.info('Recipe import requested', { userId, url: parsedUrl.hostname });
+
+    res.status(501).json({
+      message: 'Recipe import functionality coming soon',
+      supportedSites: [
+        'allrecipes.com',
+        'foodnetwork.com',
+        'epicurious.com',
+        'bonappetit.com',
+      ],
+      note: 'This feature requires integration with recipe parsing services',
+    });
+  } catch (error) {
+    next(error);
+  }
+}
+
 
 export default {
   getRecipes,
@@ -1010,6 +1094,7 @@ export default {
   searchRecipes,
   getRecommendations,
   getSimilarRecipes,
+  importRecipe,
 };
 
 // Made with Bob
