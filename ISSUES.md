@@ -252,4 +252,66 @@
 **Priority:** High - Security and data integrity
 
 ---
+
+### Issue #13: Implement Admin Dashboard for User Management
+**Status:** Open
+**Priority:** High
+**Description:** Create an administrative interface for managing user accounts, security, and system operations.
+
+**Required Features:**
+- [ ] Admin authentication and role-based access control (RBAC)
+- [ ] User account management dashboard
+  - [ ] View all user accounts with search/filter
+  - [ ] Password reset functionality (admin-initiated)
+  - [ ] Account access blocking/suspension
+  - [ ] Account deletion with data cleanup
+  - [ ] View user activity logs
+  - [ ] Manage user roles and permissions
+- [ ] Security monitoring
+  - [ ] Failed login attempt tracking
+  - [ ] Suspicious activity alerts
+  - [ ] Active session management
+  - [ ] Force logout capability
+- [ ] System configuration
+  - [ ] Password policy management (UI for env variables)
+  - [ ] Rate limiting configuration
+  - [ ] Feature flags management
+
+**Implementation Tasks:**
+- [ ] Add `role` field to User model (user, admin, superadmin)
+- [ ] Create admin.controller.ts with user management methods
+- [ ] Create admin.routes.ts with protected admin endpoints
+- [ ] Add admin middleware for role verification
+- [ ] Create frontend admin dashboard pages
+- [ ] Implement audit logging for admin actions
+- [ ] Add email notifications for security events
+
+**API Endpoints:**
+- [ ] `GET /api/admin/users` - List all users with pagination
+- [ ] `GET /api/admin/users/:id` - Get user details
+- [ ] `POST /api/admin/users/:id/reset-password` - Reset user password
+- [ ] `PUT /api/admin/users/:id/block` - Block/suspend user account
+- [ ] `PUT /api/admin/users/:id/unblock` - Unblock user account
+- [ ] `DELETE /api/admin/users/:id` - Delete user account
+- [ ] `GET /api/admin/users/:id/activity` - Get user activity logs
+- [ ] `GET /api/admin/sessions` - List active sessions
+- [ ] `DELETE /api/admin/sessions/:id` - Force logout session
+- [ ] `GET /api/admin/security/failed-logins` - View failed login attempts
+- [ ] `GET /api/admin/audit-logs` - View admin action audit trail
+
+**Security Considerations:**
+- Require strong authentication for admin access (consider 2FA)
+- Log all admin actions for audit trail
+- Implement rate limiting on admin endpoints
+- Add confirmation dialogs for destructive actions
+- Email notifications for critical admin actions
+- Separate admin session management from regular users
+
+**Priority:** High - Essential for production security and user management
+
+**Related Issues:**
+- Complements Issue #5 (password policy implementation)
+- Supports Issue #12 (input validation)
+
+---
 - Terms of service only needed if application is shared with other families
