@@ -186,8 +186,14 @@ const recipesSlice = createSlice({
       })
       .addCase(fetchRecipes.fulfilled, (state, action) => {
         state.loading = false;
-        state.recipes = action.payload.recipes;
-        state.pagination = action.payload.pagination;
+        // Handle case where payload might be undefined or have unexpected structure
+        if (action.payload && action.payload.recipes) {
+          state.recipes = action.payload.recipes;
+          state.pagination = action.payload.pagination || state.pagination;
+        } else {
+          // Fallback: treat payload as array of recipes
+          state.recipes = Array.isArray(action.payload) ? action.payload : [];
+        }
       })
       .addCase(fetchRecipes.rejected, (state, action) => {
         state.loading = false;

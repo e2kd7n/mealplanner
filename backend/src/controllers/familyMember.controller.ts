@@ -49,7 +49,7 @@ export async function getFamilyMembers(
 
 /**
  * @route   GET /api/family-members/:id
- * @desc    Get a specific family member
+ * @desc    Get a specific family member by ID
  * @access  Private
  */
 export async function getFamilyMemberById(
@@ -104,8 +104,7 @@ export async function createFamilyMember(
     }
 
     // Validate dietary restrictions format
-    const restrictions = dietaryRestrictions || {};
-    if (typeof restrictions !== 'object' || Array.isArray(restrictions)) {
+    if (dietaryRestrictions && typeof dietaryRestrictions !== 'object') {
       throw new AppError('Dietary restrictions must be an object', 400);
     }
 
@@ -114,8 +113,8 @@ export async function createFamilyMember(
         userId,
         name: name.trim(),
         ageGroup,
-        canCook: canCook === true,
-        dietaryRestrictions: restrictions,
+        canCook: canCook || false,
+        dietaryRestrictions: dietaryRestrictions || {},
       },
     });
 
@@ -157,33 +156,22 @@ export async function updateFamilyMember(
       throw new AppError('Family member not found', 404);
     }
 
+    // Validate age group if provided
+    if (ageGroup && !['child', 'teen', 'adult'].includes(ageGroup)) {
+      throw new AppError('Valid age group is required (child, teen, adult)', 400);
+    }
+
+    // Validate name if provided
+    if (name !== undefined && (typeof name !== 'string' || !name.trim())) {
+      throw new AppError('Name must be a non-empty string', 400);
+    }
+
     // Build update data
     const updateData: any = {};
-
-    if (name !== undefined) {
-      if (typeof name !== 'string' || !name.trim()) {
-        throw new AppError('Name must be a non-empty string', 400);
-      }
-      updateData.name = name.trim();
-    }
-
-    if (ageGroup !== undefined) {
-      if (!['child', 'teen', 'adult'].includes(ageGroup)) {
-        throw new AppError('Valid age group is required (child, teen, adult)', 400);
-      }
-      updateData.ageGroup = ageGroup;
-    }
-
-    if (canCook !== undefined) {
-      updateData.canCook = canCook === true;
-    }
-
-    if (dietaryRestrictions !== undefined) {
-      if (typeof dietaryRestrictions !== 'object' || Array.isArray(dietaryRestrictions)) {
-        throw new AppError('Dietary restrictions must be an object', 400);
-      }
-      updateData.dietaryRestrictions = dietaryRestrictions;
-    }
+    if (name !== undefined) updateData.name = name.trim();
+    if (ageGroup !== undefined) updateData.ageGroup = ageGroup;
+    if (canCook !== undefined) updateData.canCook = canCook;
+    if (dietaryRestrictions !== undefined) updateData.dietaryRestrictions = dietaryRestrictions;
 
     const familyMember = await prisma.familyMember.update({
       where: { id },
