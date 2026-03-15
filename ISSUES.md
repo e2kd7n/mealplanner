@@ -1,6 +1,6 @@
 # Project Issues
 
-**Last Updated:** March 15, 2026 (18:36 UTC)
+**Last Updated:** March 15, 2026 (18:40 UTC)
 
 ---
 
@@ -10,8 +10,8 @@
 - **High Priority:** 4
 - **Medium Priority:** 5
 - **Low Priority:** 0
-- **In Progress:** 2 (Issue #19 - Backend complete, frontend pending; Issue #24 - 5/9 bugs fixed)
-- **Recently Completed:** 12
+- **In Progress:** 1 (Issue #24 - 5/9 bugs fixed)
+- **Recently Completed:** 13
 
 ---
 
@@ -36,19 +36,19 @@
 | 23 | System Architecture Documentation | `documentation`, `architecture` | Open |
 | 25 | Sortable and Filterable Tables/Lists | `frontend`, `ui`, `enhancement`, `ux` | Open |
 
-### 🔵 In Progress (2 issues)
+### 🔵 In Progress (1 issue)
 
 | # | Issue | Tags | Status |
 |---|-------|------|--------|
-| 19 | URL-Based Recipe Import | `backend`, `frontend`, `integration`, `recipes` | Backend complete, frontend UI pending |
 | 24 | Fix Frontend Console Errors | `frontend`, `bugfix`, `accessibility` | 5 of 9 bugs fixed |
 
 ---
 
-## ✅ Recently Completed (12 issues)
+## ✅ Recently Completed (13 issues)
 
 | # | Issue | Completed | Tags |
 |---|-------|-----------|------|
+| 19 | URL-Based Recipe Import | Mar 15, 2026 | `backend`, `frontend`, `integration`, `recipes` |
 | 10 | Recipe Search & Recommendations (Backend) | Mar 15, 2026 | `backend`, `search`, `api` |
 | 13 | Admin Dashboard for User Management | Mar 15, 2026 | `frontend`, `backend`, `admin`, `security` |
 | 14 | Profile Page UI | Mar 15, 2026 | `frontend`, `ui`, `user-management` |
@@ -73,10 +73,9 @@ Based on priority and dependencies:
    - Foundation for nutrition features
    - High user value
 
-2. **Issue #19** - URL-Based Recipe Import
-   - High user value for building recipe collection
-   - Uses Docling + multi-parser approach
-   - Enables recipe card OCR (#18)
+2. **Issue #18** - Recipe Card OCR Import
+   - Unique feature, high value
+   - Can leverage URL import infrastructure
 
 3. **Issue #18** - Recipe Card OCR Import
    - Unique feature, high value

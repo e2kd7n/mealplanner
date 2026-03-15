@@ -19,6 +19,9 @@ const api: AxiosInstance = axios.create({
   baseURL: API_BASE_URL,
   headers: {
     'Content-Type': 'application/json',
+    'Cache-Control': 'no-cache, no-store, must-revalidate',
+    'Pragma': 'no-cache',
+    'Expires': '0',
   },
   withCredentials: true, // Important for cookies
 });
@@ -40,7 +43,13 @@ const setAuthHeader = (config: RetryableAxiosConfig, token: string): void => {
  * Retry a failed request with a new token
  */
 const retryRequestWithToken = (config: RetryableAxiosConfig, token: string) => {
-  setAuthHeader(config, token);
+  // Update the authorization header directly on the config
+  if (!config.headers) {
+    config.headers = {} as any;
+  }
+  config.headers.Authorization = `Bearer ${token}`;
+  
+  // Use raw axios to avoid triggering interceptors again
   return axios(config);
 };
 
