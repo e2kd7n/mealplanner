@@ -287,7 +287,42 @@ export async function getRecipeById(
 
 /**
  * Create new recipe
+/**
+ * Helper function to find or create an ingredient
  */
+async function findOrCreateIngredient(
+  ingredientId: string | undefined,
+  ingredientName: string,
+  unit: string
+): Promise<string> {
+  // If we have an ID, use it
+  if (ingredientId) {
+    return ingredientId;
+  }
+
+  // Check if ingredient exists by name
+  let ingredient = await prisma.ingredient.findFirst({
+    where: { name: { equals: ingredientName, mode: 'insensitive' } },
+  });
+
+  if (!ingredient) {
+    // Create new ingredient
+    logger.info(`Creating new ingredient: ${ingredientName}`);
+    ingredient = await prisma.ingredient.create({
+      data: {
+        name: ingredientName,
+        category: 'other',
+        seasonalMonths: [],
+        averagePrice: 0,
+        unit: unit || 'unit',
+        allergens: [],
+      },
+    });
+  }
+
+  return ingredient.id;
+}
+
 export async function createRecipe(
   req: Request,
   res: Response,
@@ -323,7 +358,7 @@ export async function createRecipe(
       throw new AppError('Missing required fields', 400);
     }
 
-    // Create recipe with ingredients
+    // Create recipe first
     const recipe = await prisma.recipe.create({
       data: {
         userId,
@@ -342,16 +377,34 @@ export async function createRecipe(
         nutritionInfo,
         costEstimate,
         isPublic: isPublic || false,
-        ingredients: {
-          create: ingredients?.map((ing: any) => ({
-            ingredientId: ing.ingredientId,
+      },
+    });
+
+    // Handle ingredients - create new ones if needed
+    if (ingredients && ingredients.length > 0) {
+      for (const ing of ingredients) {
+        const ingredientId = await findOrCreateIngredient(
+          ing.ingredientId,
+          ing.ingredientName,
+          ing.unit
+        );
+
+        await prisma.recipeIngredient.create({
+          data: {
+            recipeId: recipe.id,
+            ingredientId,
             quantity: ing.quantity,
             unit: ing.unit,
-            notes: ing.notes,
+            notes: ing.notes || null,
             isOptional: ing.isOptional || false,
-          })) || [],
-        },
-      },
+          },
+        });
+      }
+    }
+
+    // Fetch complete recipe with ingredients
+    const completeRecipe = await prisma.recipe.findUnique({
+      where: { id: recipe.id },
       include: RECIPE_INCLUDE_WITH_INGREDIENTS,
     });
 
@@ -362,7 +415,8 @@ export async function createRecipe(
 
     res.status(201).json({
       message: 'Recipe created successfully',
-      recipe,
+      recipe: completeRecipe,
+      id: recipe.id,
     });
   } catch (error) {
     next(error);
