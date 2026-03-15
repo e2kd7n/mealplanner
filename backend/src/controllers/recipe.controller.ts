@@ -403,10 +403,11 @@ export async function updateRecipe(
       nutritionInfo,
       costEstimate,
       isPublic,
+      ingredients,
     } = req.body;
 
     // Update recipe
-    const recipe = await prisma.recipe.update({
+    await prisma.recipe.update({
       where: { id },
       data: {
         title,
@@ -427,6 +428,34 @@ export async function updateRecipe(
       include: RECIPE_INCLUDE_WITH_INGREDIENTS,
     });
 
+    // Update ingredients if provided
+    if (ingredients && Array.isArray(ingredients)) {
+      // Delete existing recipe ingredients
+      await prisma.recipeIngredient.deleteMany({
+        where: { recipeId: id },
+      });
+
+      // Add new ingredients
+      for (const ing of ingredients) {
+        await prisma.recipeIngredient.create({
+          data: {
+            recipeId: id,
+            ingredientId: ing.ingredientId,
+            quantity: ing.quantity,
+            unit: ing.unit,
+            notes: ing.notes || null,
+            isOptional: ing.isOptional || false,
+          },
+        });
+      }
+    }
+
+    // Fetch updated recipe with ingredients
+    const updatedRecipe = await prisma.recipe.findUnique({
+      where: { id },
+      include: RECIPE_INCLUDE_WITH_INGREDIENTS,
+    });
+
     // Invalidate caches
     await invalidateRecipeCache(id);
 
@@ -434,7 +463,7 @@ export async function updateRecipe(
 
     res.json({
       message: 'Recipe updated successfully',
-      recipe,
+      recipe: updatedRecipe,
     });
   } catch (error) {
     next(error);
