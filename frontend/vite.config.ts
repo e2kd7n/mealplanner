@@ -9,6 +9,46 @@ export default defineConfig({
     strictPort: false,
   },
   build: {
-    sourcemap: true,
+    // Optimize build output
+    sourcemap: false, // Disable sourcemaps in production for smaller bundle
+    minify: 'esbuild', // Use esbuild for faster minification
+    target: 'esnext',
+    // Code splitting optimization
+    rollupOptions: {
+      output: {
+        manualChunks: (id) => {
+          // Vendor chunks for better caching
+          if (id.includes('node_modules')) {
+            if (id.includes('react') || id.includes('react-dom') || id.includes('react-router')) {
+              return 'react-vendor';
+            }
+            if (id.includes('@mui')) {
+              return 'mui-vendor';
+            }
+            if (id.includes('redux')) {
+              return 'redux-vendor';
+            }
+            if (id.includes('react-hook-form') || id.includes('zod')) {
+              return 'form-vendor';
+            }
+            return 'vendor';
+          }
+        },
+      },
+    },
+    // Chunk size warnings
+    chunkSizeWarningLimit: 1000,
+  },
+  // Optimize dependencies
+  optimizeDeps: {
+    include: [
+      'react',
+      'react-dom',
+      'react-router-dom',
+      '@mui/material',
+      '@mui/icons-material',
+      '@reduxjs/toolkit',
+      'react-redux',
+    ],
   },
 })

@@ -4,7 +4,7 @@
  */
 
 
-import React from 'react';
+import React, { memo, useCallback } from 'react';
 import {
   Box,
   Container,
@@ -24,8 +24,67 @@ import {
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 
+// Memoized Quick Action Card
+interface QuickActionCardProps {
+  title: string;
+  description: string;
+  icon: React.ReactNode;
+  color: string;
+  onNavigate: () => void;
+}
+
+const QuickActionCard = memo(({ title, description, icon, color, onNavigate }: QuickActionCardProps) => (
+  <Card
+    sx={{
+      height: '100%',
+      display: 'flex',
+      flexDirection: 'column',
+      transition: 'transform 0.2s',
+      '&:hover': {
+        transform: 'translateY(-4px)',
+        boxShadow: 4,
+      },
+    }}
+  >
+    <CardContent sx={{ flexGrow: 1, textAlign: 'center' }}>
+      <Box
+        sx={{
+          display: 'flex',
+          justifyContent: 'center',
+          mb: 2,
+          color,
+        }}
+      >
+        {icon}
+      </Box>
+      <Typography variant="h6" gutterBottom>
+        {title}
+      </Typography>
+      <Typography variant="body2" color="text.secondary">
+        {description}
+      </Typography>
+    </CardContent>
+    <CardActions sx={{ justifyContent: 'center', pb: 2 }}>
+      <Button
+        size="small"
+        variant="contained"
+        onClick={onNavigate}
+        sx={{ bgcolor: color }}
+      >
+        Go
+      </Button>
+    </CardActions>
+  </Card>
+));
+
+QuickActionCard.displayName = 'QuickActionCard';
+
 const Dashboard: React.FC = () => {
   const navigate = useNavigate();
+
+  const handleNavigate = useCallback((path: string) => {
+    navigate(path);
+  }, [navigate]);
 
   const quickActions = [
     {
@@ -72,47 +131,13 @@ const Dashboard: React.FC = () => {
       <Grid container spacing={3}>
         {quickActions.map((action) => (
           <Grid size={{ xs: 12, sm: 6, md: 3 }} key={action.title}>
-            <Card
-              sx={{
-                height: '100%',
-                display: 'flex',
-                flexDirection: 'column',
-                transition: 'transform 0.2s',
-                '&:hover': {
-                  transform: 'translateY(-4px)',
-                  boxShadow: 4,
-                },
-              }}
-            >
-              <CardContent sx={{ flexGrow: 1, textAlign: 'center' }}>
-                <Box
-                  sx={{
-                    display: 'flex',
-                    justifyContent: 'center',
-                    mb: 2,
-                    color: action.color,
-                  }}
-                >
-                  {action.icon}
-                </Box>
-                <Typography variant="h6" gutterBottom>
-                  {action.title}
-                </Typography>
-                <Typography variant="body2" color="text.secondary">
-                  {action.description}
-                </Typography>
-              </CardContent>
-              <CardActions sx={{ justifyContent: 'center', pb: 2 }}>
-                <Button
-                  size="small"
-                  variant="contained"
-                  onClick={() => navigate(action.path)}
-                  sx={{ bgcolor: action.color }}
-                >
-                  Go
-                </Button>
-              </CardActions>
-            </Card>
+            <QuickActionCard
+              title={action.title}
+              description={action.description}
+              icon={action.icon}
+              color={action.color}
+              onNavigate={() => handleNavigate(action.path)}
+            />
           </Grid>
         ))}
       </Grid>

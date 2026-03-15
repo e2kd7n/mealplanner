@@ -35,6 +35,7 @@ import {
 import { useNavigate } from 'react-router-dom';
 import { useAppDispatch, useAppSelector } from '../store/hooks';
 import { fetchRecipes } from '../store/slices/recipesSlice';
+import { useDebounce } from '../hooks/useDebounce';
 
 // Memoized Recipe Card Component for better performance
 interface RecipeCardProps {
@@ -137,23 +138,32 @@ const Recipes: React.FC = () => {
   const dispatch = useAppDispatch();
   const { recipes, loading, error, pagination } = useAppSelector((state) => state.recipes);
 
-  const [searchTerm, setSearchTerm] = useState('');
+  const [searchInput, setSearchInput] = useState('');
   const [difficulty, setDifficulty] = useState('');
   const [mealType, setMealType] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
 
+  // Debounce search input to reduce API calls
+  const debouncedSearch = useDebounce(searchInput, 500);
+
   useEffect(() => {
     const params: any = { page: currentPage, limit: 12 };
-    if (searchTerm) params.search = searchTerm;
+    if (debouncedSearch) params.search = debouncedSearch;
     if (difficulty) params.difficulty = difficulty;
     if (mealType) params.mealType = mealType;
 
     dispatch(fetchRecipes(params));
-  }, [dispatch, currentPage, searchTerm, difficulty, mealType]);
+  }, [dispatch, currentPage, debouncedSearch, difficulty, mealType]);
 
-  const handleSearch = useCallback((value: string) => {
-    setSearchTerm(value);
-    setCurrentPage(1);
+  // Reset to page 1 when search changes
+  useEffect(() => {
+    if (debouncedSearch !== searchInput) {
+      setCurrentPage(1);
+    }
+  }, [debouncedSearch, searchInput]);
+
+  const handleSearchInput = useCallback((value: string) => {
+    setSearchInput(value);
   }, []);
 
   const handlePageChange = useCallback((_event: React.ChangeEvent<unknown>, value: number) => {
@@ -186,8 +196,8 @@ const Recipes: React.FC = () => {
           <TextField
             fullWidth
             placeholder="Search recipes..."
-            value={searchTerm}
-            onChange={(e) => handleSearch(e.target.value)}
+            value={searchInput}
+            onChange={(e) => handleSearchInput(e.target.value)}
             InputProps={{
               startAdornment: (
                 <InputAdornment position="start">
