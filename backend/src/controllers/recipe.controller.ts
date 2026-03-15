@@ -308,7 +308,7 @@ export async function updateRecipe(
 ): Promise<void> {
   try {
     const { id } = req.params as { id: string };
-    const userId = req.user?.id;
+    const userId = req.user?.userId || req.user?.id;
 
     // Check if recipe exists and user owns it
     const existingRecipe = await prisma.recipe.findUnique({
@@ -393,7 +393,7 @@ export async function deleteRecipe(
 ): Promise<void> {
   try {
     const { id } = req.params as { id: string };
-    const userId = req.user?.id;
+    const userId = req.user?.userId || req.user?.id;
 
     // Check if recipe exists and user owns it
     const existingRecipe = await prisma.recipe.findUnique({
@@ -439,7 +439,7 @@ export async function rateRecipe(
 ): Promise<void> {
   try {
     const { id } = req.params as { id: string };
-    const userId = req.user?.id;
+    const userId = req.user?.userId || req.user?.id;
 
     if (!userId) {
       throw new AppError('User not authenticated', 401);
