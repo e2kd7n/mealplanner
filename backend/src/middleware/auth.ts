@@ -44,8 +44,11 @@ export function authenticate(
     // Verify token
     const payload = verifyAccessToken(token);
 
-    // Attach user to request
-    req.user = payload;
+    // Attach user to request with both userId and id for compatibility
+    req.user = {
+      ...payload,
+      id: payload.userId, // Add id as an alias for userId
+    };
 
     next();
   } catch (error) {
