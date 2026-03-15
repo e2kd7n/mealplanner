@@ -21,6 +21,10 @@ import {
   DialogActions,
   TextField,
   MenuItem,
+  Divider,
+  List,
+  ListItem,
+  ListItemText,
 } from '@mui/material';
 import {
   Add as AddIcon,
@@ -28,6 +32,9 @@ import {
   ChevronRight as ChevronRightIcon,
   ShoppingCart as ShoppingCartIcon,
   Delete as DeleteIcon,
+  Edit as EditIcon,
+  ContentCopy as ContentCopyIcon,
+  Close as CloseIcon,
 } from '@mui/icons-material';
 import { format, addDays, startOfWeek, isSameDay } from 'date-fns';
 
@@ -72,6 +79,14 @@ const MealPlanner: React.FC = () => {
     servings: 4,
   });
 
+  // Meal detail dialog state
+  const [openMealDetail, setOpenMealDetail] = useState(false);
+  const [selectedMeal, setSelectedMeal] = useState<Meal | null>(null);
+
+  // Day summary dialog state
+  const [openDaySummary, setOpenDaySummary] = useState(false);
+  const [selectedDay, setSelectedDay] = useState<Date | null>(null);
+
   const handlePreviousWeek = () => {
     setCurrentWeekStart(addDays(currentWeekStart, -7));
   };
@@ -98,7 +113,7 @@ const MealPlanner: React.FC = () => {
       id: Date.now().toString(),
       recipeId: 'temp',
       recipeName: newMeal.recipeName,
-      mealType: selectedMealType as any,
+      mealType: selectedMealType as 'BREAKFAST' | 'LUNCH' | 'DINNER' | 'SNACK',
       date: selectedDate,
       servings: newMeal.servings,
     };
@@ -106,13 +121,58 @@ const MealPlanner: React.FC = () => {
     setOpenDialog(false);
   };
 
-  const handleDeleteMeal = (id: string) => {
+  const handleDeleteMeal = (id: string, event?: React.MouseEvent) => {
+    // Stop propagation to prevent opening meal detail when clicking delete
+    if (event) {
+      event.stopPropagation();
+    }
     setMeals(meals.filter(meal => meal.id !== id));
   };
 
   const handleGenerateGroceryList = () => {
     // Navigate to grocery list with meal plan data
     alert('Generating grocery list from meal plan...');
+  };
+
+  const handleOpenMealDetail = (meal: Meal) => {
+    setSelectedMeal(meal);
+    setOpenMealDetail(true);
+  };
+
+  const handleOpenDaySummary = (date: Date) => {
+    setSelectedDay(date);
+    setOpenDaySummary(true);
+  };
+
+  const handleEditMeal = () => {
+    if (selectedMeal) {
+      setSelectedDate(selectedMeal.date);
+      setSelectedMealType(selectedMeal.mealType);
+      setNewMeal({
+        recipeName: selectedMeal.recipeName,
+        servings: selectedMeal.servings,
+      });
+      setOpenMealDetail(false);
+      setOpenDialog(true);
+    }
+  };
+
+  const handleCopyMeal = () => {
+    if (selectedMeal) {
+      const newMeal: Meal = {
+        ...selectedMeal,
+        id: Date.now().toString(),
+      };
+      setMeals([...meals, newMeal]);
+      setOpenMealDetail(false);
+    }
+  };
+
+  const handleClearDay = () => {
+    if (selectedDay) {
+      setMeals(meals.filter(meal => !isSameDay(meal.date, selectedDay)));
+      setOpenDaySummary(false);
+    }
   };
 
   const getMealsForDay = (date: Date, mealType: string) => {
@@ -204,27 +264,37 @@ const MealPlanner: React.FC = () => {
                 }}
               >
                 <CardContent sx={{ p: 2 }}>
-                  <Typography
-                    variant="subtitle2"
-                    align="center"
-                    gutterBottom
+                  <Box
+                    onClick={() => handleOpenDaySummary(day)}
                     sx={{
-                      fontWeight: 'bold',
-                      color: isToday ? 'primary.contrastText' : 'text.primary',
+                      cursor: 'pointer',
+                      '&:hover': {
+                        opacity: 0.8,
+                      },
                     }}
                   >
-                    {DAYS_OF_WEEK[dayIndex]}
-                  </Typography>
-                  <Typography
-                    variant="h6"
-                    align="center"
-                    gutterBottom
-                    sx={{
-                      color: isToday ? 'primary.contrastText' : 'text.primary',
-                    }}
-                  >
-                    {format(day, 'd')}
-                  </Typography>
+                    <Typography
+                      variant="subtitle2"
+                      align="center"
+                      gutterBottom
+                      sx={{
+                        fontWeight: 'bold',
+                        color: isToday ? 'primary.contrastText' : 'text.primary',
+                      }}
+                    >
+                      {DAYS_OF_WEEK[dayIndex]}
+                    </Typography>
+                    <Typography
+                      variant="h6"
+                      align="center"
+                      gutterBottom
+                      sx={{
+                        color: isToday ? 'primary.contrastText' : 'text.primary',
+                      }}
+                    >
+                      {format(day, 'd')}
+                    </Typography>
+                  </Box>
 
                   {/* Meal Types */}
                   <Stack spacing={1} sx={{ mt: 2 }}>
@@ -280,6 +350,7 @@ const MealPlanner: React.FC = () => {
                             dayMeals.map((meal) => (
                               <Box
                                 key={meal.id}
+                                onClick={() => handleOpenMealDetail(meal)}
                                 sx={{
                                   p: 1,
                                   bgcolor: 'background.default',
@@ -287,6 +358,10 @@ const MealPlanner: React.FC = () => {
                                   borderLeft: 3,
                                   borderColor: getMealTypeColor(mealType),
                                   mb: 0.5,
+                                  cursor: 'pointer',
+                                  '&:hover': {
+                                    bgcolor: 'action.hover',
+                                  },
                                 }}
                               >
                                 <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start' }}>
@@ -311,7 +386,7 @@ const MealPlanner: React.FC = () => {
                                   </Box>
                                   <IconButton
                                     size="small"
-                                    onClick={() => handleDeleteMeal(meal.id)}
+                                    onClick={(e) => handleDeleteMeal(meal.id, e)}
                                     sx={{ ml: 0.5 }}
                                   >
                                     <DeleteIcon fontSize="small" />
@@ -376,6 +451,275 @@ const MealPlanner: React.FC = () => {
             disabled={!newMeal.recipeName}
           >
             Add Meal
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Meal Detail Dialog */}
+      <Dialog
+        open={openMealDetail}
+        onClose={() => setOpenMealDetail(false)}
+        maxWidth="sm"
+        fullWidth
+        disableRestoreFocus
+        keepMounted={false}
+      >
+        <DialogTitle>
+          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <Typography variant="h6">Meal Details</Typography>
+            <IconButton onClick={() => setOpenMealDetail(false)} size="small">
+              <CloseIcon />
+            </IconButton>
+          </Box>
+        </DialogTitle>
+        <DialogContent>
+          {selectedMeal && (
+            <Stack spacing={2}>
+              <Box>
+                <Typography variant="subtitle2" color="text.secondary" gutterBottom>
+                  Recipe
+                </Typography>
+                <Typography variant="h6">{selectedMeal.recipeName}</Typography>
+              </Box>
+
+              <Divider />
+
+              <Box>
+                <Typography variant="subtitle2" color="text.secondary" gutterBottom>
+                  Meal Type
+                </Typography>
+                <Chip
+                  label={selectedMeal.mealType}
+                  sx={{
+                    bgcolor: getMealTypeColor(selectedMeal.mealType),
+                    color: 'white',
+                  }}
+                />
+              </Box>
+
+              <Box>
+                <Typography variant="subtitle2" color="text.secondary" gutterBottom>
+                  Date
+                </Typography>
+                <Typography>{format(selectedMeal.date, 'EEEE, MMMM d, yyyy')}</Typography>
+              </Box>
+
+              <Box>
+                <Typography variant="subtitle2" color="text.secondary" gutterBottom>
+                  Servings
+                </Typography>
+                <Typography>{selectedMeal.servings} servings</Typography>
+              </Box>
+
+              <Divider />
+
+              <Box>
+                <Typography variant="body2" color="text.secondary">
+                  Full recipe details would be loaded from the recipe database here, including:
+                </Typography>
+                <List dense>
+                  <ListItem>
+                    <ListItemText primary="• Ingredients list" />
+                  </ListItem>
+                  <ListItem>
+                    <ListItemText primary="• Cooking instructions" />
+                  </ListItem>
+                  <ListItem>
+                    <ListItemText primary="• Prep and cook time" />
+                  </ListItem>
+                  <ListItem>
+                    <ListItemText primary="• Nutrition information" />
+                  </ListItem>
+                </List>
+              </Box>
+            </Stack>
+          )}
+        </DialogContent>
+        <DialogActions>
+          <Button
+            startIcon={<ContentCopyIcon />}
+            onClick={handleCopyMeal}
+          >
+            Copy Meal
+          </Button>
+          <Button
+            startIcon={<EditIcon />}
+            onClick={handleEditMeal}
+          >
+            Edit
+          </Button>
+          <Button
+            color="error"
+            startIcon={<DeleteIcon />}
+            onClick={() => {
+              if (selectedMeal) {
+                handleDeleteMeal(selectedMeal.id);
+                setOpenMealDetail(false);
+              }
+            }}
+          >
+            Delete
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Day Summary Dialog */}
+      <Dialog
+        open={openDaySummary}
+        onClose={() => setOpenDaySummary(false)}
+        maxWidth="md"
+        fullWidth
+        disableRestoreFocus
+        keepMounted={false}
+      >
+        <DialogTitle>
+          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <Typography variant="h6">
+              {selectedDay && format(selectedDay, 'EEEE, MMMM d, yyyy')}
+            </Typography>
+            <IconButton onClick={() => setOpenDaySummary(false)} size="small">
+              <CloseIcon />
+            </IconButton>
+          </Box>
+        </DialogTitle>
+        <DialogContent>
+          {selectedDay && (
+            <Stack spacing={3}>
+              {/* Meals for the day */}
+              {MEAL_TYPES.map((mealType) => {
+                const dayMeals = getMealsForDay(selectedDay, mealType);
+                if (dayMeals.length === 0) return null;
+
+                return (
+                  <Box key={mealType}>
+                    <Typography
+                      variant="subtitle1"
+                      sx={{
+                        fontWeight: 'bold',
+                        color: getMealTypeColor(mealType),
+                        mb: 1,
+                      }}
+                    >
+                      {mealType}
+                    </Typography>
+                    <Stack spacing={1}>
+                      {dayMeals.map((meal) => (
+                        <Card
+                          key={meal.id}
+                          variant="outlined"
+                          sx={{
+                            cursor: 'pointer',
+                            '&:hover': {
+                              bgcolor: 'action.hover',
+                            },
+                          }}
+                          onClick={() => {
+                            setOpenDaySummary(false);
+                            handleOpenMealDetail(meal);
+                          }}
+                        >
+                          <CardContent sx={{ py: 1.5, '&:last-child': { pb: 1.5 } }}>
+                            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                              <Box>
+                                <Typography variant="body1" fontWeight="medium">
+                                  {meal.recipeName}
+                                </Typography>
+                                <Typography variant="body2" color="text.secondary">
+                                  {meal.servings} servings
+                                </Typography>
+                              </Box>
+                              <IconButton
+                                size="small"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleDeleteMeal(meal.id);
+                                }}
+                              >
+                                <DeleteIcon fontSize="small" />
+                              </IconButton>
+                            </Box>
+                          </CardContent>
+                        </Card>
+                      ))}
+                    </Stack>
+                  </Box>
+                );
+              })}
+
+              {/* Empty state */}
+              {getMealsForDay(selectedDay, 'BREAKFAST').length === 0 &&
+               getMealsForDay(selectedDay, 'LUNCH').length === 0 &&
+               getMealsForDay(selectedDay, 'DINNER').length === 0 &&
+               getMealsForDay(selectedDay, 'SNACK').length === 0 && (
+                <Box sx={{ textAlign: 'center', py: 4 }}>
+                  <Typography variant="body1" color="text.secondary">
+                    No meals planned for this day
+                  </Typography>
+                  <Button
+                    variant="contained"
+                    startIcon={<AddIcon />}
+                    onClick={() => {
+                      setOpenDaySummary(false);
+                      handleOpenDialog(selectedDay, 'DINNER');
+                    }}
+                    sx={{ mt: 2 }}
+                  >
+                    Add Meal
+                  </Button>
+                </Box>
+              )}
+
+              <Divider />
+
+              {/* Nutrition Summary Placeholder */}
+              <Box>
+                <Typography variant="subtitle1" fontWeight="bold" gutterBottom>
+                  Daily Nutrition Summary
+                </Typography>
+                <Typography variant="body2" color="text.secondary">
+                  Total nutrition information for all meals would be calculated and displayed here, including:
+                </Typography>
+                <List dense>
+                  <ListItem>
+                    <ListItemText primary="• Total calories" />
+                  </ListItem>
+                  <ListItem>
+                    <ListItemText primary="• Macronutrients (protein, carbs, fat)" />
+                  </ListItem>
+                  <ListItem>
+                    <ListItemText primary="• Key vitamins and minerals" />
+                  </ListItem>
+                  <ListItem>
+                    <ListItemText primary="• Comparison to daily recommended values" />
+                  </ListItem>
+                </List>
+              </Box>
+            </Stack>
+          )}
+        </DialogContent>
+        <DialogActions>
+          <Button
+            onClick={() => {
+              if (selectedDay) {
+                handleOpenDialog(selectedDay, 'DINNER');
+                setOpenDaySummary(false);
+              }
+            }}
+            startIcon={<AddIcon />}
+          >
+            Add Meal
+          </Button>
+          <Button
+            color="error"
+            onClick={handleClearDay}
+            disabled={!selectedDay || (
+              getMealsForDay(selectedDay, 'BREAKFAST').length === 0 &&
+              getMealsForDay(selectedDay, 'LUNCH').length === 0 &&
+              getMealsForDay(selectedDay, 'DINNER').length === 0 &&
+              getMealsForDay(selectedDay, 'SNACK').length === 0
+            )}
+          >
+            Clear All Meals
           </Button>
         </DialogActions>
       </Dialog>
