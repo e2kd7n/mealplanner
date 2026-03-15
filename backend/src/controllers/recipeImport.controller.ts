@@ -73,6 +73,8 @@ export const saveImportedRecipe = async (req: Request, res: Response) => {
     }
     
     const userId = req.user.id;
+    
+    // Data is already validated by middleware
     const {
       title,
       description,
@@ -89,27 +91,7 @@ export const saveImportedRecipe = async (req: Request, res: Response) => {
       sourceUrl,
     } = req.body;
 
-    // Validate required fields
-    if (!title || !prepTime || !cookTime || !servings || !difficulty || !mealType) {
-      return res.status(400).json({
-        success: false,
-        message: 'Missing required fields',
-      });
-    }
-
-    if (!ingredients || ingredients.length === 0) {
-      return res.status(400).json({
-        success: false,
-        message: 'Recipe must have at least one ingredient',
-      });
-    }
-
-    if (!instructions || instructions.length === 0) {
-      return res.status(400).json({
-        success: false,
-        message: 'Recipe must have at least one instruction step',
-      });
-    }
+    logger.info(`Saving imported recipe: ${title} for user ${userId}`);
 
     // Create recipe
     const recipe = await prisma.recipe.create({
@@ -133,6 +115,8 @@ export const saveImportedRecipe = async (req: Request, res: Response) => {
       },
     });
 
+    logger.info(`Recipe created with ID: ${recipe.id}`);
+
     // Create ingredients
     for (const ing of ingredients) {
       // Find or create ingredient
@@ -141,6 +125,7 @@ export const saveImportedRecipe = async (req: Request, res: Response) => {
       });
 
       if (!ingredient) {
+        logger.info(`Creating new ingredient: ${ing.name}`);
         // Create new ingredient with default values
         ingredient = await prisma.ingredient.create({
           data: {
@@ -161,7 +146,7 @@ export const saveImportedRecipe = async (req: Request, res: Response) => {
           ingredientId: ingredient.id,
           quantity: ing.quantity,
           unit: ing.unit,
-          notes: ing.notes,
+          notes: ing.notes || null,
           isOptional: false,
         },
       });
@@ -179,7 +164,7 @@ export const saveImportedRecipe = async (req: Request, res: Response) => {
       },
     });
 
-    logger.info(`Recipe imported and saved: ${recipe.title} (${recipe.id})`);
+    logger.info(`Recipe imported and saved successfully: ${recipe.title} (${recipe.id})`);
 
     return res.status(201).json({
       success: true,
@@ -187,10 +172,15 @@ export const saveImportedRecipe = async (req: Request, res: Response) => {
       data: completeRecipe,
     });
   } catch (error: any) {
-    logger.error(`Save imported recipe error: ${error.message}`);
+    logger.error(`Save imported recipe error: ${error.message}`, {
+      stack: error.stack,
+      userId: req.user?.id,
+      body: req.body,
+    });
     return res.status(500).json({
       success: false,
       message: 'Failed to save recipe',
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined,
     });
   }
 };
