@@ -1,49 +1,71 @@
 # Family Meal Planner & Grocery Shopping App
 
+**Version:** 1.0.0 (MVP) - ✅ Production Ready
+**Release Date:** March 16, 2026
+
 A Progressive Web App (PWA) designed for families to simplify meal planning and grocery shopping with smart recommendations, budget optimization, and offline functionality.
 
 ## 🎯 Project Overview
 
-This application helps a family of 4 (2 adults, 2 teenagers) to:
-- Plan weekly meals with smart recipe recommendations
-- Generate optimized grocery lists
+This application helps families (like a family of 4 with 2 adults and 2 teenagers) to:
+- Plan weekly meals with recipe search and filtering
+- Generate grocery lists from meal plans
 - Track pantry inventory and expiration dates
 - Manage dietary restrictions and preferences
-- Optimize grocery budget with price comparisons
+- Import recipes from popular cooking websites
+- Assign cooking responsibilities to family members
 - Work offline with full PWA capabilities
 
-## ✨ Key Features
+**MVP Status:** All core workflows are functional and tested. See [MVP_RELEASE_SUMMARY.md](./MVP_RELEASE_SUMMARY.md) for complete feature list and testing results.
 
-### Recipe Management
-- **Create & Edit Recipes**: Full CRUD operations with step-by-step wizard
-- **Import from URLs**: Automatically scrape recipes from any website
-- **Image Caching**: IndexedDB-based caching for faster loading and offline access
-- **Smart Search**: Filter by cuisine, meal type, difficulty, and dietary restrictions
+## ✨ Key Features (MVP v1.0.0)
 
-### Image Caching System
-- **Offline Support**: Images cached locally using IndexedDB
-- **Faster Loading**: Images loaded from cache instead of network
-- **Automatic Expiration**: 7-day cache with automatic cleanup
-- **Bandwidth Savings**: Images only downloaded once
-- See [docs/IMAGE_CACHING.md](./docs/IMAGE_CACHING.md) for details
+### Recipe Management ✅
+- **Create & Edit Recipes**: Full CRUD operations with comprehensive form
+  - Bulk instruction entry with intelligent parsing
+  - Multiple meal type support (breakfast, lunch, dinner, snack, dessert)
+  - Auto-create ingredients during recipe creation
+  - Cleanup score rating (0-10 scale)
+- **Import from URLs**: Automatically scrape recipes from popular websites (NY Times Cooking, Delish, Jewel-Osco, etc.)
+- **Image Proxy**: Backend proxy eliminates CORS errors for external images
+- **Smart Search & Filtering**:
+  - Filter by meal type, difficulty, prep time, kid-friendly
+  - Cleanup score filter
+  - Recipe search with autocomplete
 
-### Meal Planning
-- Weekly meal calendar with drag-and-drop
-- Smart recipe recommendations based on preferences
-- Dietary restriction management
-- Family member preferences tracking
+### Meal Planning ✅
+- Weekly meal calendar interface
+- Add meals to specific dates and meal types
+- **Cook Assignment**: Assign family members to meals (perfect for families where kids cook certain nights)
+- Recipe search integration in meal planner
+- "Add to Meal Plan" from recipe detail page with date/time selection
 
-### Grocery Shopping
+### Grocery Shopping ✅
 - Auto-generated shopping lists from meal plans
-- Price comparison and budget optimization
-- Pantry inventory tracking
-- Expiration date alerts
+- "Add to Grocery List" from recipe detail page with list selection
+- Manual item addition and management
+- Check off items while shopping
+- Multiple grocery list support
 
-### Security & Performance
+### Pantry Management ✅
+- Track pantry inventory with quantities
+- Location tracking (pantry, fridge, freezer)
+- Expiration date tracking
+- Low stock and expiring soon alerts
+
+### Security & Performance ✅
 - JWT-based authentication with refresh tokens
+- **Proactive token refresh** (prevents session interruptions)
 - Redis caching for improved performance
 - Rate limiting and security headers
 - Comprehensive logging and monitoring
+- Input validation with Zod schemas
+
+### User Experience Enhancements ✅
+- Recipe card tooltips showing prep/cook time breakdown
+- Required field indicators on forms
+- Comprehensive error handling
+- Responsive Material-UI design
 
 ## 🏗️ Architecture
 
