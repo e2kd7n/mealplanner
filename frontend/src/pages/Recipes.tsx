@@ -174,6 +174,7 @@ const Recipes: React.FC = () => {
   const [searchInput, setSearchInput] = useState('');
   const [difficulty, setDifficulty] = useState('');
   const [mealType, setMealType] = useState('');
+  const [cleanupScore, setCleanupScore] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
 
   // Debounce search input to reduce API calls
@@ -184,9 +185,10 @@ const Recipes: React.FC = () => {
     if (debouncedSearch) params.search = debouncedSearch;
     if (difficulty) params.difficulty = difficulty;
     if (mealType) params.mealType = mealType;
+    if (cleanupScore) params.maxCleanupScore = cleanupScore;
 
     dispatch(fetchRecipes(params));
-  }, [dispatch, currentPage, debouncedSearch, difficulty, mealType]);
+  }, [dispatch, currentPage, debouncedSearch, difficulty, mealType, cleanupScore]);
 
   // Reset to page 1 when search changes
   useEffect(() => {
@@ -280,6 +282,23 @@ const Recipes: React.FC = () => {
               <MenuItem value="DINNER">Dinner</MenuItem>
               <MenuItem value="SNACK">Snack</MenuItem>
               <MenuItem value="DESSERT">Dessert</MenuItem>
+            </Select>
+          </FormControl>
+          <FormControl sx={{ minWidth: 150 }}>
+            <InputLabel>Cleanup</InputLabel>
+            <Select
+              value={cleanupScore}
+              label="Cleanup"
+              onChange={(e) => {
+                setCleanupScore(e.target.value);
+                setCurrentPage(1);
+              }}
+            >
+              <MenuItem value="">All</MenuItem>
+              <MenuItem value="3">Minimal (0-3)</MenuItem>
+              <MenuItem value="5">Easy (0-5)</MenuItem>
+              <MenuItem value="7">Moderate (0-7)</MenuItem>
+              <MenuItem value="10">Any</MenuItem>
             </Select>
           </FormControl>
         </Stack>
