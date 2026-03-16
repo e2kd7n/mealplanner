@@ -30,6 +30,39 @@ const api: AxiosInstance = axios.create({
 let refreshPromise: Promise<string> | null = null;
 
 /**
+ * Decode JWT token to get expiration time
+ */
+const decodeToken = (token: string): { exp: number } | null => {
+  try {
+    const base64Url = token.split('.')[1];
+    const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+    const jsonPayload = decodeURIComponent(
+      atob(base64)
+        .split('')
+        .map((c) => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2))
+        .join('')
+    );
+    return JSON.parse(jsonPayload);
+  } catch {
+    return null;
+  }
+};
+
+/**
+ * Check if token will expire soon (within 2 minutes)
+ */
+const isTokenExpiringSoon = (token: string): boolean => {
+  const decoded = decodeToken(token);
+  if (!decoded || !decoded.exp) return false;
+  
+  const now = Math.floor(Date.now() / 1000);
+  const timeUntilExpiry = decoded.exp - now;
+  
+  // Refresh if less than 2 minutes remaining
+  return timeUntilExpiry < 120;
+};
+
+/**
  * Set authorization header on request config
  */
 const setAuthHeader = (config: RetryableAxiosConfig, token: string): void => {
@@ -89,12 +122,40 @@ const refreshAccessToken = async (): Promise<string> => {
   return accessToken;
 };
 
-// Request interceptor to add auth token
+// Request interceptor to add auth token and proactively refresh if needed
 api.interceptors.request.use(
-  (config) => {
+  async (config) => {
     const token = localStorage.getItem('accessToken');
     if (token) {
-      config.headers.Authorization = `Bearer ${token}`;
+      // Check if token is expiring soon and refresh proactively
+      if (isTokenExpiringSoon(token)) {
+        try {
+          // If already refreshing, wait for it
+          if (refreshPromise) {
+            const newToken = await refreshPromise;
+            config.headers.Authorization = `Bearer ${newToken}`;
+          } else {
+            // Start new refresh
+            refreshPromise = refreshAccessToken()
+              .then((newToken) => {
+                refreshPromise = null;
+                return newToken;
+              })
+              .catch((err) => {
+                refreshPromise = null;
+                throw err;
+              });
+            
+            const newToken = await refreshPromise;
+            config.headers.Authorization = `Bearer ${newToken}`;
+          }
+        } catch (error) {
+          // If refresh fails, use existing token and let response interceptor handle it
+          config.headers.Authorization = `Bearer ${token}`;
+        }
+      } else {
+        config.headers.Authorization = `Bearer ${token}`;
+      }
     }
     return config;
   },
