@@ -24,6 +24,7 @@ import groceryListRoutes from './routes/groceryList.routes';
 import ingredientRoutes from './routes/ingredient.routes';
 import pantryRoutes from './routes/pantry.routes';
 import adminRoutes from './routes/admin.routes';
+import imageRoutes from './routes/image.routes';
 
 // Import middleware
 import { errorHandler } from './middleware/errorHandler';
@@ -73,6 +74,7 @@ app.get('/', (_req, res) => {
       ingredients: '/api/ingredients',
       pantry: '/api/pantry',
       admin: '/api/admin',
+      images: '/api/images',
     },
     documentation: 'See README.md for API documentation',
   });
@@ -98,6 +100,7 @@ app.use('/api/grocery-lists', groceryListRoutes);
 app.use('/api/ingredients', ingredientRoutes);
 app.use('/api/pantry', pantryRoutes);
 app.use('/api/admin', adminRoutes);
+app.use('/api/images', imageRoutes);
 
 // 404 handler
 app.use((req, res) => {
