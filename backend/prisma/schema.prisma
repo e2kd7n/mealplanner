@@ -84,6 +84,7 @@ model Recipe {
   instructions   Json
   nutritionInfo  Json?      @map("nutrition_info")
   costEstimate   Decimal?   @map("cost_estimate") @db.Decimal(10, 2)
+  cleanupScore   Int?       @map("cleanup_score") // 1-5, higher = more cleanup needed
   isPublic       Boolean    @default(false) @map("is_public")
   createdAt      DateTime   @default(now()) @map("created_at")
   updatedAt      DateTime   @updatedAt @map("updated_at")
