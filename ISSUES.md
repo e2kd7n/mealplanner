@@ -1,17 +1,17 @@
 # Project Issues
 
-**Last Updated:** March 15, 2026 (18:40 UTC)
+**Last Updated:** March 16, 2026 (MVP Release)
 
 ---
 
 ## 📊 Quick Statistics
 
-- **Total Open Issues:** 9
+- **Total Open Issues:** 16
 - **High Priority:** 4
-- **Medium Priority:** 5
+- **Medium Priority:** 12
 - **Low Priority:** 0
-- **In Progress:** 1 (Issue #24 - 5/9 bugs fixed)
-- **Recently Completed:** 13
+- **MVP Status:** ✅ Complete (v1.0.0)
+- **Recently Completed (MVP):** 20 issues
 
 ---
 
@@ -26,7 +26,7 @@
 | 21 | Nutrition Dashboard | `frontend`, `nutrition`, `dashboard`, `charts` | Open |
 | 22 | Nutrition Guideline Warnings | `frontend`, `backend`, `nutrition`, `health` | Open |
 
-### 🟡 Medium Priority (5 issues)
+### 🟡 Medium Priority (12 issues)
 
 | # | Issue | Tags | Status |
 |---|-------|------|--------|
@@ -34,60 +34,94 @@
 | 17 | AllRecipes.com Recipe Import | `backend`, `integration`, `recipes` | Open |
 | 18 | Recipe Card OCR Import | `backend`, `ai`, `ocr`, `recipes` | Open |
 | 23 | System Architecture Documentation | `documentation`, `architecture` | Open |
+| 24 | Fix Frontend Console Errors | `frontend`, `bugfix`, `accessibility` | Open (5/9 fixed) |
 | 25 | Sortable and Filterable Tables/Lists | `frontend`, `ui`, `enhancement`, `ux` | Open |
-
-### 🔵 In Progress (1 issue)
-
-| # | Issue | Tags | Status |
-|---|-------|------|--------|
-| 24 | Fix Frontend Console Errors | `frontend`, `bugfix`, `accessibility` | 5 of 9 bugs fixed |
+| 27 | Ingredient Normalization | `backend`, `frontend`, `data-quality`, `ingredients` | Open |
+| 28 | Grocery List Regeneration | `backend`, `frontend`, `grocery-list`, `sync` | Open |
+| 29 | Pantry Integration | `backend`, `frontend`, `pantry`, `grocery-list` | Open |
+| 30 | Recipe Scaling | `frontend`, `recipes`, `calculation` | Open |
+| 31 | Drag-and-Drop Meal Planner | `frontend`, `meal-planner`, `ux`, `drag-drop` | Open |
+| 32 | Meal Date Editing & Recurrence | `frontend`, `backend`, `meal-planner`, `scheduling` | Open |
+| 33 | Copy/Paste Meal Planner | `frontend`, `meal-planner`, `ux` | Open |
+| 34 | Dashboard Recent Activity | `frontend`, `backend`, `dashboard`, `activity-logging` | Open |
 
 ---
 
-## ✅ Recently Completed (13 issues)
+## ✅ Recently Completed - MVP Release (33 issues)
+
+### MVP User Testing Fixes (20 issues - Mar 15-16, 2026)
+
+| # | Issue | Description | Tags |
+|---|-------|-------------|------|
+| UT-1 | Recipe import save validation | Added Zod schemas and validation | `backend`, `validation`, `recipes` |
+| UT-2 | Recipe import 500 errors | Comprehensive error handling | `backend`, `error-handling`, `recipes` |
+| UT-3 | Recipe redirect to undefined | Fixed ID extraction with fallbacks | `frontend`, `bugfix`, `recipes` |
+| UT-4 | Cannot add new ingredients | Added freeSolo + auto-creation | `frontend`, `backend`, `ingredients` |
+| UT-5 | Ingredients display placeholder | Fixed data rendering | `frontend`, `bugfix`, `recipes` |
+| UT-6 | "Add to Grocery List" broken | Implemented dialog with list selection | `frontend`, `grocery-list`, `ux` |
+| UT-7 | "Add to Meal Plan" poor UX | Added comprehensive scheduling dialog | `frontend`, `meal-planner`, `ux` |
+| UT-8 | No cook assignment UI | Added family member dropdown | `frontend`, `meal-planner`, `ux` |
+| UT-9 | Recipe search not working | Implemented Autocomplete | `frontend`, `search`, `ux` |
+| UT-10 | Family member constraint | Fixed API data isolation | `backend`, `security`, `bugfix` |
+| UT-11 | Bulk instruction entry | Toggle between bulk text and step-by-step | `frontend`, `recipes`, `ux` |
+| UT-12 | Multiple meal types | Array support with migration | `backend`, `database`, `recipes` |
+| UT-13 | CORS errors for images | Backend image proxy | `backend`, `images`, `cors` |
+| UT-14 | Cleanup score system | Full implementation (0-10 scale) | `backend`, `frontend`, `recipes` |
+| UT-15 | Field validation feedback | Verified required markers | `frontend`, `validation` |
+| UT-16 | JWT token expiration | Proactive token refresh | `frontend`, `auth`, `ux` |
+| UT-17 | Recipe card tooltips | Hover tooltips for times | `frontend`, `ux` |
+| UT-18 | Cleanup score database | Added to schema | `backend`, `database` |
+| UT-19 | Cleanup score calculation | Multi-factor algorithm | `backend`, `recipes` |
+| UT-20 | Cleanup score filter | 4-level dropdown | `frontend`, `recipes`, `ux` |
+
+### Pre-MVP Completions (13 issues - Mar 15, 2026)
 
 | # | Issue | Completed | Tags |
 |---|-------|-----------|------|
 | 19 | URL-Based Recipe Import | Mar 15, 2026 | `backend`, `frontend`, `integration`, `recipes` |
-| 10 | Recipe Search & Recommendations (Backend) | Mar 15, 2026 | `backend`, `search`, `api` |
-| 13 | Admin Dashboard for User Management | Mar 15, 2026 | `frontend`, `backend`, `admin`, `security` |
+| 10 | Recipe Search & Recommendations | Mar 15, 2026 | `backend`, `search`, `api` |
+| 13 | Admin Dashboard | Mar 15, 2026 | `frontend`, `backend`, `admin`, `security` |
 | 14 | Profile Page UI | Mar 15, 2026 | `frontend`, `ui`, `user-management` |
 | 15 | Create Recipe Page UI | Mar 15, 2026 | `frontend`, `ui`, `recipes` |
-| 26 | Meal Detail View and Day Summary | Mar 15, 2026 | `frontend`, `ui`, `meal-planner`, `ux` |
+| 26 | Meal Detail View | Mar 15, 2026 | `frontend`, `ui`, `meal-planner`, `ux` |
 | 2 | Add copyright notices | Mar 15, 2026 | `legal`, `maintenance` |
 | 5 | Refactor auth.controller.ts | Mar 15, 2026 | `backend`, `security`, `refactor` |
 | 6 | Refactor groceryList.controller.ts | Mar 15, 2026 | `backend`, `performance`, `refactor` |
 | 7 | Recipe rating endpoints | Mar 15, 2026 | `backend`, `recipes`, `api` |
-| 8 | User profile & preferences endpoints | Mar 15, 2026 | `backend`, `user-management`, `api` |
-| 9 | Family member management endpoints | Mar 15, 2026 | `backend`, `user-management`, `api` |
+| 8 | User profile & preferences | Mar 15, 2026 | `backend`, `user-management`, `api` |
+| 9 | Family member management | Mar 15, 2026 | `backend`, `user-management`, `api` |
 | 12 | Input validation middleware | Mar 15, 2026 | `backend`, `security`, `validation` |
 
 ---
 
-## 🎯 Recommended Next Steps
+## 🎯 Recommended Next Steps for v1.1
 
-Based on priority and dependencies:
+Based on priority, user value, and dependencies:
 
 1. **Issue #20** - Integrate Nutrition Database
    - Enables Issues #21 and #22
    - Foundation for nutrition features
    - High user value
 
-2. **Issue #18** - Recipe Card OCR Import
+2. **Issue #27** - Ingredient Normalization
+   - Prevents data quality issues as database grows
+   - Foundation for better search and grocery list consolidation
+   - Medium complexity, high long-term value
+
+3. **Issue #28** - Grocery List Regeneration
+   - Critical for grocery ordering workflow
+   - Prevents ordering wrong items
+   - Medium complexity
+
+4. **Issue #31** - Drag-and-Drop Meal Planner
+   - High user value for meal reorganization
+   - Improves UX significantly
+   - Medium complexity
+
+5. **Issue #18** - Recipe Card OCR Import
    - Unique feature, high value
    - Can leverage URL import infrastructure
-
-3. **Issue #18** - Recipe Card OCR Import
-   - Unique feature, high value
-   - Depends on multi-parser infrastructure from #19
-
-4. **Issue #21** - Nutrition Dashboard
-   - Requires Issue #20 first
-   - High visibility feature
-
-5. **Issue #11** - Grocery List Optimization
-   - Improves shopping experience
-   - Independent feature
+   - High complexity
 
 ---
 
@@ -1307,5 +1341,337 @@ Based on priority and dependencies:
 **Priority:** Medium - Improves user experience and meal plan management
 
 **Related Issues:** Issue #20 (Nutrition Database) for future nutrition calculations
+
+---
+
+---
+
+### Issue #27: Implement Ingredient Normalization and Variant System
+
+**Status:** Open  
+**Priority:** Medium  
+**Tags:** `backend`, `frontend`, `data-quality`, `ingredients`, `database`  
+**Created:** March 16, 2026  
+**Source:** User Testing Session
+
+#### Description
+
+The ingredient database lacks deduplication and clustering logic, leading to redundant and confusing entries. For example, "butter" and "Salted butter" exist as separate ingredients when they should be variants of the same base ingredient. Without proper normalization, the ingredient list will become unwieldy and difficult to manage as it grows.
+
+#### Current Behavior
+
+- Each ingredient variation is a separate database entry
+- No parent-child or variant relationships
+- Examples of duplication:
+  - "butter" vs "Salted butter" (should be: butter with salted/unsalted variants)
+  - Likely similar issues with: milk (whole/2%/skim), cheese types, etc.
+- Users must choose between similar ingredients without clear guidance
+- Grocery lists will have redundant entries
+
+#### Expected Behavior
+
+Implement a variant system with:
+- Base ingredient: "Butter"
+- Variants: "salted" or "unsalted" (stored as attribute)
+- Aliases/synonyms for search: ["salted butter", "butter, salted"]
+- Brand-specific only when necessary (e.g., "Kerrygold Butter")
+
+#### Impact
+
+- **Data Quality**: Database will become cluttered with duplicates
+- **User Confusion**: Which "butter" should I choose?
+- **Grocery Lists**: May show "butter" and "salted butter" as separate items
+- **Search/Filter**: Harder to find ingredients
+- **Pantry Management**: Duplicate tracking of same ingredient
+- **Recipe Import**: May create more duplicates from different recipe sources
+
+#### Technical Requirements
+
+**Database Schema Changes:**
+1. Add `baseIngredientId` (self-referencing foreign key for variants)
+2. Add `variant` field (e.g., "salted", "unsalted", "2%")
+3. Add `aliases` field (JSON array of alternative names)
+4. Add `brandName` field (optional, for brand-specific ingredients)
+
+**Application Logic:**
+1. **Fuzzy Matching**: Detect similar ingredient names during creation
+2. **Deduplication Suggestions**: "Did you mean: Butter (salted)?"
+3. **Smart Search**: Search across base ingredient + variants + aliases
+4. **Grocery List Consolidation**: Combine variants when generating lists
+5. **Import Normalization**: Map imported ingredients to existing base ingredients
+
+**UI/UX Changes:**
+1. Ingredient creation: Suggest existing similar ingredients
+2. Recipe creation: Show variants grouped under base ingredient
+3. Grocery list: Option to consolidate variants or keep separate
+4. Pantry: Track variants separately but display grouped
+
+#### Implementation Phases
+
+**Phase 1 - Immediate (Data Cleanup)**:
+1. Audit current ingredients for duplicates
+2. Manually consolidate obvious duplicates
+3. Establish naming conventions (e.g., "Butter (salted)" not "Salted butter")
+
+**Phase 2 - Short Term (Prevention)**:
+1. Add fuzzy matching on ingredient creation
+2. Show "Similar ingredients exist" warning
+3. Require admin approval for new ingredients
+
+**Phase 3 - Long Term (Proper Solution)**:
+1. Implement variant system in database schema
+2. Build ingredient clustering algorithm
+3. Create ingredient management admin interface
+4. Add bulk deduplication tools
+5. Implement smart grocery list consolidation
+
+**Phase 4 - Advanced (ML/AI)**:
+1. Use NLP to detect ingredient similarities
+2. Auto-suggest variant relationships
+3. Learn from user corrections
+4. Auto-normalize imported recipe ingredients
+
+#### Related Issues
+
+- Issue #23 (User Testing): Cannot add new ingredients (will make duplication worse)
+- Pantry category expansion needed
+- Recipe import improvements
+
+#### Files Involved
+
+- `backend/prisma/schema.prisma` - Add variant fields
+- `backend/src/controllers/ingredient.controller.ts` - Add fuzzy matching
+- `frontend/src/pages/CreateRecipe.tsx` - Show variant suggestions
+- New: `backend/src/utils/ingredientNormalization.ts` - Clustering logic
+
+#### Acceptance Criteria
+
+- [ ] Database schema supports ingredient variants
+- [ ] Fuzzy matching detects similar ingredients
+- [ ] UI shows variant suggestions during creation
+- [ ] Grocery lists can consolidate variants
+- [ ] Recipe import maps to existing ingredients
+- [ ] Admin interface for managing variants
+- [ ] Documentation for naming conventions
+
+#### Notes
+
+User quote: "Right now we have 'butter' and 'Salted butter' but really there's only 2 kinds of butter (salted and unsalted) unless a specific brand needs to be called out"
+
+This is a foundational data quality issue that will become more critical as the ingredient database grows. Better to solve early than migrate later.
+
+---
+
+### Issue #28: Implement Grocery List Regeneration and Sync Detection
+
+**Status:** Open  
+**Priority:** Medium  
+**Tags:** `backend`, `frontend`, `grocery-list`, `meal-planner`, `sync`  
+**Created:** March 16, 2026  
+**Source:** User Testing Session - Issue #16
+
+#### Description
+
+Grocery list generation should be asynchronous, and the system needs to detect when the meal plan has changed and prompt for regeneration before sending the order.
+
+#### Current Behavior
+
+- Grocery list generated once from meal plan
+- No tracking of meal plan changes
+- No indication that list is out of sync
+- No regeneration prompt
+
+#### Expected Behavior
+
+1. **Asynchronous Generation**: Generate grocery list in background with loading indicator
+2. **Change Detection**: Track meal plan and grocery list timestamps to detect sync status
+3. **Regeneration Workflow**: Show "Out of Sync" indicator and provide regeneration options
+4. **Pre-Order Validation**: Block order submission if list is out of sync
+
+#### Technical Requirements
+
+- Add `mealPlanUpdatedAt` and `listGeneratedAt` timestamps
+- Compare timestamps to detect sync status
+- Add regeneration endpoint with merge strategies
+- Show sync status in UI
+- Block order submission if out of sync
+
+#### Priority Justification
+
+Critical for grocery ordering workflow to prevent ordering wrong items or missing ingredients.
+
+---
+
+### Issue #29: Implement Pantry Integration with Grocery Lists
+
+**Status:** Open  
+**Priority:** Medium  
+**Tags:** `backend`, `frontend`, `pantry`, `grocery-list`, `integration`  
+**Created:** March 16, 2026  
+**Source:** User Testing Session - Issue #17
+
+#### Description
+
+Integrate pantry inventory with grocery list generation to avoid purchasing items already in stock.
+
+#### Expected Behavior
+
+- Check pantry for existing ingredients before adding to grocery list
+- Show items with "In Pantry" indicator
+- Allow user to mark items as "have this" to update pantry inventory
+- Smart aggregation: if pantry has 1 cup flour and recipe needs 3 cups, only add 2 cups to list
+
+#### Technical Requirements
+
+- Pantry inventory check during grocery list generation
+- UI indicators for items in pantry
+- Pantry update when user marks items as owned
+- Quantity calculation based on pantry stock
+
+---
+
+### Issue #30: Implement Recipe Scaling
+
+**Status:** Open  
+**Priority:** Medium  
+**Tags:** `frontend`, `recipes`, `calculation`  
+**Created:** March 16, 2026  
+**Source:** User Testing Session - Issue #18
+
+#### Description
+
+Allow users to scale recipe quantities up or down (e.g., "I'm making 2x this recipe" or "half recipe").
+
+#### Expected Behavior
+
+- Scaling control on recipe detail page
+- Automatically adjust all ingredient quantities
+- Adjust serving size
+- Optionally adjust cooking times (with warning)
+
+#### Technical Requirements
+
+- Scaling UI component (slider or input)
+- Quantity calculation logic
+- Unit conversion handling
+- Real-time quantity updates
+
+---
+
+### Issue #31: Implement Drag-and-Drop for Meal Planner
+
+**Status:** Open  
+**Priority:** Medium  
+**Tags:** `frontend`, `meal-planner`, `ux`, `drag-drop`  
+**Created:** March 16, 2026  
+**Source:** User Testing Session - Issue #11
+
+#### Description
+
+Add drag-and-drop functionality to meal planner to allow easy reorganization of meals between days and time slots.
+
+#### Expected Behavior
+
+- Click and drag meal cards
+- Visual feedback during drag
+- Drop zones highlight on hover
+- Meal date/time updates automatically after drop
+
+#### Technical Requirements
+
+- Implement using React DnD library or HTML5 drag-and-drop API
+- Visual feedback for drag state
+- Drop zone highlighting
+- Backend API call to update meal date/time
+
+---
+
+### Issue #32: Implement Meal Date Editing and Recurrence Patterns
+
+**Status:** Open  
+**Priority:** Medium  
+**Tags:** `frontend`, `backend`, `meal-planner`, `scheduling`  
+**Created:** March 16, 2026  
+**Source:** User Testing Session - Issue #12
+
+#### Description
+
+Add ability to edit meal dates/times and set up recurring meal patterns (e.g., "Pizza every Friday").
+
+#### Expected Behavior
+
+1. **Date Editing**: Click meal card to edit date and meal type
+2. **Recurrence Patterns**: Set meals as recurring with patterns like "Every Friday", "Every Tuesday and Wednesday", custom patterns
+3. **Multi-Week Application**: Apply patterns to current week or multiple weeks
+
+#### Technical Requirements
+
+- Meal edit dialog with date picker
+- Recurrence pattern selector
+- Backend support for recurring meal templates
+- UI indicators for recurring meals
+
+---
+
+### Issue #33: Implement Copy/Paste for Meal Planner
+
+**Status:** Open  
+**Priority:** Medium  
+**Tags:** `frontend`, `meal-planner`, `ux`  
+**Created:** March 16, 2026  
+**Source:** User Testing Session - Issue #13
+
+#### Description
+
+Fix the copy/paste functionality in meal planner. Currently has "Copy" button but no way to paste.
+
+#### Expected Behavior
+
+1. User clicks "Copy" on meal card
+2. Meal is copied to clipboard/memory
+3. "Paste" button appears in empty meal slots
+4. User can paste meal to different day/time
+5. Can paste same meal multiple times
+
+#### Technical Requirements
+
+- Clipboard state management
+- Visual indicator when meal is copied
+- Paste button in empty slots
+- Keyboard shortcuts (Ctrl+C, Ctrl+V)
+
+---
+
+### Issue #34: Implement Dashboard Recent Activity Feed
+
+**Status:** Open  
+**Priority:** Medium  
+**Tags:** `frontend`, `backend`, `dashboard`, `activity-logging`  
+**Created:** March 16, 2026  
+**Source:** User Testing Session - Issue #21
+
+#### Description
+
+Dashboard's "Recent Activity" section is empty. Need to implement activity logging and display system.
+
+#### Expected Behavior
+
+Show recent user actions:
+- Recipes viewed
+- Recipes added to meal plan
+- Meal plans created/updated
+- Grocery lists generated
+- Recipes imported
+- Pantry items added
+
+#### Technical Requirements
+
+- Backend activity logging system
+- Activity feed API endpoint
+- Store user actions in database with timestamps
+- Frontend display with timestamps
+- Activity types: view, create, update, delete, import
+
+---
 
 ---
