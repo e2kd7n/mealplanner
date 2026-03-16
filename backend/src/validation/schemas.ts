@@ -41,9 +41,9 @@ export const createRecipeSchema = z.object({
   difficulty: z.enum(['easy', 'medium', 'hard'], {
     message: 'Difficulty must be easy, medium, or hard',
   }),
-  mealType: z.enum(['breakfast', 'lunch', 'dinner', 'snack', 'dessert'], {
+  mealTypes: z.array(z.enum(['breakfast', 'lunch', 'dinner', 'snack', 'dessert'], {
     message: 'Invalid meal type',
-  }),
+  })).min(1, 'At least one meal type is required'),
   cuisineType: z.string().optional(),
   kidFriendly: z.boolean().default(false),
   ingredients: z.array(z.object({

@@ -377,7 +377,7 @@ export const recipeImportAPI = {
     servings: number;
     difficulty: string;
     cuisineType?: string;
-    mealType: string;
+    mealTypes: string[];
     imageUrl?: string;
     ingredients: Array<{
       name: string;
