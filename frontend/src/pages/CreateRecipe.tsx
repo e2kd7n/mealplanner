@@ -28,6 +28,8 @@ import {
   Alert,
   CircularProgress,
   Chip,
+  ToggleButtonGroup,
+  ToggleButton,
 } from '@mui/material';
 import {
   Add as AddIcon,
@@ -35,6 +37,8 @@ import {
   ArrowBack as BackIcon,
   ArrowForward as ForwardIcon,
   Save as SaveIcon,
+  TextFields as TextFieldsIcon,
+  FormatListNumbered as FormatListNumberedIcon,
 } from '@mui/icons-material';
 import api from '../services/api';
 
@@ -110,6 +114,8 @@ export default function CreateRecipe() {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [availableIngredients, setAvailableIngredients] = useState<Ingredient[]>([]);
+  const [instructionMode, setInstructionMode] = useState<'bulk' | 'manual'>('bulk');
+  const [bulkInstructions, setBulkInstructions] = useState('');
   
   const [formData, setFormData] = useState<RecipeFormData>({
     title: '',
@@ -658,13 +664,102 @@ export default function CreateRecipe() {
     </Box>
   );
 
+  const parseBulkInstructions = (text: string): InstructionStep[] => {
+    if (!text.trim()) return [{ step: 1, instruction: '' }];
+    
+    // Split by newlines and filter empty lines
+    const lines = text.split('\n').filter(line => line.trim());
+    
+    // Try to detect if it's a numbered list
+    const numberedPattern = /^\d+[\.\)]\s*/;
+    const bulletPattern = /^[-•*]\s*/;
+    
+    const steps: InstructionStep[] = [];
+    
+    lines.forEach((line, index) => {
+      let instruction = line.trim();
+      
+      // Remove numbering or bullets
+      instruction = instruction.replace(numberedPattern, '');
+      instruction = instruction.replace(bulletPattern, '');
+      
+      if (instruction) {
+        steps.push({
+          step: index + 1,
+          instruction: instruction
+        });
+      }
+    });
+    
+    return steps.length > 0 ? steps : [{ step: 1, instruction: '' }];
+  };
+
+  const handleApplyBulkInstructions = () => {
+    const parsed = parseBulkInstructions(bulkInstructions);
+    setFormData({ ...formData, instructions: parsed });
+    setError('');
+  };
+
+  const handleInstructionModeChange = (_: React.MouseEvent<HTMLElement>, newMode: 'bulk' | 'manual' | null) => {
+    if (newMode !== null) {
+      if (newMode === 'bulk') {
+        // Convert current instructions to bulk text
+        const bulkText = formData.instructions
+          .filter(inst => inst.instruction.trim())
+          .map(inst => inst.instruction)
+          .join('\n');
+        setBulkInstructions(bulkText);
+      }
+      setInstructionMode(newMode);
+    }
+  };
+
   const renderInstructions = () => (
     <Box>
-      <Typography variant="h6" gutterBottom>
-        Cooking Instructions
-      </Typography>
-      
-      {formData.instructions.map((instruction, index) => (
+      <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
+        <Typography variant="h6">
+          Cooking Instructions
+        </Typography>
+        <ToggleButtonGroup
+          value={instructionMode}
+          exclusive
+          onChange={handleInstructionModeChange}
+          size="small"
+        >
+          <ToggleButton value="bulk">
+            <TextFieldsIcon sx={{ mr: 0.5 }} />
+            Bulk Text
+          </ToggleButton>
+          <ToggleButton value="manual">
+            <FormatListNumberedIcon sx={{ mr: 0.5 }} />
+            Step-by-Step
+          </ToggleButton>
+        </ToggleButtonGroup>
+      </Box>
+
+      {instructionMode === 'bulk' ? (
+        <Box>
+          <TextField
+            fullWidth
+            multiline
+            rows={12}
+            value={bulkInstructions}
+            onChange={(e) => setBulkInstructions(e.target.value)}
+            placeholder="Paste or type instructions here. Each line will become a step.&#10;&#10;Supports:&#10;1. Numbered lists (1. 2. 3.)&#10;• Bullet points&#10;- Dashes&#10;Or plain paragraphs"
+            helperText="Tip: Paste recipe instructions from any source. We'll automatically parse them into steps."
+          />
+          <Button
+            variant="contained"
+            onClick={handleApplyBulkInstructions}
+            sx={{ mt: 2 }}
+            disabled={!bulkInstructions.trim()}
+          >
+            Apply Instructions ({parseBulkInstructions(bulkInstructions).length} steps detected)
+          </Button>
+        </Box>
+      ) : (
+        <>
+          {formData.instructions.map((instruction, index) => (
         <Box key={index} mb={2}>
           <Grid container spacing={2} alignItems="flex-start">
             <Grid size={{ xs: 11 }}>
@@ -693,13 +788,15 @@ export default function CreateRecipe() {
         </Box>
       ))}
 
-      <Button
-        startIcon={<AddIcon />}
-        onClick={handleAddInstructionStep}
-        variant="outlined"
-      >
-        Add Step
-      </Button>
+          <Button
+            startIcon={<AddIcon />}
+            onClick={handleAddInstructionStep}
+            variant="outlined"
+          >
+            Add Step
+          </Button>
+        </>
+      )}
 
       <Box mt={4}>
         <Typography variant="h6" gutterBottom>
