@@ -72,14 +72,9 @@ const DAYS_OF_WEEK = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'F
 const MealPlanner: React.FC = () => {
   const [currentWeekStart, setCurrentWeekStart] = useState(startOfWeek(new Date()));
   
-  // Mock family members - in real app, fetch from API
-  const [familyMembers] = useState<FamilyMember[]>([
-    { id: 'fm1', name: 'Mom', canCook: true },
-    { id: 'fm2', name: 'Dad', canCook: true },
-    { id: 'fm3', name: 'Sarah (Teen)', canCook: true },
-    { id: 'fm4', name: 'Tommy (Teen)', canCook: true },
-    { id: 'fm5', name: 'Emma (Child)', canCook: false },
-  ]);
+  // Family members from API
+  const [familyMembers, setFamilyMembers] = useState<FamilyMember[]>([]);
+  const [familyMembersLoading, setFamilyMembersLoading] = useState(false);
   
   const [meals, setMeals] = useState<Meal[]>([
     {
@@ -127,9 +122,10 @@ const MealPlanner: React.FC = () => {
   const [openDaySummary, setOpenDaySummary] = useState(false);
   const [selectedDay, setSelectedDay] = useState<Date | null>(null);
   
-  // Load recipes on mount
+  // Load recipes and family members on mount
   useEffect(() => {
     loadRecipes();
+    loadFamilyMembers();
   }, []);
   
   const loadRecipes = async () => {
@@ -148,6 +144,31 @@ const MealPlanner: React.FC = () => {
       console.error('Failed to load recipes:', error);
     } finally {
       setRecipeSearchLoading(false);
+    }
+  };
+
+  const loadFamilyMembers = async () => {
+    try {
+      setFamilyMembersLoading(true);
+      const token = localStorage.getItem('token');
+      const response = await fetch('http://localhost:3000/api/family-members', {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to load family members');
+      }
+
+      const result = await response.json();
+      setFamilyMembers(result.data || []);
+    } catch (error) {
+      console.error('Failed to load family members:', error);
+      // Set empty array on error so UI still works
+      setFamilyMembers([]);
+    } finally {
+      setFamilyMembersLoading(false);
     }
   };
 

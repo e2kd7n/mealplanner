@@ -358,6 +358,14 @@ export async function createRecipe(
       throw new AppError('Missing required fields', 400);
     }
 
+    // Calculate cleanup score
+    const cleanupScore = calculateCleanupScore({
+      ingredients: ingredients || [],
+      instructions,
+      cookTime,
+      prepTime,
+    });
+
     // Create recipe first
     const recipe = await prisma.recipe.create({
       data: {
@@ -376,6 +384,7 @@ export async function createRecipe(
         instructions,
         nutritionInfo,
         costEstimate,
+        cleanupScore,
         isPublic: isPublic || false,
       },
     });
