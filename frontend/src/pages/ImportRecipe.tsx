@@ -42,7 +42,7 @@ interface ParsedRecipe {
   servings: number;
   difficulty: string;
   cuisineType?: string;
-  mealType: string;
+  mealTypes: string[];
   imageUrl?: string;
   ingredients: Array<{
     name: string;
@@ -233,7 +233,9 @@ export default function ImportRecipe() {
                 <Chip label={`${parsedRecipe.prepTime + parsedRecipe.cookTime} min`} size="small" />
                 <Chip label={`${parsedRecipe.servings} servings`} size="small" />
                 <Chip label={parsedRecipe.difficulty} size="small" color="primary" />
-                <Chip label={parsedRecipe.mealType} size="small" />
+                {parsedRecipe.mealTypes.map((mt) => (
+                  <Chip key={mt} label={mt.charAt(0).toUpperCase() + mt.slice(1)} size="small" />
+                ))}
                 {parsedRecipe.cuisineType && (
                   <Chip label={parsedRecipe.cuisineType} size="small" variant="outlined" />
                 )}

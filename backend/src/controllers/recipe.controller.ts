@@ -147,7 +147,7 @@ export async function getRecipes(
     }
 
     if (mealType) {
-      where.mealType = mealType;
+      where.mealTypes = { has: mealType };
     }
 
     if (difficulty) {
@@ -344,7 +344,7 @@ export async function createRecipe(
       difficulty,
       kidFriendly,
       cuisineType,
-      mealType,
+      mealTypes,
       imageUrl,
       instructions,
       nutritionInfo,
@@ -354,7 +354,7 @@ export async function createRecipe(
     } = req.body;
 
     // Validate required fields
-    if (!title || !prepTime || !cookTime || !servings || !difficulty || !mealType) {
+    if (!title || !prepTime || !cookTime || !servings || !difficulty || !mealTypes || mealTypes.length === 0) {
       throw new AppError('Missing required fields', 400);
     }
 
@@ -371,7 +371,7 @@ export async function createRecipe(
         difficulty,
         kidFriendly: kidFriendly || false,
         cuisineType,
-        mealType,
+        mealTypes,
         imageUrl,
         instructions,
         nutritionInfo,
@@ -451,7 +451,7 @@ export async function updateRecipe(
       difficulty,
       kidFriendly,
       cuisineType,
-      mealType,
+      mealTypes,
       imageUrl,
       instructions,
       nutritionInfo,
@@ -472,7 +472,7 @@ export async function updateRecipe(
         difficulty,
         kidFriendly,
         cuisineType,
-        mealType,
+        mealTypes,
         imageUrl,
         instructions,
         nutritionInfo,
@@ -775,7 +775,7 @@ export async function searchRecipes(
 
     // Apply filters
     if (mealType) {
-      where.AND.push({ mealType });
+      where.AND.push({ mealTypes: { has: mealType } });
     }
     if (difficulty) {
       where.AND.push({ difficulty });
@@ -887,7 +887,7 @@ export async function getRecommendations(
     });
 
     // Extract preferred meal types and cuisines
-    const preferredMealTypes = [...new Set(userRatings.map(r => r.recipe.mealType))];
+    const preferredMealTypes = [...new Set(userRatings.flatMap(r => r.recipe.mealTypes))];
     const preferredCuisines = [...new Set(userRatings.map(r => r.recipe.cuisineType).filter(Boolean))];
 
     // Build recommendation query
@@ -922,7 +922,7 @@ export async function getRecommendations(
     if (preferredMealTypes.length > 0 || preferredCuisines.length > 0) {
       where.AND.push({
         OR: [
-          ...(preferredMealTypes.length > 0 ? [{ mealType: { in: preferredMealTypes } }] : []),
+          ...(preferredMealTypes.length > 0 ? [{ mealTypes: { hasSome: preferredMealTypes } }] : []),
           ...(preferredCuisines.length > 0 ? [{ cuisineType: { in: preferredCuisines } }] : []),
         ],
       });
@@ -1032,8 +1032,8 @@ export async function getSimilarRecipes(
     // Match meal type and cuisine
     const similarityFilters: any[] = [];
     
-    if (sourceRecipe.mealType) {
-      similarityFilters.push({ mealType: sourceRecipe.mealType });
+    if (sourceRecipe.mealTypes && sourceRecipe.mealTypes.length > 0) {
+      similarityFilters.push({ mealTypes: { hasSome: sourceRecipe.mealTypes } });
     }
     
     if (sourceRecipe.cuisineType) {
@@ -1075,7 +1075,8 @@ export async function getSimilarRecipes(
 
       // Calculate attribute similarity
       let attributeScore = 0;
-      if (recipe.mealType === sourceRecipe.mealType) attributeScore += 0.3;
+      const mealTypeOverlap = recipe.mealTypes.filter(mt => sourceRecipe.mealTypes.includes(mt)).length;
+      if (mealTypeOverlap > 0) attributeScore += 0.3 * (mealTypeOverlap / Math.max(recipe.mealTypes.length, sourceRecipe.mealTypes.length));
       if (recipe.cuisineType === sourceRecipe.cuisineType) attributeScore += 0.3;
       if (recipe.difficulty === sourceRecipe.difficulty) attributeScore += 0.2;
       if (recipe.kidFriendly === sourceRecipe.kidFriendly) attributeScore += 0.2;
@@ -1108,7 +1109,7 @@ export async function getSimilarRecipes(
         sourceRecipe: {
           id: sourceRecipe.id,
           title: sourceRecipe.title,
-          mealType: sourceRecipe.mealType,
+          mealTypes: sourceRecipe.mealTypes,
           cuisineType: sourceRecipe.cuisineType,
         },
         similarRecipes,
