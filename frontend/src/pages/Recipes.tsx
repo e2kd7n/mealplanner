@@ -25,6 +25,7 @@ import {
   Select,
   MenuItem,
   Pagination,
+  Tooltip,
 } from '@mui/material';
 import {
   Search as SearchIcon,
@@ -121,22 +122,31 @@ const RecipeCard = memo(({ recipe, onNavigate }: RecipeCardProps) => {
           {recipe.description || 'No description available'}
         </Typography>
         <Stack direction="row" spacing={1} flexWrap="wrap" gap={1}>
-          <Chip
-            label={recipe.difficulty}
-            size="small"
-            color={getDifficultyColor(recipe.difficulty)}
-          />
-          <Chip
-            icon={<TimeIcon />}
-            label={`${recipe.prepTime + recipe.cookTime} min`}
-            size="small"
-            variant="outlined"
-          />
-          <Chip
-            label={recipe.mealType}
-            size="small"
-            variant="outlined"
-          />
+          <Tooltip title={`Difficulty: ${recipe.difficulty}`} arrow>
+            <Chip
+              label={recipe.difficulty}
+              size="small"
+              color={getDifficultyColor(recipe.difficulty)}
+            />
+          </Tooltip>
+          <Tooltip
+            title={`Prep: ${recipe.prepTime} min | Cook: ${recipe.cookTime} min`}
+            arrow
+          >
+            <Chip
+              icon={<TimeIcon />}
+              label={`${recipe.prepTime + recipe.cookTime} min`}
+              size="small"
+              variant="outlined"
+            />
+          </Tooltip>
+          <Tooltip title={`Meal type: ${recipe.mealType}`} arrow>
+            <Chip
+              label={recipe.mealType}
+              size="small"
+              variant="outlined"
+            />
+          </Tooltip>
         </Stack>
       </CardContent>
       <CardActions>
