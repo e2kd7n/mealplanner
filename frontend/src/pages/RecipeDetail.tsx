@@ -45,7 +45,7 @@ import {
 import { useAppDispatch, useAppSelector } from '../store/hooks';
 import { fetchRecipeById, setCurrentRecipe } from '../store/slices/recipesSlice';
 import { fetchGroceryLists, addItemToList } from '../store/slices/groceryListsSlice';
-import { fetchMealPlans, addMealToPlan, createMealPlan } from '../store/slices/mealPlansSlice';
+import { fetchMealPlans, addMealToPlan } from '../store/slices/mealPlansSlice';
 import { useCachedImage } from '../hooks/useCachedImage';
 
 const RecipeDetail: React.FC = () => {

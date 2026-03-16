@@ -74,7 +74,7 @@ const MealPlanner: React.FC = () => {
   
   // Family members from API
   const [familyMembers, setFamilyMembers] = useState<FamilyMember[]>([]);
-  const [familyMembersLoading, setFamilyMembersLoading] = useState(false);
+  const [, setFamilyMembersLoading] = useState(false);
   
   const [meals, setMeals] = useState<Meal[]>([
     {

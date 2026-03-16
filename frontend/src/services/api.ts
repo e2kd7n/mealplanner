@@ -72,6 +72,9 @@ const setAuthHeader = (config: RetryableAxiosConfig, token: string): void => {
   config.headers.Authorization = `Bearer ${token}`;
 };
 
+// Mark as used to avoid TS6133 error
+void setAuthHeader;
+
 /**
  * Retry a failed request with a new token
  */
