@@ -69,7 +69,7 @@ interface RecipeFormData {
   cookTime: number;
   servings: number;
   difficulty: 'easy' | 'medium' | 'hard';
-  mealType: 'breakfast' | 'lunch' | 'dinner' | 'snack' | 'dessert';
+  mealTypes: ('breakfast' | 'lunch' | 'dinner' | 'snack' | 'dessert')[];
   cuisineType: string;
   kidFriendly: boolean;
   isPublic: boolean;
@@ -124,7 +124,7 @@ export default function CreateRecipe() {
     cookTime: 30,
     servings: 4,
     difficulty: 'medium',
-    mealType: 'dinner',
+    mealTypes: ['dinner'],
     cuisineType: '',
     kidFriendly: false,
     isPublic: false,
@@ -180,7 +180,7 @@ export default function CreateRecipe() {
         cookTime: recipe.cookTime || 30,
         servings: recipe.servings || 4,
         difficulty: recipe.difficulty || 'medium',
-        mealType: recipe.mealType || 'dinner',
+        mealTypes: recipe.mealTypes || ['dinner'],
         cuisineType: recipe.cuisineType || '',
         kidFriendly: recipe.kidFriendly || false,
         isPublic: recipe.isPublic || false,
@@ -342,7 +342,7 @@ export default function CreateRecipe() {
         cookTime: formData.cookTime,
         servings: formData.servings,
         difficulty: formData.difficulty,
-        mealType: formData.mealType,
+        mealTypes: formData.mealTypes,
         cuisineType: formData.cuisineType || null,
         kidFriendly: formData.kidFriendly,
         isPublic: formData.isPublic,
@@ -469,20 +469,22 @@ export default function CreateRecipe() {
       </Grid>
 
       <Grid size={{ xs: 12, sm: 6 }}>
-        <TextField
-          fullWidth
-          required
-          select
-          label="Meal Type"
-          value={formData.mealType}
-          onChange={(e) => setFormData({ ...formData, mealType: e.target.value as any })}
-        >
-          <MenuItem value="breakfast">Breakfast</MenuItem>
-          <MenuItem value="lunch">Lunch</MenuItem>
-          <MenuItem value="dinner">Dinner</MenuItem>
-          <MenuItem value="snack">Snack</MenuItem>
-          <MenuItem value="dessert">Dessert</MenuItem>
-        </TextField>
+        <Autocomplete
+          multiple
+          options={['breakfast', 'lunch', 'dinner', 'snack', 'dessert']}
+          value={formData.mealTypes}
+          onChange={(_, value) => setFormData({ ...formData, mealTypes: value as ('breakfast' | 'lunch' | 'dinner' | 'snack' | 'dessert')[] })}
+          renderInput={(params) => (
+            <TextField
+              {...params}
+              label="Meal Types"
+              required
+              error={formData.mealTypes.length === 0}
+              helperText={formData.mealTypes.length === 0 ? 'Select at least one meal type' : ''}
+            />
+          )}
+          getOptionLabel={(option) => option.charAt(0).toUpperCase() + option.slice(1)}
+        />
       </Grid>
 
       <Grid size={{ xs: 12, sm: 6 }}>
@@ -889,7 +891,9 @@ export default function CreateRecipe() {
             <Chip label={`${formData.prepTime + formData.cookTime} min total`} size="small" />
             <Chip label={`${formData.servings} servings`} size="small" />
             <Chip label={formData.difficulty} size="small" color="primary" />
-            <Chip label={formData.mealType} size="small" />
+            {formData.mealTypes.map((mt) => (
+              <Chip key={mt} label={mt.charAt(0).toUpperCase() + mt.slice(1)} size="small" />
+            ))}
             {formData.kidFriendly && <Chip label="Kid Friendly" size="small" color="success" />}
             {formData.isPublic && <Chip label="Public" size="small" color="info" />}
           </Box>

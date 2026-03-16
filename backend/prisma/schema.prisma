@@ -79,7 +79,7 @@ model Recipe {
   difficulty     Difficulty
   kidFriendly    Boolean    @default(false) @map("kid_friendly")
   cuisineType    String?    @map("cuisine_type")
-  mealType       MealType   @map("meal_type")
+  mealTypes      MealType[] @map("meal_types") // Changed to array to support multiple meal types
   imageUrl       String?    @map("image_url")
   instructions   Json
   nutritionInfo  Json?      @map("nutrition_info")
@@ -96,7 +96,6 @@ model Recipe {
   ratings           RecipeRating[]
 
   @@index([userId])
-  @@index([mealType])
   @@index([difficulty])
   @@index([cuisineType])
   @@index([kidFriendly])
