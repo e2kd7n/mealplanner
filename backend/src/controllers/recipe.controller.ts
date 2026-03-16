@@ -9,6 +9,7 @@ import prisma from '../utils/prisma';
 import { AppError } from '../middleware/errorHandler';
 import { logger } from '../utils/logger';
 import { cacheGet, cacheSet, cacheDelPattern } from '../utils/redis';
+import { calculateCleanupScore } from '../utils/cleanupScore';
 
 /**
  * TypeScript interfaces for recipe responses
