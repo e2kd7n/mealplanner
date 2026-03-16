@@ -20,7 +20,8 @@ RUN pnpm install --frozen-lockfile
 # Copy source code
 COPY . .
 
-# Generate Prisma client
+# Generate Prisma client with ARM workaround
+ENV PRISMA_ENGINES_CHECKSUM_IGNORE_MISSING=1
 RUN pnpm prisma generate
 
 # Build TypeScript
