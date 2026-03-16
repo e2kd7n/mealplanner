@@ -470,6 +470,17 @@ export async function updateRecipe(
       ingredients,
     } = req.body;
 
+    // Calculate cleanup score if relevant fields are being updated
+    let cleanupScore;
+    if (ingredients || instructions || prepTime || cookTime) {
+      cleanupScore = calculateCleanupScore({
+        ingredients: ingredients || [],
+        instructions,
+        cookTime,
+        prepTime,
+      });
+    }
+
     // Update recipe
     await prisma.recipe.update({
       where: { id },
@@ -487,6 +498,7 @@ export async function updateRecipe(
         instructions,
         nutritionInfo,
         costEstimate,
+        ...(cleanupScore !== undefined && { cleanupScore }),
         isPublic,
       },
       include: RECIPE_INCLUDE_WITH_INGREDIENTS,
