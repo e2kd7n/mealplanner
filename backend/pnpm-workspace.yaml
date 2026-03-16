@@ -1,2 +1,8 @@
+packages:
+  - '.'
+
 allowBuilds:
-  bcrypt: true
+  - '@prisma/client'
+  - '@prisma/engines'
+  - 'bcrypt'
+  - 'prisma'
