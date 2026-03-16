@@ -101,6 +101,26 @@ class ImageCache {
   }
 
   /**
+   * Check if URL is external (cross-origin)
+   */
+  private isExternalUrl(url: string): boolean {
+    try {
+      const urlObj = new URL(url);
+      return urlObj.origin !== window.location.origin;
+    } catch {
+      return false;
+    }
+  }
+
+  /**
+   * Get proxy URL for external images
+   */
+  private getProxyUrl(url: string): string {
+    const apiBase = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+    return `${apiBase}/api/images/proxy?url=${encodeURIComponent(url)}`;
+  }
+
+  /**
    * Cache an image from a URL
    */
   async set(url: string): Promise<string | null> {
@@ -110,8 +130,11 @@ class ImageCache {
       await this.init();
       if (!this.db) return null;
 
+      // Use proxy for external URLs to avoid CORS issues
+      const fetchUrl = this.isExternalUrl(url) ? this.getProxyUrl(url) : url;
+
       // Fetch the image
-      const response = await fetch(url);
+      const response = await fetch(fetchUrl);
       if (!response.ok) {
         console.error('Failed to fetch image:', response.statusText);
         return null;
