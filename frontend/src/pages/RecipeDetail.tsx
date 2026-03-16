@@ -4,7 +4,7 @@
  */
 
 
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
   Container,
@@ -22,6 +22,13 @@ import {
   ListItem,
   ListItemText,
   Paper,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  RadioGroup,
+  FormControlLabel,
+  Radio,
 } from '@mui/material';
 import {
   ArrowBack as ArrowBackIcon,
@@ -32,6 +39,7 @@ import {
 } from '@mui/icons-material';
 import { useAppDispatch, useAppSelector } from '../store/hooks';
 import { fetchRecipeById, setCurrentRecipe } from '../store/slices/recipesSlice';
+import { fetchGroceryLists, addItemToList } from '../store/slices/groceryListsSlice';
 import { useCachedImage } from '../hooks/useCachedImage';
 
 const RecipeDetail: React.FC = () => {
@@ -39,7 +47,12 @@ const RecipeDetail: React.FC = () => {
   const navigate = useNavigate();
   const dispatch = useAppDispatch();
   const { currentRecipe: recipe, loading, error } = useAppSelector((state) => state.recipes);
+  const { groceryLists } = useAppSelector((state) => state.groceryLists);
   const { src: imageSrc, isLoading: imageLoading } = useCachedImage(recipe?.imageUrl);
+  
+  const [openGroceryDialog, setOpenGroceryDialog] = useState(false);
+  const [selectedListId, setSelectedListId] = useState<string>('');
+  const [addingToList, setAddingToList] = useState(false);
 
   useEffect(() => {
     if (id) {
@@ -49,6 +62,51 @@ const RecipeDetail: React.FC = () => {
       dispatch(setCurrentRecipe(null));
     };
   }, [dispatch, id]);
+
+  useEffect(() => {
+    // Fetch grocery lists when component mounts
+    dispatch(fetchGroceryLists({ status: 'draft' }));
+  }, [dispatch]);
+
+  const handleAddToGroceryList = () => {
+    if (groceryLists.length === 0) {
+      alert('No grocery lists found. Please create a meal plan first to generate a grocery list.');
+      navigate('/meal-planner');
+      return;
+    }
+    setOpenGroceryDialog(true);
+  };
+
+  const handleConfirmAddToList = async () => {
+    if (!selectedListId || !recipe) return;
+
+    setAddingToList(true);
+    try {
+      // Add each ingredient from the recipe to the selected grocery list
+      for (const item of recipe.ingredients || []) {
+        const ingredientData: any = item;
+        await dispatch(addItemToList({
+          listId: selectedListId,
+          itemData: {
+            ingredientId: ingredientData.ingredient?.id || ingredientData.ingredientId || '',
+            quantity: ingredientData.quantity || 1,
+            unit: ingredientData.unit || 'unit',
+            estimatedPrice: ingredientData.ingredient?.averagePrice || 0,
+            notes: ingredientData.notes || '',
+          },
+        })).unwrap();
+      }
+      
+      setOpenGroceryDialog(false);
+      setSelectedListId('');
+      alert(`Successfully added ${recipe.ingredients?.length || 0} ingredients to grocery list!`);
+    } catch (error: any) {
+      console.error('Failed to add ingredients:', error);
+      alert(error.message || 'Failed to add ingredients to grocery list');
+    } finally {
+      setAddingToList(false);
+    }
+  };
 
   const getDifficultyColor = (diff: string) => {
     switch (diff?.toLowerCase()) {
@@ -296,12 +354,59 @@ const RecipeDetail: React.FC = () => {
           <Button
             variant="outlined"
             size="large"
-            onClick={() => navigate('/grocery-list')}
+            onClick={handleAddToGroceryList}
           >
             Add to Grocery List
           </Button>
         </Box>
       </Box>
+
+      {/* Add to Grocery List Dialog */}
+      <Dialog open={openGroceryDialog} onClose={() => setOpenGroceryDialog(false)} maxWidth="sm" fullWidth>
+        <DialogTitle>Add to Grocery List</DialogTitle>
+        <DialogContent>
+          <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+            Select a grocery list to add this recipe's ingredients to:
+          </Typography>
+          {groceryLists.length === 0 ? (
+            <Alert severity="info">
+              No grocery lists found. Create a meal plan first to generate a grocery list.
+            </Alert>
+          ) : (
+            <RadioGroup value={selectedListId} onChange={(e) => setSelectedListId(e.target.value)}>
+              {groceryLists.map((list) => (
+                <FormControlLabel
+                  key={list.id}
+                  value={list.id}
+                  control={<Radio />}
+                  label={
+                    <Box>
+                      <Typography variant="body1">
+                        Grocery List - {new Date(list.createdAt).toLocaleDateString()}
+                      </Typography>
+                      <Typography variant="caption" color="text.secondary">
+                        {list.items?.length || 0} items • Status: {list.status}
+                      </Typography>
+                    </Box>
+                  }
+                />
+              ))}
+            </RadioGroup>
+          )}
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setOpenGroceryDialog(false)} disabled={addingToList}>
+            Cancel
+          </Button>
+          <Button
+            onClick={handleConfirmAddToList}
+            variant="contained"
+            disabled={!selectedListId || addingToList || groceryLists.length === 0}
+          >
+            {addingToList ? 'Adding...' : 'Add Ingredients'}
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Container>
   );
 };
