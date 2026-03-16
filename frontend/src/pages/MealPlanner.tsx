@@ -38,6 +38,12 @@ import {
 } from '@mui/icons-material';
 import { format, addDays, startOfWeek, isSameDay } from 'date-fns';
 
+interface FamilyMember {
+  id: string;
+  name: string;
+  canCook: boolean;
+}
+
 interface Meal {
   id: string;
   recipeId: string;
@@ -45,6 +51,8 @@ interface Meal {
   mealType: 'BREAKFAST' | 'LUNCH' | 'DINNER' | 'SNACK';
   date: Date;
   servings: number;
+  assignedCookId?: string;
+  assignedCookName?: string;
 }
 
 const MEAL_TYPES = ['BREAKFAST', 'LUNCH', 'DINNER', 'SNACK'];
@@ -52,6 +60,16 @@ const DAYS_OF_WEEK = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'F
 
 const MealPlanner: React.FC = () => {
   const [currentWeekStart, setCurrentWeekStart] = useState(startOfWeek(new Date()));
+  
+  // Mock family members - in real app, fetch from API
+  const [familyMembers] = useState<FamilyMember[]>([
+    { id: 'fm1', name: 'Mom', canCook: true },
+    { id: 'fm2', name: 'Dad', canCook: true },
+    { id: 'fm3', name: 'Sarah (Teen)', canCook: true },
+    { id: 'fm4', name: 'Tommy (Teen)', canCook: true },
+    { id: 'fm5', name: 'Emma (Child)', canCook: false },
+  ]);
+  
   const [meals, setMeals] = useState<Meal[]>([
     {
       id: '1',
@@ -60,6 +78,8 @@ const MealPlanner: React.FC = () => {
       mealType: 'BREAKFAST',
       date: new Date(),
       servings: 2,
+      assignedCookId: 'fm1',
+      assignedCookName: 'Mom',
     },
     {
       id: '2',
@@ -68,6 +88,8 @@ const MealPlanner: React.FC = () => {
       mealType: 'LUNCH',
       date: new Date(),
       servings: 4,
+      assignedCookId: 'fm3',
+      assignedCookName: 'Sarah (Teen)',
     },
   ]);
 
@@ -77,6 +99,7 @@ const MealPlanner: React.FC = () => {
   const [newMeal, setNewMeal] = useState({
     recipeName: '',
     servings: 4,
+    assignedCookId: '',
   });
 
   // Meal detail dialog state
@@ -102,13 +125,15 @@ const MealPlanner: React.FC = () => {
   const handleOpenDialog = (date: Date, mealType: string) => {
     setSelectedDate(date);
     setSelectedMealType(mealType);
-    setNewMeal({ recipeName: '', servings: 4 });
+    setNewMeal({ recipeName: '', servings: 4, assignedCookId: '' });
     setOpenDialog(true);
   };
 
   const handleAddMeal = () => {
     if (!selectedDate) return;
 
+    const assignedCook = familyMembers.find(fm => fm.id === newMeal.assignedCookId);
+    
     const meal: Meal = {
       id: Date.now().toString(),
       recipeId: 'temp',
@@ -116,6 +141,8 @@ const MealPlanner: React.FC = () => {
       mealType: selectedMealType as 'BREAKFAST' | 'LUNCH' | 'DINNER' | 'SNACK',
       date: selectedDate,
       servings: newMeal.servings,
+      assignedCookId: newMeal.assignedCookId || undefined,
+      assignedCookName: assignedCook?.name,
     };
     setMeals([...meals, meal]);
     setOpenDialog(false);
@@ -151,6 +178,7 @@ const MealPlanner: React.FC = () => {
       setNewMeal({
         recipeName: selectedMeal.recipeName,
         servings: selectedMeal.servings,
+        assignedCookId: selectedMeal.assignedCookId || '',
       });
       setOpenMealDetail(false);
       setOpenDialog(true);
@@ -378,11 +406,22 @@ const MealPlanner: React.FC = () => {
                                     >
                                       {meal.recipeName}
                                     </Typography>
-                                    <Chip
-                                      label={`${meal.servings} servings`}
-                                      size="small"
-                                      sx={{ height: 16, fontSize: '0.65rem', mt: 0.5 }}
-                                    />
+                                    <Box sx={{ display: 'flex', gap: 0.5, mt: 0.5, flexWrap: 'wrap' }}>
+                                      <Chip
+                                        label={`${meal.servings} servings`}
+                                        size="small"
+                                        sx={{ height: 16, fontSize: '0.65rem' }}
+                                      />
+                                      {meal.assignedCookName && (
+                                        <Chip
+                                          label={`👨‍🍳 ${meal.assignedCookName}`}
+                                          size="small"
+                                          color="primary"
+                                          variant="outlined"
+                                          sx={{ height: 16, fontSize: '0.65rem' }}
+                                        />
+                                      )}
+                                    </Box>
                                   </Box>
                                   <IconButton
                                     size="small"
@@ -434,6 +473,25 @@ const MealPlanner: React.FC = () => {
               placeholder="Search or enter recipe name..."
               autoFocus
             />
+            <TextField
+              select
+              label="Assigned Cook"
+              fullWidth
+              value={newMeal.assignedCookId}
+              onChange={(e) => setNewMeal({ ...newMeal, assignedCookId: e.target.value })}
+              helperText="Who will prepare this meal?"
+            >
+              <MenuItem value="">
+                <em>Not assigned</em>
+              </MenuItem>
+              {familyMembers
+                .filter(fm => fm.canCook)
+                .map((member) => (
+                  <MenuItem key={member.id} value={member.id}>
+                    {member.name}
+                  </MenuItem>
+                ))}
+            </TextField>
             <TextField
               label="Servings"
               type="number"
@@ -510,6 +568,19 @@ const MealPlanner: React.FC = () => {
                 </Typography>
                 <Typography>{selectedMeal.servings} servings</Typography>
               </Box>
+
+              {selectedMeal.assignedCookName && (
+                <Box>
+                  <Typography variant="subtitle2" color="text.secondary" gutterBottom>
+                    Assigned Cook
+                  </Typography>
+                  <Chip
+                    label={`👨‍🍳 ${selectedMeal.assignedCookName}`}
+                    color="primary"
+                    variant="outlined"
+                  />
+                </Box>
+              )}
 
               <Divider />
 
