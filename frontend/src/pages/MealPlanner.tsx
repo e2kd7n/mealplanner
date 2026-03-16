@@ -4,7 +4,7 @@
  */
 
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Container,
   Typography,
@@ -25,6 +25,8 @@ import {
   List,
   ListItem,
   ListItemText,
+  Autocomplete,
+  CircularProgress,
 } from '@mui/material';
 import {
   Add as AddIcon,
@@ -42,6 +44,15 @@ interface FamilyMember {
   id: string;
   name: string;
   canCook: boolean;
+}
+
+interface Recipe {
+  id: string;
+  title: string;
+  difficulty: string;
+  prepTime: number;
+  cookTime: number;
+  servings: number;
 }
 
 interface Meal {
@@ -97,10 +108,16 @@ const MealPlanner: React.FC = () => {
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [selectedMealType, setSelectedMealType] = useState<string>('DINNER');
   const [newMeal, setNewMeal] = useState({
+    recipeId: '',
     recipeName: '',
     servings: 4,
     assignedCookId: '',
   });
+  
+  // Recipe search state
+  const [recipes, setRecipes] = useState<Recipe[]>([]);
+  const [recipeSearchLoading, setRecipeSearchLoading] = useState(false);
+  const [recipeSearchInput, setRecipeSearchInput] = useState('');
 
   // Meal detail dialog state
   const [openMealDetail, setOpenMealDetail] = useState(false);
@@ -109,6 +126,30 @@ const MealPlanner: React.FC = () => {
   // Day summary dialog state
   const [openDaySummary, setOpenDaySummary] = useState(false);
   const [selectedDay, setSelectedDay] = useState<Date | null>(null);
+  
+  // Load recipes on mount
+  useEffect(() => {
+    loadRecipes();
+  }, []);
+  
+  const loadRecipes = async () => {
+    try {
+      setRecipeSearchLoading(true);
+      // Mock data for now - in real app, fetch from API
+      const mockRecipes: Recipe[] = [
+        { id: 'r1', title: 'Scrambled Eggs', difficulty: 'easy', prepTime: 5, cookTime: 10, servings: 2 },
+        { id: 'r2', title: 'Chicken Salad', difficulty: 'easy', prepTime: 15, cookTime: 0, servings: 4 },
+        { id: 'r3', title: 'Spaghetti Carbonara', difficulty: 'medium', prepTime: 10, cookTime: 20, servings: 4 },
+        { id: 'r4', title: 'Grilled Cheese Sandwich', difficulty: 'easy', prepTime: 5, cookTime: 5, servings: 1 },
+        { id: 'r5', title: 'Beef Stir Fry', difficulty: 'medium', prepTime: 20, cookTime: 15, servings: 4 },
+      ];
+      setRecipes(mockRecipes);
+    } catch (error) {
+      console.error('Failed to load recipes:', error);
+    } finally {
+      setRecipeSearchLoading(false);
+    }
+  };
 
   const handlePreviousWeek = () => {
     setCurrentWeekStart(addDays(currentWeekStart, -7));
@@ -125,7 +166,8 @@ const MealPlanner: React.FC = () => {
   const handleOpenDialog = (date: Date, mealType: string) => {
     setSelectedDate(date);
     setSelectedMealType(mealType);
-    setNewMeal({ recipeName: '', servings: 4, assignedCookId: '' });
+    setNewMeal({ recipeId: '', recipeName: '', servings: 4, assignedCookId: '' });
+    setRecipeSearchInput('');
     setOpenDialog(true);
   };
 
@@ -176,10 +218,12 @@ const MealPlanner: React.FC = () => {
       setSelectedDate(selectedMeal.date);
       setSelectedMealType(selectedMeal.mealType);
       setNewMeal({
+        recipeId: selectedMeal.recipeId,
         recipeName: selectedMeal.recipeName,
         servings: selectedMeal.servings,
         assignedCookId: selectedMeal.assignedCookId || '',
       });
+      setRecipeSearchInput(selectedMeal.recipeName);
       setOpenMealDetail(false);
       setOpenDialog(true);
     }
@@ -465,13 +509,56 @@ const MealPlanner: React.FC = () => {
                 </MenuItem>
               ))}
             </TextField>
-            <TextField
-              label="Recipe Name"
-              fullWidth
-              value={newMeal.recipeName}
-              onChange={(e) => setNewMeal({ ...newMeal, recipeName: e.target.value })}
-              placeholder="Search or enter recipe name..."
-              autoFocus
+            <Autocomplete
+              freeSolo
+              options={recipes}
+              getOptionLabel={(option) => typeof option === 'string' ? option : option.title}
+              value={recipes.find(r => r.id === newMeal.recipeId) || null}
+              inputValue={recipeSearchInput}
+              onInputChange={(_, value) => setRecipeSearchInput(value)}
+              onChange={(_, value) => {
+                if (typeof value === 'string') {
+                  // User typed a custom name
+                  setNewMeal({ ...newMeal, recipeId: '', recipeName: value });
+                } else if (value) {
+                  // User selected a recipe
+                  setNewMeal({
+                    ...newMeal,
+                    recipeId: value.id,
+                    recipeName: value.title,
+                    servings: value.servings
+                  });
+                }
+              }}
+              loading={recipeSearchLoading}
+              renderInput={(params) => (
+                <TextField
+                  {...params}
+                  label="Recipe Name"
+                  placeholder="Search for a recipe..."
+                  autoFocus
+                  helperText="Select from existing recipes or type a custom name"
+                  InputProps={{
+                    ...params.InputProps,
+                    endAdornment: (
+                      <>
+                        {recipeSearchLoading ? <CircularProgress color="inherit" size={20} /> : null}
+                        {params.InputProps.endAdornment}
+                      </>
+                    ),
+                  }}
+                />
+              )}
+              renderOption={(props, option) => (
+                <li {...props} key={option.id}>
+                  <Box sx={{ width: '100%' }}>
+                    <Typography variant="body1">{option.title}</Typography>
+                    <Typography variant="caption" color="text.secondary">
+                      {option.difficulty} • {option.prepTime + option.cookTime} min • {option.servings} servings
+                    </Typography>
+                  </Box>
+                </li>
+              )}
             />
             <TextField
               select
