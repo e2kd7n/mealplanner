@@ -56,6 +56,17 @@ sleep 10
 echo -e "${GREEN}📊 Service status:${NC}"
 podman-compose -f podman-compose.yml ps
 
+# Wait a bit more for backend to fully start
+echo -e "${YELLOW}⏳ Waiting for backend to be ready...${NC}"
+sleep 15
+
+# Verify backend container exists and is running
+if ! podman ps --format "{{.Names}}" | grep -q "meals-backend"; then
+    echo -e "${RED}❌ Backend container not running. Checking logs...${NC}"
+    podman-compose -f podman-compose.yml logs backend
+    exit 1
+fi
+
 # Run database migrations
 echo -e "${GREEN}🔄 Running database migrations...${NC}"
 podman exec meals-backend sh -c "cd /app && npx prisma migrate deploy"

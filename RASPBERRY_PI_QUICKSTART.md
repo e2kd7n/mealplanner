@@ -27,8 +27,8 @@ sudo apt-get install -y podman-compose
 
 ```bash
 # Clone the repository
-git clone <your-repo-url> meal-planner
-cd meal-planner
+git clone <your-repo-url> mealplanner
+cd mealplanner
 
 # Generate secrets
 chmod +x scripts/generate-secrets.sh
@@ -120,7 +120,7 @@ To make the app start automatically when your Pi boots:
 
 ```bash
 # Create systemd service
-sudo nano /etc/systemd/system/meal-planner.service
+sudo nano /etc/systemd/system/mealplanner.service
 ```
 
 Paste this content:
@@ -132,7 +132,7 @@ After=network.target
 [Service]
 Type=oneshot
 RemainAfterExit=yes
-WorkingDirectory=/home/pi/meal-planner
+WorkingDirectory=/home/pi/mealplanner
 ExecStart=/home/pi/.local/bin/podman-compose -f podman-compose.yml up -d
 ExecStop=/home/pi/.local/bin/podman-compose -f podman-compose.yml down
 User=pi
@@ -144,8 +144,8 @@ WantedBy=multi-user.target
 Enable it:
 ```bash
 sudo systemctl daemon-reload
-sudo systemctl enable meal-planner
-sudo systemctl start meal-planner
+sudo systemctl enable mealplanner
+sudo systemctl start mealplanner
 ```
 
 ## 💡 Tips
