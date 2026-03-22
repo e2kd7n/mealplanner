@@ -5,6 +5,7 @@
 
 
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
   Container,
   Typography,
@@ -74,7 +75,16 @@ interface Meal {
 const MEAL_TYPES = ['BREAKFAST', 'LUNCH', 'DINNER', 'SNACK'];
 const DAYS_OF_WEEK = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 
+// Helper function to format date without timezone issues
+const formatDateForAPI = (date: Date): string => {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+};
+
 const MealPlanner: React.FC = () => {
+  const navigate = useNavigate();
   const [currentWeekStart, setCurrentWeekStart] = useState(startOfWeek(new Date()));
   
   // Family members from API
@@ -314,7 +324,7 @@ const MealPlanner: React.FC = () => {
         },
         body: JSON.stringify({
           recipeId: newMeal.recipeId,
-          date: selectedDate.toISOString().split('T')[0],
+          date: formatDateForAPI(selectedDate),
           mealType: selectedMealType.toLowerCase(),
           servings: newMeal.servings,
           assignedCookId: newMeal.assignedCookId || null,
@@ -334,7 +344,7 @@ const MealPlanner: React.FC = () => {
         recipeId: addedMeal.recipeId,
         recipeName: addedMeal.recipe?.title || newMeal.recipeName,
         mealType: addedMeal.mealType.toUpperCase() as 'BREAKFAST' | 'LUNCH' | 'DINNER' | 'SNACK',
-        date: new Date(addedMeal.date),
+        date: new Date(addedMeal.date + 'T00:00:00'),
         servings: addedMeal.servings,
         assignedCookId: addedMeal.assignedCookId || undefined,
         assignedCookName: addedMeal.assignedCook?.name,
@@ -388,10 +398,35 @@ const MealPlanner: React.FC = () => {
     setOpenGroceryDialog(true);
   };
   
-  const handleNavigateToGroceryList = () => {
-    setOpenGroceryDialog(false);
-    // TODO: Actually generate the grocery list and navigate
-    window.location.href = '/grocery-list';
+  const handleNavigateToGroceryList = async () => {
+    if (!currentMealPlanId) {
+      alert('No meal plan found. Please add some meals first.');
+      return;
+    }
+
+    try {
+      const token = localStorage.getItem('accessToken');
+      const apiBase = import.meta.env.VITE_API_URL || '/api';
+      
+      // Generate grocery list from meal plan
+      const response = await fetch(`${apiBase}/meal-plans/${currentMealPlanId}/generate-grocery-list`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to generate grocery list');
+      }
+
+      setOpenGroceryDialog(false);
+      navigate('/grocery-list');
+    } catch (error) {
+      console.error('Failed to generate grocery list:', error);
+      alert('Failed to generate grocery list. Please try again.');
+    }
   };
 
   const handleOpenMealDetail = (meal: Meal) => {
@@ -502,7 +537,7 @@ const MealPlanner: React.FC = () => {
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({
-            date: editDate.toISOString().split('T')[0],
+            date: formatDateForAPI(editDate),
             mealType: editMealType.toLowerCase(),
           }),
         }
@@ -1325,6 +1360,7 @@ const MealPlanner: React.FC = () => {
             Clear All Meals
           </Button>
         </DialogActions>
+      </Dialog>
 
       {/* Grocery List Generation Dialog */}
       <Dialog
@@ -1354,7 +1390,6 @@ const MealPlanner: React.FC = () => {
             View Grocery List
           </Button>
         </DialogActions>
-      </Dialog>
       </Dialog>
     </Container>
   );
