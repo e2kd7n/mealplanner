@@ -45,10 +45,10 @@ function getRecipeListCacheKey(params: object): string {
  * Helper function to check if user can access a recipe
  */
 function canAccessRecipe(
-  recipe: { isPublic: boolean; userId: string | null },
+  recipe: { userId: string | null },
   requestUserId?: string
 ): boolean {
-  return recipe.isPublic || recipe.userId === requestUserId;
+  return recipe.userId === requestUserId;
 }
 
 /**
@@ -131,13 +131,10 @@ export async function getRecipes(
     const limitNum = parseInt(limit as string);
     const skip = (pageNum - 1) * limitNum;
 
-    // Build where clause
+    // Build where clause - only show user's own recipes
     const userId = getUserId(req);
     const where: any = {
-      OR: [
-        { isPublic: true },
-        { userId },
-      ],
+      userId,
     };
 
     if (search) {
@@ -355,7 +352,6 @@ export async function createRecipe(
       instructions,
       nutritionInfo,
       costEstimate,
-      isPublic,
       ingredients,
     } = req.body;
 
@@ -391,7 +387,6 @@ export async function createRecipe(
         nutritionInfo,
         costEstimate,
         cleanupScore,
-        isPublic: isPublic || false,
       },
     });
 
@@ -471,7 +466,6 @@ export async function updateRecipe(
       instructions,
       nutritionInfo,
       costEstimate,
-      isPublic,
       ingredients,
     } = req.body;
 
@@ -504,7 +498,6 @@ export async function updateRecipe(
         nutritionInfo,
         costEstimate,
         ...(cleanupScore !== undefined && { cleanupScore }),
-        isPublic,
       },
       include: RECIPE_INCLUDE_WITH_INGREDIENTS,
     });
@@ -784,12 +777,7 @@ export async function searchRecipes(
     // Build where clause with full-text search
     const where: any = {
       AND: [
-        {
-          OR: [
-            { isPublic: true },
-            { userId: req.user?.userId },
-          ],
-        },
+        { userId: req.user?.userId },
         {
           OR: [
             { title: { contains: q as string, mode: 'insensitive' } },
@@ -919,10 +907,7 @@ export async function getRecommendations(
 
     // Build recommendation query
     const where: any = {
-      AND: [
-        { isPublic: true },
-        { userId: { not: userId } }, // Exclude user's own recipes
-      ],
+      userId, // Only show user's own recipes
     };
 
     // Apply user preferences
@@ -1047,12 +1032,7 @@ export async function getSimilarRecipes(
     const where: any = {
       AND: [
         { id: { not: id } }, // Exclude the source recipe
-        {
-          OR: [
-            { isPublic: true },
-            { userId: req.user?.userId },
-          ],
-        },
+        { userId: req.user?.userId }, // Only show user's own recipes
       ],
     };
 
