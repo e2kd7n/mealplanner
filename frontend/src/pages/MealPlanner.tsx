@@ -1073,7 +1073,7 @@ const MealPlanner: React.FC = () => {
                       type="date"
                       fullWidth
                       value={editDate ? format(editDate, 'yyyy-MM-dd') : ''}
-                      onChange={(e) => setEditDate(new Date(e.target.value))}
+                      onChange={(e) => setEditDate(new Date(e.target.value + 'T00:00:00'))}
                       InputLabelProps={{
                         shrink: true,
                       }}
