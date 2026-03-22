@@ -166,8 +166,9 @@ When viewing the Recipes page with no filters selected, some recipes are not app
 
 ### 12. Imported Recipes Not Appearing in Meal Planner Picker
 **Severity:** CRITICAL
-**Status:** Open
+**Status:** FIXED
 **Discovered:** March 22, 2026
+**Fixed:** March 22, 2026
 
 **Description:**
 Recipes imported via URL do not appear in the "Add Meal" recipe picker in the meal planner, even though the import appears to succeed. This makes imported recipes unusable for meal planning.
