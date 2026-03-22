@@ -76,12 +76,6 @@ interface DatabaseConfig {
   toString(): string;
 }
 
-interface RedisConfig {
-  host: string;
-  port: number;
-  password: string;
-  toString(): string;
-}
 
 // ============================================================================
 // CONFIGURATION
@@ -663,39 +657,6 @@ export function getDatabaseUrl(): string {
   return `postgresql://${config.user}:${config.password}@${config.host}:${config.port}/${config.database}`;
 }
 
-/**
- * Build Redis configuration from secrets
- * Returns object instead of URL to prevent password exposure in logs
- *
- * @returns Redis connection configuration
- */
-export function getRedisConfig(): RedisConfig {
-  const password = getSecretCached('redis_password', 'REDIS_PASSWORD');
-  const host = process.env.REDIS_HOST || 'localhost';
-  const port = parseInt(process.env.REDIS_PORT || '6379', 10);
-  
-  return {
-    host,
-    port,
-    password,
-    // Safe toString that masks password
-    toString() {
-      return `redis://:****@${this.host}:${this.port}`;
-    }
-  };
-}
-
-/**
- * Build Redis URL from secrets (legacy support)
- *
- * @returns Redis connection URL
- */
-export function getRedisUrl(): string {
-  const config = getRedisConfig();
-  // URL-encode the password to handle special characters
-  const encodedPassword = encodeURIComponent(config.password);
-  return `redis://:${encodedPassword}@${config.host}:${config.port}`;
-}
 
 /**
  * Get JWT configuration from secrets with caching
@@ -741,8 +702,6 @@ export default {
   getSecretAccessLogs,
   getDatabaseConfig,
   getDatabaseUrl,
-  getRedisConfig,
-  getRedisUrl,
   getJwtConfig,
   getSessionSecret,
   isDockerEnvironment,

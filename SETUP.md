@@ -70,6 +70,7 @@ podman machine list  # Should show a running machine
 
 ### Set up Podman alias (optional, for Docker compatibility)
 ```bash
+# Optional: Create aliases if you prefer docker commands
 echo 'alias docker=podman' >> ~/.zshrc
 echo 'alias docker-compose=podman-compose' >> ~/.zshrc
 source ~/.zshrc
@@ -113,7 +114,7 @@ Run this command to verify everything is installed:
 echo "Node: $(node --version)"
 echo "npm: $(npm --version)"
 echo "pnpm: $(pnpm --version)"
-echo "Docker: $(docker --version)"
+echo "Podman: $(podman --version)"
 echo "Git: $(git --version)"
 ```
 
@@ -195,7 +196,7 @@ kill -9 <PID>  # Kill the process
 
 - [Node.js Documentation](https://nodejs.org/docs/)
 - [pnpm Documentation](https://pnpm.io/)
-- [Docker Documentation](https://docs.docker.com/)
+- [Podman Documentation](https://docs.podman.io/)
 - [Vite Documentation](https://vitejs.dev/)
 - [Prisma Documentation](https://www.prisma.io/docs/)
 

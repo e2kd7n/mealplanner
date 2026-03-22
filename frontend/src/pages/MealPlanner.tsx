@@ -178,7 +178,7 @@ const MealPlanner: React.FC = () => {
           recipeId: pm.recipeId,
           recipeName: pm.recipe?.title || 'Unknown Recipe',
           mealType: pm.mealType.toUpperCase() as 'BREAKFAST' | 'LUNCH' | 'DINNER' | 'SNACK',
-          date: new Date(pm.date),
+          date: new Date(pm.date + 'T00:00:00'),
           servings: pm.servings,
           assignedCookId: pm.assignedCookId || undefined,
           assignedCookName: pm.assignedCook?.name,

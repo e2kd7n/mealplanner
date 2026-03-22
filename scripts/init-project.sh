@@ -80,7 +80,7 @@ echo -e "${BLUE}📦 Installing backend dependencies...${NC}"
 pnpm add express cors dotenv
 pnpm add bcrypt jsonwebtoken
 pnpm add prisma @prisma/client
-pnpm add redis ioredis
+pnpm add node-cache
 pnpm add express-rate-limit helmet
 pnpm add winston
 

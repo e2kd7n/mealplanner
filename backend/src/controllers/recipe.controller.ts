@@ -8,7 +8,7 @@ import { Request, Response, NextFunction } from 'express';
 import prisma from '../utils/prisma';
 import { AppError } from '../middleware/errorHandler';
 import { logger } from '../utils/logger';
-import { cacheGet, cacheSet, cacheDelPattern } from '../utils/redis';
+import { cacheGet, cacheSet, cacheDelPattern } from '../utils/cache';
 import { calculateCleanupScore } from '../utils/cleanupScore';
 
 /**

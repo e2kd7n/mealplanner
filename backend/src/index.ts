@@ -8,7 +8,10 @@ import express, { Application } from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
 import dotenv from 'dotenv';
-import { createServer } from 'http';
+import { createServer, Server as HttpServer } from 'http';
+import { createServer as createHttpsServer, Server as HttpsServer } from 'https';
+import { readFileSync, existsSync } from 'fs';
+import path from 'path';
 
 // Load environment variables
 dotenv.config();
@@ -33,11 +36,15 @@ import rateLimiter from './middleware/rateLimiter';
 
 // Import utilities
 import { logger } from './utils/logger';
-import { connectRedis } from './utils/redis';
+import { initializeCache } from './utils/cache';
 
 const app: Application = express();
 const PORT = process.env.PORT || 3000;
+const HTTPS_PORT = process.env.HTTPS_PORT || 443;
 const HOST = process.env.HOST || '0.0.0.0';
+const USE_HTTPS = process.env.USE_HTTPS === 'true';
+const SSL_KEY_PATH = process.env.SSL_KEY_PATH || '/app/certs/key.pem';
+const SSL_CERT_PATH = process.env.SSL_CERT_PATH || '/app/certs/cert.pem';
 
 // Security middleware
 app.use(helmet());
@@ -102,31 +109,70 @@ app.use('/api/pantry', pantryRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/images', imageRoutes);
 
-// 404 handler
-app.use((req, res) => {
-  res.status(404).json({
-    error: 'Not Found',
-    message: `Route ${req.method} ${req.path} not found`,
+// Serve static files from frontend build (in production)
+if (process.env.NODE_ENV === 'production') {
+  const frontendPath = path.join(__dirname, '../public');
+  app.use(express.static(frontendPath));
+  
+  // Catch-all route for SPA - must be after API routes
+  // Only catch routes that don't start with /api or /health
+  app.get('*', (req, res, next) => {
+    if (req.path.startsWith('/api') || req.path === '/health') {
+      return next();
+    }
+    res.sendFile(path.join(frontendPath, 'index.html'));
   });
-});
+} else {
+  // 404 handler for development (when frontend runs separately)
+  app.use((req, res) => {
+    res.status(404).json({
+      error: 'Not Found',
+      message: `Route ${req.method} ${req.path} not found`,
+    });
+  });
+}
 
 // Error handling middleware (must be last)
 app.use(errorHandler);
 
-// Create HTTP server
-const server = createServer(app);
+// Create HTTP or HTTPS server based on configuration
+let server: HttpServer | HttpsServer;
+if (USE_HTTPS && existsSync(SSL_KEY_PATH) && existsSync(SSL_CERT_PATH)) {
+  try {
+    const httpsOptions = {
+      key: readFileSync(SSL_KEY_PATH),
+      cert: readFileSync(SSL_CERT_PATH),
+    };
+    server = createHttpsServer(httpsOptions, app);
+    logger.info('HTTPS server configured');
+  } catch (error) {
+    logger.error('Failed to load SSL certificates, falling back to HTTP:', error);
+    server = createServer(app);
+  }
+} else {
+  server = createServer(app);
+  if (USE_HTTPS) {
+    logger.warn('HTTPS enabled but certificates not found, using HTTP');
+  }
+}
 
 // Initialize services and start server
 async function startServer() {
   try {
-    // Connect to Redis
-    await connectRedis();
-    logger.info('Redis connected successfully');
+    // Initialize in-memory cache
+    initializeCache();
+    logger.info('In-memory cache initialized successfully');
 
     // Start server
-    server.listen(PORT, () => {
-      logger.info(`Server running on http://${HOST}:${PORT}`);
+    const serverPort = USE_HTTPS && existsSync(SSL_KEY_PATH) && existsSync(SSL_CERT_PATH) ? HTTPS_PORT : PORT;
+    const protocol = USE_HTTPS && existsSync(SSL_KEY_PATH) && existsSync(SSL_CERT_PATH) ? 'https' : 'http';
+    
+    server.listen(serverPort, () => {
+      logger.info(`Server running on ${protocol}://${HOST}:${serverPort}`);
       logger.info(`Environment: ${process.env.NODE_ENV || 'development'}`);
+      if (USE_HTTPS) {
+        logger.info(`HTTPS enabled: ${existsSync(SSL_KEY_PATH) && existsSync(SSL_CERT_PATH)}`);
+      }
       logger.info('Press CTRL+C to stop');
     });
   } catch (error) {

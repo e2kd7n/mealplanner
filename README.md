@@ -158,8 +158,8 @@ cp .env.example .env
 
 ### 4. Start database services
 ```bash
-# Using Docker
-docker-compose up -d postgres redis
+# Using Podman
+podman-compose up -d postgres
 
 # OR using Podman
 podman-compose -f podman-compose.yml up -d postgres redis
@@ -242,7 +242,7 @@ meals/
 │   ├── uploads/        # User uploads
 │   └── backups/        # Database backups
 │
-├── docker-compose.yml  # Docker services configuration
+├── podman-compose.yml  # Podman services configuration
 ├── .gitignore
 ├── LICENSE
 ├── README.md
@@ -301,7 +301,7 @@ cd backend
 pnpm build
 
 # Build Podman images
-podman-compose -f docker-compose.prod.yml build
+podman-compose build
 ```
 
 ## 🚢 Deployment
@@ -321,15 +321,15 @@ podman build --platform linux/arm64 -t meal-planner-backend:latest ./backend
 
 3. **Deploy:**
 ```bash
-# Copy docker-compose.prod.yml to Raspberry Pi
-scp docker-compose.prod.yml pi@raspberrypi.local:~/meal-planner/
+# Copy podman-compose.yml to Raspberry Pi
+scp podman-compose.yml pi@raspberrypi.local:~/meal-planner/
 
 # SSH into Raspberry Pi
 ssh pi@raspberrypi.local
 
 # Start services
 cd ~/meal-planner
-podman-compose -f docker-compose.prod.yml up -d
+podman-compose up -d
 ```
 
 ## 🔧 Development Workflow

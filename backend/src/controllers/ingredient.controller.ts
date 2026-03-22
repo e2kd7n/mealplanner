@@ -7,7 +7,7 @@
 import { Request, Response, NextFunction } from 'express';
 import { Prisma } from '@prisma/client';
 import prisma from '../utils/prisma';
-import { getRedisClient } from '../utils/redis';
+import { cacheGet, cacheSet, cacheDel, cacheDelPattern } from '../utils/cache';
 import { AppError } from '../middleware/errorHandler';
 import logger from '../utils/logger';
 
@@ -34,9 +34,9 @@ export const getIngredients = async (
     const cacheKey = `ingredients:${search || 'all'}:${category || 'all'}:${page}:${limit}`;
 
     // Try to get from cache
-    const cached = await getRedisClient().get(cacheKey);
+    const cached = await cacheGet(cacheKey);
     if (cached) {
-      res.json(JSON.parse(cached));
+      res.json(cached);
       return;
     }
 
@@ -75,7 +75,7 @@ export const getIngredients = async (
     };
 
     // Cache the result
-    await getRedisClient().setex(cacheKey, INGREDIENT_CACHE_TTL, JSON.stringify(response));
+    await cacheSet(cacheKey, response, INGREDIENT_CACHE_TTL);
 
     res.json(response);
   } catch (error) {
@@ -97,9 +97,9 @@ export const getIngredientById = async (
     const { id } = req.params as { id: string };
 
     const cacheKey = `ingredient:${id}`;
-    const cached = await getRedisClient().get(cacheKey);
+    const cached = await cacheGet(cacheKey);
     if (cached) {
-      res.json(JSON.parse(cached));
+      res.json(cached);
       return;
     }
 
@@ -124,7 +124,7 @@ export const getIngredientById = async (
       data: ingredient,
     };
 
-    await getRedisClient().setex(cacheKey, INGREDIENT_CACHE_TTL, JSON.stringify(response));
+    await cacheSet(cacheKey, response, INGREDIENT_CACHE_TTL);
 
     res.json(response);
   } catch (error) {
@@ -183,7 +183,7 @@ export const createIngredient = async (
     });
 
     // Invalidate cache
-    await getRedisClient().del('ingredients:*');
+    await cacheDelPattern('ingredients:*');
 
     logger.info(`Ingredient created: ${ingredient.id}`);
 
@@ -260,8 +260,8 @@ export const updateIngredient = async (
     });
 
     // Invalidate cache
-    await getRedisClient().del(`ingredient:${id}`);
-    await getRedisClient().del('ingredients:*');
+    await cacheDel(`ingredient:${id}`);
+    await cacheDelPattern('ingredients:*');
 
     logger.info(`Ingredient updated: ${id}`);
 
@@ -323,8 +323,8 @@ export const deleteIngredient = async (
     });
 
     // Invalidate cache
-    await getRedisClient().del(`ingredient:${id}`);
-    await getRedisClient().del('ingredients:*');
+    await cacheDel(`ingredient:${id}`);
+    await cacheDelPattern('ingredients:*');
 
     logger.info(`Ingredient deleted: ${id}`);
 
@@ -349,9 +349,9 @@ export const getCategories = async (
 ): Promise<void> => {
   try {
     const cacheKey = 'ingredient:categories';
-    const cached = await getRedisClient().get(cacheKey);
+    const cached = await cacheGet(cacheKey);
     if (cached) {
-      res.json(JSON.parse(cached));
+      res.json(cached);
       return;
     }
 
@@ -372,7 +372,7 @@ export const getCategories = async (
       data: categoryList,
     };
 
-    await getRedisClient().setex(cacheKey, INGREDIENT_CACHE_TTL, JSON.stringify(response));
+    await cacheSet(cacheKey, response, INGREDIENT_CACHE_TTL);
 
     res.json(response);
   } catch (error) {
@@ -405,9 +405,9 @@ export const getSearchSuggestions = async (
     const searchTerm = q as string;
 
     const cacheKey = `ingredient:suggestions:${searchTerm}:${limit}`;
-    const cached = await getRedisClient().get(cacheKey);
+    const cached = await cacheGet(cacheKey);
     if (cached) {
-      res.json(JSON.parse(cached));
+      res.json(cached);
       return;
     }
 
@@ -432,7 +432,7 @@ export const getSearchSuggestions = async (
       data: ingredients,
     };
 
-    await getRedisClient().setex(cacheKey, 300, JSON.stringify(response)); // 5 min cache
+    await cacheSet(cacheKey, response, 300); // 5 min cache
 
     res.json(response);
   } catch (error) {

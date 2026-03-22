@@ -43,8 +43,8 @@ All development and testing must be done using the dedicated test accounts.
 The test data is automatically loaded when the database is initialized:
 
 ```bash
-# Using Docker/Podman
-docker-compose up -d postgres
+# Using Podman
+podman-compose up -d postgres
 
 # Or manually run the SQL script
 psql -U mealplanner -d mealplanner -f database/init/02-test-data.sql

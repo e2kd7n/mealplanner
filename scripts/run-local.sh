@@ -44,8 +44,8 @@ fi
 
 # Stop and remove existing containers
 echo -e "${YELLOW}🛑 Stopping existing containers...${NC}"
-podman stop meals-nginx meals-frontend meals-backend meals-redis meals-postgres 2>/dev/null || true
-podman rm meals-nginx meals-frontend meals-backend meals-redis meals-postgres 2>/dev/null || true
+podman stop meals-backend meals-postgres 2>/dev/null || true
+podman rm meals-backend meals-postgres 2>/dev/null || true
 
 # Remove old network if it exists
 echo -e "${YELLOW}🔧 Cleaning up old network...${NC}"

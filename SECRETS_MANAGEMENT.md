@@ -2,14 +2,14 @@
 
 ## Overview
 
-This project uses Docker Secrets for secure credential management. Secrets are stored in files outside of version control and mounted into containers at runtime.
+This project uses Podman Secrets for secure credential management. Secrets are stored in files outside of version control and mounted into containers at runtime.
 
 ## 🔒 Security Features
 
 - **No Hardcoded Credentials**: All sensitive data is stored in separate secret files
 - **Git-Ignored**: Secrets directory is excluded from version control
 - **Strong Password Generation**: Automated generation of cryptographically secure passwords
-- **Docker Secrets Integration**: Secrets are mounted as read-only files in containers
+- **Podman Secrets Integration**: Secrets are mounted as read-only files in containers
 - **Environment Separation**: Different secrets for development, staging, and production
 
 ## 📁 Directory Structure
@@ -19,7 +19,6 @@ meal-planner/
 ├── secrets/                    # Git-ignored directory for secrets
 │   ├── .gitkeep               # Keeps directory in git
 │   ├── postgres_password.txt  # PostgreSQL password (generated)
-│   ├── redis_password.txt     # Redis password (generated)
 │   ├── jwt_secret.txt         # JWT signing secret (generated)
 │   ├── jwt_refresh_secret.txt # JWT refresh token secret (generated)
 │   └── session_secret.txt     # Session secret (generated)
@@ -45,7 +44,7 @@ meal-planner/
 
 3. **Start Services**
    ```bash
-   docker-compose up -d
+   podman-compose up -d
    ```
 
 ### Regenerating Secrets
@@ -65,7 +64,7 @@ The script will:
 
 ### Docker Compose Integration
 
-Secrets are defined in `docker-compose.yml`:
+Secrets are defined in `podman-compose.yml`:
 
 ```yaml
 secrets:
@@ -167,19 +166,19 @@ To rotate secrets:
 
 2. **Update Database Password** (if rotating postgres_password)
    ```bash
-   docker-compose exec postgres psql -U mealplanner -d meal_planner
+   podman exec meals-postgres psql -U mealplanner -d meal_planner
    ALTER USER mealplanner WITH PASSWORD 'new_password_from_file';
    ```
 
 3. **Restart Services**
    ```bash
-   docker-compose restart
+   podman-compose restart
    ```
 
 4. **Verify Services**
    ```bash
-   docker-compose ps
-   docker-compose logs backend
+   podman-compose ps
+   podman-compose logs backend
    ```
 
 ## 🚨 Emergency Procedures
@@ -197,8 +196,8 @@ If secrets are compromised:
 
 3. **Restart all services**
    ```bash
-   docker-compose down
-   docker-compose up -d
+   podman-compose down
+   podman-compose up -d
    ```
 
 4. **Invalidate all user sessions**
@@ -234,7 +233,7 @@ Monitor secret-related issues:
 
 Check logs:
 ```bash
-docker-compose logs backend | grep -i "secret\|password\|auth"
+podman-compose logs backend | grep -i "secret\|password\|auth"
 ```
 
 ## 🔍 Troubleshooting
@@ -252,7 +251,7 @@ ls -la secrets/
 ./scripts/generate-secrets.sh
 
 # Restart services
-docker-compose restart
+podman-compose restart
 ```
 
 ### "Permission denied" Error
@@ -275,16 +274,16 @@ chmod 700 secrets/
 cat secrets/postgres_password.txt
 
 # Verify container can read secret
-docker-compose exec backend cat /run/secrets/postgres_password
+podman exec meals-backend cat /run/secrets/postgres_password
 
 # If mismatch, update database password
-docker-compose exec postgres psql -U mealplanner -d meal_planner
+podman exec meals-postgres psql -U mealplanner -d meal_planner
 ALTER USER mealplanner WITH PASSWORD 'password_from_secret_file';
 ```
 
 ## 📚 Additional Resources
 
-- [Docker Secrets Documentation](https://docs.docker.com/engine/swarm/secrets/)
+- [Podman Secrets Documentation](https://docs.podman.io/en/latest/markdown/podman-secret.1.html)
 - [OWASP Secrets Management Cheat Sheet](https://cheatsheetseries.owasp.org/cheatsheets/Secrets_Management_Cheat_Sheet.html)
 - [12-Factor App: Config](https://12factor.net/config)
 

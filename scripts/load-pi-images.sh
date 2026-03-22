@@ -32,21 +32,16 @@ if [ ! -d "$IMAGE_DIR" ]; then
 fi
 
 # Check if image files exist
-if [ ! -f "$IMAGE_DIR/meals-backend.tar" ] || [ ! -f "$IMAGE_DIR/meals-frontend.tar" ]; then
+if [ ! -f "$IMAGE_DIR/meals-backend.tar" ]; then
     echo -e "${RED}❌ Image files not found in $IMAGE_DIR${NC}"
     echo -e "${YELLOW}Expected files:${NC}"
     echo "   - meals-backend.tar"
-    echo "   - meals-frontend.tar"
     exit 1
 fi
 
 # Load backend image
 echo -e "${YELLOW}📦 Loading backend image...${NC}"
 podman load -i "$IMAGE_DIR/meals-backend.tar"
-
-# Load frontend image
-echo -e "${YELLOW}📦 Loading frontend image...${NC}"
-podman load -i "$IMAGE_DIR/meals-frontend.tar"
 
 # Verify images are loaded
 echo -e "${GREEN}✅ Images loaded successfully!${NC}"

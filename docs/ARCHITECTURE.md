@@ -2,9 +2,9 @@
 
 **Copyright (c) 2026 Erik Didriksen. All rights reserved.**
 
-**Version:** 1.0.0  
-**Last Updated:** March 15, 2026  
-**Status:** Production
+**Version:** 2.0.0
+**Last Updated:** March 22, 2026
+**Status:** Production (Simplified Architecture)
 
 ---
 
@@ -71,6 +71,8 @@ The Meal Planner application is a full-stack Progressive Web Application (PWA) d
 
 ## High-Level Architecture
 
+### Simplified 2-Container Architecture (Current)
+
 ```
 ┌─────────────────────────────────────────────────────────────────┐
 │                         Client Layer                             │
@@ -81,39 +83,42 @@ The Meal Planner application is a full-stack Progressive Web Application (PWA) d
 └─────────────────────────────────────────────────────────────────┘
                               ↓ HTTPS/REST
 ┌─────────────────────────────────────────────────────────────────┐
-│                      Reverse Proxy Layer                         │
+│                      Application Container                       │
 │  ┌──────────────────────────────────────────────────────────┐  │
-│  │  Nginx (SSL termination, static file serving, routing)   │  │
+│  │  Node.js 20 + Express.js + TypeScript                    │  │
+│  │  Native HTTPS support (Node.js https module)             │  │
+│  │  RESTful API with JWT Authentication                     │  │
+│  │  Serves static frontend files (production)               │  │
+│  │  Middleware: Auth, Validation, Rate Limiting, Logging    │  │
+│  │  In-memory cache (node-cache)                            │  │
+│  │  Ports: 3000 (HTTP), 443 (HTTPS)                         │  │
 │  └──────────────────────────────────────────────────────────┘  │
 └─────────────────────────────────────────────────────────────────┘
                               ↓
 ┌─────────────────────────────────────────────────────────────────┐
-│                      Application Layer                           │
+│                      Database Container                          │
 │  ┌──────────────────────────────────────────────────────────┐  │
-│  │  Node.js 20 + Express.js + TypeScript                    │  │
-│  │  RESTful API with JWT Authentication                     │  │
-│  │  Middleware: Auth, Validation, Rate Limiting, Logging    │  │
+│  │  PostgreSQL 16 (Prisma ORM)                              │  │
+│  │  Port: 5432                                               │  │
 │  └──────────────────────────────────────────────────────────┘  │
 └─────────────────────────────────────────────────────────────────┘
-                    ↓                           ↓
-┌──────────────────────────────┐  ┌──────────────────────────────┐
-│      Data Layer              │  │      Cache Layer             │
-│  ┌────────────────────────┐  │  │  ┌────────────────────────┐ │
-│  │  PostgreSQL 16         │  │  │  │  Redis 7               │ │
-│  │  (Prisma ORM)          │  │  │  │  (Sessions, Cache)     │ │
-│  └────────────────────────┘  │  │  └────────────────────────┘ │
-└──────────────────────────────┘  └──────────────────────────────┘
 ```
+
+**Architecture Evolution:**
+- **v1.0 (Original)**: 5 containers (Nginx, Frontend, Backend, PostgreSQL, Redis)
+- **v2.0 (Current)**: 2 containers (Application, PostgreSQL) - 60% reduction
+
+See [`ARCHITECTURE_EVALUATION.md`](../ARCHITECTURE_EVALUATION.md) for detailed analysis and migration phases.
 
 ### Request Flow
 
 1. **Client Request**: User interacts with React UI
 2. **Service Worker**: Checks cache for offline support
-3. **Nginx**: Routes request to backend API
+3. **Node.js HTTPS/HTTP**: Direct connection to backend (no proxy)
 4. **Express Middleware**: Authentication, validation, rate limiting
 5. **Controller**: Business logic processing
 6. **Prisma ORM**: Database queries with type safety
-7. **Redis**: Session management and caching
+7. **In-Memory Cache**: node-cache for API response caching
 8. **Response**: JSON data returned to client
 9. **Redux Store**: State management and UI update
 
@@ -143,7 +148,7 @@ The Meal Planner application is a full-stack Progressive Web Application (PWA) d
 | **TypeScript** | 5.9+ | Type Safety | Shared types with frontend, better DX |
 | **Prisma** | Latest | ORM | Type-safe queries, migrations, excellent DX |
 | **PostgreSQL** | 16+ | Database | ACID compliance, JSON support, reliability |
-| **Redis** | 7+ | Cache/Sessions | Fast in-memory storage, pub/sub |
+| **node-cache** | 5+ | In-Memory Cache | Simple, fast, no external dependencies |
 | **JWT** | Latest | Authentication | Stateless, scalable, standard |
 | **Zod** | 4.3+ | Validation | Type-safe validation, schema inference |
 | **Winston** | Latest | Logging | Structured logging, multiple transports |
@@ -152,10 +157,11 @@ The Meal Planner application is a full-stack Progressive Web Application (PWA) d
 
 | Technology | Version | Purpose | Rationale |
 |------------|---------|---------|-----------|
-| **Docker** | Latest | Containerization | Consistent environments, easy deployment |
 | **Podman** | Latest | Container Runtime | Rootless, daemonless, Raspberry Pi compatible |
-| **Nginx** | Latest | Reverse Proxy | SSL termination, static files, load balancing |
+| **Podman Compose** | Latest | Container Orchestration | Simple multi-container management |
 | **pnpm** | 8+ | Package Manager | Fast, disk-efficient, strict dependencies |
+
+**Note:** Nginx was removed in v2.0. Native Node.js HTTPS module handles SSL/TLS termination.
 
 ---
 
@@ -239,7 +245,7 @@ backend/
 │   │   └── schemas.ts       # Zod schemas
 │   ├── utils/               # Utility functions
 │   │   ├── prisma.ts        # Prisma client
-│   │   ├── redis.ts         # Redis client
+│   │   ├── cache.ts         # In-memory cache (node-cache)
 │   │   ├── jwt.ts           # JWT utilities
 │   │   ├── logger.ts        # Winston logger
 │   │   └── secrets.ts       # Secrets management
