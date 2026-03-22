@@ -36,13 +36,22 @@ fi
 echo -e "${YELLOW}🛑 Stopping existing containers...${NC}"
 podman-compose -f podman-compose.yml down 2>/dev/null || true
 
-# Remove old images (optional - comment out to keep cached images)
-# echo -e "${YELLOW}🗑️  Removing old images...${NC}"
-# podman rmi meals-backend meals-frontend 2>/dev/null || true
+# Check if pre-built images exist
+if podman images | grep -q "meals-backend" && podman images | grep -q "meals-frontend"; then
+    echo -e "${GREEN}✓ Using pre-built images${NC}"
+    SKIP_BUILD=true
+else
+    echo -e "${YELLOW}⚠️  Pre-built images not found, building locally...${NC}"
+    SKIP_BUILD=false
+fi
 
-# Build images
-echo -e "${GREEN}🔨 Building images...${NC}"
-podman-compose -f podman-compose.yml build --no-cache
+# Build images only if needed
+if [ "$SKIP_BUILD" = false ]; then
+    echo -e "${GREEN}🔨 Building images...${NC}"
+    podman-compose -f podman-compose.yml build --no-cache
+else
+    echo -e "${BLUE}ℹ️  Skipping build (using pre-loaded images)${NC}"
+fi
 
 # Start services
 echo -e "${GREEN}🚀 Starting services...${NC}"

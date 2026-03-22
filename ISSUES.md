@@ -648,9 +648,29 @@ Based on priority, user value, and dependencies:
 ### Issue #17: Implement AllRecipes.com Recipe Import
 **Status:** Open
 **Priority:** High
-**Description:** Allow users to import recipes from their AllRecipes.com recipe book directly into the meal planner application.
+**Description:** Allow users to import recipes from AllRecipes.com URLs and optionally from their AllRecipes.com recipe book.
 
-**Required Features:**
+**Phase 1: URL-Based Import (High Priority)**
+- [ ] **Create custom HTML parser for AllRecipes.com**
+  - [ ] Parse recipe title, description from HTML structure
+  - [ ] Extract ingredients list from HTML (not JSON-LD)
+  - [ ] Extract instructions/steps from HTML
+  - [ ] Extract prep time, cook time, servings
+  - [ ] Extract nutrition information if available
+  - [ ] Extract recipe images
+  - [ ] Handle both regular and print URLs (e.g., `?print=` parameter)
+- [ ] **Integrate parser into recipeImport.service.ts**
+  - [ ] Detect AllRecipes.com URLs
+  - [ ] Fall back to custom parser when JSON-LD not available
+  - [ ] Add error handling for parsing failures
+  - [ ] Add logging for debugging parser issues
+- [ ] **Testing**
+  - [ ] Test with multiple AllRecipes.com recipe URLs
+  - [ ] Test with print-friendly URLs
+  - [ ] Verify all recipe data is correctly extracted
+  - [ ] Handle edge cases (missing data, unusual formats)
+
+**Phase 2: Recipe Book Integration (Future Enhancement)**
 - [ ] AllRecipes.com authentication
   - [ ] OAuth or credential-based login to AllRecipes.com
   - [ ] Store user's AllRecipes.com session securely
@@ -661,9 +681,7 @@ Based on priority, user value, and dependencies:
   - [ ] Search/filter recipes in AllRecipes.com book
   - [ ] Pagination for large recipe collections
 - [ ] Recipe import functionality
-  - [ ] Parse AllRecipes.com recipe HTML/API data
-  - [ ] Extract: title, description, ingredients, instructions, prep/cook time
-  - [ ] Extract: servings, nutrition info, images, ratings
+  - [ ] Use Phase 1 parser for recipe data extraction
   - [ ] Map AllRecipes.com data to internal recipe schema
   - [ ] Handle missing or optional fields gracefully
 - [ ] Bulk import
@@ -677,19 +695,28 @@ Based on priority, user value, and dependencies:
   - [ ] Option to adjust servings during import
   - [ ] Duplicate detection (check if recipe already imported)
 
-**Implementation Tasks:**
-- [ ] Research AllRecipes.com API or web scraping requirements
+**Implementation Tasks (Phase 1 - URL Import):**
+- [ ] Research AllRecipes.com HTML structure and CSS selectors
+- [ ] Create custom parser function in recipeImport.service.ts
+- [ ] Add URL detection for allrecipes.com domain
+- [ ] Implement HTML parsing with cheerio or similar library
+- [ ] Extract recipe data from HTML elements
+- [ ] Add fallback logic when JSON-LD is not available
+- [ ] Test parser with various AllRecipes.com URLs
+- [ ] Add error handling for parsing failures
+- [ ] Update user documentation with supported sites
+
+**Implementation Tasks (Phase 2 - Recipe Book):**
+- [ ] Research AllRecipes.com API or authentication requirements
 - [ ] Implement authentication flow for AllRecipes.com
-- [ ] Create recipe parser for AllRecipes.com format
 - [ ] Add AllRecipes.com credentials to user preferences schema
 - [ ] Create backend service for AllRecipes.com integration
-- [ ] Create API endpoints for recipe import
+- [ ] Create API endpoints for recipe book access
 - [ ] Add UI for connecting AllRecipes.com account
 - [ ] Create recipe browser/selector UI
 - [ ] Implement import preview before saving
 - [ ] Add bulk import functionality
 - [ ] Handle rate limiting and API quotas
-- [ ] Add error handling and retry logic
 - [ ] Document import process in user guide
 
 **API Endpoints (To Be Implemented):**
@@ -710,13 +737,15 @@ Based on priority, user value, and dependencies:
 - [ ] Add `import_metadata` JSON field for tracking import details
 
 **Technical Considerations:**
-- **Web Scraping vs API**: AllRecipes.com may not have a public API, may need web scraping
+- **Current Issue**: AllRecipes.com doesn't provide JSON-LD structured data, causing import failures
+- **Solution**: Custom HTML parser using CSS selectors or DOM parsing
+- **Web Scraping**: Must comply with AllRecipes.com Terms of Service and robots.txt
 - **Rate Limiting**: Implement respectful rate limiting to avoid being blocked
 - **Legal Compliance**: Ensure compliance with AllRecipes.com Terms of Service
 - **Data Attribution**: Store source URL and give credit to AllRecipes.com
-- **Image Handling**: Download and store images locally or link to AllRecipes.com
-- **Recipe Updates**: Handle updates to recipes on AllRecipes.com
+- **Image Handling**: Link to AllRecipes.com images (avoid downloading copyrighted content)
 - **Error Handling**: Graceful handling of parsing errors and missing data
+- **Maintenance**: HTML structure may change, requiring parser updates
 
 **Security Considerations:**
 - Encrypt AllRecipes.com credentials at rest

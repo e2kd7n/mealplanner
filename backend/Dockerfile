@@ -22,7 +22,7 @@ COPY . .
 
 # Generate Prisma client with ARM workaround
 ENV PRISMA_ENGINES_CHECKSUM_IGNORE_MISSING=1
-RUN pnpm prisma generate
+RUN npx prisma generate
 
 # Build TypeScript
 RUN pnpm build
@@ -41,13 +41,18 @@ RUN npm install -g pnpm@10
 # Copy package files
 COPY package.json pnpm-lock.yaml ./
 
-# Install production dependencies only
-RUN pnpm install --frozen-lockfile --prod
+# Install all dependencies (includes Prisma CLI from devDependencies)
+RUN pnpm install --frozen-lockfile
+
+# Copy prisma schema
+COPY --from=builder /app/prisma ./prisma
+
+# Generate Prisma client in production stage
+ENV PRISMA_ENGINES_CHECKSUM_IGNORE_MISSING=1
+RUN npx prisma generate
 
 # Copy built application from builder
 COPY --from=builder /app/dist ./dist
-COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma
-COPY --from=builder /app/prisma ./prisma
 
 # Create directories for uploads and backups
 RUN mkdir -p /app/uploads /app/backups
