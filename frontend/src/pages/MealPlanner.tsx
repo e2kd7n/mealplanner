@@ -85,7 +85,12 @@ const formatDateForAPI = (date: Date): string => {
 
 const MealPlanner: React.FC = () => {
   const navigate = useNavigate();
-  const [currentWeekStart, setCurrentWeekStart] = useState(startOfWeek(new Date()));
+  // Initialize with date at midnight to avoid timezone issues
+  const [currentWeekStart, setCurrentWeekStart] = useState(() => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    return startOfWeek(today);
+  });
   
   // Family members from API
   const [familyMembers, setFamilyMembers] = useState<FamilyMember[]>([]);
@@ -273,7 +278,7 @@ const MealPlanner: React.FC = () => {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          weekStartDate: currentWeekStart.toISOString().split('T')[0],
+          weekStartDate: formatDateForAPI(currentWeekStart),
           status: 'draft',
         }),
       });
