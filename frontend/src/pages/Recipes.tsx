@@ -261,9 +261,9 @@ const Recipes: React.FC = () => {
               }}
             >
               <MenuItem value="">All</MenuItem>
-              <MenuItem value="EASY">Easy</MenuItem>
-              <MenuItem value="MEDIUM">Medium</MenuItem>
-              <MenuItem value="HARD">Hard</MenuItem>
+              <MenuItem value="easy">Easy</MenuItem>
+              <MenuItem value="medium">Medium</MenuItem>
+              <MenuItem value="hard">Hard</MenuItem>
             </Select>
           </FormControl>
           <FormControl sx={{ minWidth: 150 }}>
@@ -277,11 +277,11 @@ const Recipes: React.FC = () => {
               }}
             >
               <MenuItem value="">All</MenuItem>
-              <MenuItem value="BREAKFAST">Breakfast</MenuItem>
-              <MenuItem value="LUNCH">Lunch</MenuItem>
-              <MenuItem value="DINNER">Dinner</MenuItem>
-              <MenuItem value="SNACK">Snack</MenuItem>
-              <MenuItem value="DESSERT">Dessert</MenuItem>
+              <MenuItem value="breakfast">Breakfast</MenuItem>
+              <MenuItem value="lunch">Lunch</MenuItem>
+              <MenuItem value="dinner">Dinner</MenuItem>
+              <MenuItem value="snack">Snack</MenuItem>
+              <MenuItem value="dessert">Dessert</MenuItem>
             </Select>
           </FormControl>
           <FormControl sx={{ minWidth: 150 }}>
