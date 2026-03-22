@@ -5,6 +5,7 @@
 
 
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
   Container,
   Typography,
@@ -74,7 +75,16 @@ interface Meal {
 const MEAL_TYPES = ['BREAKFAST', 'LUNCH', 'DINNER', 'SNACK'];
 const DAYS_OF_WEEK = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 
+// Helper function to format date without timezone issues
+const formatDateForAPI = (date: Date): string => {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+};
+
 const MealPlanner: React.FC = () => {
+  const navigate = useNavigate();
   const [currentWeekStart, setCurrentWeekStart] = useState(startOfWeek(new Date()));
   
   // Family members from API
@@ -115,6 +125,10 @@ const MealPlanner: React.FC = () => {
   // Edit schedule state
   const [editingSchedule, setEditingSchedule] = useState(false);
   const [editDate, setEditDate] = useState<Date | null>(null);
+  
+  // Edit meal state (for updating existing meals)
+  const [isEditingMeal, setIsEditingMeal] = useState(false);
+  const [editingMealId, setEditingMealId] = useState<string | null>(null);
   const [editMealType, setEditMealType] = useState<string>('');
   
   // Copy/paste state
@@ -168,7 +182,7 @@ const MealPlanner: React.FC = () => {
           recipeId: pm.recipeId,
           recipeName: pm.recipe?.title || 'Unknown Recipe',
           mealType: pm.mealType.toUpperCase() as 'BREAKFAST' | 'LUNCH' | 'DINNER' | 'SNACK',
-          date: new Date(pm.date),
+          date: new Date(pm.date + 'T00:00:00'),
           servings: pm.servings,
           assignedCookId: pm.assignedCookId || undefined,
           assignedCookName: pm.assignedCook?.name,
@@ -314,7 +328,7 @@ const MealPlanner: React.FC = () => {
         },
         body: JSON.stringify({
           recipeId: newMeal.recipeId,
-          date: selectedDate.toISOString().split('T')[0],
+          date: formatDateForAPI(selectedDate),
           mealType: selectedMealType.toLowerCase(),
           servings: newMeal.servings,
           assignedCookId: newMeal.assignedCookId || null,
@@ -334,7 +348,7 @@ const MealPlanner: React.FC = () => {
         recipeId: addedMeal.recipeId,
         recipeName: addedMeal.recipe?.title || newMeal.recipeName,
         mealType: addedMeal.mealType.toUpperCase() as 'BREAKFAST' | 'LUNCH' | 'DINNER' | 'SNACK',
-        date: new Date(addedMeal.date),
+        date: new Date(addedMeal.date + 'T00:00:00'),
         servings: addedMeal.servings,
         assignedCookId: addedMeal.assignedCookId || undefined,
         assignedCookName: addedMeal.assignedCook?.name,
@@ -344,9 +358,61 @@ const MealPlanner: React.FC = () => {
       
       setMeals([...meals, meal]);
       setOpenDialog(false);
+      setIsEditingMeal(false);
+      setEditingMealId(null);
     } catch (error) {
       console.error('Failed to add meal:', error);
       alert('Failed to add meal. Please try again.');
+    }
+  };
+
+  const handleUpdateMeal = async () => {
+    if (!selectedDate || !newMeal.recipeId || !editingMealId || !currentMealPlanId) return;
+
+    try {
+      const token = localStorage.getItem('accessToken');
+      const apiBase = import.meta.env.VITE_API_URL || '/api';
+      
+      const response = await fetch(
+        `${apiBase}/meal-plans/${currentMealPlanId}/meals/${editingMealId}`,
+        {
+          method: 'PUT',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            date: formatDateForAPI(selectedDate),
+            mealType: selectedMealType.toLowerCase(),
+            servings: newMeal.servings,
+            assignedCookId: newMeal.assignedCookId || null,
+          }),
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error('Failed to update meal');
+      }
+
+      // Update local state
+      const updatedMeals = meals.map(meal =>
+        meal.id === editingMealId
+          ? {
+              ...meal,
+              date: selectedDate,
+              mealType: selectedMealType as 'BREAKFAST' | 'LUNCH' | 'DINNER' | 'SNACK',
+              servings: newMeal.servings,
+              assignedCookId: newMeal.assignedCookId || undefined,
+            }
+          : meal
+      );
+      setMeals(updatedMeals);
+      setOpenDialog(false);
+      setIsEditingMeal(false);
+      setEditingMealId(null);
+    } catch (error) {
+      console.error('Failed to update meal:', error);
+      alert('Failed to update meal. Please try again.');
     }
   };
 
@@ -388,10 +454,35 @@ const MealPlanner: React.FC = () => {
     setOpenGroceryDialog(true);
   };
   
-  const handleNavigateToGroceryList = () => {
-    setOpenGroceryDialog(false);
-    // TODO: Actually generate the grocery list and navigate
-    window.location.href = '/grocery-list';
+  const handleNavigateToGroceryList = async () => {
+    if (!currentMealPlanId) {
+      alert('No meal plan found. Please add some meals first.');
+      return;
+    }
+
+    try {
+      const token = localStorage.getItem('accessToken');
+      const apiBase = import.meta.env.VITE_API_URL || '/api';
+      
+      // Generate grocery list from meal plan
+      const response = await fetch(`${apiBase}/meal-plans/${currentMealPlanId}/generate-grocery-list`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to generate grocery list');
+      }
+
+      setOpenGroceryDialog(false);
+      navigate('/grocery-list');
+    } catch (error) {
+      console.error('Failed to generate grocery list:', error);
+      alert('Failed to generate grocery list. Please try again.');
+    }
   };
 
   const handleOpenMealDetail = (meal: Meal) => {
@@ -406,6 +497,8 @@ const MealPlanner: React.FC = () => {
 
   const handleEditMeal = () => {
     if (selectedMeal) {
+      setIsEditingMeal(true);
+      setEditingMealId(selectedMeal.id);
       setSelectedDate(selectedMeal.date);
       setSelectedMealType(selectedMeal.mealType);
       setNewMeal({
@@ -443,7 +536,7 @@ const MealPlanner: React.FC = () => {
         },
         body: JSON.stringify({
           recipeId: copiedMeal.recipeId,
-          date: date.toISOString().split('T')[0],
+          date: formatDateForAPI(date),
           mealType: mealType.toLowerCase(),
           servings: copiedMeal.servings,
           assignedCookId: copiedMeal.assignedCookId || null,
@@ -502,7 +595,7 @@ const MealPlanner: React.FC = () => {
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({
-            date: editDate.toISOString().split('T')[0],
+            date: formatDateForAPI(editDate),
             mealType: editMealType.toLowerCase(),
           }),
         }
@@ -836,10 +929,10 @@ const MealPlanner: React.FC = () => {
         )}
       </Box>
 
-      {/* Add Meal Dialog */}
-      <Dialog open={openDialog} onClose={() => setOpenDialog(false)} maxWidth="sm" fullWidth>
+      {/* Add/Edit Meal Dialog */}
+      <Dialog open={openDialog} onClose={() => { setOpenDialog(false); setIsEditingMeal(false); setEditingMealId(null); }} maxWidth="sm" fullWidth>
         <DialogTitle>
-          Add Meal for {selectedDate && format(selectedDate, 'EEEE, MMM d')}
+          {isEditingMeal ? 'Edit Meal' : `Add Meal for ${selectedDate && format(selectedDate, 'EEEE, MMM d')}`}
         </DialogTitle>
         <DialogContent>
           <Stack spacing={2} sx={{ mt: 1 }}>
@@ -936,13 +1029,13 @@ const MealPlanner: React.FC = () => {
           </Stack>
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setOpenDialog(false)}>Cancel</Button>
+          <Button onClick={() => { setOpenDialog(false); setIsEditingMeal(false); setEditingMealId(null); }}>Cancel</Button>
           <Button
-            onClick={handleAddMeal}
+            onClick={isEditingMeal ? handleUpdateMeal : handleAddMeal}
             variant="contained"
             disabled={!newMeal.recipeId || !newMeal.recipeName}
           >
-            Add Meal
+            {isEditingMeal ? 'Update Meal' : 'Add Meal'}
           </Button>
         </DialogActions>
       </Dialog>
@@ -1037,8 +1130,8 @@ const MealPlanner: React.FC = () => {
                       label="Date"
                       type="date"
                       fullWidth
-                      value={editDate ? format(editDate, 'yyyy-MM-dd') : ''}
-                      onChange={(e) => setEditDate(new Date(e.target.value))}
+                      value={editDate ? formatDateForAPI(editDate) : ''}
+                      onChange={(e) => setEditDate(new Date(e.target.value + 'T00:00:00'))}
                       InputLabelProps={{
                         shrink: true,
                       }}
@@ -1325,6 +1418,7 @@ const MealPlanner: React.FC = () => {
             Clear All Meals
           </Button>
         </DialogActions>
+      </Dialog>
 
       {/* Grocery List Generation Dialog */}
       <Dialog
@@ -1354,7 +1448,6 @@ const MealPlanner: React.FC = () => {
             View Grocery List
           </Button>
         </DialogActions>
-      </Dialog>
       </Dialog>
     </Container>
   );

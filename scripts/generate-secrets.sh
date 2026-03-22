@@ -99,7 +99,6 @@ if [ -d "$SECRETS_DIR" ]; then
     # Backup current secrets as previous versions for rotation support
     echo -e "${BLUE}Preparing for secret rotation...${NC}"
     backup_as_previous "postgres_password"
-    backup_as_previous "redis_password"
     backup_as_previous "jwt_secret"
     backup_as_previous "jwt_refresh_secret"
     backup_as_previous "session_secret"
@@ -115,9 +114,6 @@ echo ""
 
 # Generate PostgreSQL password
 generate_secret_with_metadata "postgres_password" 32 "PostgreSQL database password"
-
-# Generate Redis password
-generate_secret_with_metadata "redis_password" 32 "Redis cache password"
 
 # Generate JWT secret
 generate_secret_with_metadata "jwt_secret" 64 "JWT access token signing secret"
@@ -186,11 +182,6 @@ POSTGRES_HOST=localhost
 POSTGRES_PORT=5432
 POSTGRES_DB=meal_planner
 POSTGRES_USER=mealplanner
-
-# Redis (secrets loaded from files in Docker)
-REDIS_URL=redis://:$(cat /run/secrets/redis_password)@localhost:6379
-REDIS_HOST=localhost
-REDIS_PORT=6379
 
 # JWT Configuration (secrets loaded from files in Docker)
 # Shorter token lifetimes for improved security

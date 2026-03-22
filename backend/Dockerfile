@@ -1,7 +1,32 @@
-# Multi-stage build for Node.js backend
+# Multi-stage build for Node.js backend with integrated frontend
 # Optimized for ARM architecture (Raspberry Pi)
 
-FROM docker.io/library/node:20-alpine AS builder
+# Stage 1: Build frontend
+FROM docker.io/library/node:20-alpine AS frontend-builder
+
+WORKDIR /frontend
+
+# Copy frontend package files
+COPY frontend/package.json frontend/pnpm-lock.yaml ./
+
+# Install pnpm
+RUN npm install -g pnpm@10
+
+# Install frontend dependencies
+RUN pnpm install --frozen-lockfile
+
+# Copy frontend source code
+COPY frontend ./
+
+# Build argument for API URL
+ARG VITE_API_URL=/api
+ENV VITE_API_URL=$VITE_API_URL
+
+# Build the frontend application
+RUN pnpm build
+
+# Stage 2: Build backend
+FROM docker.io/library/node:20-alpine AS backend-builder
 
 # Install build dependencies for native modules
 RUN apk add --no-cache python3 make g++ gcc
@@ -9,7 +34,7 @@ RUN apk add --no-cache python3 make g++ gcc
 WORKDIR /app
 
 # Copy package files
-COPY package.json pnpm-lock.yaml ./
+COPY backend/package.json backend/pnpm-lock.yaml ./
 
 # Install pnpm
 RUN npm install -g pnpm@10
@@ -18,7 +43,7 @@ RUN npm install -g pnpm@10
 RUN pnpm install --frozen-lockfile
 
 # Copy source code
-COPY . .
+COPY backend .
 
 # Generate Prisma client with ARM workaround
 ENV PRISMA_ENGINES_CHECKSUM_IGNORE_MISSING=1
@@ -27,7 +52,7 @@ RUN npx prisma generate
 # Build TypeScript
 RUN pnpm build
 
-# Production stage
+# Stage 3: Production
 FROM docker.io/library/node:20-alpine
 
 # Install runtime dependencies
@@ -39,23 +64,26 @@ WORKDIR /app
 RUN npm install -g pnpm@10
 
 # Copy package files
-COPY package.json pnpm-lock.yaml ./
+COPY backend/package.json backend/pnpm-lock.yaml ./
 
 # Install all dependencies (includes Prisma CLI from devDependencies)
 RUN pnpm install --frozen-lockfile
 
 # Copy prisma schema
-COPY --from=builder /app/prisma ./prisma
+COPY --from=backend-builder /app/prisma ./prisma
 
 # Generate Prisma client in production stage
 ENV PRISMA_ENGINES_CHECKSUM_IGNORE_MISSING=1
 RUN npx prisma generate
 
-# Copy built application from builder
-COPY --from=builder /app/dist ./dist
+# Copy built backend from builder
+COPY --from=backend-builder /app/dist ./dist
+
+# Copy built frontend from frontend-builder
+COPY --from=frontend-builder /frontend/dist ./public
 
 # Create directories for uploads and backups
-RUN mkdir -p /app/uploads /app/backups
+RUN mkdir -p /app/uploads /app/backups /app/images
 
 # Set environment
 ENV NODE_ENV=production

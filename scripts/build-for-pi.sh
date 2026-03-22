@@ -46,29 +46,17 @@ $CONTAINER_CMD build \
     -f backend/Dockerfile \
     backend/
 
-# Build frontend image
-echo -e "${YELLOW}🔨 Building frontend image for ARM64...${NC}"
-$CONTAINER_CMD build \
-    --platform "$TARGET_ARCH" \
-    -t meals-frontend:latest \
-    --build-arg VITE_API_URL=/api \
-    -f frontend/Dockerfile \
-    frontend/
-
 # Save images as tar files
 echo -e "${YELLOW}💾 Saving images to tar files...${NC}"
 $CONTAINER_CMD save -o "$OUTPUT_DIR/meals-backend.tar" meals-backend:latest
-$CONTAINER_CMD save -o "$OUTPUT_DIR/meals-frontend.tar" meals-frontend:latest
 
 # Get file sizes
 BACKEND_SIZE=$(du -h "$OUTPUT_DIR/meals-backend.tar" | cut -f1)
-FRONTEND_SIZE=$(du -h "$OUTPUT_DIR/meals-frontend.tar" | cut -f1)
 
 echo -e "${GREEN}✅ Images built and saved successfully!${NC}"
 echo ""
 echo -e "${BLUE}📦 Image files:${NC}"
 echo -e "   Backend:  $OUTPUT_DIR/meals-backend.tar  (${BACKEND_SIZE})"
-echo -e "   Frontend: $OUTPUT_DIR/meals-frontend.tar (${FRONTEND_SIZE})"
 echo ""
 echo -e "${YELLOW}📤 Next steps:${NC}"
 echo -e "   1. Transfer images to your Raspberry Pi:"

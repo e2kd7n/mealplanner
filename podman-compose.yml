@@ -25,53 +25,37 @@ services:
       timeout: 5s
       retries: 5
 
-  redis:
-    image: docker.io/library/redis:7-alpine
-    container_name: meals-redis
-    restart: unless-stopped
-    command: >
-      sh -c "redis-server --requirepass $$(cat /run/secrets/redis_password)"
-    secrets:
-      - redis_password
-    volumes:
-      - redis_data:/data
-    networks:
-      meals-network:
-        aliases:
-          - redis
-    healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-
   backend:
     build:
-      context: ./backend
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: backend/Dockerfile
+      args:
+        VITE_API_URL: /api
     image: meals-backend:latest
     container_name: meals-backend
     restart: unless-stopped
     depends_on:
       postgres:
         condition: service_healthy
-      redis:
-        condition: service_healthy
+    ports:
+      - "8080:3000"
+      - "8443:443"
     environment:
       NODE_ENV: production
       PORT: 3000
+      HTTPS_PORT: 443
       HOST: 0.0.0.0
+      USE_HTTPS: "false"
+      SSL_KEY_PATH: /app/certs/key.pem
+      SSL_CERT_PATH: /app/certs/cert.pem
       DATABASE_URL: postgresql://mealplanner:d8teYPprK7X%2B5N%2Fws05YlIzTu6c3pryezNuvtxyiKjQ%3D@postgres:5432/meal_planner?schema=public
       POSTGRES_HOST: postgres
       POSTGRES_PORT: 5432
       POSTGRES_DB: meal_planner
       POSTGRES_USER: mealplanner
-      REDIS_HOST: redis
-      REDIS_PORT: 6379
-      CORS_ORIGIN: http://localhost:8080,http://raspberrypi.local:8080
+      CORS_ORIGIN: http://localhost:8080,http://raspberrypi.local:8080,https://localhost:8443,https://raspberrypi.local:8443
     secrets:
       - postgres_password
-      - redis_password
       - jwt_secret
       - jwt_refresh_secret
       - session_secret
@@ -89,57 +73,16 @@ services:
       timeout: 10s
       retries: 3
 
-  frontend:
-    build:
-      context: ./frontend
-      dockerfile: Dockerfile
-      args:
-        VITE_API_URL: /api
-    image: meals-frontend:latest
-    container_name: meals-frontend
-    restart: unless-stopped
-    depends_on:
-      - backend
-    networks:
-      meals-network:
-        aliases:
-          - frontend
-
-  nginx:
-    image: docker.io/library/nginx:alpine
-    container_name: meals-nginx
-    restart: unless-stopped
-    depends_on:
-      - frontend
-      - backend
-    ports:
-      - "8080:80"
-    volumes:
-      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
-      - ./nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
-    networks:
-      meals-network:
-        aliases:
-          - nginx
-    healthcheck:
-      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost/health"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-
 networks:
   meals-network:
     driver: bridge
 
 volumes:
   postgres_data: {}
-  redis_data: {}
 
 secrets:
   postgres_password:
     file: ./secrets/postgres_password.txt
-  redis_password:
-    file: ./secrets/redis_password.txt
   jwt_secret:
     file: ./secrets/jwt_secret.txt
   jwt_refresh_secret:

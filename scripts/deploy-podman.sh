@@ -37,7 +37,7 @@ echo -e "${YELLOW}🛑 Stopping existing containers...${NC}"
 podman-compose -f podman-compose.yml down 2>/dev/null || true
 
 # Check if pre-built images exist
-if podman images | grep -q "meals-backend" && podman images | grep -q "meals-frontend"; then
+if podman images | grep -q "meals-backend"; then
     echo -e "${GREEN}✓ Using pre-built images${NC}"
     SKIP_BUILD=true
 else
@@ -81,7 +81,8 @@ echo -e "${GREEN}🔄 Running database migrations...${NC}"
 podman exec meals-backend sh -c "cd /app && npx prisma migrate deploy"
 
 echo -e "${GREEN}✅ Deployment complete!${NC}"
-echo -e "${GREEN}🌐 Application is available at: http://localhost:8080${NC}"
+echo -e "${GREEN}🌐 Application is available at: http://localhost:3000${NC}"
+echo -e "${GREEN}🔒 HTTPS available at: https://localhost:443 (if SSL certificates configured)${NC}"
 echo -e "${GREEN}📝 View logs with: podman-compose -f podman-compose.yml logs -f${NC}"
 
 # Made with Bob

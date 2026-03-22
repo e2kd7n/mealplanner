@@ -4,7 +4,7 @@
 
 ## Overview
 
-This document outlines weekly maintenance tasks for the Meal Planner application. Unlike simpler applications, this system has multiple components that require regular attention: frontend (React/Vite), backend (Node.js/Express), database (PostgreSQL), cache (Redis), and containerization (Docker/Podman).
+This document outlines weekly maintenance tasks for the Meal Planner application. Unlike simpler applications, this system has multiple components that require regular attention: frontend (React/Vite), backend (Node.js/Express), database (PostgreSQL), in-memory cache (node-cache), and containerization (Podman).
 
 ## Weekly Checklist
 
@@ -49,7 +49,7 @@ This document outlines weekly maintenance tasks for the Meal Planner application
 - [ ] **Database health check**
   ```bash
   # Connect to database
-  docker exec -it meals-postgres psql -U mealplanner -d mealplanner
+  podman exec -it meals-postgres psql -U mealplanner -d mealplanner
   
   # Check database size
   SELECT pg_size_pretty(pg_database_size('mealplanner'));
@@ -130,16 +130,14 @@ This document outlines weekly maintenance tasks for the Meal Planner application
 - [ ] **Container health**
   ```bash
   # Check container status
-  docker ps -a
-  
+  podman ps -a
+
   # Check container logs for errors
-  docker logs meals-backend --tail 100
-  docker logs meals-frontend --tail 100
-  docker logs meals-postgres --tail 100
-  docker logs meals-redis --tail 100
-  
+  podman logs meals-backend --tail 100
+  podman logs meals-postgres --tail 100
+
   # Check resource usage
-  docker stats --no-stream
+  podman stats --no-stream
   ```
 
 - [ ] **Disk space monitoring**
@@ -170,7 +168,7 @@ This document outlines weekly maintenance tasks for the Meal Planner application
 - [ ] **Review application logs**
   ```bash
   # Backend errors
-  docker logs meals-backend 2>&1 | grep -i error | tail -50
+  podman logs meals-backend 2>&1 | grep -i error | tail -50
   
   # Frontend errors (check browser console)
   # Review Sentry/error tracking if configured
@@ -353,26 +351,25 @@ This document outlines weekly maintenance tasks for the Meal Planner application
 ### 🚨 Critical Issues
 
 **Database Down:**
-1. Check container status: `docker ps -a`
-2. Check logs: `docker logs meals-postgres`
-3. Restart container: `docker restart meals-postgres`
+1. Check container status: `podman ps -a`
+2. Check logs: `podman logs meals-postgres`
+3. Restart container: `podman restart meals-postgres`
 4. Restore from backup if needed
 
 **Backend Down:**
-1. Check logs: `docker logs meals-backend`
+1. Check logs: `podman logs meals-backend`
 2. Check database connection
-3. Check Redis connection
-4. Restart container: `docker restart meals-backend`
+3. Restart container: `podman restart meals-backend`
 
 **High Memory Usage:**
-1. Check container stats: `docker stats`
+1. Check container stats: `podman stats`
 2. Check for memory leaks in logs
 3. Restart affected container
 4. Investigate root cause
 
 **Disk Space Full:**
 1. Check disk usage: `df -h`
-2. Clean Docker: `docker system prune`
+2. Clean Podman: `podman system prune`
 3. Archive old backups
 4. Clean application logs
 
