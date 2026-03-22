@@ -7,8 +7,30 @@ This file defines which GitHub issues belong to each priority class. Update this
 ## 🔴 P0 - CRITICAL (Drop Everything)
 Issues that make the application unusable or cause data loss.
 
-**Current Issues:**
-- None
+**Current Issues - v1.1 Architecture Migration (SEQUENCED):**
+
+**Sequence 1: Phase 1 Implementation**
+- #27 - Phase 1: Remove Redis and replace with node-cache
+
+**Sequence 2: Phase 1 Validation**
+- #30 - User Testing Cycle: Post-Phase 1 Architecture Changes
+
+**Sequence 3: Phase 2 Implementation**
+- #28 - Phase 2: Consolidate frontend into backend container
+
+**Sequence 4: Phase 2 Validation**
+- #31 - User Testing Cycle: Post-Phase 2 Architecture Changes
+
+**Sequence 5: Phase 3 Implementation**
+- #29 - Phase 3: Remove Nginx and use Node.js HTTPS module
+
+**Sequence 6: Final Validation**
+- #32 - User Testing Cycle: Post-Phase 3 Final Validation
+
+**Dependencies:**
+- Each phase must complete successfully before next phase begins
+- User testing must pass before proceeding to next implementation phase
+- Any critical issues found during testing block progression
 
 ## 🔴 P1 - HIGH (Current Sprint)
 Issues that significantly impact core functionality or user experience.
@@ -33,11 +55,8 @@ Nice-to-have improvements and minor UX enhancements.
 ## 📋 P4 - FUTURE ENHANCEMENTS (v1.1+)
 Feature requests and enhancements for future releases.
 
-**Architecture Simplification (v1.1 Milestone):**
+**Architecture Evaluation (COMPLETE):**
 - #26 - Evaluate architecture for small-scale deployment (4 users, Raspberry Pi) ✅ COMPLETE
-- #27 - Phase 1: Remove Redis and replace with node-cache
-- #28 - Phase 2: Consolidate frontend into backend container
-- #29 - Phase 3: Remove Nginx and use Node.js HTTPS module
 
 **High Value Features:**
 - #8 - Grocery List Optimization
