@@ -156,9 +156,9 @@ const MealPlanner: React.FC = () => {
       const token = localStorage.getItem('accessToken');
       const apiBase = import.meta.env.VITE_API_URL || '/api';
       
-      // Format dates for API query
-      const startDate = currentWeekStart.toISOString().split('T')[0];
-      const endDate = addDays(currentWeekStart, 6).toISOString().split('T')[0];
+      // Format dates for API query using formatDateForAPI to avoid timezone issues
+      const startDate = formatDateForAPI(currentWeekStart);
+      const endDate = formatDateForAPI(addDays(currentWeekStart, 6));
       
       const response = await fetch(
         `${apiBase}/meal-plans?startDate=${startDate}&endDate=${endDate}`,
