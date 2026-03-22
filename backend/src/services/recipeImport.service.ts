@@ -6,6 +6,7 @@
 import scrapeRecipe from '@rethora/url-recipe-scraper';
 import { logger } from '../utils/logger';
 import prismaClient from '../utils/prisma';
+import { decode } from 'html-entities';
 
 interface ParsedRecipe {
   title: string;
@@ -147,6 +148,14 @@ export class RecipeImportService {
   }
 
   /**
+   * Decode HTML entities in text
+   */
+  private decodeHtmlEntities(text: string): string {
+    if (!text) return text;
+    return decode(text);
+  }
+
+  /**
    * Parse instructions into structured steps
    */
   private parseInstructions(instructions: any): Array<{ step: number; instruction: string }> {
@@ -160,7 +169,7 @@ export class RecipeImportService {
 
       return steps.map((instruction, index) => ({
         step: index + 1,
-        instruction: instruction.trim(),
+        instruction: this.decodeHtmlEntities(instruction.trim()),
       }));
     }
 
@@ -179,14 +188,14 @@ export class RecipeImportService {
           for (const item of inst.itemListElement) {
             const text = item?.text || item?.name || '';
             if (text.trim()) {
-              allSteps.push(text.trim());
+              allSteps.push(this.decodeHtmlEntities(text.trim()));
             }
           }
         } else {
           // Handle direct text/name properties
           const text = inst?.text || inst?.name || (typeof inst === 'string' ? inst : '');
           if (text.trim()) {
-            allSteps.push(text.trim());
+            allSteps.push(this.decodeHtmlEntities(text.trim()));
           }
         }
       }
@@ -396,8 +405,8 @@ export class RecipeImportService {
 
       // Build parsed recipe - convert mealType to mealTypes array for schema compatibility
       const parsedRecipe: ParsedRecipe = {
-        title: scrapedRecipe.name,
-        description: scrapedRecipe.description || '',
+        title: this.decodeHtmlEntities(scrapedRecipe.name),
+        description: this.decodeHtmlEntities(scrapedRecipe.description || ''),
         prepTime,
         cookTime,
         servings: this.parseServings(this.extractString(scrapedRecipe.recipeYield)),
