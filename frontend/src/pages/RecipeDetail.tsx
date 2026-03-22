@@ -21,6 +21,7 @@ import {
   List,
   ListItem,
   ListItemText,
+  ListItemIcon,
   Paper,
   Dialog,
   DialogTitle,
@@ -34,6 +35,7 @@ import {
   Select,
   FormControl,
   InputLabel,
+  Checkbox,
 } from '@mui/material';
 import {
   ArrowBack as ArrowBackIcon,
@@ -41,6 +43,8 @@ import {
   Restaurant as RestaurantIcon,
   People as PeopleIcon,
   Edit as EditIcon,
+  CheckBoxOutlineBlank as CheckBoxOutlineBlankIcon,
+  Circle as CircleIcon,
 } from '@mui/icons-material';
 import { useAppDispatch, useAppSelector } from '../store/hooks';
 import { fetchRecipeById, setCurrentRecipe } from '../store/slices/recipesSlice';
@@ -333,17 +337,38 @@ const RecipeDetail: React.FC = () => {
         >
           {/* Ingredients */}
           <Paper sx={{ p: 3 }}>
-            <Typography variant="h5" gutterBottom>
+            <Typography variant="h5" gutterBottom sx={{ fontWeight: 600, mb: 2 }}>
               Ingredients
             </Typography>
-            <Divider sx={{ mb: 2 }} />
-            <List>
+            <Divider sx={{ mb: 3 }} />
+            <List sx={{ '& .MuiListItem-root': { py: 1.5 } }}>
               {recipe.ingredients && recipe.ingredients.length > 0 ? (
                 recipe.ingredients.map((item: any, index: number) => (
-                  <ListItem key={index}>
+                  <ListItem
+                    key={index}
+                    sx={{
+                      px: 0,
+                      '&:hover': {
+                        bgcolor: 'action.hover',
+                        borderRadius: 1,
+                        px: 1,
+                      }
+                    }}
+                  >
+                    <ListItemIcon sx={{ minWidth: 36 }}>
+                      <CheckBoxOutlineBlankIcon sx={{ color: 'text.secondary', fontSize: 20 }} />
+                    </ListItemIcon>
                     <ListItemText
-                      primary={`${item.quantity} ${item.unit} ${item.ingredient?.name || item.ingredientName || 'Unknown ingredient'}`}
-                      secondary={item.notes}
+                      primary={
+                        <Typography variant="body1" sx={{ fontWeight: 500 }}>
+                          {`${item.quantity} ${item.unit} ${item.ingredient?.name || item.ingredientName || 'Unknown ingredient'}`}
+                        </Typography>
+                      }
+                      secondary={item.notes ? (
+                        <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5, fontStyle: 'italic' }}>
+                          {item.notes}
+                        </Typography>
+                      ) : null}
                     />
                   </ListItem>
                 ))
@@ -360,18 +385,53 @@ const RecipeDetail: React.FC = () => {
 
           {/* Instructions */}
           <Paper sx={{ p: 3 }}>
-            <Typography variant="h5" gutterBottom>
+            <Typography variant="h5" gutterBottom sx={{ fontWeight: 600, mb: 2 }}>
               Instructions
             </Typography>
-            <Divider sx={{ mb: 2 }} />
-            <List>
+            <Divider sx={{ mb: 3 }} />
+            <List sx={{ '& .MuiListItem-root': { py: 2 } }}>
               {recipe.instructions && Array.isArray(recipe.instructions) && recipe.instructions.length > 0 ? (
                 recipe.instructions.map((step: any, index: number) => (
-                  <ListItem key={index} sx={{ alignItems: 'flex-start' }}>
+                  <ListItem
+                    key={index}
+                    sx={{
+                      alignItems: 'flex-start',
+                      px: 0,
+                      borderLeft: 3,
+                      borderColor: 'primary.main',
+                      pl: 2,
+                      mb: 2,
+                      '&:hover': {
+                        bgcolor: 'action.hover',
+                        borderRadius: 1,
+                        pr: 1,
+                      }
+                    }}
+                  >
+                    <ListItemIcon sx={{ minWidth: 40, mt: 0.5 }}>
+                      <Box
+                        sx={{
+                          width: 32,
+                          height: 32,
+                          borderRadius: '50%',
+                          bgcolor: 'primary.main',
+                          color: 'white',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          fontWeight: 'bold',
+                          fontSize: '0.875rem',
+                        }}
+                      >
+                        {step.step || index + 1}
+                      </Box>
+                    </ListItemIcon>
                     <ListItemText
-                      primary={`Step ${step.step || index + 1}`}
-                      secondary={step.instruction || step.text || step}
-                      primaryTypographyProps={{ fontWeight: 'bold', mb: 0.5 }}
+                      primary={
+                        <Typography variant="body1" sx={{ lineHeight: 1.7, color: 'text.primary' }}>
+                          {step.instruction || step.text || step}
+                        </Typography>
+                      }
                     />
                   </ListItem>
                 ))
