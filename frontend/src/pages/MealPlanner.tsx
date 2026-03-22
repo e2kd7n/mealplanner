@@ -536,7 +536,7 @@ const MealPlanner: React.FC = () => {
         },
         body: JSON.stringify({
           recipeId: copiedMeal.recipeId,
-          date: date.toISOString().split('T')[0],
+          date: formatDateForAPI(date),
           mealType: mealType.toLowerCase(),
           servings: copiedMeal.servings,
           assignedCookId: copiedMeal.assignedCookId || null,
