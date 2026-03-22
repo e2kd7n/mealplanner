@@ -17,6 +17,14 @@ This application helps families (like a family of 4 with 2 adults and 2 teenager
 - Work offline with full PWA capabilities
 
 **MVP Status:** All core workflows are functional and tested. See [MVP_RELEASE_SUMMARY.md](./MVP_RELEASE_SUMMARY.md) for complete feature list and testing results.
+## 📋 Issue Tracking
+
+All bugs, features, and improvements are tracked in [GitHub Issues](https://github.com/e2kd7n/mealplanner/issues).
+
+- **Workflow Guide**: See [GITHUB_WORKFLOW.md](./GITHUB_WORKFLOW.md) for how to create and manage issues
+- **Priorities**: See [ISSUE_PRIORITIES.md](./ISSUE_PRIORITIES.md) for current sprint priorities
+- **Current Sprint**: Focus on HIGH priority issues (#1, #6)
+
 
 ## ✨ Key Features (MVP v1.0.0)
 
