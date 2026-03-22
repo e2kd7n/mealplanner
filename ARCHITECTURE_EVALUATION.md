@@ -59,6 +59,7 @@ const cache = new NodeCache({ stdTTL: 600 }); // 10 min default
 ```
 
 **Impact:** Low - Easy migration, no data loss
+**Decision** Remove Redis
 
 ---
 
@@ -83,6 +84,7 @@ app.get('*', (req, res) => {
 ```
 
 **Impact:** Low - Standard pattern, no functionality loss
+**Decision** Remove separate frontend container
 
 ---
 
@@ -125,6 +127,7 @@ https.createServer(options, app).listen(443);
 ```
 
 **Impact:** Low-Medium - Requires SSL certificate management
+**Decision** Remove Nginx and use Node.js HTTPS module for SSL
 
 ---
 
@@ -162,6 +165,7 @@ https.createServer(options, app).listen(443);
 - No built-in replication
 
 **Recommendation:** **Keep PostgreSQL** for now, but SQLite is viable
+**Decision** Keep PostgreSQL for now
 
 **Impact:** High if switching - Requires Prisma schema changes
 
@@ -214,7 +218,9 @@ WantedBy=multi-user.target
 ```
 
 **Recommendation:** **Option A** (2 containers) - Good balance
-
+**Decision**  Option A (2 containers)
+**Rationale:**
+- Option A (2 containers) provides a good balance between simplicity and functionality. It separates the backend and frontend into two containers, allowing for better scalability and maintainability.
 ---
 
 ## Proposed Architectures
@@ -306,7 +312,21 @@ Complexity: Minimal
 
 ## Migration Plan
 
-### Phase 1: Remove Redis (Week 1)
+**APPROVED ARCHITECTURE:** 2-Container Setup (App + PostgreSQL)
+
+### Decisions Summary
+
+✅ **Remove Redis** - Replace with node-cache
+✅ **Remove separate Frontend container** - Backend serves static files
+✅ **Remove Nginx** - Use Node.js HTTPS module for SSL
+✅ **Keep PostgreSQL** - Production-grade database maintained
+✅ **Target: 2 containers** - App + PostgreSQL
+
+---
+
+### Phase 1: Remove Redis ✅ APPROVED
+
+**Decision:** Remove Redis, replace with node-cache
 
 **Steps:**
 1. Install `node-cache` package
@@ -316,67 +336,73 @@ Complexity: Minimal
 5. Remove Redis container from compose file
 6. Deploy and monitor
 
-**Risk:** Low  
-**Effort:** 4-8 hours  
+**Risk:** Low
+**Effort:** 4-8 hours
 **Savings:** ~10 MB memory, 1 container
+**Status:** Ready to implement
 
 ---
 
-### Phase 2: Consolidate Frontend (Week 2)
+### Phase 2: Consolidate Frontend ✅ APPROVED
+
+**Decision:** Remove separate frontend container, backend serves static files
 
 **Steps:**
 1. Update backend to serve static files
 2. Add catch-all route for SPA
-3. Update build process
+3. Update build process to output to backend/dist/public
 4. Test locally
 5. Update compose file (remove frontend container)
 6. Deploy and monitor
 
-**Risk:** Low  
-**Effort:** 2-4 hours  
+**Risk:** Low
+**Effort:** 2-4 hours
 **Savings:** ~5 MB memory, 1 container
+**Status:** Ready to implement
 
 ---
 
-### Phase 3: Simplify Nginx (Week 3)
+### Phase 3: Remove Nginx ✅ APPROVED
 
-**Option A: Remove Nginx**
-1. Add HTTPS support to Node.js
-2. Update SSL certificate management
-3. Test SSL/TLS
-4. Update compose file
-5. Deploy and monitor
-
-**Option B: Replace with Caddy**
-1. Create Caddyfile
-2. Update compose file
-3. Test auto-SSL
-4. Deploy and monitor
-
-**Risk:** Medium (SSL management)  
-**Effort:** 4-8 hours  
-**Savings:** ~10 MB memory, 1 container (or simpler proxy)
-
----
-
-### Phase 4: Evaluate PostgreSQL → SQLite (Optional, Week 4+)
-
-**Only if:**
-- Truly single-family deployment
-- Want absolute simplicity
-- Comfortable with SQLite limitations
+**Decision:** Remove Nginx entirely, use Node.js HTTPS module for SSL
 
 **Steps:**
-1. Create SQLite Prisma schema
-2. Export PostgreSQL data
-3. Import to SQLite
-4. Test thoroughly
-5. Update deployment
-6. Monitor performance
+1. Add HTTPS support to Node.js backend
+2. Configure SSL certificate paths in environment variables
+3. Update Express app to use https.createServer()
+4. Test SSL/TLS locally with self-signed cert
+5. Update compose file (remove nginx container)
+6. Configure Let's Encrypt or manual cert on Raspberry Pi
+7. Deploy and monitor
 
-**Risk:** High  
-**Effort:** 16-24 hours  
-**Savings:** ~50 MB memory, 1 container
+**Risk:** Medium (SSL certificate management)
+**Effort:** 4-8 hours
+**Savings:** ~10 MB memory, 1 container
+**Status:** Ready to implement
+
+**SSL Certificate Options:**
+- **Option A:** Manual cert management (certbot)
+- **Option B:** Use Caddy as lightweight reverse proxy (reconsider if SSL becomes complex)
+- **Option C:** Self-signed cert for local network only
+
+---
+
+### Phase 4: PostgreSQL Evaluation ❌ DEFERRED
+
+**Decision:** Keep PostgreSQL for now
+
+**Rationale:**
+- Production-grade database
+- Room for growth beyond 4 users
+- Advanced features available (full-text search, JSON queries)
+- Comfortable with container management
+
+**Future Consideration:**
+- May revisit SQLite if truly single-family forever
+- Would require significant migration effort (16-24 hours)
+- Not worth the risk/effort at this time
+
+**Status:** Not planned
 
 ---
 
