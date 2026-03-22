@@ -125,6 +125,10 @@ const MealPlanner: React.FC = () => {
   // Edit schedule state
   const [editingSchedule, setEditingSchedule] = useState(false);
   const [editDate, setEditDate] = useState<Date | null>(null);
+  
+  // Edit meal state (for updating existing meals)
+  const [isEditingMeal, setIsEditingMeal] = useState(false);
+  const [editingMealId, setEditingMealId] = useState<string | null>(null);
   const [editMealType, setEditMealType] = useState<string>('');
   
   // Copy/paste state
@@ -354,9 +358,61 @@ const MealPlanner: React.FC = () => {
       
       setMeals([...meals, meal]);
       setOpenDialog(false);
+      setIsEditingMeal(false);
+      setEditingMealId(null);
     } catch (error) {
       console.error('Failed to add meal:', error);
       alert('Failed to add meal. Please try again.');
+    }
+  };
+
+  const handleUpdateMeal = async () => {
+    if (!selectedDate || !newMeal.recipeId || !editingMealId || !currentMealPlanId) return;
+
+    try {
+      const token = localStorage.getItem('accessToken');
+      const apiBase = import.meta.env.VITE_API_URL || '/api';
+      
+      const response = await fetch(
+        `${apiBase}/meal-plans/${currentMealPlanId}/meals/${editingMealId}`,
+        {
+          method: 'PUT',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            date: formatDateForAPI(selectedDate),
+            mealType: selectedMealType.toLowerCase(),
+            servings: newMeal.servings,
+            assignedCookId: newMeal.assignedCookId || null,
+          }),
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error('Failed to update meal');
+      }
+
+      // Update local state
+      const updatedMeals = meals.map(meal =>
+        meal.id === editingMealId
+          ? {
+              ...meal,
+              date: selectedDate,
+              mealType: selectedMealType as 'BREAKFAST' | 'LUNCH' | 'DINNER' | 'SNACK',
+              servings: newMeal.servings,
+              assignedCookId: newMeal.assignedCookId || undefined,
+            }
+          : meal
+      );
+      setMeals(updatedMeals);
+      setOpenDialog(false);
+      setIsEditingMeal(false);
+      setEditingMealId(null);
+    } catch (error) {
+      console.error('Failed to update meal:', error);
+      alert('Failed to update meal. Please try again.');
     }
   };
 
@@ -441,6 +497,8 @@ const MealPlanner: React.FC = () => {
 
   const handleEditMeal = () => {
     if (selectedMeal) {
+      setIsEditingMeal(true);
+      setEditingMealId(selectedMeal.id);
       setSelectedDate(selectedMeal.date);
       setSelectedMealType(selectedMeal.mealType);
       setNewMeal({
@@ -871,10 +929,10 @@ const MealPlanner: React.FC = () => {
         )}
       </Box>
 
-      {/* Add Meal Dialog */}
-      <Dialog open={openDialog} onClose={() => setOpenDialog(false)} maxWidth="sm" fullWidth>
+      {/* Add/Edit Meal Dialog */}
+      <Dialog open={openDialog} onClose={() => { setOpenDialog(false); setIsEditingMeal(false); setEditingMealId(null); }} maxWidth="sm" fullWidth>
         <DialogTitle>
-          Add Meal for {selectedDate && format(selectedDate, 'EEEE, MMM d')}
+          {isEditingMeal ? 'Edit Meal' : `Add Meal for ${selectedDate && format(selectedDate, 'EEEE, MMM d')}`}
         </DialogTitle>
         <DialogContent>
           <Stack spacing={2} sx={{ mt: 1 }}>
@@ -971,13 +1029,13 @@ const MealPlanner: React.FC = () => {
           </Stack>
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setOpenDialog(false)}>Cancel</Button>
+          <Button onClick={() => { setOpenDialog(false); setIsEditingMeal(false); setEditingMealId(null); }}>Cancel</Button>
           <Button
-            onClick={handleAddMeal}
+            onClick={isEditingMeal ? handleUpdateMeal : handleAddMeal}
             variant="contained"
             disabled={!newMeal.recipeId || !newMeal.recipeName}
           >
-            Add Meal
+            {isEditingMeal ? 'Update Meal' : 'Add Meal'}
           </Button>
         </DialogActions>
       </Dialog>
