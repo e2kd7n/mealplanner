@@ -16,6 +16,7 @@ import {
   updateMeal,
   removeMealFromPlan,
 } from '../controllers/mealPlan.controller';
+import { generateFromMealPlan } from '../controllers/groceryList.controller';
 
 const router: Router = Router();
 
@@ -77,6 +78,13 @@ router.put('/:planId/meals/:mealId', updateMeal);
  * @access  Private
  */
 router.delete('/:planId/meals/:mealId', removeMealFromPlan);
+
+/**
+ * @route   POST /api/meal-plans/:id/generate-grocery-list
+ * @desc    Generate grocery list from meal plan
+ * @access  Private
+ */
+router.post('/:id/generate-grocery-list', generateFromMealPlan);
 
 export default router;
 
