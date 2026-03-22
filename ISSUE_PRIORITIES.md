@@ -33,6 +33,12 @@ Nice-to-have improvements and minor UX enhancements.
 ## 📋 P4 - FUTURE ENHANCEMENTS (v1.1+)
 Feature requests and enhancements for future releases.
 
+**Architecture Simplification (v1.1 Milestone):**
+- #26 - Evaluate architecture for small-scale deployment (4 users, Raspberry Pi) ✅ COMPLETE
+- #27 - Phase 1: Remove Redis and replace with node-cache
+- #28 - Phase 2: Consolidate frontend into backend container
+- #29 - Phase 3: Remove Nginx and use Node.js HTTPS module
+
 **High Value Features:**
 - #8 - Grocery List Optimization
 - #12 - Integrate Nutrition Database for Auto-Population
@@ -54,7 +60,6 @@ Feature requests and enhancements for future releases.
 - #23 - Implement Meal Date Editing and Recurrence Patterns
 - #24 - Implement Copy/Paste for Meal Planner
 - #25 - Implement Dashboard Recent Activity Feed
-- #26 - Evaluate architecture for small-scale deployment (4 users, Raspberry Pi)
 
 ## Priority Guidelines
 
