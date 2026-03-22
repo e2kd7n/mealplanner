@@ -79,8 +79,11 @@ export const fetchRecipes = createAsyncThunk(
   } = {}, { rejectWithValue }) => {
     try {
       const response = await recipeAPI.getAll(params);
+      console.log('Recipe API Response:', response);
+      console.log('Response data:', response.data);
       return response.data;
     } catch (error: any) {
+      console.error('Recipe fetch error:', error);
       return rejectWithValue(error.response?.data?.message || 'Failed to fetch recipes');
     }
   }
@@ -186,13 +189,29 @@ const recipesSlice = createSlice({
       })
       .addCase(fetchRecipes.fulfilled, (state, action) => {
         state.loading = false;
-        // Handle case where payload might be undefined or have unexpected structure
-        if (action.payload && action.payload.recipes) {
-          state.recipes = action.payload.recipes;
-          state.pagination = action.payload.pagination || state.pagination;
-        } else {
+        // The API returns { recipes: [...], pagination: {...} }
+        // But axios wraps it in response.data, so action.payload is already the unwrapped data
+        if (action.payload) {
+          // Check if payload has recipes property (expected format)
+          if (action.payload.recipes) {
+            state.recipes = action.payload.recipes;
+            state.pagination = action.payload.pagination || state.pagination;
+          }
+          // Check if payload.data has recipes (double-wrapped)
+          else if (action.payload.data && action.payload.data.recipes) {
+            state.recipes = action.payload.data.recipes;
+            state.pagination = action.payload.data.pagination || state.pagination;
+          }
           // Fallback: treat payload as array of recipes
-          state.recipes = Array.isArray(action.payload) ? action.payload : [];
+          else if (Array.isArray(action.payload)) {
+            state.recipes = action.payload;
+          }
+          // Last resort: empty array
+          else {
+            state.recipes = [];
+          }
+        } else {
+          state.recipes = [];
         }
       })
       .addCase(fetchRecipes.rejected, (state, action) => {

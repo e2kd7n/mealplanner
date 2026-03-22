@@ -166,15 +166,35 @@ export class RecipeImportService {
 
     // Handle array of instructions
     if (Array.isArray(instructions)) {
-      return instructions
-        .map((inst, index) => {
-          const text = inst?.text || inst?.name || String(inst);
-          return {
-            step: index + 1,
-            instruction: text.trim(),
-          };
-        })
-        .filter((inst) => inst.instruction.length > 0);
+      const allSteps: string[] = [];
+      
+      for (const inst of instructions) {
+        // Handle empty objects or invalid data
+        if (!inst || (typeof inst === 'object' && Object.keys(inst).length === 0)) {
+          continue;
+        }
+        
+        // Handle nested itemListElement structure (e.g., laurafuentes.com)
+        if (inst.itemListElement && Array.isArray(inst.itemListElement)) {
+          for (const item of inst.itemListElement) {
+            const text = item?.text || item?.name || '';
+            if (text.trim()) {
+              allSteps.push(text.trim());
+            }
+          }
+        } else {
+          // Handle direct text/name properties
+          const text = inst?.text || inst?.name || (typeof inst === 'string' ? inst : '');
+          if (text.trim()) {
+            allSteps.push(text.trim());
+          }
+        }
+      }
+      
+      return allSteps.map((instruction, index) => ({
+        step: index + 1,
+        instruction,
+      }));
     }
 
     return [];
@@ -230,27 +250,86 @@ export class RecipeImportService {
    * Import recipe from URL
    */
   async importFromUrl(url: string): Promise<ParsedRecipe> {
+    const hostname = new URL(url).hostname;
+    
     try {
       // Validate URL
       const validatedUrl = this.validateUrl(url);
 
-      logger.info(`Importing recipe from URL: ${validatedUrl}`);
+      logger.info(`[RECIPE_IMPORT_START] URL: ${validatedUrl}, Hostname: ${hostname}`);
 
       // Scrape recipe using @rethora/url-recipe-scraper
       let scrapedRecipe;
       try {
         scrapedRecipe = await scrapeRecipe(validatedUrl);
+        
+        // Log successful scrape with data structure
+        logger.info(`[RECIPE_SCRAPE_SUCCESS] ${hostname}`, {
+          url: validatedUrl,
+          hostname,
+          hasName: !!scrapedRecipe?.name,
+          recipeName: scrapedRecipe?.name || 'N/A',
+          dataKeys: scrapedRecipe ? Object.keys(scrapedRecipe).sort().join(', ') : 'null',
+          hasIngredients: !!scrapedRecipe?.recipeIngredient,
+          ingredientCount: Array.isArray(scrapedRecipe?.recipeIngredient) ? scrapedRecipe.recipeIngredient.length : 0,
+          hasInstructions: !!scrapedRecipe?.recipeInstructions,
+          instructionType: scrapedRecipe?.recipeInstructions ? typeof scrapedRecipe.recipeInstructions : 'undefined',
+          instructionStructure: Array.isArray(scrapedRecipe?.recipeInstructions)
+            ? `array[${scrapedRecipe.recipeInstructions.length}]`
+            : typeof scrapedRecipe?.recipeInstructions,
+        });
+        
       } catch (scrapeError: any) {
-        logger.error(`Scraping failed for ${validatedUrl}: ${scrapeError.message}`);
-        throw new Error(`Unable to scrape recipe from this URL. The website may not be supported or may be blocking automated access.`);
+        // Log detailed scraping failure for analysis
+        logger.error(`[RECIPE_SCRAPE_FAILED] ${hostname}`, {
+          url: validatedUrl,
+          hostname,
+          errorMessage: scrapeError.message,
+          errorType: scrapeError.constructor.name,
+          errorStack: scrapeError.stack,
+          timestamp: new Date().toISOString(),
+        });
+        
+        // Provide helpful error message based on error type
+        if (scrapeError.message.includes('JSON') || scrapeError.message.includes('parse')) {
+          throw new Error(
+            `Unable to import from ${hostname}. This appears to be a recipe listing or category page rather than an individual recipe. ` +
+            `Please navigate to a specific recipe page and try again.`
+          );
+        }
+        
+        if (scrapeError.message.includes('timeout') || scrapeError.message.includes('ETIMEDOUT')) {
+          throw new Error(
+            `Connection timeout while trying to access ${hostname}. The website may be slow or temporarily unavailable. Please try again.`
+          );
+        }
+        
+        if (scrapeError.message.includes('404') || scrapeError.message.includes('Not Found')) {
+          throw new Error(
+            `Recipe not found at ${hostname}. The page may have been moved or deleted.`
+          );
+        }
+        
+        // Generic error with more details
+        throw new Error(
+          `Unable to scrape recipe from ${hostname}. The website may not be supported, may be blocking automated access, or may not have properly formatted recipe data. ` +
+          `Technical details: ${scrapeError.message}`
+        );
       }
 
       if (!scrapedRecipe || !scrapedRecipe.name) {
-        logger.error(`No recipe data found at ${validatedUrl}`);
-        throw new Error('No recipe data found at this URL. Please ensure the URL points to a recipe page with structured data.');
+        logger.error(`[RECIPE_NO_DATA] ${hostname}`, {
+          url: validatedUrl,
+          hostname,
+          hasData: !!scrapedRecipe,
+          dataKeys: scrapedRecipe ? Object.keys(scrapedRecipe).sort() : [],
+          rawData: scrapedRecipe ? JSON.stringify(scrapedRecipe, null, 2).substring(0, 500) : 'null',
+          timestamp: new Date().toISOString(),
+        });
+        throw new Error('No recipe data found at this URL. The page may not contain properly formatted recipe information (schema.org Recipe markup). Please ensure the URL points to a specific recipe page.');
       }
 
-      logger.info(`Scraped recipe: ${scrapedRecipe.name}`);
+      logger.info(`[RECIPE_PARSE_START] ${hostname}: ${scrapedRecipe.name}`);
 
       // Parse times
       const prepTime = this.parseTime(scrapedRecipe.prepTime);
@@ -259,7 +338,13 @@ export class RecipeImportService {
       // Parse ingredients and filter out nulls
       const rawIngredients = scrapedRecipe.recipeIngredient || [];
       if (!Array.isArray(rawIngredients) || rawIngredients.length === 0) {
-        logger.warn(`No ingredients found for recipe: ${scrapedRecipe.name}`);
+        logger.warn(`[RECIPE_NO_INGREDIENTS] ${hostname}: ${scrapedRecipe.name}`, {
+          url: validatedUrl,
+          hostname,
+          recipeName: scrapedRecipe.name,
+          hasIngredientField: !!scrapedRecipe.recipeIngredient,
+          ingredientType: typeof scrapedRecipe.recipeIngredient,
+        });
       }
       
       const ingredients = rawIngredients
@@ -267,18 +352,38 @@ export class RecipeImportService {
         .filter((ing: any) => ing !== null);
 
       if (ingredients.length === 0) {
-        throw new Error('Recipe must have at least one ingredient. Unable to parse ingredients from this URL.');
+        logger.error(`[RECIPE_PARSE_FAILED] ${hostname}: No valid ingredients`, {
+          url: validatedUrl,
+          hostname,
+          recipeName: scrapedRecipe.name,
+          rawIngredientCount: rawIngredients.length,
+          rawIngredientSample: rawIngredients.slice(0, 3),
+          timestamp: new Date().toISOString(),
+        });
+        throw new Error('Recipe must have at least one ingredient. The website may not have properly formatted recipe data.');
       }
 
       // Parse instructions
       const instructions = this.parseInstructions(scrapedRecipe.recipeInstructions);
       
       if (instructions.length === 0) {
-        logger.warn(`No instructions found for recipe: ${scrapedRecipe.name}`);
+        logger.warn(`[RECIPE_NO_INSTRUCTIONS] ${hostname}: ${scrapedRecipe.name}`, {
+          url: validatedUrl,
+          hostname,
+          recipeName: scrapedRecipe.name,
+          hasInstructionField: !!scrapedRecipe.recipeInstructions,
+          instructionType: typeof scrapedRecipe.recipeInstructions,
+          instructionStructure: Array.isArray(scrapedRecipe.recipeInstructions)
+            ? `array[${scrapedRecipe.recipeInstructions.length}]`
+            : typeof scrapedRecipe.recipeInstructions,
+          rawInstructionSample: scrapedRecipe.recipeInstructions
+            ? JSON.stringify(scrapedRecipe.recipeInstructions).substring(0, 200)
+            : 'null',
+        });
         // Add a placeholder instruction
         instructions.push({
           step: 1,
-          instruction: 'Instructions not available. Please refer to the original recipe URL.',
+          instruction: 'Instructions not available from the source website. Please refer to the original recipe URL for cooking directions.',
         });
       }
 
@@ -289,7 +394,7 @@ export class RecipeImportService {
         this.extractString((scrapedRecipe as any).keywords)
       );
 
-      // Build parsed recipe
+      // Build parsed recipe - convert mealType to mealTypes array for schema compatibility
       const parsedRecipe: ParsedRecipe = {
         title: scrapedRecipe.name,
         description: scrapedRecipe.description || '',
@@ -298,7 +403,7 @@ export class RecipeImportService {
         servings: this.parseServings(this.extractString(scrapedRecipe.recipeYield)),
         difficulty,
         cuisineType: this.extractString(scrapedRecipe.recipeCuisine),
-        mealType,
+        mealType, // Keep for backward compatibility
         imageUrl: this.extractImageUrl(scrapedRecipe.image),
         ingredients: ingredients.filter((ing): ing is NonNullable<typeof ing> => ing !== null),
         instructions,
@@ -306,13 +411,27 @@ export class RecipeImportService {
         sourceUrl: validatedUrl,
       };
 
-      logger.info(`Successfully imported recipe: ${parsedRecipe.title} with ${ingredients.length} ingredients and ${instructions.length} steps`);
+      logger.info(`[RECIPE_IMPORT_SUCCESS] ${hostname}: ${parsedRecipe.title}`, {
+        url: validatedUrl,
+        hostname,
+        recipeName: parsedRecipe.title,
+        ingredientCount: ingredients.length,
+        instructionCount: instructions.length,
+        prepTime: parsedRecipe.prepTime,
+        cookTime: parsedRecipe.cookTime,
+        difficulty: parsedRecipe.difficulty,
+        mealType: parsedRecipe.mealType,
+        timestamp: new Date().toISOString(),
+      });
 
       return parsedRecipe;
     } catch (error: any) {
-      logger.error(`Failed to import recipe from URL: ${error.message}`, {
-        stack: error.stack,
+      logger.error(`[RECIPE_IMPORT_FAILED] ${hostname}`, {
         url,
+        hostname,
+        errorMessage: error.message,
+        errorStack: error.stack,
+        timestamp: new Date().toISOString(),
       });
       
       // Re-throw with user-friendly message

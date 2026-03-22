@@ -141,9 +141,14 @@ export async function getRecipes(
     };
 
     if (search) {
-      where.OR = [
-        { title: { contains: search as string, mode: 'insensitive' } },
-        { description: { contains: search as string, mode: 'insensitive' } },
+      // Add search conditions while preserving access control
+      where.AND = [
+        {
+          OR: [
+            { title: { contains: search as string, mode: 'insensitive' } },
+            { description: { contains: search as string, mode: 'insensitive' } },
+          ],
+        },
       ];
     }
 

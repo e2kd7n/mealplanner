@@ -83,6 +83,7 @@ export const saveImportedRecipe = async (req: Request, res: Response) => {
       servings,
       difficulty,
       cuisineType,
+      mealType,
       mealTypes,
       imageUrl,
       ingredients,
@@ -92,6 +93,19 @@ export const saveImportedRecipe = async (req: Request, res: Response) => {
     } = req.body;
 
     logger.info(`Saving imported recipe: ${title} for user ${userId}`);
+
+    // Handle both mealType (singular) and mealTypes (plural) for backward compatibility
+    let finalMealTypes = mealTypes || (mealType ? [mealType] : ['dinner']);
+    
+    // Ensure finalMealTypes is always an array and not empty
+    if (!Array.isArray(finalMealTypes)) {
+      finalMealTypes = [finalMealTypes];
+    }
+    if (finalMealTypes.length === 0) {
+      finalMealTypes = ['dinner'];
+    }
+    
+    logger.info(`Final meal types: ${JSON.stringify(finalMealTypes)}`);
 
     // Create recipe
     const recipe = await prisma.recipe.create({
@@ -106,7 +120,7 @@ export const saveImportedRecipe = async (req: Request, res: Response) => {
         servings,
         difficulty,
         cuisineType: cuisineType || null,
-        mealTypes,
+        mealTypes: finalMealTypes,
         imageUrl: imageUrl || null,
         instructions,
         nutritionInfo: nutritionInfo || null,
