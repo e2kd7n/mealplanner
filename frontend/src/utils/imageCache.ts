@@ -116,8 +116,8 @@ class ImageCache {
    * Get proxy URL for external images
    */
   private getProxyUrl(url: string): string {
-    const apiBase = import.meta.env.VITE_API_URL || 'http://localhost:3000';
-    return `${apiBase}/api/images/proxy?url=${encodeURIComponent(url)}`;
+    const apiBase = import.meta.env.VITE_API_URL || '/api';
+    return `${apiBase}/images/proxy?url=${encodeURIComponent(url)}`;
   }
 
   /**

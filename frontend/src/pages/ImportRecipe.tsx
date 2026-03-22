@@ -233,7 +233,7 @@ export default function ImportRecipe() {
                 <Chip label={`${parsedRecipe.prepTime + parsedRecipe.cookTime} min`} size="small" />
                 <Chip label={`${parsedRecipe.servings} servings`} size="small" />
                 <Chip label={parsedRecipe.difficulty} size="small" color="primary" />
-                {parsedRecipe.mealTypes.map((mt) => (
+                {parsedRecipe.mealTypes && Array.isArray(parsedRecipe.mealTypes) && parsedRecipe.mealTypes.map((mt) => (
                   <Chip key={mt} label={mt.charAt(0).toUpperCase() + mt.slice(1)} size="small" />
                 ))}
                 {parsedRecipe.cuisineType && (

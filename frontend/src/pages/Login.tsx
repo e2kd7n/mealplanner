@@ -46,8 +46,8 @@ const Login: React.FC = () => {
 
   const handleTestLogin = async () => {
     await dispatch(login({
-      email: 'testuser@example.com',
-      password: 'TestPassword123!'
+      email: 'test@example.com',
+      password: 'TestPass123!'
     }));
   };
 
