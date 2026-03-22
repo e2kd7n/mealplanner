@@ -50,6 +50,14 @@ import { fetchGroceryLists, addItemToList } from '../store/slices/groceryListsSl
 import { fetchMealPlans, addMealToPlan } from '../store/slices/mealPlansSlice';
 import { useCachedImage } from '../hooks/useCachedImage';
 
+// Helper function to format date without timezone issues
+const formatDateForAPI = (date: Date): string => {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+};
+
 const RecipeDetail: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
@@ -104,11 +112,15 @@ const RecipeDetail: React.FC = () => {
 
     setAddingToMealPlan(true);
     try {
+      // Convert the date string to a Date object and format it properly
+      const dateObj = new Date(mealDate + 'T00:00:00');
+      const formattedDate = formatDateForAPI(dateObj);
+      
       await dispatch(addMealToPlan({
         planId: selectedMealPlanId,
         mealData: {
           recipeId: recipe.id,
-          date: mealDate,
+          date: formattedDate,
           mealType: mealType,
           servings: mealServings,
           notes: '',
