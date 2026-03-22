@@ -125,7 +125,6 @@ export const saveImportedRecipe = async (req: Request, res: Response) => {
         instructions,
         nutritionInfo: nutritionInfo || null,
         kidFriendly: false,
-        isPublic: false,
       },
     });
 
