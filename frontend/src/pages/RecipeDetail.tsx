@@ -35,7 +35,6 @@ import {
   Select,
   FormControl,
   InputLabel,
-  Checkbox,
 } from '@mui/material';
 import {
   ArrowBack as ArrowBackIcon,
@@ -44,7 +43,6 @@ import {
   People as PeopleIcon,
   Edit as EditIcon,
   CheckBoxOutlineBlank as CheckBoxOutlineBlankIcon,
-  Circle as CircleIcon,
 } from '@mui/icons-material';
 import { useAppDispatch, useAppSelector } from '../store/hooks';
 import { fetchRecipeById, setCurrentRecipe } from '../store/slices/recipesSlice';
