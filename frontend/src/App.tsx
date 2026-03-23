@@ -13,6 +13,7 @@ import { store } from './store';
 import { AuthProvider } from './contexts/AuthContext';
 import PrivateRoute from './components/PrivateRoute';
 import Layout from './components/Layout';
+import ErrorBoundary from './components/ErrorBoundary';
 
 // Lazy load pages for better performance
 const Login = lazy(() => import('./pages/Login'));
@@ -44,11 +45,12 @@ const LoadingFallback = () => (
 
 function App() {
   return (
-    <Provider store={store}>
-      <ThemeProvider theme={theme}>
-        <CssBaseline />
-        <AuthProvider>
-          <Router>
+    <ErrorBoundary>
+      <Provider store={store}>
+        <ThemeProvider theme={theme}>
+          <CssBaseline />
+          <AuthProvider>
+            <Router>
             <Suspense fallback={<LoadingFallback />}>
               <Routes>
                 {/* Public routes */}
@@ -82,10 +84,11 @@ function App() {
                 <Route path="*" element={<Navigate to="/dashboard" replace />} />
               </Routes>
             </Suspense>
-          </Router>
-        </AuthProvider>
-      </ThemeProvider>
-    </Provider>
+            </Router>
+          </AuthProvider>
+        </ThemeProvider>
+      </Provider>
+    </ErrorBoundary>
   );
 }
 

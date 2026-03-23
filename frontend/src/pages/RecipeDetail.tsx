@@ -295,6 +295,24 @@ const RecipeDetail: React.FC = () => {
           </Box>
         </Box>
 
+        {/* Action Buttons */}
+        <Box sx={{ mb: 3, display: 'flex', gap: 2, justifyContent: 'center' }}>
+          <Button
+            variant="contained"
+            size="large"
+            onClick={handleAddToMealPlan}
+          >
+            Add to Meal Plan
+          </Button>
+          <Button
+            variant="outlined"
+            size="large"
+            onClick={handleAddToGroceryList}
+          >
+            Add to Grocery List
+          </Button>
+        </Box>
+
         {/* Image */}
         {recipe.imageUrl && (
           <Card sx={{ mb: 4, position: 'relative' }}>
@@ -467,24 +485,6 @@ const RecipeDetail: React.FC = () => {
             Nutrition information per serving will be displayed here
           </Typography>
         </Paper>
-
-        {/* Action Buttons */}
-        <Box sx={{ mt: 4, display: 'flex', gap: 2, justifyContent: 'center' }}>
-          <Button
-            variant="contained"
-            size="large"
-            onClick={handleAddToMealPlan}
-          >
-            Add to Meal Plan
-          </Button>
-          <Button
-            variant="outlined"
-            size="large"
-            onClick={handleAddToGroceryList}
-          >
-            Add to Grocery List
-          </Button>
-        </Box>
       </Box>
 
       {/* Add to Meal Plan Dialog */}
