@@ -28,8 +28,6 @@ Issues that significantly impact core functionality or user experience.
 - #37 - P2: No Environment Variable Validation on Startup
 
 
-**No P1 issues currently open**
-
 ## 🟡 P2 - MEDIUM (Next Sprint)
 Important improvements that enhance functionality but don't block core workflows.
 
@@ -54,10 +52,6 @@ Feature requests and enhancements for future releases.
 - #19 - Implement Grocery List Regeneration and Sync Detection
 - #18 - Implement Ingredient Normalization and Variant System
 - #17 - Add Sortable and Filterable Tables/Lists
-- #64 - Implement Advanced Features (Nutrition Tracking, etc.)
-- #14 - Implement Nutrition Guideline Warnings
-- #13 - Implement Nutrition Dashboard
-- #12 - Integrate Nutrition Database for Auto-Population
 - #24 - Implement Copy/Paste for Meal Planner
 - #22 - Implement Drag-and-Drop for Meal Planner
 - #23 - Implement Meal Date Editing and Recurrence Patterns
@@ -67,6 +61,10 @@ Feature requests and enhancements for future releases.
 ## ⚠️ Unprioritized Issues
 Issues without priority labels that need to be triaged.
 
+- #64 - Implement Advanced Features (Nutrition Tracking, etc.)
+- #14 - Implement Nutrition Guideline Warnings
+- #13 - Implement Nutrition Dashboard
+- #12 - Integrate Nutrition Database for Auto-Population
 - #11 - Recipe Card OCR Import
 - #10 - AllRecipes.com Recipe Import Enhancement
 - #9 - MyFitnessPal Integration
