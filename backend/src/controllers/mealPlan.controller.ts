@@ -51,6 +51,7 @@ export const getMealPlans = async (
                 id: true,
                 title: true,
                 imageUrl: true,
+                sourceUrl: true,
                 prepTime: true,
                 cookTime: true,
                 servings: true,
