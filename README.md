@@ -372,15 +372,23 @@ git push origin feature/your-feature-name
 
 ## 📚 Documentation
 
+### Workflow & Development
+- **[Workflow Guide](./WORKFLOW_GUIDE.md)** - **START HERE** - Single source of truth for all workflows
+- [Issue Priorities](./ISSUE_PRIORITIES.md) - Current issue priorities
+- [Weekly Maintenance](./WEEKLY_MAINTENANCE.md) - Regular maintenance tasks
+
+### Setup & Deployment
+- [Setup Guide](./SETUP.md) - Development environment setup
+- [Deployment Guide](./DEPLOYMENT.md) - Production deployment
+- [Security Setup](./SECURITY_SETUP.md) - Security configuration
+- [Database Backup](./DATABASE_BACKUP.md) - Backup procedures
+
+### Architecture & Technical
 - [System Architecture](./docs/ARCHITECTURE.md) - Complete architecture documentation
 - [Technical Plan](./meal-planner-app-plan.md) - Comprehensive technical specification
-- [Setup Guide](./SETUP.md) - Development environment setup
-- [API Documentation](http://localhost:3000/api-docs) - Interactive API docs (when running)
 - [Database Schema](./backend/prisma/schema.prisma) - Prisma schema
 - [Docling Integration](./docs/DOCLING_INTEGRATION.md) - Document handling and recipe import
-- [Issues & Roadmap](./ISSUES.md) - Feature requests and bug tracking
-- [Issues Prioritization](./ISSUES_PRIORITIZATION.md) - Prioritized task list
-- [Weekly Maintenance](./WEEKLY_MAINTENANCE.md) - Regular maintenance tasks and procedures
+- [API Documentation](http://localhost:3000/api-docs) - Interactive API docs (when running)
 
 ## 🤝 Contributing
 
