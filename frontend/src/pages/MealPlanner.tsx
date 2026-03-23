@@ -41,8 +41,11 @@ import {
   Close as CloseIcon,
   Link as LinkIcon,
   OpenInNew as OpenInNewIcon,
+  ViewWeek as ViewWeekIcon,
+  CalendarMonth as CalendarMonthIcon,
+  ViewDay as ViewDayIcon,
 } from '@mui/icons-material';
-import { format, addDays, startOfWeek, isSameDay } from 'date-fns';
+import { format, addDays, startOfWeek, isSameDay, startOfMonth, endOfMonth, eachDayOfInterval } from 'date-fns';
 
 interface FamilyMember {
   id: string;
@@ -73,7 +76,8 @@ interface Meal {
 }
 
 const MEAL_TYPES = ['BREAKFAST', 'LUNCH', 'DINNER', 'SNACK'];
-const DAYS_OF_WEEK = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+
+type ViewMode = 'month' | 'week' | '3-day';
 
 // Helper function to format date without timezone issues
 const formatDateForAPI = (date: Date): string => {
@@ -85,6 +89,8 @@ const formatDateForAPI = (date: Date): string => {
 
 const MealPlanner: React.FC = () => {
   const navigate = useNavigate();
+  const [viewMode, setViewMode] = useState<ViewMode>('week');
+  
   // Initialize with date at midnight to avoid timezone issues
   const [currentWeekStart, setCurrentWeekStart] = useState(() => {
     const today = new Date();
@@ -667,7 +673,27 @@ const MealPlanner: React.FC = () => {
     }
   };
 
-  const weekDays = Array.from({ length: 7 }, (_, i) => addDays(currentWeekStart, i));
+  const getVisibleDays = () => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    
+    switch (viewMode) {
+      case 'month': {
+        const monthStart = startOfMonth(currentWeekStart);
+        const monthEnd = endOfMonth(currentWeekStart);
+        return eachDayOfInterval({ start: monthStart, end: monthEnd });
+      }
+      case '3-day': {
+        // Show today and next 2 days
+        return Array.from({ length: 3 }, (_, i) => addDays(today, i));
+      }
+      case 'week':
+      default:
+        return Array.from({ length: 7 }, (_, i) => addDays(currentWeekStart, i));
+    }
+  };
+
+  const weekDays = getVisibleDays();
 
   return (
     <Container maxWidth="xl">
@@ -687,6 +713,38 @@ const MealPlanner: React.FC = () => {
           </Button>
         </Box>
 
+        {/* View Mode Selector */}
+        <Card sx={{ mb: 2 }}>
+          <CardContent sx={{ py: 1.5 }}>
+            <Stack direction="row" spacing={1} justifyContent="center">
+              <Button
+                size="small"
+                variant={viewMode === 'month' ? 'contained' : 'outlined'}
+                startIcon={<CalendarMonthIcon />}
+                onClick={() => setViewMode('month')}
+              >
+                Month
+              </Button>
+              <Button
+                size="small"
+                variant={viewMode === 'week' ? 'contained' : 'outlined'}
+                startIcon={<ViewWeekIcon />}
+                onClick={() => setViewMode('week')}
+              >
+                Week
+              </Button>
+              <Button
+                size="small"
+                variant={viewMode === '3-day' ? 'contained' : 'outlined'}
+                startIcon={<ViewDayIcon />}
+                onClick={() => setViewMode('3-day')}
+              >
+                3-Day
+              </Button>
+            </Stack>
+          </CardContent>
+        </Card>
+
         {/* Week Navigation */}
         <Card sx={{ mb: 3 }}>
           <CardContent>
@@ -699,7 +757,12 @@ const MealPlanner: React.FC = () => {
                   {format(currentWeekStart, 'MMMM yyyy')}
                 </Typography>
                 <Typography variant="body2" color="text.secondary">
-                  Week of {format(currentWeekStart, 'MMM d')} - {format(addDays(currentWeekStart, 6), 'MMM d')}
+                  {viewMode === 'month'
+                    ? format(currentWeekStart, 'MMMM yyyy')
+                    : viewMode === '3-day'
+                    ? 'Next 3 Days'
+                    : `Week of ${format(currentWeekStart, 'MMM d')} - ${format(addDays(currentWeekStart, 6), 'MMM d')}`
+                  }
                 </Typography>
               </Box>
               <Stack direction="row" spacing={1}>
@@ -723,7 +786,11 @@ const MealPlanner: React.FC = () => {
           <Box
             sx={{
               display: 'grid',
-              gridTemplateColumns: 'repeat(7, 1fr)',
+              gridTemplateColumns: viewMode === 'month'
+                ? 'repeat(7, 1fr)'
+                : viewMode === '3-day'
+                ? 'repeat(3, 1fr)'
+                : 'repeat(7, 1fr)',
               gap: 2,
             }}
           >
@@ -734,9 +801,9 @@ const MealPlanner: React.FC = () => {
               <Card
                 key={dayIndex}
                 sx={{
-                  bgcolor: isToday ? 'primary.light' : 'background.paper',
-                  border: isToday ? 2 : 0,
-                  borderColor: 'primary.main',
+                  bgcolor: 'background.paper',
+                  border: 2,
+                  borderColor: isToday ? 'success.main' : 'transparent',
                 }}
               >
                 <CardContent sx={{ p: 2 }}>
@@ -755,17 +822,17 @@ const MealPlanner: React.FC = () => {
                       gutterBottom
                       sx={{
                         fontWeight: 'bold',
-                        color: isToday ? 'primary.contrastText' : 'text.primary',
+                        color: 'text.primary',
                       }}
                     >
-                      {DAYS_OF_WEEK[dayIndex]}
+                      {format(day, 'EEE')}
                     </Typography>
                     <Typography
                       variant="h6"
                       align="center"
                       gutterBottom
                       sx={{
-                        color: isToday ? 'primary.contrastText' : 'text.primary',
+                        color: 'text.primary',
                       }}
                     >
                       {format(day, 'd')}
@@ -805,15 +872,15 @@ const MealPlanner: React.FC = () => {
                           </Box>
 
                           {dayMeals.length === 0 ? (
-                            <Box
-                              sx={{
-                                p: 1,
-                                bgcolor: 'action.hover',
-                                borderRadius: 1,
-                                textAlign: 'center',
-                              }}
-                            >
-                              {copiedMeal ? (
+                            copiedMeal ? (
+                              <Box
+                                sx={{
+                                  p: 1,
+                                  bgcolor: 'action.hover',
+                                  borderRadius: 1,
+                                  textAlign: 'center',
+                                }}
+                              >
                                 <Stack direction="row" spacing={0.5} justifyContent="center">
                                   <Button
                                     size="small"
@@ -831,22 +898,8 @@ const MealPlanner: React.FC = () => {
                                     Paste
                                   </Button>
                                 </Stack>
-                              ) : (
-                                <Box
-                                  sx={{
-                                    cursor: 'pointer',
-                                    '&:hover': {
-                                      bgcolor: 'action.selected',
-                                    },
-                                  }}
-                                  onClick={() => handleOpenDialog(day, mealType)}
-                                >
-                                  <Typography variant="caption" color="text.secondary">
-                                    No meal
-                                  </Typography>
-                                </Box>
-                              )}
-                            </Box>
+                              </Box>
+                            ) : null
                           ) : (
                             dayMeals.map((meal) => (
                               <Box
