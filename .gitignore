@@ -1,8 +1,7 @@
 # Dependencies
 node_modules/
 
-# Reference files (do not use for deployment)
-docker-compose.yml.REFERENCE_ONLY
+# Build artifacts
 .pnp
 .pnp.js
 
