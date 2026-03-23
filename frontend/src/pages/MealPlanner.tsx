@@ -344,24 +344,9 @@ const MealPlanner: React.FC = () => {
         throw new Error('Failed to add meal');
       }
 
-      const result = await response.json();
-      const addedMeal = result.data;
+      // Reload meals from server to ensure consistency
+      await loadMealsForWeek();
       
-      // Add to local state
-      const meal: Meal = {
-        id: addedMeal.id,
-        recipeId: addedMeal.recipeId,
-        recipeName: addedMeal.recipe?.title || newMeal.recipeName,
-        mealType: addedMeal.mealType.toUpperCase() as 'BREAKFAST' | 'LUNCH' | 'DINNER' | 'SNACK',
-        date: new Date(addedMeal.date + 'T00:00:00'),
-        servings: addedMeal.servings,
-        assignedCookId: addedMeal.assignedCookId || undefined,
-        assignedCookName: addedMeal.assignedCook?.name,
-        recipeImageUrl: addedMeal.recipe?.imageUrl || undefined,
-        recipeSourceUrl: addedMeal.recipe?.sourceUrl || undefined,
-      };
-      
-      setMeals([...meals, meal]);
       setOpenDialog(false);
       setIsEditingMeal(false);
       setEditingMealId(null);

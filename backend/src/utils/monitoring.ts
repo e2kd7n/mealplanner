@@ -161,7 +161,7 @@ export async function getHealthStatus() {
 /**
  * Middleware to track request metrics
  */
-export function metricsMiddleware(req: any, res: any, next: any) {
+export function metricsMiddleware(_req: any, res: any, next: any) {
   const start = Date.now();
   
   // Track response

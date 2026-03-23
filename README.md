@@ -5,6 +5,21 @@
 
 A Progressive Web App (PWA) designed for families to simplify meal planning and grocery shopping with smart recommendations, budget optimization, and offline functionality.
 
+## 🔒 SECURITY FIRST - READ THIS BEFORE SETUP
+
+**⚠️ CRITICAL: You MUST generate secure secrets before running this application.**
+
+```bash
+# Generate secure secrets (takes 10 seconds)
+./scripts/generate-secrets.sh
+```
+
+**Why this matters:** Using default/weak secrets can lead to complete system compromise, data breaches, and legal liability.
+
+📖 **Full Security Guide:** [SECURITY_SETUP.md](./SECURITY_SETUP.md)
+
+---
+
 ## 🎯 Project Overview
 
 This application helps families (like a family of 4 with 2 adults and 2 teenagers) to:

@@ -18,7 +18,7 @@ dotenv.config();
 
 // Validate environment variables before proceeding
 import { validateEnvironment } from './utils/validateEnv';
-import { getHealthStatus, metricsMiddleware } from './utils/monitoring';
+import { getHealthStatus } from './utils/monitoring';
 validateEnvironment();
 
 // Import routes
@@ -38,6 +38,7 @@ import imageRoutes from './routes/image.routes';
 import { errorHandler } from './middleware/errorHandler';
 import { requestLogger } from './middleware/logger';
 import rateLimiter from './middleware/rateLimiter';
+import { conditionalCsrfProtection, getCsrfToken, csrfErrorHandler } from './middleware/csrf';
 
 // Import utilities
 import { logger } from './utils/logger';
@@ -68,27 +69,18 @@ app.use(requestLogger);
 // Rate limiting
 app.use('/api/', rateLimiter);
 
-// Welcome endpoint
+// CSRF token endpoint (must be before CSRF protection)
+app.get('/api/csrf-token', getCsrfToken);
+
+// CSRF protection for API routes
+app.use('/api/', conditionalCsrfProtection);
+
+// Welcome endpoint - minimal information disclosure
 app.get('/', (_req, res) => {
   res.json({
     name: 'Meal Planner API',
-    version: '1.0.0',
     status: 'running',
-    endpoints: {
-      health: '/health',
-      auth: '/api/auth',
-      users: '/api/users',
-      familyMembers: '/api/family-members',
-      recipes: '/api/recipes',
-      recipeImport: '/api/recipes/import',
-      mealPlans: '/api/meal-plans',
-      groceryLists: '/api/grocery-lists',
-      ingredients: '/api/ingredients',
-      pantry: '/api/pantry',
-      admin: '/api/admin',
-      images: '/api/images',
-    },
-    documentation: 'See README.md for API documentation',
+    documentation: 'Contact administrator for API documentation',
   });
 });
 
@@ -147,6 +139,9 @@ if (process.env.NODE_ENV === 'production') {
     });
   });
 }
+
+// CSRF error handler (before general error handler)
+app.use(csrfErrorHandler);
 
 // Error handling middleware (must be last)
 app.use(errorHandler);
