@@ -1,5 +1,94 @@
 # Development Guidelines
 
+## Workflow Orchestration Principles
+
+### 1. Plan Before Implementation
+- Enter plan mode for ANY non-trivial task (3+ steps or architectural decisions)
+- If something goes sideways, STOP and re-plan immediately - don't keep pushing
+- Use plan mode for verification steps, not just building
+- Write detailed specs upfront to reduce ambiguity
+- Plans should be broken into sprintly phases of work, allowing testing at each phase and minimizing dependency issues
+
+### 2. Task Management Strategy
+- Use subagents/new tasks liberally to keep main context window clean
+- Offload research, exploration, and parallel analysis to separate task instances
+- For complex problems, throw more compute at it via parallel tasks
+- One focused objective per task for clear execution
+
+### 3. Continuous Improvement
+- After ANY correction from the user: document the pattern and lesson learned
+- Write rules for yourself that prevent the same mistake
+- Ruthlessly iterate on these lessons until mistake rate drops
+- Review lessons at session start for relevant project context
+
+### 4. Verification Before Completion
+- Never mark a task complete without testing to prove that it works
+- Diff behavior between main and your changes when relevant
+- Ask yourself: "Would a staff engineer approve this?"
+- Run tests, check logs, demonstrate correctness
+
+### 5. Code Quality Standards
+- For non-trivial changes: pause and ask "is there a more elegant way?"
+- If a fix feels hacky: "Knowing everything I know now, implement the elegant solution"
+- Skip this for simple, obvious fixes - don't over-engineer
+- Challenge your own work before presenting it
+
+### 6. Autonomous Problem Solving
+- When given a bug report: just fix it. Don't ask for hand-holding
+- Point at logs, errors, failing tests - then resolve them
+- Zero context switching required from the user
+- Go fix failing CI tests without being told how
+
+### Core Development Principles
+- **Simplicity First**: Make every change as simple as possible. Impact minimal code.
+- **No Laziness**: Find root causes. No temporary fixes. Senior developer standards.
+- **Minimal Impact**: Changes should only touch what's necessary. Avoid introducing bugs.
+- **Test Everything**: Verify functionality before marking complete
+
+---
+
+## Browser Preferences for Development
+
+### Opening Project Links
+
+When opening project-related URLs during development (e.g., localhost URLs, application testing):
+
+**Always use Chrome:**
+```bash
+# ✅ CORRECT - Use Chrome for project links
+open -a "Google Chrome" http://localhost:8080
+open -a "Google Chrome" http://localhost:3000
+open -a "Google Chrome" http://localhost:5173
+
+# ❌ WRONG - Don't use system default browser
+open http://localhost:8080
+```
+
+### Bob Authentication Links
+
+Bob login and authentication links should continue to use the system default browser:
+```bash
+# ✅ CORRECT - Use system default for Bob auth
+open https://bob.build/login
+open https://bob.build/auth/callback
+```
+
+### Implementation in Commands
+
+When writing scripts or commands that open URLs:
+
+```bash
+# For project URLs
+if [[ "$url" =~ ^http://localhost ]]; then
+  open -a "Google Chrome" "$url"
+else
+  # For Bob auth or other external URLs
+  open "$url"
+fi
+```
+
+---
+
 ## Test User Setup
 
 ### Important: Production Data Protection
