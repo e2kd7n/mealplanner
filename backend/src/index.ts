@@ -18,6 +18,7 @@ dotenv.config();
 
 // Validate environment variables before proceeding
 import { validateEnvironment } from './utils/validateEnv';
+import { getHealthStatus, metricsMiddleware } from './utils/monitoring';
 validateEnvironment();
 
 // Import routes
@@ -91,13 +92,24 @@ app.get('/', (_req, res) => {
   });
 });
 
-// Health check endpoint
-app.get('/health', (_req, res) => {
-  res.json({
-    status: 'ok',
-    timestamp: new Date().toISOString(),
-    uptime: process.uptime(),
-  });
+// Health check endpoints
+app.get('/health', async (_req, res) => {
+  try {
+    const health = await getHealthStatus();
+    const statusCode = health.status === 'healthy' ? 200 : 503;
+    res.status(statusCode).json(health);
+  } catch (error) {
+    logger.error('Health check failed:', error);
+    res.status(503).json({
+      status: 'unhealthy',
+      error: error instanceof Error ? error.message : 'Unknown error',
+    });
+  }
+});
+
+// Simple health check for load balancers
+app.get('/health/live', (_req, res) => {
+  res.json({ status: 'ok' });
 });
 
 // API routes
