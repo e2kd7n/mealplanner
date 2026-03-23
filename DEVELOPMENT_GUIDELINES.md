@@ -127,16 +127,39 @@ All development and testing must be done using the dedicated test accounts.
 
 ## Database Setup
 
+### Single Database Architecture
+
+**Important**: We use a **single PostgreSQL database** for both development and production data. This simplifies the development workflow while maintaining data separation through user ID conventions.
+
+**Database Location:**
+- Runs in a Podman container: `meals-postgres`
+- Accessible at: `localhost:5432`
+- Database name: `meal_planner`
+- Used by both dev backend and containerized backend
+
+### Data Separation Strategy
+
+The database schema handles dev/test vs production data through **user ID conventions**:
+
+1. **Test/Dev Users**: IDs start with `test-` (e.g., `test-user-00-0000-0000-000000000001`)
+2. **Production Users**: Standard UUIDs (e.g., `317a4877-a5c7-4e31-b018-cc552c860d7b`)
+
+This allows:
+- ✅ Easy identification of test data
+- ✅ Safe cleanup of test data without affecting production
+- ✅ Realistic testing with production schema
+- ✅ No need for separate database instances
+
 ### Initial Setup
 
 The test data is automatically loaded when the database is initialized:
 
 ```bash
-# Using Podman
+# Start PostgreSQL only (for dev backend)
 podman-compose up -d postgres
 
 # Or manually run the SQL script
-psql -U mealplanner -d mealplanner -f database/init/02-test-data.sql
+psql -U mealplanner -d meal_planner -f database/init/02-test-data.sql
 ```
 
 ### Test Data Includes
