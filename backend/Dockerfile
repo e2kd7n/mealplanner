@@ -46,7 +46,9 @@ RUN pnpm install --frozen-lockfile
 COPY backend .
 
 # Generate Prisma client with ARM workaround
+# Use dummy DATABASE_URL for build time (will be replaced at runtime)
 ENV PRISMA_ENGINES_CHECKSUM_IGNORE_MISSING=1
+ENV DATABASE_URL="postgresql://dummy:dummy@localhost:5432/dummy"
 RUN npx prisma generate
 
 # Build TypeScript
@@ -73,7 +75,9 @@ RUN pnpm install --frozen-lockfile
 COPY --from=backend-builder /app/prisma ./prisma
 
 # Generate Prisma client in production stage
+# Use dummy DATABASE_URL for build time (will be replaced at runtime)
 ENV PRISMA_ENGINES_CHECKSUM_IGNORE_MISSING=1
+ENV DATABASE_URL="postgresql://dummy:dummy@localhost:5432/dummy"
 RUN npx prisma generate
 
 # Copy built backend from builder
@@ -85,6 +89,10 @@ COPY --from=frontend-builder /frontend/dist ./public
 # Create directories for uploads and backups
 RUN mkdir -p /app/uploads /app/backups /app/images
 
+# Copy entrypoint script
+COPY backend/docker-entrypoint.sh /app/docker-entrypoint.sh
+RUN chmod +x /app/docker-entrypoint.sh
+
 # Set environment
 ENV NODE_ENV=production
 
@@ -95,5 +103,5 @@ EXPOSE 3000
 HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
   CMD wget --no-verbose --tries=1 --spider http://localhost:3000/health || exit 1
 
-# Start application
-CMD ["node", "dist/index.js"]
+# Start application using entrypoint script
+ENTRYPOINT ["/app/docker-entrypoint.sh"]

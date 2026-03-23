@@ -6,6 +6,18 @@
 
 import { PrismaClient } from '@prisma/client';
 import { logger } from './logger';
+import { getDatabaseUrl } from './secrets';
+
+// Set DATABASE_URL from secrets before Prisma initializes
+if (!process.env.DATABASE_URL) {
+  try {
+    process.env.DATABASE_URL = getDatabaseUrl();
+    logger.info('DATABASE_URL constructed from secrets');
+  } catch (error) {
+    logger.error('Failed to construct DATABASE_URL from secrets:', error);
+    throw error;
+  }
+}
 
 // Singleton pattern for Prisma Client with performance optimizations
 let prisma: PrismaClient;

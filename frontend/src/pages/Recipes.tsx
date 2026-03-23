@@ -34,7 +34,7 @@ import {
   Add as AddIcon,
   Link as LinkIcon,
 } from '@mui/icons-material';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAppDispatch, useAppSelector } from '../store/hooks';
 import { fetchRecipes } from '../store/slices/recipesSlice';
 import { useDebounce } from '../hooks/useDebounce';
@@ -170,15 +170,29 @@ const Recipes: React.FC = () => {
   const navigate = useNavigate();
   const dispatch = useAppDispatch();
   const { recipes, loading, error, pagination } = useAppSelector((state) => state.recipes);
+  const [searchParams, setSearchParams] = useSearchParams();
 
-  const [searchInput, setSearchInput] = useState('');
-  const [difficulty, setDifficulty] = useState('');
-  const [mealType, setMealType] = useState('');
-  const [cleanupScore, setCleanupScore] = useState('');
-  const [currentPage, setCurrentPage] = useState(1);
+  // Initialize state from URL query parameters
+  const [searchInput, setSearchInput] = useState(searchParams.get('search') || '');
+  const [difficulty, setDifficulty] = useState(searchParams.get('difficulty') || '');
+  const [mealType, setMealType] = useState(searchParams.get('mealType') || '');
+  const [cleanupScore, setCleanupScore] = useState(searchParams.get('cleanup') || '');
+  const [currentPage, setCurrentPage] = useState(Number(searchParams.get('page')) || 1);
 
   // Debounce search input to reduce API calls
   const debouncedSearch = useDebounce(searchInput, 500);
+
+  // Update URL query parameters when filters change
+  useEffect(() => {
+    const params = new URLSearchParams();
+    if (debouncedSearch) params.set('search', debouncedSearch);
+    if (difficulty) params.set('difficulty', difficulty);
+    if (mealType) params.set('mealType', mealType);
+    if (cleanupScore) params.set('cleanup', cleanupScore);
+    if (currentPage > 1) params.set('page', currentPage.toString());
+    
+    setSearchParams(params, { replace: true });
+  }, [debouncedSearch, difficulty, mealType, cleanupScore, currentPage, setSearchParams]);
 
   useEffect(() => {
     const params: any = { page: currentPage, limit: 12 };

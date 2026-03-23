@@ -16,6 +16,10 @@ import path from 'path';
 // Load environment variables
 dotenv.config();
 
+// Validate environment variables before proceeding
+import { validateEnvironment } from './utils/validateEnv';
+validateEnvironment();
+
 // Import routes
 import authRoutes from './routes/auth.routes';
 import userRoutes from './routes/user.routes';
