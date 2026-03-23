@@ -145,16 +145,16 @@ const MealPlanner: React.FC = () => {
   // Copy/paste state
   const [copiedMeal, setCopiedMeal] = useState<Meal | null>(null);
   
-  // Load recipes and family members on mount
+  // Load recipes and family members on mount (only once)
   useEffect(() => {
     loadRecipes();
     loadFamilyMembers();
-  }, []);
+  }, []); // Empty dependency array - load only once
   
   // Load meals when week changes
   useEffect(() => {
     loadMealsForWeek();
-  }, [currentWeekStart]);
+  }, [currentWeekStart]); // Only reload when week changes
   
   const loadMealsForWeek = async () => {
     try {
@@ -714,33 +714,41 @@ const MealPlanner: React.FC = () => {
         </Box>
 
         {/* View Mode Selector */}
-        <Card sx={{ mb: 2 }}>
-          <CardContent sx={{ py: 1.5 }}>
-            <Stack direction="row" spacing={1} justifyContent="center">
-              <Button
-                size="small"
-                variant={viewMode === 'month' ? 'contained' : 'outlined'}
-                startIcon={<CalendarMonthIcon />}
-                onClick={() => setViewMode('month')}
-              >
-                Month
-              </Button>
-              <Button
-                size="small"
-                variant={viewMode === 'week' ? 'contained' : 'outlined'}
-                startIcon={<ViewWeekIcon />}
-                onClick={() => setViewMode('week')}
-              >
-                Week
-              </Button>
-              <Button
-                size="small"
-                variant={viewMode === '3-day' ? 'contained' : 'outlined'}
-                startIcon={<ViewDayIcon />}
-                onClick={() => setViewMode('3-day')}
-              >
-                3-Day
-              </Button>
+        <Card sx={{ mb: 2, bgcolor: 'background.default' }}>
+          <CardContent sx={{ py: 2 }}>
+            <Stack spacing={1}>
+              <Typography variant="subtitle2" color="text.secondary" align="center">
+                View Mode
+              </Typography>
+              <Stack direction="row" spacing={2} justifyContent="center">
+                <Button
+                  size="medium"
+                  variant={viewMode === 'month' ? 'contained' : 'outlined'}
+                  startIcon={<CalendarMonthIcon />}
+                  onClick={() => setViewMode('month')}
+                  sx={{ minWidth: 120 }}
+                >
+                  Month
+                </Button>
+                <Button
+                  size="medium"
+                  variant={viewMode === 'week' ? 'contained' : 'outlined'}
+                  startIcon={<ViewWeekIcon />}
+                  onClick={() => setViewMode('week')}
+                  sx={{ minWidth: 120 }}
+                >
+                  Week
+                </Button>
+                <Button
+                  size="medium"
+                  variant={viewMode === '3-day' ? 'contained' : 'outlined'}
+                  startIcon={<ViewDayIcon />}
+                  onClick={() => setViewMode('3-day')}
+                  sx={{ minWidth: 120 }}
+                >
+                  3-Day
+                </Button>
+              </Stack>
             </Stack>
           </CardContent>
         </Card>
