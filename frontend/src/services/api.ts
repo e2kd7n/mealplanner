@@ -29,6 +29,35 @@ const api: AxiosInstance = axios.create({
 // Shared promise to prevent multiple simultaneous token refresh attempts
 let refreshPromise: Promise<string> | null = null;
 
+// CSRF token management
+let csrfToken: string | null = null;
+
+/**
+ * Fetch CSRF token from the server
+ */
+const fetchCsrfToken = async (): Promise<string> => {
+  try {
+    const response = await axios.get(`${API_BASE_URL}/csrf-token`, {
+      withCredentials: true,
+    });
+    csrfToken = response.data.csrfToken;
+    return csrfToken as string;
+  } catch (error) {
+    console.error('Failed to fetch CSRF token:', error);
+    throw error;
+  }
+};
+
+/**
+ * Get CSRF token, fetching if not available
+ */
+const getCsrfToken = async (): Promise<string> => {
+  if (!csrfToken) {
+    return fetchCsrfToken();
+  }
+  return csrfToken as string;
+};
+
 /**
  * Decode JWT token to get expiration time
  */
@@ -125,7 +154,7 @@ const refreshAccessToken = async (): Promise<string> => {
   return accessToken;
 };
 
-// Request interceptor to add auth token and proactively refresh if needed
+// Request interceptor to add auth token, CSRF token, and proactively refresh if needed
 api.interceptors.request.use(
   async (config) => {
     const token = localStorage.getItem('accessToken');
@@ -160,6 +189,17 @@ api.interceptors.request.use(
         config.headers.Authorization = `Bearer ${token}`;
       }
     }
+    
+    // Add CSRF token for state-changing requests
+    if (config.method && ['post', 'put', 'patch', 'delete'].includes(config.method.toLowerCase())) {
+      try {
+        const csrf = await getCsrfToken();
+        config.headers['X-CSRF-Token'] = csrf;
+      } catch (error) {
+        console.error('Failed to add CSRF token to request:', error);
+      }
+    }
+    
     return config;
   },
   (error) => {
@@ -167,11 +207,27 @@ api.interceptors.request.use(
   }
 );
 
-// Response interceptor to handle token refresh
+// Response interceptor to handle token refresh and CSRF errors
 api.interceptors.response.use(
   (response) => response,
   async (error: AxiosError) => {
     const originalRequest = error.config as RetryableAxiosConfig;
+
+    // Handle CSRF token errors (403 with EBADCSRFTOKEN)
+    if (error.response?.status === 403 &&
+        (error.response.data as any)?.code === 'EBADCSRFTOKEN') {
+      // Fetch new CSRF token and retry
+      try {
+        await fetchCsrfToken();
+        const csrf = await getCsrfToken();
+        if (originalRequest.headers) {
+          originalRequest.headers['X-CSRF-Token'] = csrf;
+        }
+        return axios(originalRequest);
+      } catch (csrfError) {
+        return Promise.reject(csrfError);
+      }
+    }
 
     // If error is 401 and we haven't tried to refresh yet
     if (error.response?.status === 401 && !originalRequest._retry) {

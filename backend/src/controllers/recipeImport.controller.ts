@@ -7,6 +7,7 @@ import { Request, Response } from 'express';
 import { recipeImportService } from '../services/recipeImport.service';
 import prisma from '../utils/prisma';
 import { logger } from '../utils/logger';
+import { sanitizeRecipeData } from '../utils/sanitize';
 
 /**
  * Import recipe from URL
@@ -44,11 +45,14 @@ export const importFromUrl = async (req: Request, res: Response) => {
     // Import recipe from URL
     const parsedRecipe = await recipeImportService.importFromUrl(url);
 
-    // Return parsed recipe for review (don't save yet)
+    // Sanitize recipe data to prevent XSS attacks
+    const sanitizedRecipe = sanitizeRecipeData(parsedRecipe);
+
+    // Return sanitized recipe for review (don't save yet)
     return res.status(200).json({
       success: true,
       message: 'Recipe imported successfully',
-      data: parsedRecipe,
+      data: sanitizedRecipe,
     });
   } catch (error: any) {
     logger.error(`Recipe import error: ${error.message}`);
