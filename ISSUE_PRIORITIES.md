@@ -1,80 +1,76 @@
 # Issue Prioritization
 
-**Last Updated:** 2026-03-22
+**Last Updated:** 2026-03-23
 
-This file defines which GitHub issues belong to each priority class. Update this file as priorities change.
+This file reflects the current state of GitHub issues by priority. Issues are managed via GitHub labels (P0-critical, P1-high, P2-medium, P3-low, P4-future).
 
 ## 🔴 P0 - CRITICAL (Drop Everything)
 Issues that make the application unusable or cause data loss.
 
-**Current Issues - v1.1 Architecture Migration (SEQUENCED):**
-
-**✅ COMPLETED PHASES:**
-- ✅ #27 - Phase 1: Remove Redis and replace with node-cache (COMPLETE - 2026-03-22)
-- ✅ #28 - Phase 2: Consolidate frontend into backend container (COMPLETE - 2026-03-22)
-- ✅ #29 - Phase 3: Remove Nginx and use Node.js HTTPS module (COMPLETE - 2026-03-22)
-
-**🔄 PENDING USER TESTING:**
-- #30 - User Testing Cycle: Post-Phase 1 Architecture Changes
-- #31 - User Testing Cycle: Post-Phase 2 Architecture Changes
-- #32 - User Testing Cycle: Post-Phase 3 Final Validation
-
-**Implementation Status:**
-- All three architecture phases successfully implemented
-- Architecture reduced from 5 containers to 2 containers (60% reduction)
-- Memory usage reduced from ~225 MB to ~180 MB (20% reduction)
-- Ready for user testing and validation
+**No P0 issues currently open** ✅
 
 ## 🔴 P1 - HIGH (Current Sprint)
 Issues that significantly impact core functionality or user experience.
 
-**Current Issues:**
-- #1 - Multiple recipe websites failing to import
+- #3 - HTML tags appearing in recipe descriptions
 - #6 - Grocery list not populated from meal plan recipes
+- #5 - No image upload/change capability when editing recipes
+- #4 - No back button above the fold on Create Recipe page
+- #1 - Multiple recipe websites failing to import
+- #32 - User Testing Cycle: Post-Phase 3 Final Validation
+- #31 - User Testing Cycle: Post-Phase 2 Architecture Changes
+- #44 - Add Performance Monitoring
+- #43 - Implement Logging Aggregation
+- #42 - Add Monitoring and Alerting
+- #15 - Create System Architecture Documentation
+- #39 - P2: Inconsistent Error Handling in Frontend
+- #38 - P2: Missing Rate Limiting on Authentication Endpoints
+- #37 - P2: No Environment Variable Validation on Startup
+
+
+**No P1 issues currently open**
 
 ## 🟡 P2 - MEDIUM (Next Sprint)
 Important improvements that enhance functionality but don't block core workflows.
 
-**Current Issues:**
-- #3 - HTML tags appearing in recipe descriptions
-- #5 - No image upload/change capability when editing recipes
+- #47 - Add E2E Tests for Critical User Flows
 
 ## 🟢 P3 - LOW (Backlog)
 Nice-to-have improvements and minor UX enhancements.
 
-**Current Issues:**
-- #4 - No back button above the fold on Create Recipe page
+- #54 - Performance Optimization
+- #45 - Achieve 70%+ Test Coverage
+- #41 - P3: No Automated Testing
+- #40 - P3: Documentation Out of Sync with Implementation
 
-## 📋 P4 - FUTURE ENHANCEMENTS (v1.1+)
+## 📋 P4 - FUTURE ENHANCEMENTS
 Feature requests and enhancements for future releases.
 
-**Architecture Evaluation & Implementation (COMPLETE):**
-- ✅ #26 - Evaluate architecture for small-scale deployment (COMPLETE - 2026-03-22)
-- ✅ #27 - Phase 1: Remove Redis and replace with node-cache (COMPLETE - 2026-03-22)
-- ✅ #28 - Phase 2: Consolidate frontend into backend container (COMPLETE - 2026-03-22)
-- ✅ #29 - Phase 3: Remove Nginx and use Node.js HTTPS module (COMPLETE - 2026-03-22)
-
-**High Value Features:**
-- #8 - Grocery List Optimization
-- #12 - Integrate Nutrition Database for Auto-Population
-- #13 - Implement Nutrition Dashboard
-- #14 - Implement Nutrition Guideline Warnings
-
-**Medium Value Features:**
-- #9 - MyFitnessPal Integration
-- #10 - AllRecipes.com Recipe Import Enhancement
-- #11 - Recipe Card OCR Import
-- #15 - Create System Architecture Documentation
-- #16 - Fix Frontend Console Errors
-- #17 - Add Sortable and Filterable Tables/Lists
-- #18 - Implement Ingredient Normalization and Variant System
+- #46 - Implement CI/CD Pipeline
+- #65 - Mobile App Development
+- #63 - Evaluate Scaling Strategy
+- #62 - Evaluate Architecture Simplification
+- #25 - Implement Dashboard Recent Activity Feed
 - #19 - Implement Grocery List Regeneration and Sync Detection
-- #20 - Implement Pantry Integration with Grocery Lists
-- #21 - Implement Recipe Scaling
+- #18 - Implement Ingredient Normalization and Variant System
+- #17 - Add Sortable and Filterable Tables/Lists
+- #64 - Implement Advanced Features (Nutrition Tracking, etc.)
+- #14 - Implement Nutrition Guideline Warnings
+- #13 - Implement Nutrition Dashboard
+- #12 - Integrate Nutrition Database for Auto-Population
+- #24 - Implement Copy/Paste for Meal Planner
 - #22 - Implement Drag-and-Drop for Meal Planner
 - #23 - Implement Meal Date Editing and Recurrence Patterns
-- #24 - Implement Copy/Paste for Meal Planner
-- #25 - Implement Dashboard Recent Activity Feed
+- #21 - Implement Recipe Scaling
+- #20 - Implement Pantry Integration with Grocery Lists
+
+## ⚠️ Unprioritized Issues
+Issues without priority labels that need to be triaged.
+
+- #11 - Recipe Card OCR Import
+- #10 - AllRecipes.com Recipe Import Enhancement
+- #9 - MyFitnessPal Integration
+- #8 - Grocery List Optimization
 
 ## Priority Guidelines
 
@@ -110,15 +106,7 @@ Feature requests and enhancements for future releases.
 
 ## How to Update Priorities
 
-1. Edit this file to move issues between priority levels
-2. Update issue labels in GitHub to match
+1. Use GitHub labels to set priority (P0-critical, P1-high, P2-medium, P3-low, P4-future)
+2. Run `./scripts/update-issue-priorities.sh` to regenerate this file
 3. Commit changes with descriptive message
 4. Communicate priority changes to team
-
-## Sprint Planning
-
-Use this file during sprint planning to:
-1. Identify which issues to work on next
-2. Balance bug fixes vs features
-3. Ensure critical issues are addressed first
-4. Plan realistic sprint goals
