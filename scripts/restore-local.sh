@@ -1,11 +1,11 @@
 #!/bin/bash
 
-# Restore unhealthy services in the Meal Planner application
-# This script checks for stopped, crashed, or unhealthy containers and restarts only those
+# Restore unhealthy services in the Meal Planner local development environment
+# This script checks the database container and local dev services
 
 set -e
 
-echo "🔍 Checking Meal Planner service health..."
+echo "🔍 Checking Meal Planner local development health..."
 
 # Colors for output
 RED='\033[0;31m'
@@ -21,182 +21,202 @@ if ! command -v podman &> /dev/null; then
     exit 1
 fi
 
-# Check if podman-compose is installed
-if ! command -v podman-compose &> /dev/null; then
-    echo -e "${RED}❌ podman-compose is not installed.${NC}"
-    echo -e "${YELLOW}Install with: pip3 install podman-compose${NC}"
-    exit 1
-fi
-
-# Define expected services
-SERVICES=("meals-postgres" "meals-backend" "meals-frontend" "meals-nginx")
-UNHEALTHY_SERVICES=()
-MISSING_SERVICES=()
-
-# Function to check if a container is healthy
-check_container_health() {
-    local container_name=$1
+# Function to check database container health
+check_database_health() {
+    echo -e "${BLUE}Checking database container...${NC}"
     
     # Check if container exists
-    if ! podman ps -a --format "{{.Names}}" | grep -q "^${container_name}$"; then
-        echo -e "${RED}❌ ${container_name}: Not found${NC}"
-        MISSING_SERVICES+=("$container_name")
+    if ! podman ps -a --format "{{.Names}}" | grep -q "^meals-postgres$"; then
+        echo -e "${RED}❌ Database container not found${NC}"
+        echo -e "${YELLOW}Run: ./scripts/run-local.sh${NC}"
         return 1
     fi
     
     # Get container status
-    local status=$(podman ps -a --filter "name=^${container_name}$" --format "{{.Status}}")
+    local status=$(podman ps -a --filter "name=^meals-postgres$" --format "{{.Status}}")
     
     # Check if container is running
     if ! echo "$status" | grep -q "Up"; then
-        echo -e "${RED}❌ ${container_name}: Stopped or crashed${NC}"
+        echo -e "${RED}❌ Database container is stopped${NC}"
         echo -e "   Status: $status"
-        UNHEALTHY_SERVICES+=("$container_name")
         return 1
     fi
     
-    # Check if container is healthy (if it has a health check)
-    local health=$(podman inspect "$container_name" --format "{{.State.Health.Status}}" 2>/dev/null || echo "none")
+    # Check if container is healthy
+    local health=$(podman inspect meals-postgres --format "{{.State.Health.Status}}" 2>/dev/null || echo "none")
     if [ "$health" != "none" ] && [ "$health" != "healthy" ]; then
-        echo -e "${YELLOW}⚠️  ${container_name}: Unhealthy${NC}"
+        echo -e "${YELLOW}⚠️  Database container is unhealthy${NC}"
         echo -e "   Health: $health"
-        UNHEALTHY_SERVICES+=("$container_name")
         return 1
     fi
     
-    echo -e "${GREEN}✓ ${container_name}: Healthy${NC}"
+    echo -e "${GREEN}✓ Database container: Healthy${NC}"
     return 0
+}
+
+# Function to check if backend is running
+check_backend_health() {
+    echo -e "${BLUE}Checking backend service...${NC}"
+    
+    if curl -s http://localhost:3000/health > /dev/null 2>&1; then
+        local health_status=$(curl -s http://localhost:3000/health | grep -o '"status":"[^"]*"' | cut -d'"' -f4)
+        if [ "$health_status" = "healthy" ]; then
+            echo -e "${GREEN}✓ Backend service: Healthy (http://localhost:3000)${NC}"
+            return 0
+        else
+            echo -e "${YELLOW}⚠️  Backend service: Unhealthy${NC}"
+            return 1
+        fi
+    else
+        echo -e "${RED}❌ Backend service: Not responding (http://localhost:3000)${NC}"
+        echo -e "${YELLOW}   Start with: cd backend && npm run dev${NC}"
+        return 1
+    fi
+}
+
+# Function to check if frontend is running
+check_frontend_health() {
+    echo -e "${BLUE}Checking frontend service...${NC}"
+    
+    if curl -s http://localhost:5173 -I > /dev/null 2>&1; then
+        echo -e "${GREEN}✓ Frontend service: Healthy (http://localhost:5173)${NC}"
+        return 0
+    else
+        echo -e "${RED}❌ Frontend service: Not responding (http://localhost:5173)${NC}"
+        echo -e "${YELLOW}   Start with: cd frontend && npm run dev${NC}"
+        return 1
+    fi
 }
 
 # Check all services
 echo ""
-echo -e "${BLUE}Checking service health...${NC}"
-for service in "${SERVICES[@]}"; do
-    check_container_health "$service"
-done
+DATABASE_HEALTHY=false
+BACKEND_HEALTHY=false
+FRONTEND_HEALTHY=false
 
-# If there are missing services, suggest full restart
-if [ ${#MISSING_SERVICES[@]} -gt 0 ]; then
-    echo ""
-    echo -e "${RED}⚠️  Missing services detected: ${MISSING_SERVICES[*]}${NC}"
-    echo -e "${YELLOW}This suggests the application hasn't been started yet.${NC}"
-    echo -e "${YELLOW}Run: ./scripts/run-local.sh${NC}"
-    exit 1
+if check_database_health; then
+    DATABASE_HEALTHY=true
 fi
 
-# If all services are healthy, exit
-if [ ${#UNHEALTHY_SERVICES[@]} -eq 0 ]; then
+echo ""
+if check_backend_health; then
+    BACKEND_HEALTHY=true
+fi
+
+echo ""
+if check_frontend_health; then
+    FRONTEND_HEALTHY=true
+fi
+
+echo ""
+echo -e "${BLUE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+
+# If database is unhealthy, restart it
+if [ "$DATABASE_HEALTHY" = false ]; then
     echo ""
+    echo -e "${YELLOW}🔄 Restarting database container...${NC}"
+    
+    # Check if container exists but is stopped
+    if podman ps -a --format "{{.Names}}" | grep -q "^meals-postgres$"; then
+        echo -e "${YELLOW}  Stopping existing container...${NC}"
+        podman stop meals-postgres 2>/dev/null || true
+        podman rm meals-postgres 2>/dev/null || true
+    fi
+    
+    # Start database container
+    echo -e "${YELLOW}  Starting database container...${NC}"
+    POSTGRES_PASSWORD=$(cat secrets/postgres_password.txt)
+    podman run -d \
+        --name meals-postgres \
+        --restart unless-stopped \
+        -p 5432:5432 \
+        -e POSTGRES_DB=meal_planner \
+        -e POSTGRES_USER=mealplanner \
+        -e POSTGRES_PASSWORD="$POSTGRES_PASSWORD" \
+        -v postgres_data:/var/lib/postgresql/data \
+        -v ./database/init:/docker-entrypoint-initdb.d:ro \
+        --health-cmd "pg_isready -U mealplanner -d meal_planner" \
+        --health-interval 10s \
+        --health-timeout 5s \
+        --health-retries 5 \
+        docker.io/library/postgres:16-alpine
+    
+    # Wait for database to be healthy
+    echo -e "${YELLOW}  Waiting for database to be healthy...${NC}"
+    for i in {1..30}; do
+        if podman exec meals-postgres pg_isready -U mealplanner -d meal_planner &>/dev/null; then
+            echo -e "${GREEN}✓ Database is now healthy${NC}"
+            DATABASE_HEALTHY=true
+            break
+        fi
+        if [ $i -eq 30 ]; then
+            echo -e "${RED}❌ Database failed to become healthy${NC}"
+            podman logs meals-postgres
+            exit 1
+        fi
+        sleep 1
+    done
+fi
+
+# Summary
+echo ""
+echo -e "${BLUE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+echo -e "${BLUE}📊 Service Status Summary:${NC}"
+echo ""
+
+if [ "$DATABASE_HEALTHY" = true ]; then
+    echo -e "   ${GREEN}✓ Database Container${NC}"
+else
+    echo -e "   ${RED}✗ Database Container${NC}"
+fi
+
+if [ "$BACKEND_HEALTHY" = true ]; then
+    echo -e "   ${GREEN}✓ Backend Service (http://localhost:3000)${NC}"
+else
+    echo -e "   ${RED}✗ Backend Service${NC}"
+fi
+
+if [ "$FRONTEND_HEALTHY" = true ]; then
+    echo -e "   ${GREEN}✓ Frontend Service (http://localhost:5173)${NC}"
+else
+    echo -e "   ${RED}✗ Frontend Service${NC}"
+fi
+
+echo ""
+
+# If all services are healthy
+if [ "$DATABASE_HEALTHY" = true ] && [ "$BACKEND_HEALTHY" = true ] && [ "$FRONTEND_HEALTHY" = true ]; then
     echo -e "${GREEN}✅ All services are healthy!${NC}"
     echo ""
     echo -e "${BLUE}📱 Application is available at:${NC}"
-    echo -e "   🌐 Frontend: ${GREEN}http://localhost:8080${NC}"
-    echo -e "   🔧 Backend API: ${GREEN}http://localhost:8080/api${NC}"
-    echo -e "   ❤️  Health Check: ${GREEN}http://localhost:8080/health${NC}"
+    echo -e "   🌐 Frontend: ${GREEN}http://localhost:5173${NC}"
+    echo -e "   🔧 Backend API: ${GREEN}http://localhost:3000/api${NC}"
+    echo -e "   ❤️  Health Check: ${GREEN}http://localhost:3000/health${NC}"
     exit 0
 fi
 
-# Restart unhealthy services
-echo ""
-echo -e "${YELLOW}🔄 Restarting unhealthy services: ${UNHEALTHY_SERVICES[*]}${NC}"
+# Provide instructions for unhealthy services
+echo -e "${YELLOW}⚠️  Some services need attention:${NC}"
 echo ""
 
-for service in "${UNHEALTHY_SERVICES[@]}"; do
-    echo -e "${BLUE}Restarting ${service}...${NC}"
-    
-    # Map container name to service name in podman-compose.yml
-    compose_service=""
-    case "$service" in
-        "meals-postgres")
-            compose_service="postgres"
-            ;;
-        "meals-backend")
-            compose_service="backend"
-            ;;
-        "meals-frontend")
-            compose_service="frontend"
-            ;;
-        "meals-nginx")
-            compose_service="nginx"
-            ;;
-        *)
-            echo -e "${RED}❌ Unknown service: ${service}${NC}"
-            continue
-            ;;
-    esac
-    
-    # Stop the container
-    echo -e "${YELLOW}  Stopping ${service}...${NC}"
-    podman stop "$service" 2>/dev/null || true
-    
-    # Remove the container
-    echo -e "${YELLOW}  Removing ${service}...${NC}"
-    podman rm "$service" 2>/dev/null || true
-    
-    # Restart using podman-compose (this will recreate the container)
-    echo -e "${YELLOW}  Starting ${compose_service} service...${NC}"
-    case "$service" in
-        "meals-postgres")
-            echo -e "${YELLOW}⚠️  Database restart detected. This may take a moment...${NC}"
-            podman-compose -f podman-compose.yml up -d "$compose_service"
-            sleep 10
-            ;;
-        "meals-backend")
-            podman-compose -f podman-compose.yml up -d "$compose_service"
-            sleep 5
-            # Run migrations if backend was restarted
-            echo -e "${GREEN}🔄 Running database migrations...${NC}"
-            podman exec meals-backend sh -c "cd /app && npx prisma migrate deploy" 2>/dev/null || echo -e "${YELLOW}⚠️  Migrations may have already been applied${NC}"
-            ;;
-        "meals-frontend")
-            podman-compose -f podman-compose.yml up -d "$compose_service"
-            sleep 3
-            ;;
-        "meals-nginx")
-            podman-compose -f podman-compose.yml up -d "$compose_service"
-            sleep 3
-            ;;
-    esac
-    
-    echo -e "${GREEN}✓ ${service} restarted${NC}"
-done
-
-# Wait for services to stabilize
-echo ""
-echo -e "${YELLOW}⏳ Waiting for services to stabilize...${NC}"
-sleep 5
-
-# Check health again
-echo ""
-echo -e "${BLUE}Verifying service health...${NC}"
-ALL_HEALTHY=true
-for service in "${UNHEALTHY_SERVICES[@]}"; do
-    if check_container_health "$service"; then
-        echo -e "${GREEN}✓ ${service} is now healthy${NC}"
-    else
-        echo -e "${RED}❌ ${service} is still unhealthy${NC}"
-        ALL_HEALTHY=false
-    fi
-done
-
-echo ""
-if [ "$ALL_HEALTHY" = true ]; then
-    echo -e "${GREEN}✅ All services restored successfully!${NC}"
-    echo ""
-    echo -e "${BLUE}📱 Application is available at:${NC}"
-    echo -e "   🌐 Frontend: ${GREEN}http://localhost:8080${NC}"
-    echo -e "   🔧 Backend API: ${GREEN}http://localhost:8080/api${NC}"
-    echo -e "   ❤️  Health Check: ${GREEN}http://localhost:8080/health${NC}"
-    echo ""
-    echo -e "${BLUE}📝 Useful commands:${NC}"
-    echo -e "   View logs:        ${GREEN}podman-compose -f podman-compose.yml logs -f${NC}"
-    echo -e "   Check status:     ${GREEN}podman ps${NC}"
-    echo -e "   Full restart:     ${GREEN}./scripts/run-local.sh${NC}"
-else
-    echo -e "${RED}❌ Some services could not be restored.${NC}"
-    echo -e "${YELLOW}Try a full restart: ./scripts/run-local.sh${NC}"
-    echo -e "${YELLOW}Or check logs: podman-compose -f podman-compose.yml logs -f${NC}"
-    exit 1
+if [ "$DATABASE_HEALTHY" = false ]; then
+    echo -e "${RED}Database:${NC} Run ${GREEN}./scripts/run-local.sh${NC}"
 fi
+
+if [ "$BACKEND_HEALTHY" = false ]; then
+    echo -e "${RED}Backend:${NC} Run ${GREEN}cd backend && npm run dev${NC}"
+fi
+
+if [ "$FRONTEND_HEALTHY" = false ]; then
+    echo -e "${RED}Frontend:${NC} Run ${GREEN}cd frontend && npm run dev${NC}"
+fi
+
+echo ""
+echo -e "${BLUE}📝 Useful commands:${NC}"
+echo -e "   View DB logs:     ${GREEN}podman logs -f meals-postgres${NC}"
+echo -e "   Restart database: ${GREEN}podman restart meals-postgres${NC}"
+echo -e "   Full setup:       ${GREEN}./scripts/run-local.sh${NC}"
+
+exit 1
 
 # Made with Bob

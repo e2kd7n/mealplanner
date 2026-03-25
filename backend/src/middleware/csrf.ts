@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2026 Erik Didriksen
+ * Copyright (c) 2026 e2kd7n
  * All rights reserved.
  */
 
@@ -82,9 +82,15 @@ function conditionalCsrfProtection(
     return next();
   }
   
+  // Skip CSRF for the token endpoint itself (it generates tokens)
+  if (req.path === '/csrf-token') {
+    return csrfProtection(req, res, next);
+  }
+  
   // Skip CSRF for auth endpoints that use rate limiting as primary protection
   // Note: This is a trade-off. For maximum security, enable CSRF on auth too.
-  if (req.path.startsWith('/api/auth/')) {
+  // When mounted at /api/, the path will be /auth/... not /api/auth/...
+  if (req.path.startsWith('/auth/')) {
     return next();
   }
   

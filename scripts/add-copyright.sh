@@ -1,11 +1,11 @@
 #!/bin/bash
 
 # Script to add copyright notices to source files
-# Copyright (c) 2026 Erik Didriksen
+# Copyright (c) 2026 e2kd7n
 # All rights reserved.
 
 COPYRIGHT_NOTICE="/**
- * Copyright (c) 2026 Erik Didriksen
+ * Copyright (c) 2026 e2kd7n
  * All rights reserved.
  */
 

@@ -1,6 +1,6 @@
 -- Test User and Family Data
 -- This script creates a dedicated test user for development and testing
--- IMPORTANT: Never modify or add test data to the production "Erik" user
+-- IMPORTANT: Never modify or add test data to the production "e2kd7n" user
 
 -- Delete existing test data if it exists (in reverse order of dependencies)
 -- First, find the user IDs by email
@@ -210,7 +210,7 @@ VALUES (
 );
 
 -- Summary comment
-COMMENT ON TABLE users IS 'Users table - Production user "Erik" should never have test data. Use test@example.com for all development and testing.';
+COMMENT ON TABLE users IS 'Users table - Production user "e2kd7n" should never have test data. Use test@example.com for all development and testing.';
 
 -- Log test data creation
 DO $$
@@ -218,7 +218,7 @@ BEGIN
   RAISE NOTICE 'Test data created successfully!';
   RAISE NOTICE 'Test User: test@example.com / Password: TestPass123!';
   RAISE NOTICE 'Test Admin: testadmin@example.com / Password: AdminPass123!';
-  RAISE NOTICE 'IMPORTANT: Never add test data to production user Erik';
+  RAISE NOTICE 'IMPORTANT: Never add test data to production user e2kd7n';
 END $$;
 
 -- Made with Bob

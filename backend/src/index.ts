@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2026 Erik Didriksen
+ * Copyright (c) 2026 e2kd7n
  * All rights reserved.
  */
 
@@ -7,6 +7,7 @@
 import express, { Application } from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
+import cookieParser from 'cookie-parser';
 import dotenv from 'dotenv';
 import { createServer, Server as HttpServer } from 'http';
 import { createServer as createHttpsServer, Server as HttpsServer } from 'https';
@@ -63,16 +64,16 @@ app.use(cors({
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
+// Cookie parser (required for CSRF)
+app.use(cookieParser());
+
 // Request logging
 app.use(requestLogger);
 
 // Rate limiting
 app.use('/api/', rateLimiter);
 
-// CSRF token endpoint (must be before CSRF protection)
-app.get('/api/csrf-token', getCsrfToken);
-
-// CSRF protection for API routes
+// CSRF protection for API routes (conditionally applied)
 app.use('/api/', conditionalCsrfProtection);
 
 // Welcome endpoint - minimal information disclosure
@@ -103,6 +104,9 @@ app.get('/health', async (_req, res) => {
 app.get('/health/live', (_req, res) => {
   res.json({ status: 'ok' });
 });
+
+// CSRF token endpoint (needs CSRF middleware but doesn't validate token)
+app.get('/api/csrf-token', getCsrfToken);
 
 // API routes
 app.use('/api/auth', authRoutes);

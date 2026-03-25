@@ -182,6 +182,33 @@ Update `ISSUE_PRIORITIES.md` when priorities change:
 - Password: `AdminPass123!`
 - User ID: `test-admin-0-0000-0000-000000000002`
 
+#### Deployment Configuration
+
+**Current Deployment Mode: Single-Family**
+
+The application is currently configured for single-family deployment where all users share access to all recipes. This is optimal for a family using the app together.
+
+**Key Behaviors:**
+- All recipes are visible to all users in the system
+- Any family member can view any recipe
+- Only the recipe creator can edit or delete their recipes
+- No public/private recipe distinction
+
+**Multi-Tenant Considerations:**
+
+If deploying for multiple families or organizations, see **[MULTITENANT_CONSIDERATIONS.md](./MULTITENANT_CONSIDERATIONS.md)** for:
+- Features to re-enable for data isolation
+- Recipe privacy and access control
+- Migration path from single-family to multi-tenant
+- All code locations marked with `// MULTITENANT:` comments
+
+**Search for Multi-Tenant Code:**
+```bash
+# Find all locations that need changes for multi-tenant
+grep -r "MULTITENANT" backend/src/
+grep -r "MULTITENANT" backend/prisma/
+```
+
 #### Database Architecture
 
 **Single Database for Dev & Production:**
@@ -243,7 +270,7 @@ Before committing code, verify:
 - [ ] No hardcoded production user IDs
 - [ ] No test data creation for production users
 - [ ] All test code uses test user accounts
-- [ ] No modifications to Erik's user data
+- [ ] No modifications to e2kd7n's user data
 - [ ] Test data is properly isolated
 - [ ] Database queries filter by user ID correctly
 - [ ] TypeScript compiles without errors
@@ -436,6 +463,7 @@ Setup & Deployment:
 Architecture & Technical:
 - docs/ARCHITECTURE.md
 - ARCHITECTURE_EVALUATION.md
+- MULTITENANT_CONSIDERATIONS.md
 - PHASE1_IMPLEMENTATION_SUMMARY.md
 - PHASE2_IMPLEMENTATION_SUMMARY.md
 - PHASE3_IMPLEMENTATION_SUMMARY.md
@@ -472,7 +500,7 @@ Test Data:
 ## 📋 Golden Rules
 
 1. ✅ **Always use test@example.com for development**
-2. ✅ **Never modify Erik's production data**
+2. ✅ **Never modify e2kd7n's production data**
 3. ✅ **Test data IDs start with 'test-'**
 4. ✅ **Use guards to prevent production data modification**
 5. ✅ **Document any new test data you create**
@@ -493,6 +521,7 @@ For detailed information on specific topics, see:
 - **[SETUP.md](./SETUP.md)** - Development environment setup
 - **[DEPLOYMENT.md](./DEPLOYMENT.md)** - Deployment procedures
 - **[SECURITY_SETUP.md](./SECURITY_SETUP.md)** - Security configuration
+- **[MULTITENANT_CONSIDERATIONS.md](./MULTITENANT_CONSIDERATIONS.md)** - Multi-tenant deployment guide
 - **[docs/ARCHITECTURE.md](./docs/ARCHITECTURE.md)** - System architecture
 - **[DATABASE_BACKUP.md](./DATABASE_BACKUP.md)** - Backup procedures
 

@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2026 Erik Didriksen
+ * Copyright (c) 2026 e2kd7n
  * All rights reserved.
  */
 
@@ -85,7 +85,7 @@ interface FamilyMember {
 
 const dietaryOptions = ['vegetarian', 'vegan', 'gluten-free', 'dairy-free', 'nut-free'];
 const skillLevels = ['beginner', 'intermediate', 'advanced'];
-const ageGroups = ['infant', 'toddler', 'child', 'teen', 'adult'];
+const ageGroups = ['child', 'teen', 'adult'];
 
 const Profile: React.FC = () => {
   const [tabValue, setTabValue] = useState(0);
