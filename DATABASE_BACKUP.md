@@ -28,10 +28,10 @@ Add to your crontab (`crontab -e`):
 
 ```bash
 # Daily backup at 2 AM
-0 2 * * * cd /Users/erik/dev/mealplanner && ./scripts/backup-database.sh >> ./data/backups/backup.log 2>&1
+0 2 * * * cd /path/to/mealplanner && ./scripts/backup-database.sh >> ./data/backups/backup.log 2>&1
 
 # Or every 6 hours for more frequent backups
-0 */6 * * * cd /Users/erik/dev/mealplanner && ./scripts/backup-database.sh >> ./data/backups/backup.log 2>&1
+0 */6 * * * cd /path/to/mealplanner && ./scripts/backup-database.sh >> ./data/backups/backup.log 2>&1
 ```
 
 #### Option 2: launchd (macOS Alternative)
@@ -47,10 +47,10 @@ Create `~/Library/LaunchAgents/com.mealplanner.backup.plist`:
     <string>com.mealplanner.backup</string>
     <key>ProgramArguments</key>
     <array>
-        <string>/Users/erik/dev/mealplanner/scripts/backup-database.sh</string>
+        <string>/path/to/mealplanner/scripts/backup-database.sh</string>
     </array>
     <key>WorkingDirectory</key>
-    <string>/Users/erik/dev/mealplanner</string>
+    <string>/path/to/mealplanner</string>
     <key>StartCalendarInterval</key>
     <dict>
         <key>Hour</key>
@@ -59,9 +59,9 @@ Create `~/Library/LaunchAgents/com.mealplanner.backup.plist`:
         <integer>0</integer>
     </dict>
     <key>StandardOutPath</key>
-    <string>/Users/erik/dev/mealplanner/data/backups/backup.log</string>
+    <string>/path/to/mealplanner/data/backups/backup.log</string>
     <key>StandardErrorPath</key>
-    <string>/Users/erik/dev/mealplanner/data/backups/backup.log</string>
+    <string>/path/to/mealplanner/data/backups/backup.log</string>
 </dict>
 </plist>
 ```

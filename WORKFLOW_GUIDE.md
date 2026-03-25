@@ -226,7 +226,7 @@ grep -r "MULTITENANT" backend/prisma/
 
 ```typescript
 // ❌ WRONG - Don't use production user
-const erikUserId = 'c70eaeea-20eb-40ac-8ee8-1a7fd947dc57';
+const productionUserId = 'c70eaeea-20eb-40ac-8ee8-1a7fd947dc57';
 
 // ✅ CORRECT - Use test user
 const testUserId = 'test-user-00-0000-0000-000000000001';
