@@ -1,6 +1,6 @@
 # System Architecture Documentation
 
-**Copyright (c) 2026 Erik Didriksen. All rights reserved.**
+**Copyright (c) 2026 e2kd7n. All rights reserved.**
 
 **Version:** 2.0.0
 **Last Updated:** March 22, 2026

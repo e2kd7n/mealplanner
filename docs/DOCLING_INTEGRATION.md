@@ -1,6 +1,6 @@
 # Docling Integration Guide
 
-**Copyright (c) 2026 Erik Didriksen. All rights reserved.**
+**Copyright (c) 2026 e2kd7n. All rights reserved.**
 
 ## Overview
 

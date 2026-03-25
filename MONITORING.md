@@ -194,19 +194,38 @@ The monitoring system is designed to have minimal performance impact:
 
 ## Future Enhancements
 
-Planned improvements (see issue #42):
+Planned improvements tracked in GitHub issues:
+
+**Monitoring & Alerting** ([#42](https://github.com/e2kd7n/mealplanner/issues/42) - P3):
 - [ ] Prometheus metrics endpoint (`/metrics`)
 - [ ] Custom business metrics (recipes created, meal plans generated)
 - [ ] Distributed tracing integration
-- [ ] Log aggregation
 - [ ] Automated alerting via AlertManager
-- [ ] Performance profiling endpoints
+- [ ] Grafana dashboard integration
+
+**Logging Aggregation** ([#43](https://github.com/e2kd7n/mealplanner/issues/43) - P3):
+- [ ] Centralized log aggregation (ELK/Loki)
+- [ ] Log search and filtering interface
+- [ ] Log-based alerting
+
+**Performance Monitoring** ([#44](https://github.com/e2kd7n/mealplanner/issues/44) - P3):
+- [ ] Frontend Core Web Vitals tracking
+- [ ] Performance dashboard (Grafana)
+- [ ] Slow query logging
+- [ ] Performance budgets
+- [ ] APM integration
 
 ## Related Documentation
 
 - [CODE_REVIEW_SUMMARY.md](CODE_REVIEW_SUMMARY.md) - Monitoring recommendations
 - [DEPLOYMENT.md](DEPLOYMENT.md) - Production deployment with monitoring
 - [DEVELOPMENT_GUIDELINES.md](DEVELOPMENT_GUIDELINES.md) - Development best practices
+
+## GitHub Issues
+
+- [#42 - Add Monitoring and Alerting](https://github.com/e2kd7n/mealplanner/issues/42)
+- [#43 - Implement Logging Aggregation](https://github.com/e2kd7n/mealplanner/issues/43)
+- [#44 - Add Performance Monitoring](https://github.com/e2kd7n/mealplanner/issues/44)
 
 ---
 

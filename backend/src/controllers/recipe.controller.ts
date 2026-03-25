@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2026 Erik Didriksen
+ * Copyright (c) 2026 e2kd7n
  * All rights reserved.
  */
 
@@ -43,13 +43,21 @@ function getRecipeListCacheKey(params: object): string {
 
 /**
  * Helper function to check if user can access a recipe
+ * For single-family deployment, all recipes are accessible to all users
+ * MULTITENANT: Uncomment the function below for multi-tenant deployment
  */
+/*
 function canAccessRecipe(
   recipe: { userId: string | null },
   requestUserId?: string
 ): boolean {
-  return recipe.userId === requestUserId;
+  // Single-family: all recipes are accessible
+  return true;
+  
+  // MULTITENANT: Uncomment to restrict access to recipe owner only
+  // return recipe.userId === requestUserId;
 }
+*/
 
 /**
  * Helper function to get user ID from request (handles inconsistent auth structure)
@@ -131,11 +139,13 @@ export async function getRecipes(
     const limitNum = parseInt(limit as string);
     const skip = (pageNum - 1) * limitNum;
 
-    // Build where clause - only show user's own recipes
-    const userId = getUserId(req);
-    const where: any = {
-      userId,
-    };
+    // Build where clause - show all recipes (single-family deployment)
+    // For multitenant deployment, uncomment the userId filtering below
+    const where: any = {};
+    
+    // MULTITENANT: Uncomment to filter by user
+    // const userId = getUserId(req);
+    // where.userId = userId;
 
     if (search) {
       // Add search conditions while preserving access control
@@ -266,11 +276,12 @@ export async function getRecipeById(
       throw new AppError('Recipe not found', 404);
     }
 
-    // Check if user has access
-    const userId = getUserId(req);
-    if (!canAccessRecipe(recipe, userId)) {
-      throw new AppError('Access denied', 403);
-    }
+    // Check if user has access (single-family: all recipes accessible)
+    // MULTITENANT: Uncomment for access control
+    // const userId = getUserId(req);
+    // if (!canAccessRecipe(recipe, userId)) {
+    //   throw new AppError('Access denied', 403);
+    // }
 
     // Calculate average rating and build result
     const result: RecipeWithRating & typeof recipe = {

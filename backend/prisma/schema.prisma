@@ -85,7 +85,8 @@ model Recipe {
   nutritionInfo  Json?      @map("nutrition_info")
   costEstimate   Decimal?   @map("cost_estimate") @db.Decimal(10, 2)
   cleanupScore   Int?       @map("cleanup_score") // 1-5, higher = more cleanup needed
-  isPublic       Boolean    @default(false) @map("is_public")
+  // MULTITENANT: Uncomment isPublic field for multi-tenant deployment
+  // isPublic       Boolean    @default(false) @map("is_public")
   createdAt      DateTime   @default(now()) @map("created_at")
   updatedAt      DateTime   @updatedAt @map("updated_at")
 
@@ -99,7 +100,8 @@ model Recipe {
   @@index([difficulty])
   @@index([cuisineType])
   @@index([kidFriendly])
-  @@index([isPublic])
+  // MULTITENANT: Uncomment isPublic index for multi-tenant deployment
+  // @@index([isPublic])
   @@index([createdAt])
   @@index([title])
   @@index([sourceUrl])
