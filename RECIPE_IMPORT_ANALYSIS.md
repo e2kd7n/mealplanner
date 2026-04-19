@@ -110,9 +110,37 @@ When testing a new recipe URL:
 
 ## Parser Enhancement Ideas
 
+- [x] Implement retry logic with exponential backoff (2026-04-19)
+- [x] Add support for HowToStep and HowToSection instruction formats (2026-04-19)
+- [x] Enhanced ingredient parsing for fractions, ranges, and decimals (2026-04-19)
+- [x] Better error messages with 403 Forbidden handling (2026-04-19)
 - [ ] Add support for alternative recipe markup formats (JSON-LD variations)
 - [ ] Implement fallback HTML scraping for sites without schema.org markup
 - [ ] Add user-agent rotation to avoid blocking
-- [ ] Implement retry logic with exponential backoff
 - [ ] Add support for recipe plugins (WordPress recipe plugins, etc.)
 - [ ] Create website-specific parsers for popular sites
+
+## Recent Enhancements (2026-04-19)
+
+### Retry Logic with Exponential Backoff
+- Automatically retries transient errors (timeouts, connection resets, 502/503 errors)
+- Up to 3 attempts with exponential backoff (1s, 2s, 4s delays)
+- Improves reliability for slow or temporarily unavailable websites
+
+### Enhanced Instruction Parsing
+- Added support for `HowToStep` objects (common in schema.org)
+- Added support for `HowToSection` objects (grouped instructions)
+- Handles nested `itemListElement` structures at multiple levels
+- Better handling of single HowToSection objects
+
+### Enhanced Ingredient Parsing
+- Supports fractions (e.g., "1/2 cup", "1 1/2 cups")
+- Supports ranges (e.g., "2-3 cups" - uses average)
+- Supports decimal quantities (e.g., "2.5 cups")
+- Handles ingredients without quantities (e.g., "salt to taste")
+- HTML entity decoding for all ingredient strings
+
+### Improved Error Handling
+- Added specific error message for 403 Forbidden responses
+- Better logging with retry attempt numbers
+- More helpful error messages for different failure scenarios

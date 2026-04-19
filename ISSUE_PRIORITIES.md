@@ -13,6 +13,8 @@ Issues that make the application unusable or cause data loss.
 Issues that significantly impact core functionality or user experience.
 
 ### ✅ Completed (v1.1 - 2026-04-19)
+
+- #10 - AllRecipes.com Recipe Import Enhancement
 - ~~#44 - Add Performance Monitoring~~ ✅
 - ~~#39 - Inconsistent Error Handling in Frontend~~ ✅
 - ~~#38 - Missing Rate Limiting on Authentication Endpoints~~ ✅ (Already implemented)
@@ -70,7 +72,7 @@ Issues without priority labels that need to be triaged.
 - #13 - Implement Nutrition Dashboard
 - #12 - Integrate Nutrition Database for Auto-Population
 - #11 - Recipe Card OCR Import
-- #10 - AllRecipes.com Recipe Import Enhancement
+
 - #9 - MyFitnessPal Integration
 - #8 - Grocery List Optimization
 
