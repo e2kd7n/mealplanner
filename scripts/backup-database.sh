@@ -9,7 +9,7 @@ BACKUP_DIR="./data/backups"
 TIMESTAMP=$(date +"%Y%m%d_%H%M%S")
 BACKUP_FILE="mealplanner_backup_${TIMESTAMP}.sql"
 CONTAINER_NAME="meals-postgres"
-DB_NAME="meals"
+DB_NAME="meal_planner"
 DB_USER="mealplanner"
 
 # Keep last N backups (default: 7 days of backups if run daily)

@@ -33,6 +33,7 @@ import {
   Restaurant as RestaurantIcon,
   Add as AddIcon,
   Link as LinkIcon,
+  Sort as SortIcon,
 } from '@mui/icons-material';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAppDispatch, useAppSelector } from '../store/hooks';
@@ -177,6 +178,7 @@ const Recipes: React.FC = () => {
   const [difficulty, setDifficulty] = useState(searchParams.get('difficulty') || '');
   const [mealType, setMealType] = useState(searchParams.get('mealType') || '');
   const [cleanupScore, setCleanupScore] = useState(searchParams.get('cleanup') || '');
+  const [sortBy, setSortBy] = useState(searchParams.get('sortBy') || 'title');
   const [currentPage, setCurrentPage] = useState(Number(searchParams.get('page')) || 1);
 
   // Debounce search input to reduce API calls
@@ -189,10 +191,11 @@ const Recipes: React.FC = () => {
     if (difficulty) params.set('difficulty', difficulty);
     if (mealType) params.set('mealType', mealType);
     if (cleanupScore) params.set('cleanup', cleanupScore);
+    if (sortBy && sortBy !== 'title') params.set('sortBy', sortBy);
     if (currentPage > 1) params.set('page', currentPage.toString());
     
     setSearchParams(params, { replace: true });
-  }, [debouncedSearch, difficulty, mealType, cleanupScore, currentPage, setSearchParams]);
+  }, [debouncedSearch, difficulty, mealType, cleanupScore, sortBy, currentPage, setSearchParams]);
 
   useEffect(() => {
     const params: any = { page: currentPage, limit: 12 };
@@ -200,9 +203,10 @@ const Recipes: React.FC = () => {
     if (difficulty) params.difficulty = difficulty;
     if (mealType) params.mealType = mealType;
     if (cleanupScore) params.maxCleanupScore = cleanupScore;
+    if (sortBy) params.sortBy = sortBy;
 
     dispatch(fetchRecipes(params));
-  }, [dispatch, currentPage, debouncedSearch, difficulty, mealType, cleanupScore]);
+  }, [dispatch, currentPage, debouncedSearch, difficulty, mealType, cleanupScore, sortBy]);
 
   // Reset to page 1 when search changes
   useEffect(() => {
@@ -313,6 +317,28 @@ const Recipes: React.FC = () => {
               <MenuItem value="5">Easy (0-5)</MenuItem>
               <MenuItem value="7">Moderate (0-7)</MenuItem>
               <MenuItem value="10">Any</MenuItem>
+            </Select>
+          </FormControl>
+          <FormControl sx={{ minWidth: 180 }}>
+            <InputLabel>Sort By</InputLabel>
+            <Select
+              value={sortBy}
+              label="Sort By"
+              onChange={(e) => {
+                setSortBy(e.target.value);
+                setCurrentPage(1);
+              }}
+            >
+              <MenuItem value="title">Title (A-Z)</MenuItem>
+              <MenuItem value="title_desc">Title (Z-A)</MenuItem>
+              <MenuItem value="prepTime">Prep Time (Low-High)</MenuItem>
+              <MenuItem value="prepTime_desc">Prep Time (High-Low)</MenuItem>
+              <MenuItem value="totalTime">Total Time (Low-High)</MenuItem>
+              <MenuItem value="totalTime_desc">Total Time (High-Low)</MenuItem>
+              <MenuItem value="difficulty">Difficulty (Easy-Hard)</MenuItem>
+              <MenuItem value="difficulty_desc">Difficulty (Hard-Easy)</MenuItem>
+              <MenuItem value="createdAt">Newest First</MenuItem>
+              <MenuItem value="createdAt_asc">Oldest First</MenuItem>
             </Select>
           </FormControl>
         </Stack>

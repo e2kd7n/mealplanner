@@ -148,11 +148,21 @@ export class RecipeImportService {
   }
 
   /**
-   * Decode HTML entities in text
+   * Decode HTML entities and strip HTML tags from text
    */
   private decodeHtmlEntities(text: string): string {
     if (!text) return text;
-    return decode(text);
+    
+    // First decode HTML entities
+    let decoded = decode(text);
+    
+    // Then strip HTML tags
+    decoded = decoded.replace(/<[^>]*>/g, '');
+    
+    // Clean up extra whitespace
+    decoded = decoded.replace(/\s+/g, ' ').trim();
+    
+    return decoded;
   }
 
   /**

@@ -36,7 +36,8 @@ This application helps families (like a family of 4 with 2 adults and 2 teenager
 
 All bugs, features, and improvements are tracked in [GitHub Issues](https://github.com/e2kd7n/mealplanner/issues).
 
-- **Workflow Guide**: See [GITHUB_WORKFLOW.md](./GITHUB_WORKFLOW.md) for how to create and manage issues
+- **Workflow Guidelines**: See [/Users/erik/dev/workflow-guidelines.md](/Users/erik/dev/workflow-guidelines.md) for comprehensive issue management practices
+- **Project Workflow**: See [WORKFLOW_GUIDE.md](./WORKFLOW_GUIDE.md) for project-specific guidelines
 - **Priorities**: See [ISSUE_PRIORITIES.md](./ISSUE_PRIORITIES.md) for current sprint priorities
 - **Current Sprint**: Focus on HIGH priority issues (#1, #6)
 

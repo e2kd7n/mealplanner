@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Run the Meal Planner application locally for development
-# This script starts only the database container and local dev services
+# This script starts the database container and local dev services, then opens the UI in Chrome
 
 set -e
 
@@ -13,6 +13,20 @@ GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 BLUE='\033[0;34m'
 NC='\033[0m' # No Color
+
+# Cleanup function to kill background processes on exit
+cleanup() {
+    echo -e "\n${YELLOW}🛑 Shutting down services...${NC}"
+    if [ ! -z "$BACKEND_PID" ]; then
+        kill $BACKEND_PID 2>/dev/null || true
+    fi
+    if [ ! -z "$FRONTEND_PID" ]; then
+        kill $FRONTEND_PID 2>/dev/null || true
+    fi
+    echo -e "${GREEN}✅ Services stopped${NC}"
+}
+
+trap cleanup EXIT INT TERM
 
 # Check if podman is installed
 if ! command -v podman &> /dev/null; then
@@ -108,33 +122,96 @@ cd backend && npx prisma migrate deploy && cd ..
 echo ""
 echo -e "${GREEN}✅ Database container is running!${NC}"
 echo ""
-echo -e "${BLUE}📊 Container status:${NC}"
-podman ps --filter name=meals-postgres --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}"
+
+# Start backend in background
+echo -e "${BLUE}🔧 Starting backend server...${NC}"
+cd backend
+npm run dev > ../backend.log 2>&1 &
+BACKEND_PID=$!
+cd ..
+
+# Wait for backend to be ready
+echo -e "${YELLOW}⏳ Waiting for backend to be ready...${NC}"
+for i in {1..30}; do
+    if curl -s http://localhost:3000/health > /dev/null 2>&1; then
+        echo -e "${GREEN}✓ Backend is healthy${NC}"
+        break
+    fi
+    if [ $i -eq 30 ]; then
+        echo -e "${RED}❌ Backend failed to start${NC}"
+        echo -e "${YELLOW}Backend logs:${NC}"
+        tail -20 backend.log
+        exit 1
+    fi
+    sleep 1
+done
+
+# Start frontend in background
+echo -e "${BLUE}🌐 Starting frontend server...${NC}"
+cd frontend
+npm run dev > ../frontend.log 2>&1 &
+FRONTEND_PID=$!
+cd ..
+
+# Wait for frontend to be ready
+echo -e "${YELLOW}⏳ Waiting for frontend to be ready...${NC}"
+for i in {1..30}; do
+    if curl -s http://localhost:5173 > /dev/null 2>&1; then
+        echo -e "${GREEN}✓ Frontend is healthy${NC}"
+        break
+    fi
+    if [ $i -eq 30 ]; then
+        echo -e "${RED}❌ Frontend failed to start${NC}"
+        echo -e "${YELLOW}Frontend logs:${NC}"
+        tail -20 frontend.log
+        exit 1
+    fi
+    sleep 1
+done
+
 echo ""
-echo -e "${YELLOW}🚀 Now start the local development services:${NC}"
+echo -e "${GREEN}✅ All services are running!${NC}"
 echo ""
-echo -e "${BLUE}Terminal 1 - Backend:${NC}"
-echo -e "   ${GREEN}cd backend && npm run dev${NC}"
-echo ""
-echo -e "${BLUE}Terminal 2 - Frontend:${NC}"
-echo -e "   ${GREEN}cd frontend && npm run dev${NC}"
-echo ""
-echo -e "${BLUE}📱 Once started, access the application:${NC}"
-echo -e "   🌐 Frontend: ${GREEN}http://localhost:5173${NC}"
-echo -e "   🔧 Backend API: ${GREEN}http://localhost:3000/api${NC}"
-echo -e "   ❤️  Health Check: ${GREEN}http://localhost:3000/health${NC}"
-echo -e "   🗄️  Database: ${GREEN}localhost:5432${NC}"
+echo -e "${BLUE}📊 Service status:${NC}"
+echo -e "   🗄️  Database:  ${GREEN}Running${NC} (localhost:5432)"
+echo -e "   🔧 Backend:   ${GREEN}Running${NC} (http://localhost:3000)"
+echo -e "   🌐 Frontend:  ${GREEN}Running${NC} (http://localhost:5173)"
 echo ""
 echo -e "${BLUE}📝 Test Credentials:${NC}"
 echo -e "   Email: ${GREEN}test@example.com${NC}"
 echo -e "   Password: ${GREEN}TestPass123!${NC}"
 echo ""
 echo -e "${BLUE}📝 Useful commands:${NC}"
-echo -e "   View DB logs:     ${GREEN}podman logs -f meals-postgres${NC}"
-echo -e "   Stop database:    ${GREEN}podman stop meals-postgres${NC}"
-echo -e "   Restart database: ${GREEN}podman restart meals-postgres${NC}"
-echo -e "   DB shell:         ${GREEN}podman exec -it meals-postgres psql -U mealplanner -d meal_planner${NC}"
+echo -e "   View backend logs:  ${GREEN}tail -f backend.log${NC}"
+echo -e "   View frontend logs: ${GREEN}tail -f frontend.log${NC}"
+echo -e "   View DB logs:       ${GREEN}podman logs -f meals-postgres${NC}"
+echo -e "   Stop all:           ${GREEN}Press Ctrl+C${NC}"
 echo ""
-echo -e "${YELLOW}💡 For full production testing, use: podman-compose up -d${NC}"
+
+# Open Chrome with the application
+echo -e "${BLUE}🌐 Opening application in Chrome...${NC}"
+if [[ "$OSTYPE" == "darwin"* ]]; then
+    # macOS
+    open -a "Google Chrome" http://localhost:5173
+elif [[ "$OSTYPE" == "linux-gnu"* ]]; then
+    # Linux
+    if command -v google-chrome &> /dev/null; then
+        google-chrome http://localhost:5173 &
+    elif command -v chromium-browser &> /dev/null; then
+        chromium-browser http://localhost:5173 &
+    else
+        echo -e "${YELLOW}⚠️  Chrome not found. Please open http://localhost:5173 manually${NC}"
+    fi
+else
+    echo -e "${YELLOW}⚠️  Auto-open not supported on this OS. Please open http://localhost:5173 manually${NC}"
+fi
+
+echo ""
+echo -e "${GREEN}✅ Application is ready for UI/UX testing!${NC}"
+echo -e "${YELLOW}Press Ctrl+C to stop all services${NC}"
+echo ""
+
+# Keep script running and show logs
+tail -f backend.log frontend.log
 
 # Made with Bob

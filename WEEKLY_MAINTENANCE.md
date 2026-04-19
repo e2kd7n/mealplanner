@@ -20,6 +20,8 @@ This document outlines regular maintenance tasks to keep the Meal Planner applic
 - [ ] Ensure issue descriptions are still accurate
 - [ ] Link related issues together
 - [ ] **Update ISSUE_PRIORITIES.md** to reflect current GitHub state
+- [ ] **Verify all local issue documents are migrated to GitHub**
+- [ ] **Remove local issue tracking files** (keep only ISSUE_PRIORITIES.md)
 
 **Commands:**
 ```bash
@@ -43,6 +45,13 @@ gh issue comment <issue-number> --body "Progress update: [details]"
 - Check if completed work is documented in relevant .md files
 - **Run `./scripts/update-issue-priorities.sh`** to regenerate ISSUE_PRIORITIES.md
 - Update any implementation summary files
+- **Verify no local issue tracking files exist** (except ISSUE_PRIORITIES.md)
+
+**Issue Management Policy:**
+- All issues, bugs, and tasks MUST be tracked in GitHub Issues
+- ISSUE_PRIORITIES.md is the ONLY local file for issue tracking (references GitHub issues)
+- Local issue documents (e.g., CRITICAL_BUGS_FOUND.md, USER_TESTING_ISSUES_LOG.md) should be migrated to GitHub and removed
+- Use GitHub issue labels for priority (P0-critical, P1-high, P2-medium, P3-low, P4-future)
 
 ---
 
