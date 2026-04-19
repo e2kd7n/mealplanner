@@ -24,16 +24,16 @@ Issues that significantly impact core functionality or user experience.
 - ~~#21 - Implement Recipe Scaling~~ ✅
 - ~~#40 - Documentation Out of Sync with Implementation~~ ✅ (README updated)
 - ~~#23 - Implement Meal Date Editing and Recurrence Patterns~~ ✅ (Date editing implemented, recurrence deferred to P4)
+- ~~#5 - No image upload/change capability when editing recipes~~ ✅ (Multer integration complete)
+- ~~#22 - Implement Drag-and-Drop for Meal Planner~~ ✅ (@dnd-kit integration complete)
 
-**Progress: 11/17 P1 issues completed (65%)**
+**Progress: 13/17 P1 issues completed (76%)**
 
 ### 🔄 Remaining for Future Sprints
 - #32 - User Testing Cycle: Post-Phase 3 Final Validation (Requires user testing)
 - #31 - User Testing Cycle: Post-Phase 2 Architecture Changes (Requires user testing)
 - #15 - Create System Architecture Documentation (Large documentation task)
-- #5 - No image upload/change capability when editing recipes (Requires multer integration)
-- #1 - Multiple recipe websites failing to import (Requires URL testing)
-- #22 - Implement Drag-and-Drop for Meal Planner (Requires library integration)
+- #1 - Multiple recipe websites failing to import (Requires manual URL testing)
 
 
 ## 🟡 P2 - MEDIUM (Next Sprint)
