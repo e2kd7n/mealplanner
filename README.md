@@ -96,19 +96,19 @@ All bugs, features, and improvements are tracked in [GitHub Issues](https://gith
 ### Technology Stack
 
 **Frontend:**
-- React 18+ with TypeScript
+- React 19+ with TypeScript
 - Vite (build tool)
 - Material-UI (MUI) for components
 - Redux Toolkit with RTK Query
-- React Router v6
+- React Router v7
 - Workbox (PWA/Service Workers)
 
 **Backend:**
-- Node.js with Express.js
+- Node.js 20 LTS with Express.js
 - TypeScript
 - Prisma ORM
-- PostgreSQL (primary database)
-- Redis (caching & sessions)
+- PostgreSQL 16 (primary database)
+- node-cache (in-memory caching)
 - JWT authentication
 
 **DevOps:**
@@ -122,7 +122,6 @@ All bugs, features, and improvements are tracked in [GitHub Issues](https://gith
 - Node.js 20+ LTS
 - pnpm 8+
 - PostgreSQL 16+
-- Redis 7+
 - Git
 
 ### For Production (Raspberry Pi):
@@ -177,8 +176,8 @@ cp .env.example .env
 # Using Podman
 podman-compose up -d postgres
 
-# OR using Podman
-podman-compose -f podman-compose.yml up -d postgres redis
+# OR using Docker
+docker-compose up -d postgres
 ```
 
 ### 5. Initialize database
