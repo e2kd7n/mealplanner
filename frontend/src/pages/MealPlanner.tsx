@@ -44,8 +44,11 @@ import {
   ViewWeek as ViewWeekIcon,
   CalendarMonth as CalendarMonthIcon,
   ViewDay as ViewDayIcon,
+  DragIndicator as DragIndicatorIcon,
 } from '@mui/icons-material';
 import { format, addDays, startOfWeek, isSameDay, startOfMonth, endOfMonth, eachDayOfInterval } from 'date-fns';
+import { DndContext, DragOverlay, closestCenter, PointerSensor, useSensor, useSensors, useDraggable, useDroppable } from '@dnd-kit/core';
+import type { DragEndEvent, DragStartEvent } from '@dnd-kit/core';
 
 interface FamilyMember {
   id: string;
@@ -141,6 +144,16 @@ const MealPlanner: React.FC = () => {
   const [isEditingMeal, setIsEditingMeal] = useState(false);
   const [editingMealId, setEditingMealId] = useState<string | null>(null);
   const [editMealType, setEditMealType] = useState<string>('');
+  
+  // Drag and drop state
+  const [activeMeal, setActiveMeal] = useState<Meal | null>(null);
+  const sensors = useSensors(
+    useSensor(PointerSensor, {
+      activationConstraint: {
+        distance: 8, // 8px movement required before drag starts
+      },
+    })
+  );
   
   // Copy/paste state
   const [copiedMeal, setCopiedMeal] = useState<Meal | null>(null);
@@ -647,6 +660,75 @@ const MealPlanner: React.FC = () => {
       setMeals(meals.filter(meal => !isSameDay(meal.date, selectedDay)));
       setOpenDaySummary(false);
     } catch (error) {
+
+  const handleDragStart = (event: DragStartEvent) => {
+    const meal = meals.find(m => m.id === event.active.id);
+    if (meal) {
+      setActiveMeal(meal);
+    }
+  };
+
+  const handleDragEnd = async (event: DragEndEvent) => {
+    const { active, over } = event;
+    setActiveMeal(null);
+
+    if (!over || !currentMealPlanId) return;
+
+    // Parse the droppable ID: format is "day-YYYY-MM-DD-MEALTYPE"
+    const dropId = over.id as string;
+    if (!dropId.startsWith('day-')) return;
+
+    const parts = dropId.split('-');
+    if (parts.length < 5) return;
+
+    // Extract date and meal type from drop zone ID
+    const dateStr = `${parts[1]}-${parts[2]}-${parts[3]}`;
+    const newMealType = parts[4];
+    const newDate = new Date(dateStr + 'T00:00:00');
+
+    const meal = meals.find(m => m.id === active.id);
+    if (!meal) return;
+
+    // Check if anything changed
+    if (isSameDay(meal.date, newDate) && meal.mealType === newMealType) {
+      return;
+    }
+
+    try {
+      const token = localStorage.getItem('accessToken');
+      const apiBase = import.meta.env.VITE_API_URL || '/api';
+
+      const response = await fetch(
+        `${apiBase}/meal-plans/${currentMealPlanId}/meals/${meal.id}`,
+        {
+          method: 'PUT',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            date: formatDateForAPI(newDate),
+            mealType: newMealType.toLowerCase(),
+          }),
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error('Failed to update meal');
+      }
+
+      // Update local state
+      const updatedMeals = meals.map(m =>
+        m.id === meal.id
+          ? { ...m, date: newDate, mealType: newMealType as 'BREAKFAST' | 'LUNCH' | 'DINNER' | 'SNACK' }
+          : m
+      );
+      setMeals(updatedMeals);
+    } catch (error) {
+      console.error('Failed to move meal:', error);
+      alert('Failed to move meal. Please try again.');
+    }
+  };
       console.error('Failed to clear day:', error);
       alert('Failed to clear day. Please try again.');
     }
@@ -691,6 +773,108 @@ const MealPlanner: React.FC = () => {
       default:
         return Array.from({ length: 7 }, (_, i) => addDays(currentWeekStart, i));
     }
+  };
+
+
+  // Draggable meal card component
+  const DraggableMealCard = ({ meal, mealType }: { meal: Meal; mealType: string }) => {
+    const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
+      id: meal.id,
+    });
+
+    const style = transform ? {
+      transform: `translate3d(${transform.x}px, ${transform.y}px, 0)`,
+      opacity: isDragging ? 0.5 : 1,
+    } : undefined;
+
+    return (
+      <Box
+        ref={setNodeRef}
+        style={style}
+        {...attributes}
+        {...listeners}
+        sx={{
+          p: 1,
+          bgcolor: 'background.default',
+          borderRadius: 1,
+          borderLeft: 3,
+          borderColor: getMealTypeColor(mealType),
+          mb: 0.5,
+          cursor: isDragging ? 'grabbing' : 'grab',
+          '&:hover': {
+            bgcolor: 'action.hover',
+          },
+        }}
+      >
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start' }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', flex: 1, minWidth: 0 }}>
+            <DragIndicatorIcon sx={{ fontSize: 16, mr: 0.5, color: 'text.secondary' }} />
+            <Box sx={{ flex: 1, minWidth: 0 }}>
+              <Typography
+                variant="caption"
+                sx={{
+                  fontWeight: 'medium',
+                  display: 'block',
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                  whiteSpace: 'nowrap',
+                }}
+              >
+                {meal.recipeName}
+              </Typography>
+              <Box sx={{ display: 'flex', gap: 0.5, mt: 0.5, flexWrap: 'wrap' }}>
+                <Chip
+                  label={`${meal.servings} servings`}
+                  size="small"
+                  sx={{ height: 16, fontSize: '0.65rem' }}
+                />
+                {meal.assignedCookName && (
+                  <Chip
+                    label={`👨‍🍳 ${meal.assignedCookName}`}
+                    size="small"
+                    color="primary"
+                    variant="outlined"
+                    sx={{ height: 16, fontSize: '0.65rem' }}
+                  />
+                )}
+              </Box>
+            </Box>
+          </Box>
+          <IconButton
+            size="small"
+            onClick={(e) => {
+              e.stopPropagation();
+              handleOpenMealDetail(meal);
+            }}
+            sx={{ ml: 0.5 }}
+          >
+            <EditIcon fontSize="small" />
+          </IconButton>
+        </Box>
+      </Box>
+    );
+  };
+
+  // Droppable zone component
+  const DroppableZone = ({ day, mealType, children }: { day: Date; mealType: string; children: React.ReactNode }) => {
+    const dropId = `day-${formatDateForAPI(day)}-${mealType}`;
+    const { setNodeRef, isOver } = useDroppable({
+      id: dropId,
+    });
+
+    return (
+      <Box
+        ref={setNodeRef}
+        sx={{
+          minHeight: '40px',
+          bgcolor: isOver ? 'action.selected' : 'transparent',
+          borderRadius: 1,
+          transition: 'background-color 0.2s',
+        }}
+      >
+        {children}
+      </Box>
+    );
   };
 
   const weekDays = getVisibleDays();
@@ -791,17 +975,22 @@ const MealPlanner: React.FC = () => {
             <CircularProgress />
           </Box>
         ) : (
-          <Box
-            sx={{
-              display: 'grid',
-              gridTemplateColumns: viewMode === 'month'
-                ? 'repeat(7, 1fr)'
-                : viewMode === '3-day'
-                ? 'repeat(3, 1fr)'
-                : 'repeat(7, 1fr)',
-              gap: 2,
-            }}
+          <DndContext
+            sensors={sensors}
+            onDragStart={handleDragStart}
+            onDragEnd={handleDragEnd}
           >
+            <Box
+              sx={{
+                display: 'grid',
+                gridTemplateColumns: viewMode === 'month'
+                  ? 'repeat(7, 1fr)'
+                  : viewMode === '3-day'
+                  ? 'repeat(3, 1fr)'
+                  : 'repeat(7, 1fr)',
+                gap: 2,
+              }}
+            >
             {weekDays.map((day, dayIndex) => {
             const isToday = isSameDay(day, new Date());
 
@@ -879,95 +1068,42 @@ const MealPlanner: React.FC = () => {
                             </IconButton>
                           </Box>
 
-                          {dayMeals.length === 0 ? (
-                            copiedMeal ? (
-                              <Box
-                                sx={{
-                                  p: 1,
-                                  bgcolor: 'action.hover',
-                                  borderRadius: 1,
-                                  textAlign: 'center',
-                                }}
-                              >
-                                <Stack direction="row" spacing={0.5} justifyContent="center">
-                                  <Button
-                                    size="small"
-                                    onClick={() => handleOpenDialog(day, mealType)}
-                                    sx={{ fontSize: '0.7rem', minWidth: 'auto', px: 1 }}
-                                  >
-                                    Add
-                                  </Button>
-                                  <Button
-                                    size="small"
-                                    variant="outlined"
-                                    onClick={() => handlePasteMeal(day, mealType)}
-                                    sx={{ fontSize: '0.7rem', minWidth: 'auto', px: 1 }}
-                                  >
-                                    Paste
-                                  </Button>
-                                </Stack>
-                              </Box>
-                            ) : null
-                          ) : (
-                            dayMeals.map((meal) => (
-                              <Box
-                                key={meal.id}
-                                onClick={() => handleOpenMealDetail(meal)}
-                                sx={{
-                                  p: 1,
-                                  bgcolor: 'background.default',
-                                  borderRadius: 1,
-                                  borderLeft: 3,
-                                  borderColor: getMealTypeColor(mealType),
-                                  mb: 0.5,
-                                  cursor: 'pointer',
-                                  '&:hover': {
+                          <DroppableZone day={day} mealType={mealType}>
+                            {dayMeals.length === 0 ? (
+                              copiedMeal ? (
+                                <Box
+                                  sx={{
+                                    p: 1,
                                     bgcolor: 'action.hover',
-                                  },
-                                }}
-                              >
-                                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start' }}>
-                                  <Box sx={{ flex: 1, minWidth: 0 }}>
-                                    <Typography
-                                      variant="caption"
-                                      sx={{
-                                        fontWeight: 'medium',
-                                        display: 'block',
-                                        overflow: 'hidden',
-                                        textOverflow: 'ellipsis',
-                                        whiteSpace: 'nowrap',
-                                      }}
+                                    borderRadius: 1,
+                                    textAlign: 'center',
+                                  }}
+                                >
+                                  <Stack direction="row" spacing={0.5} justifyContent="center">
+                                    <Button
+                                      size="small"
+                                      onClick={() => handleOpenDialog(day, mealType)}
+                                      sx={{ fontSize: '0.7rem', minWidth: 'auto', px: 1 }}
                                     >
-                                      {meal.recipeName}
-                                    </Typography>
-                                    <Box sx={{ display: 'flex', gap: 0.5, mt: 0.5, flexWrap: 'wrap' }}>
-                                      <Chip
-                                        label={`${meal.servings} servings`}
-                                        size="small"
-                                        sx={{ height: 16, fontSize: '0.65rem' }}
-                                      />
-                                      {meal.assignedCookName && (
-                                        <Chip
-                                          label={`👨‍🍳 ${meal.assignedCookName}`}
-                                          size="small"
-                                          color="primary"
-                                          variant="outlined"
-                                          sx={{ height: 16, fontSize: '0.65rem' }}
-                                        />
-                                      )}
-                                    </Box>
-                                  </Box>
-                                  <IconButton
-                                    size="small"
-                                    onClick={(e) => handleDeleteMeal(meal.id, e)}
-                                    sx={{ ml: 0.5 }}
-                                  >
-                                    <DeleteIcon fontSize="small" />
-                                  </IconButton>
+                                      Add
+                                    </Button>
+                                    <Button
+                                      size="small"
+                                      variant="outlined"
+                                      onClick={() => handlePasteMeal(day, mealType)}
+                                      sx={{ fontSize: '0.7rem', minWidth: 'auto', px: 1 }}
+                                    >
+                                      Paste
+                                    </Button>
+                                  </Stack>
                                 </Box>
-                              </Box>
-                            ))
-                          )}
+                              ) : null
+                            ) : (
+                              dayMeals.map((meal) => (
+                                <DraggableMealCard key={meal.id} meal={meal} mealType={mealType} />
+                              ))
+                            )}
+                          </DroppableZone>
                         </Box>
                       );
                     })}
@@ -976,7 +1112,27 @@ const MealPlanner: React.FC = () => {
               </Card>
             );
           })}
-          </Box>
+            </Box>
+            <DragOverlay>
+              {activeMeal ? (
+                <Box
+                  sx={{
+                    p: 1,
+                    bgcolor: 'background.paper',
+                    borderRadius: 1,
+                    borderLeft: 3,
+                    borderColor: getMealTypeColor(activeMeal.mealType),
+                    boxShadow: 3,
+                    opacity: 0.9,
+                  }}
+                >
+                  <Typography variant="caption" sx={{ fontWeight: 'medium' }}>
+                    {activeMeal.recipeName}
+                  </Typography>
+                </Box>
+              ) : null}
+            </DragOverlay>
+          </DndContext>
         )}
       </Box>
 
