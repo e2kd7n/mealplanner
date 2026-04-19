@@ -44,6 +44,7 @@ import { conditionalCsrfProtection, getCsrfToken, csrfErrorHandler } from './mid
 // Import utilities
 import { logger } from './utils/logger';
 import { initializeCache } from './utils/cache';
+import { metricsMiddleware } from './utils/monitoring';
 
 const app: Application = express();
 const PORT = process.env.PORT || 3000;
@@ -69,6 +70,9 @@ app.use(cookieParser());
 
 // Request logging
 app.use(requestLogger);
+
+// Performance metrics tracking
+app.use(metricsMiddleware);
 
 // Rate limiting
 app.use('/api/', rateLimiter);

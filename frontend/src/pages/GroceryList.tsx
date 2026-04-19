@@ -4,7 +4,7 @@
  */
 
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Container,
   Typography,
@@ -31,21 +31,45 @@ import {
   InputLabel,
   Select,
   MenuItem,
+  CircularProgress,
+  Alert,
 } from '@mui/material';
 import {
   Add as AddIcon,
   Delete as DeleteIcon,
   ShoppingCart as ShoppingCartIcon,
   CheckCircle as CheckCircleIcon,
+  Refresh as RefreshIcon,
 } from '@mui/icons-material';
+
+interface Ingredient {
+  id: string;
+  name: string;
+  category: string;
+  averagePrice: number;
+}
 
 interface GroceryItem {
   id: string;
-  name: string;
+  ingredientId: string;
   quantity: number;
   unit: string;
-  category: string;
-  checked: boolean;
+  estimatedPrice: number;
+  isChecked: boolean;
+  storeSection: string | null;
+  notes: string | null;
+  ingredient: Ingredient;
+}
+
+interface GroceryList {
+  id: string;
+  mealPlanId: string;
+  userId: string;
+  status: 'draft' | 'shopping' | 'completed';
+  totalEstimatedCost: number | null;
+  createdAt: string;
+  updatedAt: string;
+  items: GroceryItem[];
 }
 
 const CATEGORIES = [
@@ -61,33 +85,10 @@ const CATEGORIES = [
 ];
 
 const GroceryList: React.FC = () => {
-  const [items, setItems] = useState<GroceryItem[]>([
-    {
-      id: '1',
-      name: 'Tomatoes',
-      quantity: 4,
-      unit: 'pieces',
-      category: 'Produce',
-      checked: false,
-    },
-    {
-      id: '2',
-      name: 'Chicken Breast',
-      quantity: 2,
-      unit: 'lbs',
-      category: 'Meat & Seafood',
-      checked: false,
-    },
-    {
-      id: '3',
-      name: 'Milk',
-      quantity: 1,
-      unit: 'gallon',
-      category: 'Dairy & Eggs',
-      checked: true,
-    },
-  ]);
-
+  const [groceryLists, setGroceryLists] = useState<GroceryList[]>([]);
+  const [currentList, setCurrentList] = useState<GroceryList | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [openDialog, setOpenDialog] = useState(false);
   const [newItem, setNewItem] = useState({
     name: '',
@@ -96,40 +97,193 @@ const GroceryList: React.FC = () => {
     category: 'Other',
   });
 
-  const handleToggleItem = (id: string) => {
-    setItems(items.map(item =>
-      item.id === id ? { ...item, checked: !item.checked } : item
-    ));
-  };
+  const apiBase = import.meta.env.VITE_API_URL || '/api';
 
-  const handleDeleteItem = (id: string) => {
-    setItems(items.filter(item => item.id !== id));
-  };
+  // Fetch grocery lists on mount
+  useEffect(() => {
+    fetchGroceryLists();
+  }, []);
 
-  const handleAddItem = () => {
-    const item: GroceryItem = {
-      id: Date.now().toString(),
-      ...newItem,
-      checked: false,
-    };
-    setItems([...items, item]);
-    setNewItem({ name: '', quantity: 1, unit: 'pieces', category: 'Other' });
-    setOpenDialog(false);
-  };
+  const fetchGroceryLists = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      const token = localStorage.getItem('accessToken');
+      
+      const response = await fetch(`${apiBase}/grocery-lists`, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+      });
 
-  const handleClearChecked = () => {
-    setItems(items.filter(item => !item.checked));
-  };
+      if (!response.ok) {
+        throw new Error('Failed to fetch grocery lists');
+      }
 
-  const groupedItems = items.reduce((acc, item) => {
-    if (!acc[item.category]) {
-      acc[item.category] = [];
+      const data = await response.json();
+      setGroceryLists(data.data || []);
+      
+      // Set the most recent list as current
+      if (data.data && data.data.length > 0) {
+        setCurrentList(data.data[0]);
+      }
+    } catch (err) {
+      console.error('Error fetching grocery lists:', err);
+      setError('Failed to load grocery lists. Please try again.');
+    } finally {
+      setLoading(false);
     }
-    acc[item.category].push(item);
+  };
+
+  const handleToggleItem = async (itemId: string) => {
+    if (!currentList) return;
+
+    try {
+      const item = currentList.items.find(i => i.id === itemId);
+      if (!item) return;
+
+      const token = localStorage.getItem('accessToken');
+      const response = await fetch(`${apiBase}/grocery-lists/${currentList.id}/items/${itemId}`, {
+        method: 'PUT',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          checked: !item.isChecked,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to update item');
+      }
+
+      const data = await response.json();
+      
+      // Update local state
+      setCurrentList({
+        ...currentList,
+        items: currentList.items.map(i =>
+          i.id === itemId ? data.data : i
+        ),
+      });
+    } catch (err) {
+      console.error('Error toggling item:', err);
+      alert('Failed to update item. Please try again.');
+    }
+  };
+
+  const handleDeleteItem = async (itemId: string) => {
+    if (!currentList) return;
+
+    try {
+      const token = localStorage.getItem('accessToken');
+      const response = await fetch(`${apiBase}/grocery-lists/${currentList.id}/items/${itemId}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to delete item');
+      }
+
+      // Update local state
+      setCurrentList({
+        ...currentList,
+        items: currentList.items.filter(i => i.id !== itemId),
+      });
+    } catch (err) {
+      console.error('Error deleting item:', err);
+      alert('Failed to delete item. Please try again.');
+    }
+  };
+
+  const handleAddItem = async () => {
+    if (!currentList) return;
+
+    try {
+      const token = localStorage.getItem('accessToken');
+      
+      // First, we need to find or create an ingredient
+      // For now, we'll show an error that this feature needs ingredient management
+      alert('Adding custom items requires ingredient management. Please use the meal planner to generate grocery lists from recipes.');
+      setOpenDialog(false);
+    } catch (err) {
+      console.error('Error adding item:', err);
+      alert('Failed to add item. Please try again.');
+    }
+  };
+
+  const handleClearChecked = async () => {
+    if (!currentList) return;
+
+    const checkedItems = currentList.items.filter(item => item.isChecked);
+    
+    try {
+      const token = localStorage.getItem('accessToken');
+      
+      // Delete all checked items
+      await Promise.all(
+        checkedItems.map(item =>
+          fetch(`${apiBase}/grocery-lists/${currentList.id}/items/${item.id}`, {
+            method: 'DELETE',
+            headers: {
+              'Authorization': `Bearer ${token}`,
+            },
+          })
+        )
+      );
+
+      // Update local state
+      setCurrentList({
+        ...currentList,
+        items: currentList.items.filter(item => !item.isChecked),
+      });
+    } catch (err) {
+      console.error('Error clearing checked items:', err);
+      alert('Failed to clear checked items. Please try again.');
+    }
+  };
+
+  if (loading) {
+    return (
+      <Container maxWidth="lg">
+        <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '400px' }}>
+          <CircularProgress />
+        </Box>
+      </Container>
+    );
+  }
+
+  if (error) {
+    return (
+      <Container maxWidth="lg">
+        <Box sx={{ mt: 4 }}>
+          <Alert severity="error" action={
+            <Button color="inherit" size="small" onClick={fetchGroceryLists}>
+              Retry
+            </Button>
+          }>
+            {error}
+          </Alert>
+        </Box>
+      </Container>
+    );
+  }
+
+  const items = currentList?.items || [];
+  const groupedItems = items.reduce((acc, item) => {
+    const category = item.ingredient.category || 'Other';
+    if (!acc[category]) {
+      acc[category] = [];
+    }
+    acc[category].push(item);
     return acc;
   }, {} as Record<string, GroceryItem[]>);
 
-  const checkedCount = items.filter(item => item.checked).length;
+  const checkedCount = items.filter(item => item.isChecked).length;
   const totalCount = items.length;
   const progress = totalCount > 0 ? (checkedCount / totalCount) * 100 : 0;
 
@@ -144,46 +298,48 @@ const GroceryList: React.FC = () => {
           <Stack direction="row" spacing={2}>
             <Button
               variant="outlined"
+              startIcon={<RefreshIcon />}
+              onClick={fetchGroceryLists}
+            >
+              Refresh
+            </Button>
+            <Button
+              variant="outlined"
               color="error"
               onClick={handleClearChecked}
               disabled={checkedCount === 0}
             >
               Clear Checked ({checkedCount})
             </Button>
-            <Button
-              variant="contained"
-              startIcon={<AddIcon />}
-              onClick={() => setOpenDialog(true)}
-            >
-              Add Item
-            </Button>
           </Stack>
         </Box>
 
         {/* Progress */}
-        <Card sx={{ mb: 3, bgcolor: 'primary.light', color: 'primary.contrastText' }}>
-          <CardContent>
-            <Stack direction="row" alignItems="center" spacing={2}>
-              <ShoppingCartIcon sx={{ fontSize: 40 }} />
-              <Box sx={{ flexGrow: 1 }}>
-                <Typography variant="h6">
-                  Shopping Progress
-                </Typography>
-                <Typography variant="body2">
-                  {checkedCount} of {totalCount} items checked
-                </Typography>
-              </Box>
-              <Box sx={{ textAlign: 'right' }}>
-                <Typography variant="h4">
-                  {Math.round(progress)}%
-                </Typography>
-              </Box>
-            </Stack>
-          </CardContent>
-        </Card>
+        {currentList && (
+          <Card sx={{ mb: 3, bgcolor: 'primary.light', color: 'primary.contrastText' }}>
+            <CardContent>
+              <Stack direction="row" alignItems="center" spacing={2}>
+                <ShoppingCartIcon sx={{ fontSize: 40 }} />
+                <Box sx={{ flexGrow: 1 }}>
+                  <Typography variant="h6">
+                    Shopping Progress
+                  </Typography>
+                  <Typography variant="body2">
+                    {checkedCount} of {totalCount} items checked
+                  </Typography>
+                </Box>
+                <Box sx={{ textAlign: 'right' }}>
+                  <Typography variant="h4">
+                    {Math.round(progress)}%
+                  </Typography>
+                </Box>
+              </Stack>
+            </CardContent>
+          </Card>
+        )}
 
         {/* Empty State */}
-        {items.length === 0 ? (
+        {!currentList || items.length === 0 ? (
           <Card>
             <CardContent sx={{ textAlign: 'center', py: 8 }}>
               <ShoppingCartIcon sx={{ fontSize: 64, color: 'text.secondary', mb: 2 }} />
@@ -191,25 +347,24 @@ const GroceryList: React.FC = () => {
                 Your grocery list is empty
               </Typography>
               <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
-                Add items manually or generate from a meal plan
+                Generate a grocery list from your meal plan to get started
               </Typography>
               <Button
                 variant="contained"
-                startIcon={<AddIcon />}
-                onClick={() => setOpenDialog(true)}
+                onClick={() => window.location.href = '/meal-planner'}
               >
-                Add First Item
+                Go to Meal Planner
               </Button>
             </CardContent>
           </Card>
         ) : (
           /* Grouped Items */
           <Box>
-            {CATEGORIES.map(category => {
+            {Object.keys(groupedItems).sort().map(category => {
               const categoryItems = groupedItems[category];
               if (!categoryItems || categoryItems.length === 0) return null;
 
-              const categoryChecked = categoryItems.filter(item => item.checked).length;
+              const categoryChecked = categoryItems.filter(item => item.isChecked).length;
               const categoryTotal = categoryItems.length;
 
               return (
@@ -249,17 +404,17 @@ const GroceryList: React.FC = () => {
                             <ListItemIcon>
                               <Checkbox
                                 edge="start"
-                                checked={item.checked}
+                                checked={item.isChecked}
                                 tabIndex={-1}
                                 disableRipple
                               />
                             </ListItemIcon>
                             <ListItemText
-                              primary={item.name}
+                              primary={item.ingredient.name}
                               secondary={`${item.quantity} ${item.unit}`}
                               sx={{
-                                textDecoration: item.checked ? 'line-through' : 'none',
-                                color: item.checked ? 'text.secondary' : 'text.primary',
+                                textDecoration: item.isChecked ? 'line-through' : 'none',
+                                color: item.isChecked ? 'text.secondary' : 'text.primary',
                               }}
                             />
                           </ListItemButton>
@@ -274,56 +429,16 @@ const GroceryList: React.FC = () => {
         )}
       </Box>
 
-      {/* Add Item Dialog */}
+      {/* Add Item Dialog (Disabled for now) */}
       <Dialog open={openDialog} onClose={() => setOpenDialog(false)} maxWidth="sm" fullWidth>
         <DialogTitle>Add Grocery Item</DialogTitle>
         <DialogContent>
-          <Stack spacing={2} sx={{ mt: 1 }}>
-            <TextField
-              label="Item Name"
-              fullWidth
-              value={newItem.name}
-              onChange={(e) => setNewItem({ ...newItem, name: e.target.value })}
-              autoFocus
-            />
-            <Box sx={{ display: 'flex', gap: 2 }}>
-              <TextField
-                label="Quantity"
-                type="number"
-                value={newItem.quantity}
-                onChange={(e) => setNewItem({ ...newItem, quantity: Number(e.target.value) })}
-                sx={{ flex: 1 }}
-              />
-              <TextField
-                label="Unit"
-                value={newItem.unit}
-                onChange={(e) => setNewItem({ ...newItem, unit: e.target.value })}
-                sx={{ flex: 1 }}
-              />
-            </Box>
-            <FormControl fullWidth>
-              <InputLabel>Category</InputLabel>
-              <Select
-                value={newItem.category}
-                label="Category"
-                onChange={(e) => setNewItem({ ...newItem, category: e.target.value })}
-              >
-                {CATEGORIES.map(cat => (
-                  <MenuItem key={cat} value={cat}>{cat}</MenuItem>
-                ))}
-              </Select>
-            </FormControl>
-          </Stack>
+          <Alert severity="info" sx={{ mt: 1 }}>
+            Adding custom items is not yet supported. Please generate grocery lists from your meal plans.
+          </Alert>
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setOpenDialog(false)}>Cancel</Button>
-          <Button
-            onClick={handleAddItem}
-            variant="contained"
-            disabled={!newItem.name}
-          >
-            Add Item
-          </Button>
+          <Button onClick={() => setOpenDialog(false)}>Close</Button>
         </DialogActions>
       </Dialog>
     </Container>

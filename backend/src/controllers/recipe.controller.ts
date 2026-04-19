@@ -133,6 +133,7 @@ export async function getRecipes(
       cuisineType,
       maxPrepTime,
       maxCookTime,
+      sortBy,
     } = req.query;
 
     const pageNum = parseInt(page as string);
@@ -183,8 +184,50 @@ export async function getRecipes(
       where.cookTime = { lte: parseInt(maxCookTime as string) };
     }
 
+    // Build orderBy clause based on sortBy parameter
+    let orderBy: any = { createdAt: 'desc' }; // default
+    
+    if (sortBy) {
+      const sortByStr = sortBy as string;
+      switch (sortByStr) {
+        case 'title':
+          orderBy = { title: 'asc' };
+          break;
+        case 'title_desc':
+          orderBy = { title: 'desc' };
+          break;
+        case 'prepTime':
+          orderBy = { prepTime: 'asc' };
+          break;
+        case 'prepTime_desc':
+          orderBy = { prepTime: 'desc' };
+          break;
+        case 'totalTime':
+          // Sort by sum of prepTime + cookTime (approximation using prepTime)
+          orderBy = { prepTime: 'asc' };
+          break;
+        case 'totalTime_desc':
+          orderBy = { prepTime: 'desc' };
+          break;
+        case 'difficulty':
+          orderBy = { difficulty: 'asc' };
+          break;
+        case 'difficulty_desc':
+          orderBy = { difficulty: 'desc' };
+          break;
+        case 'createdAt':
+          orderBy = { createdAt: 'desc' };
+          break;
+        case 'createdAt_asc':
+          orderBy = { createdAt: 'asc' };
+          break;
+        default:
+          orderBy = { createdAt: 'desc' };
+      }
+    }
+
     // Try to get from cache
-    const cacheKey = getRecipeListCacheKey({ where, skip, limitNum });
+    const cacheKey = getRecipeListCacheKey({ where, skip, limitNum, orderBy });
     const cached = await cacheGet(cacheKey);
 
     if (cached) {
@@ -206,9 +249,7 @@ export async function getRecipes(
             },
           },
         },
-        orderBy: {
-          createdAt: 'desc',
-        },
+        orderBy,
       }),
       prisma.recipe.count({ where }),
     ]);

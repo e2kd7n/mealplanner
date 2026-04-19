@@ -461,7 +461,7 @@ const MealPlanner: React.FC = () => {
       const apiBase = import.meta.env.VITE_API_URL || '/api';
       
       // Generate grocery list from meal plan
-      const response = await fetch(`${apiBase}/meal-plans/${currentMealPlanId}/generate-grocery-list`, {
+      const response = await fetch(`${apiBase}/grocery-lists/from-meal-plan/${currentMealPlanId}`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,

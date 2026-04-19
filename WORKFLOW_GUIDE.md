@@ -1,8 +1,24 @@
 # Meal Planner Workflow Guide
 
-**Last Updated:** 2026-03-23
+**Last Updated:** 2026-04-01
 
-This is the **single source of truth** for development workflows, processes, and guidelines for the Meal Planner application. All team members should follow these guidelines.
+> **📖 Note:** This project follows the consolidated [GitHub Issue Management Workflow Guidelines](/Users/erik/dev/workflow-guidelines.md) which provides comprehensive best practices for issue management, git workflow, and maintenance procedures across all projects.
+>
+> This document contains **project-specific** configurations and practices for the Meal Planner application. For general workflow guidelines, refer to the consolidated document.
+
+---
+
+## 📚 Quick Links
+
+- **[Consolidated Workflow Guidelines](/Users/erik/dev/workflow-guidelines.md)** - Complete issue management guide
+- **[ISSUE_PRIORITIES.md](./ISSUE_PRIORITIES.md)** - Current issue priorities
+- **[WEEKLY_MAINTENANCE.md](./WEEKLY_MAINTENANCE.md)** - Maintenance procedures
+
+---
+
+## 🎯 Project-Specific Guidelines
+
+This document covers Meal Planner-specific workflows and configurations. All team members should follow these guidelines in addition to the consolidated workflow guidelines.
 
 ---
 

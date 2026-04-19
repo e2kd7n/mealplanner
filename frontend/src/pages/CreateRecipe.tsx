@@ -964,6 +964,14 @@ export default function CreateRecipe() {
 
   return (
     <Container maxWidth="lg" sx={{ py: 4 }}>
+      <Button
+        startIcon={<BackIcon />}
+        onClick={() => navigate('/recipes')}
+        sx={{ mb: 2 }}
+      >
+        Back to Recipes
+      </Button>
+      
       <Box mb={4}>
         <Typography variant="h4" gutterBottom>
           {isEditMode ? 'Edit Recipe' : 'Create New Recipe'}
