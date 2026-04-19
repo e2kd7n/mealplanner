@@ -78,6 +78,26 @@ const RecipeDetail: React.FC = () => {
   const [mealServings, setMealServings] = useState<number>(4);
   const [addingToMealPlan, setAddingToMealPlan] = useState(false);
 
+  // Recipe scaling state
+  const [scaledServings, setScaledServings] = useState<number>(recipe?.servings || 1);
+
+  // Update scaled servings when recipe loads
+  useEffect(() => {
+    if (recipe?.servings) {
+      setScaledServings(recipe.servings);
+    }
+  }, [recipe?.servings]);
+
+  // Calculate scaling factor
+  const scalingFactor = recipe?.servings ? scaledServings / recipe.servings : 1;
+
+  // Scale ingredient quantity
+  const scaleQuantity = (quantity: number): string => {
+    const scaled = quantity * scalingFactor;
+    // Round to 2 decimal places and remove trailing zeros
+    return parseFloat(scaled.toFixed(2)).toString();
+  };
+
   useEffect(() => {
     if (id) {
       dispatch(fetchRecipeById(id));
@@ -269,8 +289,9 @@ const RecipeDetail: React.FC = () => {
                 />
                 <Chip
                   icon={<PeopleIcon />}
-                  label={`${recipe.servings} servings`}
+                  label={scalingFactor !== 1 ? `${scaledServings} servings (original: ${recipe.servings})` : `${recipe.servings} servings`}
                   variant="outlined"
+                  color={scalingFactor !== 1 ? 'primary' : 'default'}
                 />
                 <Chip
                   label={recipe.mealType}
@@ -365,9 +386,46 @@ const RecipeDetail: React.FC = () => {
         >
           {/* Ingredients */}
           <Paper sx={{ p: 3 }}>
-            <Typography variant="h5" gutterBottom sx={{ fontWeight: 600, mb: 2 }}>
-              Ingredients
-            </Typography>
+            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+              <Typography variant="h5" sx={{ fontWeight: 600 }}>
+                Ingredients
+              </Typography>
+              {/* Servings Adjuster */}
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                <Typography variant="body2" color="text.secondary">
+                  Servings:
+                </Typography>
+                <Button
+                  size="small"
+                  variant="outlined"
+                  onClick={() => setScaledServings(Math.max(1, scaledServings - 1))}
+                  sx={{ minWidth: '32px', px: 1 }}
+                >
+                  -
+                </Button>
+                <Typography variant="body1" sx={{ minWidth: '40px', textAlign: 'center', fontWeight: 600 }}>
+                  {scaledServings}
+                </Typography>
+                <Button
+                  size="small"
+                  variant="outlined"
+                  onClick={() => setScaledServings(scaledServings + 1)}
+                  sx={{ minWidth: '32px', px: 1 }}
+                >
+                  +
+                </Button>
+                {scalingFactor !== 1 && (
+                  <Button
+                    size="small"
+                    variant="text"
+                    onClick={() => setScaledServings(recipe?.servings || 1)}
+                    sx={{ ml: 1 }}
+                  >
+                    Reset
+                  </Button>
+                )}
+              </Box>
+            </Box>
             <Divider sx={{ mb: 3 }} />
             <List sx={{ '& .MuiListItem-root': { py: 1.5 } }}>
               {recipe.ingredients && recipe.ingredients.length > 0 ? (
@@ -389,7 +447,12 @@ const RecipeDetail: React.FC = () => {
                     <ListItemText
                       primary={
                         <Typography variant="body1" sx={{ fontWeight: 500 }}>
-                          {`${item.quantity} ${item.unit} ${item.ingredient?.name || item.ingredientName || 'Unknown ingredient'}`}
+                          {`${scaleQuantity(item.quantity)} ${item.unit} ${item.ingredient?.name || item.ingredientName || 'Unknown ingredient'}`}
+                          {scalingFactor !== 1 && (
+                            <Typography component="span" variant="body2" color="text.secondary" sx={{ ml: 1 }}>
+                              (original: {item.quantity})
+                            </Typography>
+                          )}
                         </Typography>
                       }
                       secondary={item.notes ? (
