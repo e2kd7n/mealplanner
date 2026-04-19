@@ -3,7 +3,7 @@
  * All rights reserved.
  */
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import {
   Container,
@@ -39,6 +39,7 @@ import {
   Save as SaveIcon,
   TextFields as TextFieldsIcon,
   FormatListNumbered as FormatListNumberedIcon,
+  CloudUpload as CloudUploadIcon,
 } from '@mui/icons-material';
 import api from '../services/api';
 
@@ -115,6 +116,8 @@ export default function CreateRecipe() {
   const [success, setSuccess] = useState('');
   const [availableIngredients, setAvailableIngredients] = useState<Ingredient[]>([]);
   const [instructionMode, setInstructionMode] = useState<'bulk' | 'manual'>('bulk');
+  const [uploadingImage, setUploadingImage] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [bulkInstructions, setBulkInstructions] = useState('');
   
   const [formData, setFormData] = useState<RecipeFormData>({
@@ -392,6 +395,58 @@ export default function CreateRecipe() {
     }
   };
 
+  const handleImageUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    // Validate file type
+    const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'image/gif'];
+    if (!allowedTypes.includes(file.type)) {
+      setError('Invalid file type. Please upload a JPEG, PNG, WebP, or GIF image.');
+      return;
+    }
+
+    // Validate file size (5MB max)
+    const maxSize = 5 * 1024 * 1024;
+    if (file.size > maxSize) {
+      setError('File too large. Maximum size is 5MB.');
+      return;
+    }
+
+    try {
+      setUploadingImage(true);
+      setError('');
+
+      const formData = new FormData();
+      formData.append('image', file);
+
+      const response = await api.post('/images/upload', formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      });
+
+      const imageUrl = response.data?.data?.imageUrl || response.data?.imageUrl;
+      if (imageUrl) {
+        setFormData(prev => ({ ...prev, imageUrl }));
+        setSuccess('Image uploaded successfully!');
+        setTimeout(() => setSuccess(''), 3000);
+      }
+    } catch (err: any) {
+      setError(err.response?.data?.message || 'Failed to upload image');
+    } finally {
+      setUploadingImage(false);
+      // Reset file input
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
+    }
+  };
+
+  const handleImageUploadClick = () => {
+    fileInputRef.current?.click();
+  };
+
   const renderBasicInfo = () => (
     <Grid container spacing={3}>
       <Grid size={{ xs: 12 }}>
@@ -511,13 +566,32 @@ export default function CreateRecipe() {
       </Grid>
 
       <Grid size={{ xs: 12 }}>
-        <TextField
-          fullWidth
-          label="Image URL"
-          value={formData.imageUrl}
-          onChange={(e) => setFormData({ ...formData, imageUrl: e.target.value })}
-          placeholder="https://example.com/image.jpg"
-        />
+        <Box sx={{ display: 'flex', gap: 1, alignItems: 'flex-start' }}>
+          <TextField
+            fullWidth
+            label="Image URL"
+            value={formData.imageUrl}
+            onChange={(e) => setFormData({ ...formData, imageUrl: e.target.value })}
+            placeholder="https://example.com/image.jpg or upload an image"
+            helperText="Enter a URL or upload an image file"
+          />
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/*"
+            style={{ display: 'none' }}
+            onChange={handleImageUpload}
+          />
+          <Button
+            variant="outlined"
+            startIcon={uploadingImage ? <CircularProgress size={20} /> : <CloudUploadIcon />}
+            onClick={handleImageUploadClick}
+            disabled={uploadingImage}
+            sx={{ minWidth: '140px', height: '56px' }}
+          >
+            {uploadingImage ? 'Uploading...' : 'Upload'}
+          </Button>
+        </Box>
       </Grid>
 
       <Grid size={{ xs: 12, sm: 6 }}>
