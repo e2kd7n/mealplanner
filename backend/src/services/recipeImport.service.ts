@@ -118,6 +118,7 @@ export class RecipeImportService {
 
   /**
    * Parse ingredient string into structured format
+   * Enhanced to handle fractions, ranges, and various formats
    */
   private parseIngredient(ingredientStr: string | undefined): {
     name: string;
@@ -127,15 +128,53 @@ export class RecipeImportService {
   } | null {
     if (!ingredientStr) return null;
 
-    // Simple parsing - extract quantity, unit, and name
-    const match = ingredientStr.match(/^([\d./]+)?\s*([a-zA-Z]+)?\s*(.+)$/);
-
-    if (match) {
-      const [, qty, unit, name] = match;
+    // Decode HTML entities first
+    const decoded = this.decodeHtmlEntities(ingredientStr);
+    
+    // Handle fractions (e.g., "1/2", "1 1/2")
+    const fractionMatch = decoded.match(/^(\d+)?\s*(\d+)\/(\d+)\s*([a-zA-Z]+)?\s*(.+)$/);
+    if (fractionMatch) {
+      const [, whole, numerator, denominator, unit, name] = fractionMatch;
+      const wholeNum = whole ? parseInt(whole) : 0;
+      const fraction = parseInt(numerator) / parseInt(denominator);
       return {
-        quantity: qty ? parseFloat(qty) : 1,
+        quantity: wholeNum + fraction,
         unit: unit || 'unit',
         name: name.trim(),
+      };
+    }
+
+    // Handle ranges (e.g., "2-3 cups")
+    const rangeMatch = decoded.match(/^(\d+(?:\.\d+)?)\s*-\s*(\d+(?:\.\d+)?)\s*([a-zA-Z]+)?\s*(.+)$/);
+    if (rangeMatch) {
+      const [, min, max, unit, name] = rangeMatch;
+      // Use average of range
+      const quantity = (parseFloat(min) + parseFloat(max)) / 2;
+      return {
+        quantity,
+        unit: unit || 'unit',
+        name: name.trim(),
+      };
+    }
+
+    // Handle decimal quantities (e.g., "2.5 cups flour")
+    const decimalMatch = decoded.match(/^([\d.]+)\s*([a-zA-Z]+)?\s*(.+)$/);
+    if (decimalMatch) {
+      const [, qty, unit, name] = decimalMatch;
+      return {
+        quantity: parseFloat(qty),
+        unit: unit || 'unit',
+        name: name.trim(),
+      };
+    }
+
+    // Handle ingredients without quantities (e.g., "salt to taste")
+    const noQtyMatch = decoded.match(/^([a-zA-Z\s]+)(?:\s+to\s+taste|\s+as\s+needed)?$/i);
+    if (noQtyMatch) {
+      return {
+        quantity: 1,
+        unit: 'unit',
+        name: decoded.trim(),
       };
     }
 
@@ -143,7 +182,7 @@ export class RecipeImportService {
     return {
       quantity: 1,
       unit: 'unit',
-      name: ingredientStr.trim(),
+      name: decoded.trim(),
     };
   }
 
@@ -167,6 +206,7 @@ export class RecipeImportService {
 
   /**
    * Parse instructions into structured steps
+   * Enhanced to handle multiple formats from different recipe sites
    */
   private parseInstructions(instructions: any): Array<{ step: number; instruction: string }> {
     if (!instructions) return [];
@@ -201,8 +241,27 @@ export class RecipeImportService {
               allSteps.push(this.decodeHtmlEntities(text.trim()));
             }
           }
-        } else {
-          // Handle direct text/name properties
+        }
+        // Handle HowToStep objects (common in schema.org)
+        else if (inst['@type'] === 'HowToStep' || inst.type === 'HowToStep') {
+          const text = inst.text || inst.name || inst.itemListElement?.[0]?.text || '';
+          if (text.trim()) {
+            allSteps.push(this.decodeHtmlEntities(text.trim()));
+          }
+        }
+        // Handle HowToSection objects (grouped instructions)
+        else if (inst['@type'] === 'HowToSection' || inst.type === 'HowToSection') {
+          if (inst.itemListElement && Array.isArray(inst.itemListElement)) {
+            for (const item of inst.itemListElement) {
+              const text = item?.text || item?.name || '';
+              if (text.trim()) {
+                allSteps.push(this.decodeHtmlEntities(text.trim()));
+              }
+            }
+          }
+        }
+        // Handle direct text/name properties
+        else {
           const text = inst?.text || inst?.name || (typeof inst === 'string' ? inst : '');
           if (text.trim()) {
             allSteps.push(this.decodeHtmlEntities(text.trim()));
@@ -210,6 +269,21 @@ export class RecipeImportService {
         }
       }
       
+      return allSteps.map((instruction, index) => ({
+        step: index + 1,
+        instruction,
+      }));
+    }
+
+    // Handle object with itemListElement (single HowToSection)
+    if (instructions.itemListElement && Array.isArray(instructions.itemListElement)) {
+      const allSteps: string[] = [];
+      for (const item of instructions.itemListElement) {
+        const text = item?.text || item?.name || '';
+        if (text.trim()) {
+          allSteps.push(this.decodeHtmlEntities(text.trim()));
+        }
+      }
       return allSteps.map((instruction, index) => ({
         step: index + 1,
         instruction,
@@ -266,16 +340,17 @@ export class RecipeImportService {
   }
 
   /**
-   * Import recipe from URL
+   * Import recipe from URL with retry logic
    */
-  async importFromUrl(url: string): Promise<ParsedRecipe> {
+  async importFromUrl(url: string, retryCount = 0): Promise<ParsedRecipe> {
     const hostname = new URL(url).hostname;
+    const maxRetries = 2;
     
     try {
       // Validate URL
       const validatedUrl = this.validateUrl(url);
 
-      logger.info(`[RECIPE_IMPORT_START] URL: ${validatedUrl}, Hostname: ${hostname}`);
+      logger.info(`[RECIPE_IMPORT_START] URL: ${validatedUrl}, Hostname: ${hostname}, Attempt: ${retryCount + 1}/${maxRetries + 1}`);
 
       // Scrape recipe using @rethora/url-recipe-scraper
       let scrapedRecipe;
@@ -306,8 +381,25 @@ export class RecipeImportService {
           errorMessage: scrapeError.message,
           errorType: scrapeError.constructor.name,
           errorStack: scrapeError.stack,
+          retryCount,
           timestamp: new Date().toISOString(),
         });
+        
+        // Retry logic for transient errors
+        const isTransientError =
+          scrapeError.message.includes('timeout') ||
+          scrapeError.message.includes('ETIMEDOUT') ||
+          scrapeError.message.includes('ECONNRESET') ||
+          scrapeError.message.includes('ENOTFOUND') ||
+          scrapeError.message.includes('503') ||
+          scrapeError.message.includes('502');
+        
+        if (isTransientError && retryCount < maxRetries) {
+          const delay = Math.pow(2, retryCount) * 1000; // Exponential backoff: 1s, 2s, 4s
+          logger.info(`[RECIPE_RETRY] ${hostname}: Retrying after ${delay}ms (attempt ${retryCount + 2}/${maxRetries + 1})`);
+          await new Promise(resolve => setTimeout(resolve, delay));
+          return this.importFromUrl(url, retryCount + 1);
+        }
         
         // Provide helpful error message based on error type
         if (scrapeError.message.includes('JSON') || scrapeError.message.includes('parse')) {
@@ -319,13 +411,19 @@ export class RecipeImportService {
         
         if (scrapeError.message.includes('timeout') || scrapeError.message.includes('ETIMEDOUT')) {
           throw new Error(
-            `Connection timeout while trying to access ${hostname}. The website may be slow or temporarily unavailable. Please try again.`
+            `Connection timeout while trying to access ${hostname}. The website may be slow or temporarily unavailable. Please try again later.`
           );
         }
         
         if (scrapeError.message.includes('404') || scrapeError.message.includes('Not Found')) {
           throw new Error(
             `Recipe not found at ${hostname}. The page may have been moved or deleted.`
+          );
+        }
+        
+        if (scrapeError.message.includes('403') || scrapeError.message.includes('Forbidden')) {
+          throw new Error(
+            `Access denied by ${hostname}. The website may be blocking automated access. Try copying the recipe manually or contact the site administrator.`
           );
         }
         
