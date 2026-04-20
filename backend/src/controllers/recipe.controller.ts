@@ -563,10 +563,16 @@ export async function updateRecipe(
 
       // Add new ingredients
       for (const ing of ingredients) {
+        const ingredientId = await findOrCreateIngredient(
+          ing.ingredientId,
+          ing.ingredientName || ing.name,
+          ing.unit
+        );
+
         await prisma.recipeIngredient.create({
           data: {
             recipeId: id,
-            ingredientId: ing.ingredientId,
+            ingredientId,
             quantity: ing.quantity,
             unit: ing.unit,
             notes: ing.notes || null,

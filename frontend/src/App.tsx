@@ -23,6 +23,7 @@ const Recipes = lazy(() => import('./pages/Recipes'));
 const RecipeDetail = lazy(() => import('./pages/RecipeDetail'));
 const CreateRecipe = lazy(() => import('./pages/CreateRecipe'));
 const ImportRecipe = lazy(() => import('./pages/ImportRecipe'));
+const BrowseRecipes = lazy(() => import('./pages/BrowseRecipes'));
 const MealPlanner = lazy(() => import('./pages/MealPlanner'));
 const GroceryList = lazy(() => import('./pages/GroceryList'));
 const Pantry = lazy(() => import('./pages/Pantry'));
@@ -73,6 +74,7 @@ function App() {
                   <Route path="recipes/create" element={<CreateRecipe />} />
                   <Route path="recipes/:id/edit" element={<CreateRecipe />} />
                   <Route path="recipes/import" element={<ImportRecipe />} />
+                  <Route path="recipes/browse" element={<BrowseRecipes />} />
                   <Route path="meal-planner" element={<MealPlanner />} />
                   <Route path="grocery-list" element={<GroceryList />} />
                   <Route path="pantry" element={<Pantry />} />

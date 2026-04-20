@@ -292,16 +292,33 @@ meals/
 
 ## 🧪 Testing
 
+### End-to-End Tests (Playwright)
+
+```bash
+cd frontend
+pnpm test:e2e          # Run all E2E tests
+pnpm test:e2e:ui       # Interactive UI mode (recommended)
+pnpm test:e2e:headed   # Run with visible browser
+pnpm test:e2e:debug    # Debug mode
+pnpm test:e2e:report   # View test report
+```
+
+**Documentation:**
+- 📘 [E2E Testing Implementation Plan](E2E_TESTING_IMPLEMENTATION_PLAN.md) - Complete implementation guide
+- 🚀 [E2E Testing Quick Start](E2E_TESTING_QUICK_START.md) - Quick reference for developers
+- 🏗️ [E2E Testing Architecture](E2E_TESTING_ARCHITECTURE.md) - Visual architecture diagrams
+
+### Unit & Integration Tests
+
 ```bash
 # Frontend tests
 cd frontend
-pnpm test              # Run unit tests
-pnpm test:e2e          # Run end-to-end tests
+pnpm test              # Run unit tests (coming soon)
 
 # Backend tests
 cd backend
-pnpm test              # Run unit tests
-pnpm test:integration  # Run integration tests
+pnpm test              # Run unit tests (coming soon)
+pnpm test:integration  # Run integration tests (coming soon)
 ```
 
 ## 📦 Building for Production

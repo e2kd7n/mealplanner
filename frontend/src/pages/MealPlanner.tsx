@@ -660,6 +660,9 @@ const MealPlanner: React.FC = () => {
       setMeals(meals.filter(meal => !isSameDay(meal.date, selectedDay)));
       setOpenDaySummary(false);
     } catch (error) {
+      console.error('Error clearing day:', error);
+    }
+  };
 
   const handleDragStart = (event: DragStartEvent) => {
     const meal = meals.find(m => m.id === event.active.id);
@@ -727,10 +730,6 @@ const MealPlanner: React.FC = () => {
     } catch (error) {
       console.error('Failed to move meal:', error);
       alert('Failed to move meal. Please try again.');
-    }
-  };
-      console.error('Failed to clear day:', error);
-      alert('Failed to clear day. Please try again.');
     }
   };
 
