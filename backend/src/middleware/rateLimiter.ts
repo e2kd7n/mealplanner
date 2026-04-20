@@ -33,9 +33,11 @@ const rateLimiter = rateLimit({
 
 // Stricter rate limiter for authentication endpoints
 // Protects against brute force attacks
+// In development/test, use more lenient limits for E2E testing
+const isTestEnv = process.env.NODE_ENV === 'test' || process.env.E2E_TESTING === 'true';
 export const authRateLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 5, // 5 attempts per 15 minutes
+  windowMs: isTestEnv ? 60 * 1000 : 15 * 60 * 1000, // 1 minute in test, 15 minutes in production
+  max: isTestEnv ? 50 : 5, // 50 attempts in test, 5 in production
   message: 'Too many authentication attempts, please try again later.',
   standardHeaders: true,
   legacyHeaders: false,
@@ -48,7 +50,7 @@ export const authRateLimiter = rateLimit({
     });
     res.status(429).json({
       error: 'Too Many Requests',
-      message: 'Too many authentication attempts from this IP. Please try again after 15 minutes.',
+      message: `Too many authentication attempts from this IP. Please try again after ${isTestEnv ? '1 minute' : '15 minutes'}.`,
       retryAfter: res.getHeader('Retry-After'),
     });
   },

@@ -112,6 +112,7 @@ enum RecipeSource {
   custom
   imported
   api
+  spoonacular
 }
 
 enum Difficulty {

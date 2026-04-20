@@ -42,10 +42,11 @@ import {
   Restaurant as RestaurantIcon,
   People as PeopleIcon,
   Edit as EditIcon,
+  Delete as DeleteIcon,
   CheckBoxOutlineBlank as CheckBoxOutlineBlankIcon,
 } from '@mui/icons-material';
 import { useAppDispatch, useAppSelector } from '../store/hooks';
-import { fetchRecipeById, setCurrentRecipe } from '../store/slices/recipesSlice';
+import { fetchRecipeById, setCurrentRecipe, deleteRecipe } from '../store/slices/recipesSlice';
 import { fetchGroceryLists, addItemToList } from '../store/slices/groceryListsSlice';
 import { fetchMealPlans, addMealToPlan } from '../store/slices/mealPlansSlice';
 import { useCachedImage } from '../hooks/useCachedImage';
@@ -77,6 +78,10 @@ const RecipeDetail: React.FC = () => {
   const [mealType, setMealType] = useState<string>('dinner');
   const [mealServings, setMealServings] = useState<number>(4);
   const [addingToMealPlan, setAddingToMealPlan] = useState(false);
+
+  // Delete confirmation dialog state
+  const [openDeleteDialog, setOpenDeleteDialog] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
   // Recipe scaling state
   const [scaledServings, setScaledServings] = useState<number>(recipe?.servings || 1);
@@ -198,6 +203,27 @@ const RecipeDetail: React.FC = () => {
     }
   };
 
+  const handleDeleteRecipe = () => {
+    setOpenDeleteDialog(true);
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!recipe) return;
+
+    setDeleting(true);
+    try {
+      await dispatch(deleteRecipe(recipe.id)).unwrap();
+      setOpenDeleteDialog(false);
+      alert(`Successfully deleted "${recipe.title}"`);
+      navigate('/recipes');
+    } catch (error: any) {
+      console.error('Failed to delete recipe:', error);
+      alert(error.message || 'Failed to delete recipe');
+    } finally {
+      setDeleting(false);
+    }
+  };
+
   const getDifficultyColor = (diff: string) => {
     switch (diff?.toLowerCase()) {
       case 'easy':
@@ -306,13 +332,23 @@ const RecipeDetail: React.FC = () => {
                 )}
               </Stack>
             </Box>
-            <Button
-              variant="outlined"
-              startIcon={<EditIcon />}
-              onClick={() => navigate(`/recipes/${id}/edit`)}
-            >
-              Edit
-            </Button>
+            <Stack direction="row" spacing={1}>
+              <Button
+                variant="outlined"
+                startIcon={<EditIcon />}
+                onClick={() => navigate(`/recipes/${id}/edit`)}
+              >
+                Edit
+              </Button>
+              <Button
+                variant="outlined"
+                color="error"
+                startIcon={<DeleteIcon />}
+                onClick={handleDeleteRecipe}
+              >
+                Delete
+              </Button>
+            </Stack>
           </Box>
         </Box>
 
@@ -670,6 +706,28 @@ const RecipeDetail: React.FC = () => {
             disabled={!selectedListId || addingToList || groceryLists.length === 0}
           >
             {addingToList ? 'Adding...' : 'Add Ingredients'}
+          </Button>
+        </DialogActions>
+      </Dialog>
+      {/* Delete Confirmation Dialog */}
+      <Dialog open={openDeleteDialog} onClose={() => !deleting && setOpenDeleteDialog(false)} maxWidth="sm" fullWidth>
+        <DialogTitle>Delete Recipe</DialogTitle>
+        <DialogContent>
+          <Typography>
+            Are you sure you want to delete "{recipe?.title}"? This action cannot be undone.
+          </Typography>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setOpenDeleteDialog(false)} disabled={deleting}>
+            Cancel
+          </Button>
+          <Button
+            onClick={handleConfirmDelete}
+            variant="contained"
+            color="error"
+            disabled={deleting}
+          >
+            {deleting ? 'Deleting...' : 'Delete'}
           </Button>
         </DialogActions>
       </Dialog>

@@ -28,6 +28,7 @@ import {
   Menu as MenuIcon,
   Dashboard as DashboardIcon,
   Restaurant as RestaurantIcon,
+  Explore as ExploreIcon,
   CalendarMonth as CalendarIcon,
   ShoppingCart as ShoppingCartIcon,
   Kitchen as KitchenIcon,
@@ -42,6 +43,7 @@ const drawerWidth = 240;
 const menuItems = [
   { text: 'Dashboard', icon: <DashboardIcon />, path: '/dashboard' },
   { text: 'Recipes', icon: <RestaurantIcon />, path: '/recipes' },
+  { text: 'Browse Recipes', icon: <ExploreIcon />, path: '/recipes/browse' },
   { text: 'Meal Planner', icon: <CalendarIcon />, path: '/meal-planner' },
   { text: 'Grocery List', icon: <ShoppingCartIcon />, path: '/grocery-list' },
   { text: 'Pantry', icon: <KitchenIcon />, path: '/pantry' },

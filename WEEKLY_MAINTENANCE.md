@@ -19,9 +19,13 @@ This document outlines regular maintenance tasks to keep the Meal Planner applic
 - [ ] Archive or close duplicate issues
 - [ ] Ensure issue descriptions are still accurate
 - [ ] Link related issues together
+- [ ] Parse logs to identify P0/P1 issues and log them as github issues
+- [ ] Look for security vulnerabilities and log all but critical as github issues
+- [ ] Alert user to critical vulnerabilities and offer to fix them immediately, then log fix as github issue once closed and tested
 - [ ] **Update ISSUE_PRIORITIES.md** to reflect current GitHub state
 - [ ] **Verify all local issue documents are migrated to GitHub**
 - [ ] **Remove local issue tracking files** (keep only ISSUE_PRIORITIES.md)
+- [ ] Update time_tracking_report.mda 
 
 **Commands:**
 ```bash
