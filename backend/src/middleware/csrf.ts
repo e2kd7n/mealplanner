@@ -30,6 +30,12 @@ const csrfProtection: any = csrf({
   },
   // Ignore CSRF for GET, HEAD, OPTIONS (safe methods)
   ignoreMethods: ['GET', 'HEAD', 'OPTIONS'],
+  // Accept CSRF token from X-CSRF-Token header (frontend sends this)
+  value: (req: Request) => {
+    return req.headers['x-csrf-token'] as string ||
+           req.body?._csrf ||
+           req.query?._csrf as string;
+  },
 });
 
 /**

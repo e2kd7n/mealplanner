@@ -511,6 +511,26 @@ export const recipeImportAPI = {
   }) => api.post('/recipes/import/url/save', data),
 };
 
+// Recipe Browse API (Spoonacular)
+export const recipeBrowseAPI = {
+  search: (params?: {
+    query?: string;
+    cuisine?: string;
+    diet?: string;
+    type?: string;
+    maxReadyTime?: number;
+    sort?: string;
+    offset?: number;
+    number?: number;
+  }) => api.get('/recipes/browse/search', { params }),
+  
+  getDetails: (id: number) =>
+    api.get(`/recipes/browse/${id}`),
+  
+  addToBox: (id: number) =>
+    api.post(`/recipes/browse/${id}/add-to-box`),
+};
+
 export default api;
 
 // Made with Bob

@@ -1,0 +1,25 @@
+{
+  "cookies": [
+    {
+      "name": "_csrf",
+      "value": "9Bop6ZcidyFYeOIlKQrWQkGa",
+      "domain": "localhost",
+      "path": "/",
+      "expires": -1,
+      "httpOnly": true,
+      "secure": false,
+      "sameSite": "Strict"
+    }
+  ],
+  "origins": [
+    {
+      "origin": "http://localhost:5174",
+      "localStorage": [
+        {
+          "name": "accessToken",
+          "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiJkZjI2MjYxNS1lODZiLTRiMDQtOTRlYi04MzY5ZDBhZDI0MmQiLCJlbWFpbCI6InRlc3RAZXhhbXBsZS5jb20iLCJmYW1pbHlOYW1lIjoiVGVzdCBGYW1pbHkiLCJpYXQiOjE3NzY2Mjc1NDksImV4cCI6MTc3NjYyODQ0OX0.mESLThJ6b0ec-0ZIjvwE3wvsMqpDX2mGxAZ-4g60zEM"
+        }
+      ]
+    }
+  ]
+}
