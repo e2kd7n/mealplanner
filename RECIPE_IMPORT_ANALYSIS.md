@@ -23,14 +23,78 @@ This document tracks recipe import failures to identify patterns and improve par
 ## Known Failing Websites
 
 ### AllRecipes.com
-**Status:** ❌ FAILING  
+**Status:** ❌ BLOCKED BY CLOUDFLARE
 **Test URLs:**
+- https://www.allrecipes.com/recipe/56927/delicious-ham-and-potato-soup/
 - https://www.allrecipes.com/recipe/135383/berry-delicious/
 
-**Error Pattern:** TBD - Check logs after testing  
-**Data Structure:** TBD  
-**Root Cause:** TBD  
-**Proposed Fix:** TBD
+**Error Pattern:**
+- Library error: "No application/ld+json tags found"
+- Direct access: Cloudflare challenge page requiring JavaScript
+
+**Data Structure:**
+- AllRecipes.com uses Cloudflare bot protection
+- Requires JavaScript execution to access actual page content
+- Cannot be scraped with simple HTTP requests
+
+**Root Cause:**
+1. **Primary Issue:** Cloudflare bot detection prevents automated access
+2. **Secondary Issue:** Even if accessible, AllRecipes.com may not use schema.org JSON-LD markup
+
+**Technical Barriers:**
+- Cloudflare challenge requires browser-like behavior
+- JavaScript execution needed to bypass protection
+- May violate Cloudflare/AllRecipes Terms of Service to bypass
+
+**Proposed Solutions:**
+
+**Option 1: Headless Browser (Complex, Resource-Intensive)**
+- Use Puppeteer or Playwright to render JavaScript
+- Pros: Can bypass Cloudflare, access full page
+- Cons: High resource usage, slower, may still be detected, potential ToS violation
+
+**Option 2: Third-Party Recipe API (Recommended)**
+- Use services like Spoonacular, Edamam, or Recipe Puppy
+- Pros: Legal, reliable, no bot detection
+- Cons: Requires API key, may have costs, limited to their database
+
+**Option 3: Manual Entry (Current Fallback)**
+- Users manually copy/paste recipe details
+- Pros: Always works, no technical barriers
+- Cons: More user effort, less convenient
+
+**API Research:**
+- AllRecipes.com does NOT provide an official public API
+- Several unofficial scrapers exist (python-allrecipes, go-allrecipes) but all face the same Cloudflare issues
+- These unofficial tools would violate AllRecipes' Terms of Service
+
+**Recommendation:**
+Mark AllRecipes.com as **not supported** due to Cloudflare protection. Recommend users:
+1. Use the manual recipe creation form
+2. Try alternative recipe sites that don't use bot protection (see list below)
+3. Consider third-party recipe API integration for future enhancement (Spoonacular, Edamam)
+
+**Alternative Recipe Sites (Known to Work):**
+- budgetbytes.com
+- cookieandkate.com
+- minimalistbaker.com
+- seriouseats.com
+- thekitchn.com
+- ciaoitalia.com (tested ✅)
+
+**Status:** WILL NOT FIX - Technical and legal barriers make this impractical for MVP
+
+**Future Enhancement Options:**
+1. **Third-Party Recipe APIs** (Recommended for v2.0)
+   - Spoonacular API: 150 free requests/day, then $0.004/request
+   - Edamam Recipe Search API: 10,000 free requests/month
+   - TheMealDB: Free for non-commercial use
+   
+2. **Browser Extension** (Alternative approach)
+   - Create a browser extension that users can click while on AllRecipes
+   - Extension extracts recipe data from the rendered page
+   - Sends data to our app for import
+   - Bypasses Cloudflare since user's browser is legitimate
 
 ### NotQuiteNigella.com
 **Status:** ❌ FAILING  
