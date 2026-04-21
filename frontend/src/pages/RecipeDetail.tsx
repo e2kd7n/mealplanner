@@ -436,6 +436,7 @@ const RecipeDetail: React.FC = () => {
                   variant="outlined"
                   onClick={() => setScaledServings(Math.max(1, scaledServings - 1))}
                   sx={{ minWidth: '32px', px: 1 }}
+                  aria-label="Decrease servings"
                 >
                   -
                 </Button>
@@ -447,6 +448,7 @@ const RecipeDetail: React.FC = () => {
                   variant="outlined"
                   onClick={() => setScaledServings(scaledServings + 1)}
                   sx={{ minWidth: '32px', px: 1 }}
+                  aria-label="Increase servings"
                 >
                   +
                 </Button>
@@ -456,6 +458,7 @@ const RecipeDetail: React.FC = () => {
                     variant="text"
                     onClick={() => setScaledServings(recipe?.servings || 1)}
                     sx={{ ml: 1 }}
+                    aria-label="Reset servings to original"
                   >
                     Reset
                   </Button>
