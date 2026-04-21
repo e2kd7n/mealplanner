@@ -1,27 +1,35 @@
+
+[0;34m[17:30:54][0m 🔍 Running Intelligent Issue Management...
+
+[0;34m[17:30:54][0m Checking for duplicate issues...
+[0;32m[17:30:54][0m ✅ No duplicate issues detected
+[0;34m[17:30:54][0m Checking for issues that need label updates...
+[0;32m[17:30:55][0m ✅ All issue labels are up to date
+
+[0;34m[17:30:55][0m Analyzing recent development activity for priority updates...
+
+[0;34m[17:30:55][0m Checking for TODO comments that should become issues...
+[0;32m[17:30:55][0m ✅ No TODO comments marked for issue creation
+
+
+[0;34m[17:30:55][0m 📊 Generating Issue Priority Report...
+
 # Issue Prioritization
 
-**Last Updated:** 2026-04-20
+**Last Updated:** 2026-04-21
 
 This file reflects the current state of GitHub issues by priority. Issues are managed via GitHub labels (P0-critical, P1-high, P2-medium, P3-low, P4-future).
 
 ## 🔴 P0 - CRITICAL (Drop Everything)
 Issues that make the application unusable or cause data loss.
 
-- #75 - [P0][Bug] CSRF token validation failing on meal plan POST requests
-- #74 - [P0][Bug] Recipe editing fails - cannot add ingredients due to foreign key constraint
-- #73 - [P0][Bug] Recipe creation fails with "Failed to create recipe" error
-- #72 - [P0][Bug] Meal plan creation and recipe addition completely broken
-- #71 - [P0][Bug] Spoonacular search returns no results - Browse Recipes non-functional
+**No P0 issues currently open** ✅
 
 ## 🔴 P1 - HIGH (Current Sprint)
 Issues that significantly impact core functionality or user experience.
 
-- #78 - [P1][Data] Test database has incomplete recipe data - blocks effective testing
-- #77 - [P1][Bug] No delete button for recipes - cannot remove unwanted recipes
-- #76 - [P1][Bug] Recipe image upload fails with "Failed to update recipe" error
 - #32 - User Testing Cycle: Post-Phase 3 Final Validation
 - #31 - User Testing Cycle: Post-Phase 2 Architecture Changes
-- #15 - Create System Architecture Documentation
 - #1 - Multiple recipe websites failing to import
 
 ## 🟡 P2 - MEDIUM (Next Sprint)
@@ -31,7 +39,6 @@ Important improvements that enhance functionality but don't block core workflows
 - #82 - [P2][Feature] Add automatic nutrition calculation from ingredients
 - #81 - [P2][UX] Missing ingredient scaling information during recipe creation
 - #80 - [P2][UX] Recipe creation - ingredient input UX issues
-- #79 - [P2][UX] Confusing navigation - consolidate "Search Recipes" and "Browse Recipes"
 - #70 - Browse Recipes Polish and Testing
 - #69 - Browse Recipes Filter System
 - #68 - Browse Recipes MVP (Search, Display, Add to Box)

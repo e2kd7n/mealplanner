@@ -300,6 +300,7 @@ const GroceryList: React.FC = () => {
               variant="outlined"
               startIcon={<RefreshIcon />}
               onClick={fetchGroceryLists}
+              aria-label="Refresh grocery lists"
             >
               Refresh
             </Button>
@@ -308,6 +309,7 @@ const GroceryList: React.FC = () => {
               color="error"
               onClick={handleClearChecked}
               disabled={checkedCount === 0}
+              aria-label={`Clear ${checkedCount} checked items`}
             >
               Clear Checked ({checkedCount})
             </Button>
@@ -390,7 +392,7 @@ const GroceryList: React.FC = () => {
                           secondaryAction={
                             <IconButton
                               edge="end"
-                              aria-label="delete"
+                              aria-label={`Delete ${item.ingredient.name}`}
                               onClick={() => handleDeleteItem(item.id)}
                             >
                               <DeleteIcon />
