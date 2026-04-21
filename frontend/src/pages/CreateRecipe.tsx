@@ -622,9 +622,22 @@ export default function CreateRecipe() {
 
   const renderIngredients = () => (
     <Box>
-      <Typography variant="h6" gutterBottom>
-        Add Ingredients
-      </Typography>
+      <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
+        <Typography variant="h6">
+          Add Ingredients
+        </Typography>
+        <Chip
+          label={`For ${formData.servings} serving${formData.servings !== 1 ? 's' : ''}`}
+          color="primary"
+          variant="outlined"
+          size="small"
+        />
+      </Box>
+      
+      <Alert severity="info" sx={{ mb: 2 }}>
+        💡 <strong>Tip:</strong> Enter ingredient quantities for {formData.servings} serving{formData.servings !== 1 ? 's' : ''}.
+        Quantities will automatically scale when users adjust servings in the recipe view.
+      </Alert>
       
       <Grid container spacing={2} mb={3}>
         <Grid size={{ xs: 12, sm: 5 }}>
@@ -680,6 +693,7 @@ export default function CreateRecipe() {
             value={newIngredient.quantity}
             onChange={(e) => setNewIngredient({ ...newIngredient, quantity: parseFloat(e.target.value) || 0 })}
             inputProps={{ min: 0, step: 0.25 }}
+            helperText="0.5 = ½, 0.25 = ¼"
           />
         </Grid>
 
@@ -689,17 +703,18 @@ export default function CreateRecipe() {
             label="Unit"
             value={newIngredient.unit}
             onChange={(e) => setNewIngredient({ ...newIngredient, unit: e.target.value })}
-            placeholder="cups, oz, etc."
+            placeholder="cup, tbsp, oz..."
+            helperText="Singular form"
           />
         </Grid>
 
         <Grid size={{ xs: 10, sm: 2 }}>
           <TextField
             fullWidth
-            label="Notes"
+            label="Notes (optional)"
             value={newIngredient.notes}
             onChange={(e) => setNewIngredient({ ...newIngredient, notes: e.target.value })}
-            placeholder="optional"
+            placeholder="e.g., chopped, diced"
           />
         </Grid>
 

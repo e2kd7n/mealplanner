@@ -23,6 +23,7 @@ import {
   Avatar,
   Menu,
   MenuItem,
+  Link,
 } from '@mui/material';
 import {
   Menu as MenuIcon,
@@ -43,7 +44,6 @@ const drawerWidth = 240;
 const menuItems = [
   { text: 'Dashboard', icon: <DashboardIcon />, path: '/dashboard' },
   { text: 'Recipes', icon: <RestaurantIcon />, path: '/recipes' },
-  { text: 'Browse Recipes', icon: <ExploreIcon />, path: '/recipes/browse' },
   { text: 'Meal Planner', icon: <CalendarIcon />, path: '/meal-planner' },
   { text: 'Grocery List', icon: <ShoppingCartIcon />, path: '/grocery-list' },
   { text: 'Pantry', icon: <KitchenIcon />, path: '/pantry' },
@@ -117,6 +117,43 @@ const Layout: React.FC = () => {
 
   return (
     <Box sx={{ display: 'flex' }}>
+      {/* Skip Navigation Links */}
+      <Link
+        href="#main-content"
+        sx={{
+          position: 'absolute',
+          left: '-9999px',
+          zIndex: 9999,
+          padding: '1rem',
+          backgroundColor: 'primary.main',
+          color: 'primary.contrastText',
+          textDecoration: 'none',
+          '&:focus': {
+            left: '0',
+            top: '0',
+          },
+        }}
+      >
+        Skip to main content
+      </Link>
+      <Link
+        href="#navigation"
+        sx={{
+          position: 'absolute',
+          left: '-9999px',
+          zIndex: 9999,
+          padding: '1rem',
+          backgroundColor: 'primary.main',
+          color: 'primary.contrastText',
+          textDecoration: 'none',
+          '&:focus': {
+            left: '0',
+            top: '3rem',
+          },
+        }}
+      >
+        Skip to navigation
+      </Link>
       <AppBar
         position="fixed"
         sx={{
@@ -177,6 +214,8 @@ const Layout: React.FC = () => {
       </AppBar>
       <Box
         component="nav"
+        id="navigation"
+        tabIndex={-1}
         sx={{ width: { md: drawerWidth }, flexShrink: { md: 0 } }}
       >
         <Drawer
@@ -206,6 +245,8 @@ const Layout: React.FC = () => {
       </Box>
       <Box
         component="main"
+        id="main-content"
+        tabIndex={-1}
         sx={{
           flexGrow: 1,
           p: 3,

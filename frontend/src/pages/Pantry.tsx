@@ -190,6 +190,7 @@ const Pantry: React.FC = () => {
             variant="contained"
             startIcon={<AddIcon />}
             onClick={() => handleOpenDialog()}
+            aria-label="Add pantry item"
           >
             Add Item
           </Button>
@@ -232,6 +233,7 @@ const Pantry: React.FC = () => {
                   variant="contained"
                   startIcon={<AddIcon />}
                   onClick={() => handleOpenDialog()}
+                  aria-label="Add first pantry item"
                 >
                   Add First Item
                 </Button>
@@ -258,14 +260,14 @@ const Pantry: React.FC = () => {
                         <Stack direction="row" spacing={1}>
                           <IconButton
                             edge="end"
-                            aria-label="edit"
+                            aria-label={`Edit ${item.name}`}
                             onClick={() => handleOpenDialog(item)}
                           >
                             <EditIcon />
                           </IconButton>
                           <IconButton
                             edge="end"
-                            aria-label="delete"
+                            aria-label={`Delete ${item.name}`}
                             onClick={() => handleDeleteItem(item.id)}
                           >
                             <DeleteIcon />
