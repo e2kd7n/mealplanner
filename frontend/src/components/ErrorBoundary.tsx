@@ -48,8 +48,36 @@ class ErrorBoundary extends Component<Props, State> {
       errorInfo,
     });
 
-    // TODO: Send error to logging service in production
-    // Example: logErrorToService(error, errorInfo);
+    // Log error to backend in production
+    if (import.meta.env.PROD) {
+      this.logErrorToBackend(error, errorInfo);
+    }
+  }
+
+  private logErrorToBackend(error: Error, errorInfo: ErrorInfo) {
+    try {
+      // Send error to backend logging endpoint
+      fetch('/api/logs/client-error', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          message: error.message,
+          stack: error.stack,
+          componentStack: errorInfo.componentStack,
+          timestamp: new Date().toISOString(),
+          userAgent: navigator.userAgent,
+          url: window.location.href,
+        }),
+      }).catch((fetchError) => {
+        // Silently fail if logging fails - don't want to cause more errors
+        console.error('Failed to log error to backend:', fetchError);
+      });
+    } catch (loggingError) {
+      // Silently fail if logging fails
+      console.error('Error in error logging:', loggingError);
+    }
   }
 
   handleReset = () => {
