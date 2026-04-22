@@ -9,6 +9,19 @@ import { logger } from '../utils/logger';
 const SPOONACULAR_API_KEY = process.env.SPOONACULAR_API_KEY;
 const SPOONACULAR_BASE_URL = 'https://api.spoonacular.com';
 
+// Cache configuration
+const CACHE_TTL = 10 * 60 * 1000; // 10 minutes in milliseconds
+
+interface CacheEntry<T> {
+  data: T;
+  timestamp: number;
+}
+
+interface PendingRequest<T> {
+  promise: Promise<T>;
+  timestamp: number;
+}
+
 interface SpoonacularRecipe {
   id: number;
   title: string;
@@ -66,6 +79,10 @@ interface SearchRecipesParams {
 
 export class SpoonacularService {
   private apiKey: string;
+  private searchCache: Map<string, CacheEntry<any>> = new Map();
+  private detailsCache: Map<number, CacheEntry<SpoonacularRecipeDetail>> = new Map();
+  private pendingSearches: Map<string, PendingRequest<any>> = new Map();
+  private pendingDetails: Map<number, PendingRequest<SpoonacularRecipeDetail>> = new Map();
 
   constructor() {
     if (!SPOONACULAR_API_KEY) {
@@ -74,6 +91,58 @@ export class SpoonacularService {
     } else {
       this.apiKey = SPOONACULAR_API_KEY;
     }
+
+    // Clean up expired cache entries every 5 minutes
+    setInterval(() => this.cleanupCache(), 5 * 60 * 1000);
+  }
+
+  /**
+   * Clean up expired cache entries
+   */
+  private cleanupCache(): void {
+    const now = Date.now();
+    
+    // Clean search cache
+    Array.from(this.searchCache.entries()).forEach(([key, entry]) => {
+      if (now - entry.timestamp > CACHE_TTL) {
+        this.searchCache.delete(key);
+      }
+    });
+    
+    // Clean details cache
+    Array.from(this.detailsCache.entries()).forEach(([key, entry]) => {
+      if (now - entry.timestamp > CACHE_TTL) {
+        this.detailsCache.delete(key);
+      }
+    });
+    
+    // Clean up stale pending requests (older than 30 seconds)
+    Array.from(this.pendingSearches.entries()).forEach(([key, pending]) => {
+      if (now - pending.timestamp > 30000) {
+        this.pendingSearches.delete(key);
+      }
+    });
+    
+    Array.from(this.pendingDetails.entries()).forEach(([key, pending]) => {
+      if (now - pending.timestamp > 30000) {
+        this.pendingDetails.delete(key);
+      }
+    });
+  }
+
+  /**
+   * Generate cache key from search parameters
+   */
+  private generateSearchCacheKey(params: SearchRecipesParams): string {
+    return JSON.stringify({
+      query: params.query || '',
+      cuisine: params.cuisine || '',
+      diet: params.diet || '',
+      type: params.type || '',
+      maxReadyTime: params.maxReadyTime || 0,
+      number: params.number || 12,
+      offset: params.offset || 0,
+    });
   }
 
   /**
@@ -96,42 +165,78 @@ export class SpoonacularService {
       throw new Error('Spoonacular API key not configured');
     }
 
-    try {
-      const response = await axios.get(`${SPOONACULAR_BASE_URL}/recipes/complexSearch`, {
-        params: {
-          apiKey: this.apiKey,
-          query: params.query || '',
-          cuisine: params.cuisine,
-          diet: params.diet,
-          type: params.type,
-          maxReadyTime: params.maxReadyTime,
-          number: params.number || 12,
-          offset: params.offset || 0,
-          addRecipeInformation: true,
-          fillIngredients: false,
-        },
-      });
+    const cacheKey = this.generateSearchCacheKey(params);
 
-      logger.info(`[SPOONACULAR_SEARCH] Query: ${params.query}, Results: ${response.data.totalResults}`);
-
-      return response.data;
-    } catch (error: any) {
-      logger.error(`[SPOONACULAR_SEARCH_ERROR] ${error.message}`, {
-        params,
-        status: error.response?.status,
-        data: error.response?.data,
-      });
-
-      if (error.response?.status === 402) {
-        throw new Error('Spoonacular API quota exceeded. Please try again later.');
-      }
-
-      if (error.response?.status === 401) {
-        throw new Error('Invalid Spoonacular API key');
-      }
-
-      throw new Error(`Failed to search recipes: ${error.message}`);
+    // Check cache first
+    const cached = this.searchCache.get(cacheKey);
+    if (cached && Date.now() - cached.timestamp < CACHE_TTL) {
+      logger.info(`[SPOONACULAR_SEARCH_CACHE_HIT] Query: ${params.query}`);
+      return cached.data;
     }
+
+    // Check if there's already a pending request for this search
+    const pending = this.pendingSearches.get(cacheKey);
+    if (pending) {
+      logger.info(`[SPOONACULAR_SEARCH_DEDUP] Query: ${params.query} - Reusing pending request`);
+      return pending.promise;
+    }
+
+    // Create new request
+    const requestPromise = (async () => {
+      try {
+        const response = await axios.get(`${SPOONACULAR_BASE_URL}/recipes/complexSearch`, {
+          params: {
+            apiKey: this.apiKey,
+            query: params.query || '',
+            cuisine: params.cuisine,
+            diet: params.diet,
+            type: params.type,
+            maxReadyTime: params.maxReadyTime,
+            number: params.number || 12,
+            offset: params.offset || 0,
+            addRecipeInformation: true,
+            fillIngredients: false,
+          },
+        });
+
+        logger.info(`[SPOONACULAR_SEARCH] Query: ${params.query}, Results: ${response.data.totalResults}`);
+
+        // Cache the result
+        this.searchCache.set(cacheKey, {
+          data: response.data,
+          timestamp: Date.now(),
+        });
+
+        return response.data;
+      } catch (error: any) {
+        logger.error(`[SPOONACULAR_SEARCH_ERROR] ${error.message}`, {
+          params,
+          status: error.response?.status,
+          data: error.response?.data,
+        });
+
+        if (error.response?.status === 402) {
+          throw new Error('Spoonacular API quota exceeded. Please try again later.');
+        }
+
+        if (error.response?.status === 401) {
+          throw new Error('Invalid Spoonacular API key');
+        }
+
+        throw new Error(`Failed to search recipes: ${error.message}`);
+      } finally {
+        // Remove from pending requests
+        this.pendingSearches.delete(cacheKey);
+      }
+    })();
+
+    // Store pending request
+    this.pendingSearches.set(cacheKey, {
+      promise: requestPromise,
+      timestamp: Date.now(),
+    });
+
+    return requestPromise;
   }
 
   /**
@@ -142,36 +247,70 @@ export class SpoonacularService {
       throw new Error('Spoonacular API key not configured');
     }
 
-    try {
-      const response = await axios.get(
-        `${SPOONACULAR_BASE_URL}/recipes/${recipeId}/information`,
-        {
-          params: {
-            apiKey: this.apiKey,
-            includeNutrition: true,
-          },
-        }
-      );
-
-      logger.info(`[SPOONACULAR_DETAIL] Recipe ID: ${recipeId}, Title: ${response.data.title}`);
-
-      return response.data;
-    } catch (error: any) {
-      logger.error(`[SPOONACULAR_DETAIL_ERROR] Recipe ID: ${recipeId}, Error: ${error.message}`, {
-        status: error.response?.status,
-        data: error.response?.data,
-      });
-
-      if (error.response?.status === 404) {
-        throw new Error('Recipe not found');
-      }
-
-      if (error.response?.status === 402) {
-        throw new Error('Spoonacular API quota exceeded. Please try again later.');
-      }
-
-      throw new Error(`Failed to get recipe details: ${error.message}`);
+    // Check cache first
+    const cached = this.detailsCache.get(recipeId);
+    if (cached && Date.now() - cached.timestamp < CACHE_TTL) {
+      logger.info(`[SPOONACULAR_DETAIL_CACHE_HIT] Recipe ID: ${recipeId}`);
+      return cached.data;
     }
+
+    // Check if there's already a pending request for this recipe
+    const pending = this.pendingDetails.get(recipeId);
+    if (pending) {
+      logger.info(`[SPOONACULAR_DETAIL_DEDUP] Recipe ID: ${recipeId} - Reusing pending request`);
+      return pending.promise;
+    }
+
+    // Create new request
+    const requestPromise = (async () => {
+      try {
+        const response = await axios.get(
+          `${SPOONACULAR_BASE_URL}/recipes/${recipeId}/information`,
+          {
+            params: {
+              apiKey: this.apiKey,
+              includeNutrition: true,
+            },
+          }
+        );
+
+        logger.info(`[SPOONACULAR_DETAIL] Recipe ID: ${recipeId}, Title: ${response.data.title}`);
+
+        // Cache the result
+        this.detailsCache.set(recipeId, {
+          data: response.data,
+          timestamp: Date.now(),
+        });
+
+        return response.data;
+      } catch (error: any) {
+        logger.error(`[SPOONACULAR_DETAIL_ERROR] Recipe ID: ${recipeId}, Error: ${error.message}`, {
+          status: error.response?.status,
+          data: error.response?.data,
+        });
+
+        if (error.response?.status === 404) {
+          throw new Error('Recipe not found');
+        }
+
+        if (error.response?.status === 402) {
+          throw new Error('Spoonacular API quota exceeded. Please try again later.');
+        }
+
+        throw new Error(`Failed to get recipe details: ${error.message}`);
+      } finally {
+        // Remove from pending requests
+        this.pendingDetails.delete(recipeId);
+      }
+    })();
+
+    // Store pending request
+    this.pendingDetails.set(recipeId, {
+      promise: requestPromise,
+      timestamp: Date.now(),
+    });
+
+    return requestPromise;
   }
 
   /**
@@ -229,7 +368,7 @@ export class SpoonacularService {
     }
 
     // Remove duplicates
-    mealTypes = [...new Set(mealTypes)];
+    mealTypes = Array.from(new Set(mealTypes));
 
     // Determine difficulty based on ready time and ingredient count
     let difficulty: 'easy' | 'medium' | 'hard' = 'medium';
