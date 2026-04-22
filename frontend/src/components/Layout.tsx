@@ -38,6 +38,8 @@ import {
 import { useAppDispatch, useAppSelector } from '../store/hooks';
 import { logout } from '../store/slices/authSlice';
 import BackendStatusBanner from './BackendStatusBanner';
+import { useKeyboardShortcuts } from '../hooks/useKeyboardShortcuts';
+import MobileBottomNav from './MobileBottomNav';
 
 const drawerWidth = 240;
 
@@ -60,6 +62,9 @@ const Layout: React.FC = () => {
 
   const [mobileOpen, setMobileOpen] = useState(false);
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
+
+  // Enable keyboard shortcuts
+  useKeyboardShortcuts();
 
   const handleDrawerToggle = () => {
     setMobileOpen(!mobileOpen);
@@ -271,10 +276,15 @@ const Layout: React.FC = () => {
           p: 3,
           width: { md: `calc(100% - ${drawerWidth}px)` },
           mt: 8,
+          // Add bottom padding on mobile to account for bottom navigation
+          pb: { xs: 10, md: 3 },
         }}
       >
         <Outlet />
       </Box>
+      
+      {/* Mobile Bottom Navigation */}
+      <MobileBottomNav />
     </Box>
   );
 };

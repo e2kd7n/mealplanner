@@ -12,28 +12,51 @@ export default defineConfig({
     // Optimize build output
     sourcemap: false, // Disable sourcemaps in production for smaller bundle
     minify: 'esbuild', // Use esbuild for faster minification
-    target: 'esnext',
+    target: 'es2015', // Better browser compatibility
+    cssCodeSplit: true, // Split CSS for better caching
+    reportCompressedSize: true, // Report compressed sizes
     // Code splitting optimization
     rollupOptions: {
       output: {
         manualChunks: (id) => {
           // Vendor chunks for better caching
           if (id.includes('node_modules')) {
-            if (id.includes('react') || id.includes('react-dom') || id.includes('react-router')) {
-              return 'react-vendor';
+            // Core React libraries
+            if (id.includes('react') || id.includes('react-dom')) {
+              return 'react-core';
             }
-            if (id.includes('@mui')) {
-              return 'mui-vendor';
+            // React Router
+            if (id.includes('react-router')) {
+              return 'react-router';
             }
-            if (id.includes('redux')) {
-              return 'redux-vendor';
+            // Material-UI core
+            if (id.includes('@mui/material')) {
+              return 'mui-core';
             }
+            // Material-UI icons (separate for lazy loading)
+            if (id.includes('@mui/icons-material')) {
+              return 'mui-icons';
+            }
+            // Redux and toolkit
+            if (id.includes('redux') || id.includes('@reduxjs')) {
+              return 'redux';
+            }
+            // Form libraries
             if (id.includes('react-hook-form') || id.includes('zod')) {
-              return 'form-vendor';
+              return 'forms';
             }
+            // Date libraries
+            if (id.includes('date-fns')) {
+              return 'date-utils';
+            }
+            // Other vendors
             return 'vendor';
           }
         },
+        // Optimize chunk names
+        chunkFileNames: 'assets/[name]-[hash].js',
+        entryFileNames: 'assets/[name]-[hash].js',
+        assetFileNames: 'assets/[name]-[hash].[ext]',
       },
     },
     // Chunk size warnings
