@@ -72,7 +72,7 @@ export function useCachedImage(
           // If getOrFetch returns null, it means the image failed to load
           if (!cachedUrl || cachedUrl === url) {
             // Image fetch failed, use fallback
-            console.warn('Image failed to load, using fallback:', url.substring(0, 100));
+            if (import.meta.env.DEV) console.warn('Image failed to load, using fallback:', url.substring(0, 100));
             setSrc(fallback);
             setError(new Error('Failed to load image'));
           } else {
@@ -83,7 +83,7 @@ export function useCachedImage(
           setIsLoading(false);
         }
       } catch (err) {
-        console.warn('Image load error:', err);
+        if (import.meta.env.DEV) console.warn('Image load error:', err);
         
         if (isMounted) {
           setError(err instanceof Error ? err : new Error('Failed to load image'));
@@ -143,7 +143,7 @@ export function usePreloadImages(urls: string[]): {
         try {
           await imageCache.getOrFetch(url);
         } catch (err) {
-          console.error('Failed to preload image:', url, err);
+          if (import.meta.env.DEV) console.error('Failed to preload image:', url, err);
           preloadErrors.push(err instanceof Error ? err : new Error(`Failed to preload ${url}`));
         }
 
@@ -187,7 +187,7 @@ export function useCacheStats() {
           setIsLoading(false);
         }
       } catch (err) {
-        console.error('Failed to load cache stats:', err);
+        if (import.meta.env.DEV) console.error('Failed to load cache stats:', err);
         if (isMounted) {
           setIsLoading(false);
         }
@@ -206,7 +206,7 @@ export function useCacheStats() {
       await imageCache.clear();
       setStats({ count: 0, size: 0 });
     } catch (err) {
-      console.error('Failed to clear cache:', err);
+      if (import.meta.env.DEV) console.error('Failed to clear cache:', err);
     }
   };
 

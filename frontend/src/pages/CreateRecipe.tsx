@@ -194,7 +194,7 @@ export default function CreateRecipe() {
         nutritionInfo: recipe.nutritionInfo || {},
       });
     } catch (err: any) {
-      console.error('Failed to load recipe:', err);
+      if (import.meta.env.DEV) console.error('Failed to load recipe:', err);
       setError('Failed to load recipe for editing');
     } finally {
       setInitialLoading(false);
@@ -208,7 +208,7 @@ export default function CreateRecipe() {
       const ingredients = Array.isArray(response.data) ? response.data : (response.data.data || []);
       setAvailableIngredients(ingredients);
     } catch (err) {
-      console.error('Failed to load ingredients:', err);
+      if (import.meta.env.DEV) console.error('Failed to load ingredients:', err);
       setAvailableIngredients([]); // Set empty array on error
     }
   };
@@ -379,7 +379,7 @@ export default function CreateRecipe() {
       const recipeId = response.data?.id || response.data?.data?.id || id;
       
       if (!recipeId) {
-        console.error('No recipe ID in response:', response.data);
+        if (import.meta.env.DEV) console.error('No recipe ID in response:', response.data);
         setError('Recipe saved but unable to navigate to detail page');
         return;
       }

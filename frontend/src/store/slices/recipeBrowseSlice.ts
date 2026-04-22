@@ -91,7 +91,7 @@ export const searchSpoonacularRecipes = createAsyncThunk(
       const response = await recipeBrowseAPI.search(params);
       return response.data;
     } catch (error: any) {
-      console.error('Spoonacular search error:', error);
+      if (import.meta.env.DEV) console.error('Spoonacular search error:', error);
       return rejectWithValue(error.response?.data?.message || 'Failed to search recipes');
     }
   }
@@ -104,7 +104,7 @@ export const getSpoonacularRecipeDetails = createAsyncThunk(
       const response = await recipeBrowseAPI.getDetails(id);
       return response.data;
     } catch (error: any) {
-      console.error('Spoonacular recipe details error:', error);
+      if (import.meta.env.DEV) console.error('Spoonacular recipe details error:', error);
       return rejectWithValue(error.response?.data?.message || 'Failed to fetch recipe details');
     }
   }
@@ -117,7 +117,7 @@ export const addSpoonacularRecipeToBox = createAsyncThunk(
       const response = await recipeBrowseAPI.addToBox(id);
       return response.data;
     } catch (error: any) {
-      console.error('Add to recipe box error:', error);
+      if (import.meta.env.DEV) console.error('Add to recipe box error:', error);
       return rejectWithValue(error.response?.data?.message || 'Failed to add recipe to box');
     }
   }

@@ -83,7 +83,7 @@ export const logout = createAsyncThunk('auth/logout', async () => {
     await authAPI.logout();
   } catch (error) {
     // Ignore errors during logout
-    console.error('Logout error:', error);
+    if (import.meta.env.DEV) console.error('Logout error:', error);
   } finally {
     clearTokens();
   }
