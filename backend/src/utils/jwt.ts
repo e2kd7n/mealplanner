@@ -27,6 +27,7 @@ export interface TokenPayload {
   id?: string; // Optional alias for userId for convenience
   email: string;
   familyName: string;
+  role?: string; // User role for authorization
 }
 
 export interface TokenPair {

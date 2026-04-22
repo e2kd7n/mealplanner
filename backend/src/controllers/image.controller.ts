@@ -41,34 +41,62 @@ export const proxyImage = async (
 
     logger.info(`Proxying image from: ${url}`);
 
-    // Fetch the image from the external source
-    const response = await axios.get(url, {
-      responseType: 'arraybuffer',
-      timeout: 10000, // 10 second timeout
-      maxContentLength: 10 * 1024 * 1024, // 10MB max
-      headers: {
-        'User-Agent': 'Mozilla/5.0 (compatible; MealPlannerBot/1.0)',
-      },
-    });
+    // Fetch the image from the external source with retry logic
+    let lastError: any;
+    const maxRetries = 2;
+    
+    for (let attempt = 0; attempt <= maxRetries; attempt++) {
+      try {
+        const response = await axios.get(url, {
+          responseType: 'arraybuffer',
+          timeout: 8000, // 8 second timeout (reduced from 10s)
+          maxContentLength: 10 * 1024 * 1024, // 10MB max
+          headers: {
+            'User-Agent': 'Mozilla/5.0 (compatible; MealPlannerBot/1.0)',
+            'Accept': 'image/*',
+          },
+          validateStatus: (status) => status < 500, // Don't throw on 4xx errors
+        });
 
-    // Get content type from response or default to image/jpeg
-    const contentType = response.headers['content-type'];
-    const contentTypeStr = typeof contentType === 'string' ? contentType : 'image/jpeg';
+        // Handle non-2xx responses
+        if (response.status >= 400) {
+          throw new AppError(`Image source returned ${response.status}`, response.status);
+        }
 
-    // Validate it's an image
-    if (!contentTypeStr.startsWith('image/')) {
-      throw new AppError('URL does not point to an image', 400);
+        // Get content type from response or default to image/jpeg
+        const contentType = response.headers['content-type'];
+        const contentTypeStr = typeof contentType === 'string' ? contentType : 'image/jpeg';
+
+        // Validate it's an image
+        if (!contentTypeStr.startsWith('image/')) {
+          throw new AppError('URL does not point to an image', 400);
+        }
+
+        // Set appropriate headers with longer cache for successful images
+        res.set({
+          'Content-Type': contentTypeStr,
+          'Cache-Control': 'public, max-age=604800', // Cache for 7 days (increased from 24h)
+          'Access-Control-Allow-Origin': '*', // Allow CORS
+          'X-Image-Proxy': 'success',
+        });
+
+        // Send the image data
+        res.send(Buffer.from(response.data));
+        return;
+      } catch (err: any) {
+        lastError = err;
+        if (attempt < maxRetries && (!axios.isAxiosError(err) || err.code === 'ECONNABORTED')) {
+          // Retry on timeout or network errors, but not on 4xx/5xx responses
+          logger.info(`Retry attempt ${attempt + 1} for image: ${url}`);
+          await new Promise(resolve => setTimeout(resolve, 500 * (attempt + 1))); // Exponential backoff
+          continue;
+        }
+        break;
+      }
     }
 
-    // Set appropriate headers
-    res.set({
-      'Content-Type': contentTypeStr,
-      'Cache-Control': 'public, max-age=86400', // Cache for 24 hours
-      'Access-Control-Allow-Origin': '*', // Allow CORS
-    });
-
-    // Send the image data
-    res.send(Buffer.from(response.data));
+    // All retries failed, throw the last error
+    throw lastError;
   } catch (err: any) {
     if (err instanceof AppError) {
       next(err);
@@ -79,6 +107,7 @@ export const proxyImage = async (
       const requestUrl = typeof url === 'string' ? url : 'unknown';
       
       if (err.code === 'ECONNABORTED') {
+        logger.warn(`Image fetch timeout after retries: ${requestUrl}`);
         next(new AppError('Image fetch timeout', 504));
       } else if (err.response) {
         // Don't log 404s as errors - they're expected for expired/invalid URLs
@@ -86,7 +115,8 @@ export const proxyImage = async (
         if (status !== 404) {
           logger.warn(`Failed to fetch image from ${requestUrl}: ${status}`);
         }
-        next(new AppError(`Failed to fetch image: ${status}`, 502));
+        // Return appropriate status code
+        next(new AppError(`Failed to fetch image: ${err.response.statusText || status}`, status >= 500 ? 502 : status));
       } else {
         logger.warn(`Failed to fetch image from ${requestUrl}: ${err.message}`);
         next(new AppError('Failed to fetch image from external source', 502));

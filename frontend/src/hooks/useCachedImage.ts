@@ -2,9 +2,14 @@ import { useState, useEffect } from 'react';
 import { imageCache } from '../utils/imageCache';
 
 /**
- * Default placeholder image as SVG data URI
+ * Default placeholder image as SVG data URI - professional food-themed design
  */
-const DEFAULT_PLACEHOLDER = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="400" height="300"%3E%3Crect width="400" height="300" fill="%23f0f0f0"/%3E%3Ctext x="50%25" y="50%25" dominant-baseline="middle" text-anchor="middle" font-family="Arial, sans-serif" font-size="20" fill="%23999"%3ENo Image%3C/text%3E%3C/svg%3E';
+const DEFAULT_PLACEHOLDER = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="400" height="300" viewBox="0 0 400 300"%3E%3Cdefs%3E%3ClinearGradient id="grad" x1="0%25" y1="0%25" x2="0%25" y2="100%25"%3E%3Cstop offset="0%25" style="stop-color:%23f5f5f5;stop-opacity:1" /%3E%3Cstop offset="100%25" style="stop-color:%23e0e0e0;stop-opacity:1" /%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width="400" height="300" fill="url(%23grad)"/%3E%3Cg transform="translate(200,130)"%3E%3Ccircle cx="0" cy="0" r="40" fill="%23bdbdbd" opacity="0.3"/%3E%3Cpath d="M-15,-10 Q-15,-20 -5,-20 Q5,-20 5,-10 L5,10 Q5,15 0,15 Q-5,15 -5,10 Z M5,-10 Q15,-10 15,0 L15,10 Q15,15 10,15 L5,10 Z" fill="%23999" opacity="0.5"/%3E%3C/g%3E%3Ctext x="200" y="200" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="16" fill="%23757575" font-weight="500"%3ERecipe Image%3C/text%3E%3C/svg%3E';
+
+/**
+ * Loading placeholder with subtle animation effect
+ */
+const LOADING_PLACEHOLDER = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="400" height="300"%3E%3Crect width="400" height="300" fill="%23f5f5f5"/%3E%3Crect width="400" height="300" fill="%23e0e0e0" opacity="0.5"%3E%3Canimate attributeName="opacity" values="0.5;0.8;0.5" dur="1.5s" repeatCount="indefinite"/%3E%3C/rect%3E%3C/svg%3E';
 
 interface UseCachedImageOptions {
   placeholder?: string;
@@ -29,7 +34,7 @@ export function useCachedImage(
 ): UseCachedImageResult {
   const { placeholder = DEFAULT_PLACEHOLDER, fallback = DEFAULT_PLACEHOLDER } = options;
   
-  const [src, setSrc] = useState<string>(placeholder);
+  const [src, setSrc] = useState<string>(LOADING_PLACEHOLDER);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [error, setError] = useState<Error | null>(null);
 
@@ -56,18 +61,29 @@ export function useCachedImage(
     let objectUrl: string | null = null;
 
     const loadImage = async () => {
+      // Show loading placeholder
+      setSrc(LOADING_PLACEHOLDER);
       setIsLoading(true);
       
       try {
         const cachedUrl = await imageCache.getOrFetch(url);
         
         if (isMounted) {
-          objectUrl = cachedUrl;
-          setSrc(cachedUrl);
+          // If getOrFetch returns null, it means the image failed to load
+          if (!cachedUrl || cachedUrl === url) {
+            // Image fetch failed, use fallback
+            console.warn('Image failed to load, using fallback:', url.substring(0, 100));
+            setSrc(fallback);
+            setError(new Error('Failed to load image'));
+          } else {
+            // Successfully loaded
+            objectUrl = cachedUrl;
+            setSrc(cachedUrl);
+          }
           setIsLoading(false);
         }
       } catch (err) {
-        console.error('Failed to load image:', err);
+        console.warn('Image load error:', err);
         
         if (isMounted) {
           setError(err instanceof Error ? err : new Error('Failed to load image'));

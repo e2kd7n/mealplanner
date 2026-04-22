@@ -4,6 +4,7 @@
  */
 
 import { AxiosError } from 'axios';
+import logger from './logger';
 
 export interface AppError {
   message: string;
@@ -153,12 +154,22 @@ export function isValidationError(error: unknown): boolean {
 }
 
 /**
- * Log error to console in development
+ * Log error using centralized logger
  */
 export function logError(error: unknown, context?: string): void {
-  if (import.meta.env.DEV) {
-    console.error(context ? `[${context}]` : '[Error]', error);
-  }
+  const parsedError = parseError(error);
+  const originalError = error instanceof Error ? error : undefined;
+  
+  logger.error(
+    parsedError.message,
+    context,
+    {
+      code: parsedError.code,
+      statusCode: parsedError.statusCode,
+      details: parsedError.details,
+    },
+    originalError
+  );
 }
 
 /**

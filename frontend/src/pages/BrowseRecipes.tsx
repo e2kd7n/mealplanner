@@ -28,6 +28,7 @@ import {
   Slider,
   Skeleton,
   Snackbar,
+  Badge,
 } from '@mui/material';
 import {
   Search as SearchIcon,
@@ -45,6 +46,7 @@ import {
   clearError,
 } from '../store/slices/recipeBrowseSlice';
 import { useDebounce } from '../hooks/useDebounce';
+import { useCachedImage } from '../hooks/useCachedImage';
 
 // Memoized Recipe Card Component
 interface BrowseRecipeCardProps {
@@ -55,6 +57,8 @@ interface BrowseRecipeCardProps {
 
 const BrowseRecipeCard = memo(({ recipe, onAddToBox, isAdding }: BrowseRecipeCardProps) => {
   const [added, setAdded] = useState(false);
+  // Use cached image hook for proper error handling and fallback
+  const { src: imageSrc, isLoading: imageLoading } = useCachedImage(recipe.image);
 
   const handleAddClick = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -77,13 +81,21 @@ const BrowseRecipeCard = memo(({ recipe, onAddToBox, isAdding }: BrowseRecipeCar
       }}
     >
       <Box sx={{ position: 'relative', height: 200 }}>
-        <CardMedia
-          component="img"
-          height="200"
-          image={recipe.image || '/placeholder-recipe.jpg'}
-          alt={recipe.title}
-          sx={{ objectFit: 'cover' }}
-        />
+        {imageLoading ? (
+          <Skeleton variant="rectangular" height={200} animation="wave" />
+        ) : (
+          <CardMedia
+            component="img"
+            height="200"
+            image={imageSrc}
+            alt={recipe.title}
+            sx={{ objectFit: 'cover' }}
+            onError={(e: React.SyntheticEvent<HTMLImageElement>) => {
+              // Additional fallback if CardMedia fails to load
+              e.currentTarget.style.display = 'none';
+            }}
+          />
+        )}
       </Box>
       <CardContent sx={{ flexGrow: 1 }}>
         <Typography variant="h6" gutterBottom noWrap>
@@ -164,6 +176,25 @@ const BrowseRecipes: React.FC = () => {
   const [successMessage, setSuccessMessage] = useState('');
   
   const debouncedSearch = useDebounce(searchQuery, 500);
+
+  // D2-3 FIX: Keyboard shortcuts for better navigation
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Ctrl/Cmd + K to focus search
+      if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
+        e.preventDefault();
+        const searchInput = document.querySelector('input[placeholder*="Search recipes"]') as HTMLInputElement;
+        searchInput?.focus();
+      }
+      // Escape to clear search
+      if (e.key === 'Escape' && searchQuery) {
+        setSearchQuery('');
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [searchQuery]);
 
   // Calculate current page from offset
   const currentPage = Math.floor(pagination.offset / pagination.number) + 1;
@@ -246,6 +277,10 @@ const BrowseRecipes: React.FC = () => {
     setSuccessMessage('');
   };
 
+  // D2-2 FIX: Calculate active filter count for visual indicators
+  const activeFilterCount = [cuisine, diet, mealType, maxTime > 0 ? 'maxTime' : null, sortBy !== 'popularity' ? 'sort' : null].filter(Boolean).length;
+  const hasActiveFilters = activeFilterCount > 0;
+
   const totalPages = Math.ceil(pagination.totalResults / pagination.number);
 
   return (
@@ -262,10 +297,10 @@ const BrowseRecipes: React.FC = () => {
           Discover new recipes from Spoonacular's database of 360,000+ recipes
         </Typography>
 
-        {/* Search Bar */}
+        {/* D2-3 FIX: Enhanced search bar with keyboard accessibility */}
         <TextField
           fullWidth
-          placeholder="Search recipes by name or ingredients..."
+          placeholder="Search recipes by name or ingredients... (Ctrl+K)"
           value={searchQuery}
           onChange={handleSearchChange}
           InputProps={{
@@ -276,19 +311,79 @@ const BrowseRecipes: React.FC = () => {
             ),
           }}
           sx={{ mb: 2 }}
+          autoComplete="off"
+          inputProps={{
+            'aria-label': 'Search recipes',
+            'aria-describedby': 'search-help-text',
+          }}
+          helperText={
+            <Typography variant="caption" id="search-help-text" sx={{ display: 'block', mt: 0.5 }}>
+              Press Ctrl+K to focus search, Escape to clear
+            </Typography>
+          }
         />
 
-        {/* Filters */}
+        {/* D2-2 FIX: Enhanced filters section with visual indicators */}
         <Box sx={{ mb: 3 }}>
           <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 2 }}>
-            <FilterListIcon color="action" />
-            <Typography variant="subtitle2" color="text.secondary">
-              Filters
+            <Badge badgeContent={activeFilterCount} color="primary">
+              <FilterListIcon color={hasActiveFilters ? "primary" : "action"} />
+            </Badge>
+            <Typography variant="subtitle2" color={hasActiveFilters ? "primary" : "text.secondary"} sx={{ fontWeight: hasActiveFilters ? 600 : 400 }}>
+              Filters {hasActiveFilters && `(${activeFilterCount} active)`}
             </Typography>
-            <Button size="small" onClick={handleClearFilters}>
-              Clear All
-            </Button>
+            {hasActiveFilters && (
+              <Button size="small" onClick={handleClearFilters} variant="outlined" color="primary">
+                Clear All
+              </Button>
+            )}
           </Stack>
+          
+          {/* Active Filter Chips */}
+          {hasActiveFilters && (
+            <Stack direction="row" spacing={1} flexWrap="wrap" gap={1} sx={{ mb: 2 }}>
+              {cuisine && (
+                <Chip
+                  label={`Cuisine: ${cuisine}`}
+                  onDelete={() => setCuisine('')}
+                  color="primary"
+                  size="small"
+                />
+              )}
+              {diet && (
+                <Chip
+                  label={`Diet: ${diet}`}
+                  onDelete={() => setDiet('')}
+                  color="primary"
+                  size="small"
+                />
+              )}
+              {mealType && (
+                <Chip
+                  label={`Type: ${mealType}`}
+                  onDelete={() => setMealType('')}
+                  color="primary"
+                  size="small"
+                />
+              )}
+              {maxTime > 0 && (
+                <Chip
+                  label={`Max Time: ${maxTime} min`}
+                  onDelete={() => setMaxTime(0)}
+                  color="primary"
+                  size="small"
+                />
+              )}
+              {sortBy !== 'popularity' && (
+                <Chip
+                  label={`Sort: ${sortBy}`}
+                  onDelete={() => setSortBy('popularity')}
+                  color="primary"
+                  size="small"
+                />
+              )}
+            </Stack>
+          )}
           
           <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} flexWrap="wrap">
             <FormControl sx={{ minWidth: 150 }}>
@@ -419,18 +514,27 @@ const BrowseRecipes: React.FC = () => {
         </Box>
       )}
 
-      {/* Empty State */}
+      {/* D2-2 FIX: Context-aware empty state messaging */}
       {!loading && recipes.length === 0 && (
         <Box sx={{ textAlign: 'center', py: 8 }}>
           <ExploreIcon sx={{ fontSize: 80, color: 'text.secondary', mb: 2 }} />
           <Typography variant="h6" color="text.secondary" gutterBottom>
-            {searchQuery ? 'No recipes found' : 'Start searching to discover recipes'}
+            {searchQuery || hasActiveFilters ? 'No recipes found' : 'Start searching to discover recipes'}
           </Typography>
-          <Typography variant="body2" color="text.secondary">
-            {searchQuery
+          <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+            {searchQuery && hasActiveFilters
+              ? 'No recipes match your search and filters. Try adjusting your criteria.'
+              : searchQuery
               ? 'Try different keywords or check your spelling'
+              : hasActiveFilters
+              ? 'Filters applied — enter a keyword to search, or adjust your filters'
               : 'Enter a recipe name or ingredient to get started'}
           </Typography>
+          {hasActiveFilters && (
+            <Button variant="outlined" onClick={handleClearFilters} sx={{ mt: 2 }}>
+              Clear All Filters
+            </Button>
+          )}
         </Box>
       )}
 

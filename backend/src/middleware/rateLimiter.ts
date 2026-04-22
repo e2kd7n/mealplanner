@@ -78,6 +78,27 @@ export const registerRateLimiter = rateLimit({
   },
 });
 
+// Stricter rate limiter for client logging
+// Prevents log spam attacks
+export const clientLogsRateLimiter = rateLimit({
+  windowMs: 60 * 1000, // 1 minute
+  max: 10, // 10 batches per minute (each batch can have up to 100 logs)
+  message: 'Too many log requests, please try again later.',
+  standardHeaders: true,
+  legacyHeaders: false,
+  handler: (req, res) => {
+    logger.warn('Client logs rate limit exceeded', {
+      ip: req.ip,
+      path: req.path,
+    });
+    res.status(429).json({
+      error: 'Too Many Requests',
+      message: 'Too many log submissions. Please try again later.',
+      retryAfter: res.getHeader('Retry-After'),
+    });
+  },
+});
+
 export default rateLimiter;
 
 // Made with Bob

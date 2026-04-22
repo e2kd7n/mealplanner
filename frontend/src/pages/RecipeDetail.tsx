@@ -35,6 +35,7 @@ import {
   Select,
   FormControl,
   InputLabel,
+  Skeleton,
 } from '@mui/material';
 import {
   ArrowBack as ArrowBackIcon,
@@ -115,16 +116,31 @@ const RecipeDetail: React.FC = () => {
   useEffect(() => {
     // Fetch grocery lists and meal plans when component mounts
     dispatch(fetchGroceryLists({ status: 'draft' }));
-    dispatch(fetchMealPlans({ status: 'active' }));
+    // Fetch draft meal plans (the default status when created from MealPlanner)
+    dispatch(fetchMealPlans({ status: 'draft' }));
   }, [dispatch]);
 
-  const handleAddToMealPlan = () => {
+  const handleAddToMealPlan = async () => {
     if (!recipe) return;
     
+    // If no meal plans exist, redirect to meal planner with helpful message
     if (mealPlans.length === 0) {
-      alert('No active meal plans found. Please create a meal plan first.');
-      navigate('/meal-planner');
-      return;
+      try {
+        // Try fetching meal plans one more time to be sure
+        const result = await dispatch(fetchMealPlans({ status: 'draft' })).unwrap();
+        
+        // If still no meal plans after fetching, user needs to go to meal planner
+        if (!result || result.length === 0) {
+          alert('Please visit the Meal Planner to set up your weekly meal plan, then you can add recipes to it.');
+          navigate('/meal-planner');
+          return;
+        }
+      } catch (error) {
+        console.error('Failed to check meal plans:', error);
+        alert('Please visit the Meal Planner to set up your weekly meal plan.');
+        navigate('/meal-planner');
+        return;
+      }
     }
     
     // Set default servings from recipe
@@ -237,11 +253,76 @@ const RecipeDetail: React.FC = () => {
     }
   };
 
+  // D1-1 FIX: Enhanced loading state with skeleton loaders for better UX
   if (loading) {
     return (
       <Container maxWidth="lg">
-        <Box sx={{ display: 'flex', justifyContent: 'center', py: 8 }}>
-          <CircularProgress />
+        <Box sx={{ mb: 4 }}>
+          {/* Header Skeleton */}
+          <Box sx={{ mb: 3 }}>
+            <Skeleton variant="rectangular" width={120} height={36} sx={{ mb: 2 }} />
+            <Skeleton variant="text" width="60%" height={48} sx={{ mb: 2 }} />
+            <Stack direction="row" spacing={1} sx={{ mb: 2 }}>
+              <Skeleton variant="rectangular" width={80} height={32} />
+              <Skeleton variant="rectangular" width={100} height={32} />
+              <Skeleton variant="rectangular" width={100} height={32} />
+              <Skeleton variant="rectangular" width={120} height={32} />
+            </Stack>
+          </Box>
+
+          {/* Action Buttons Skeleton */}
+          <Box sx={{ mb: 3, display: 'flex', gap: 2, justifyContent: 'center' }}>
+            <Skeleton variant="rectangular" width={180} height={42} />
+            <Skeleton variant="rectangular" width={200} height={42} />
+          </Box>
+
+          {/* Image Skeleton */}
+          <Card sx={{ mb: 4 }}>
+            <Skeleton variant="rectangular" height={400} />
+          </Card>
+
+          {/* Description Skeleton */}
+          <Paper sx={{ p: 3, mb: 4 }}>
+            <Skeleton variant="text" width="30%" height={32} sx={{ mb: 2 }} />
+            <Skeleton variant="text" width="100%" />
+            <Skeleton variant="text" width="90%" />
+            <Skeleton variant="text" width="80%" />
+          </Paper>
+
+          {/* Ingredients & Instructions Grid Skeleton */}
+          <Box
+            sx={{
+              display: 'grid',
+              gridTemplateColumns: { xs: '1fr', md: '1fr 2fr' },
+              gap: 3,
+            }}
+          >
+            {/* Ingredients Skeleton */}
+            <Paper sx={{ p: 3 }}>
+              <Skeleton variant="text" width="50%" height={32} sx={{ mb: 2 }} />
+              <Divider sx={{ mb: 3 }} />
+              {[...Array(6)].map((_, i) => (
+                <Box key={i} sx={{ mb: 2 }}>
+                  <Skeleton variant="text" width="80%" />
+                </Box>
+              ))}
+            </Paper>
+
+            {/* Instructions Skeleton */}
+            <Paper sx={{ p: 3 }}>
+              <Skeleton variant="text" width="50%" height={32} sx={{ mb: 2 }} />
+              <Divider sx={{ mb: 3 }} />
+              {[...Array(4)].map((_, i) => (
+                <Box key={i} sx={{ mb: 3, display: 'flex', gap: 2 }}>
+                  <Skeleton variant="circular" width={32} height={32} />
+                  <Box sx={{ flex: 1 }}>
+                    <Skeleton variant="text" width="100%" />
+                    <Skeleton variant="text" width="90%" />
+                  </Box>
+                </Box>
+              ))}
+            </Paper>
+          </Box>
         </Box>
       </Container>
     );
@@ -426,7 +507,7 @@ const RecipeDetail: React.FC = () => {
               <Typography variant="h5" sx={{ fontWeight: 600 }}>
                 Ingredients
               </Typography>
-              {/* Servings Adjuster */}
+              {/* D2-4 FIX: Enhanced servings adjuster with validation and direct input */}
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                 <Typography variant="body2" color="text.secondary">
                   Servings:
@@ -437,18 +518,41 @@ const RecipeDetail: React.FC = () => {
                   onClick={() => setScaledServings(Math.max(1, scaledServings - 1))}
                   sx={{ minWidth: '32px', px: 1 }}
                   aria-label="Decrease servings"
+                  disabled={scaledServings <= 1}
                 >
                   -
                 </Button>
-                <Typography variant="body1" sx={{ minWidth: '40px', textAlign: 'center', fontWeight: 600 }}>
-                  {scaledServings}
-                </Typography>
+                <TextField
+                  type="number"
+                  value={scaledServings}
+                  onChange={(e) => {
+                    const value = parseInt(e.target.value);
+                    if (!isNaN(value) && value >= 1 && value <= 99) {
+                      setScaledServings(value);
+                    } else if (e.target.value === '') {
+                      setScaledServings(1);
+                    }
+                  }}
+                  inputProps={{
+                    min: 1,
+                    max: 99,
+                    'aria-label': 'Number of servings',
+                    style: { textAlign: 'center', padding: '4px 8px' }
+                  }}
+                  sx={{
+                    width: '60px',
+                    '& input': { fontWeight: 600 }
+                  }}
+                  size="small"
+                  title="Enter servings (1-99)"
+                />
                 <Button
                   size="small"
                   variant="outlined"
-                  onClick={() => setScaledServings(scaledServings + 1)}
+                  onClick={() => setScaledServings(Math.min(99, scaledServings + 1))}
                   sx={{ minWidth: '32px', px: 1 }}
                   aria-label="Increase servings"
+                  disabled={scaledServings >= 99}
                 >
                   +
                 </Button>
