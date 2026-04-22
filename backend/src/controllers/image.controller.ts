@@ -19,9 +19,9 @@ export const proxyImage = async (
   res: Response,
   next: NextFunction
 ): Promise<void> => {
+  const { url } = req.query;
+  
   try {
-    const { url } = req.query;
-
     if (!url || typeof url !== 'string') {
       throw new AppError('Image URL is required', 400);
     }
@@ -52,16 +52,17 @@ export const proxyImage = async (
     });
 
     // Get content type from response or default to image/jpeg
-    const contentType = response.headers['content-type'] || 'image/jpeg';
+    const contentType = response.headers['content-type'];
+    const contentTypeStr = typeof contentType === 'string' ? contentType : 'image/jpeg';
 
     // Validate it's an image
-    if (!contentType.startsWith('image/')) {
+    if (!contentTypeStr.startsWith('image/')) {
       throw new AppError('URL does not point to an image', 400);
     }
 
     // Set appropriate headers
     res.set({
-      'Content-Type': contentType,
+      'Content-Type': contentTypeStr,
       'Cache-Control': 'public, max-age=86400', // Cache for 24 hours
       'Access-Control-Allow-Origin': '*', // Allow CORS
     });
@@ -75,11 +76,19 @@ export const proxyImage = async (
     }
 
     if (axios.isAxiosError(err)) {
+      const requestUrl = typeof url === 'string' ? url : 'unknown';
+      
       if (err.code === 'ECONNABORTED') {
         next(new AppError('Image fetch timeout', 504));
       } else if (err.response) {
-        next(new AppError(`Failed to fetch image: ${err.response.status}`, 502));
+        // Don't log 404s as errors - they're expected for expired/invalid URLs
+        const status = err.response.status;
+        if (status !== 404) {
+          logger.warn(`Failed to fetch image from ${requestUrl}: ${status}`);
+        }
+        next(new AppError(`Failed to fetch image: ${status}`, 502));
       } else {
+        logger.warn(`Failed to fetch image from ${requestUrl}: ${err.message}`);
         next(new AppError('Failed to fetch image from external source', 502));
       }
       return;
