@@ -79,11 +79,9 @@ export const fetchRecipes = createAsyncThunk(
   } = {}, { rejectWithValue }) => {
     try {
       const response = await recipeAPI.getAll(params);
-      console.log('Recipe API Response:', response);
-      console.log('Response data:', response.data);
       return response.data;
     } catch (error: any) {
-      console.error('Recipe fetch error:', error);
+      if (import.meta.env.DEV) console.error('Recipe fetch error:', error);
       return rejectWithValue(error.response?.data?.message || 'Failed to fetch recipes');
     }
   }

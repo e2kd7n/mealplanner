@@ -201,8 +201,18 @@ pnpm dev
 ```
 
 ### 7. Access the application
-- Frontend: http://localhost:5173
-- Backend API: http://localhost:3000
+
+**Local Development Mode:**
+- Frontend: http://localhost:5173 (Vite dev server)
+- Backend API: http://localhost:3000/api
+- Health Check: http://localhost:3000/health
+
+**Container Mode (via podman-compose):**
+- Application: http://localhost:8080
+- API: http://localhost:8080/api
+- Health Check: http://localhost:8080/health
+
+📖 **Port Configuration Guide:** See [docs/PORT_STANDARDIZATION.md](./docs/PORT_STANDARDIZATION.md) for complete port reference
 
 ### Production Deployment (Raspberry Pi)
 
