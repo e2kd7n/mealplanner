@@ -66,6 +66,7 @@ jobs:
           NODE_ENV: test
           E2E_TESTING: true
           PORT: 3000
+          CORS_ORIGIN: http://localhost:5173
         run: |
           pnpm dev &
           echo $! > backend.pid
@@ -80,7 +81,11 @@ jobs:
           pnpm run dev &
           echo $! > frontend.pid
           # Wait for frontend to be ready
-          timeout 60 bash -c 'until curl -f http://localhost:5174; do sleep 2; done'
+          timeout 60 bash -c 'until curl -f http://localhost:5173; do sleep 2; done'
+
+      - name: Create auth directory
+        working-directory: frontend
+        run: mkdir -p e2e/.auth
 
       - name: Install Playwright browsers
         working-directory: frontend
@@ -90,7 +95,7 @@ jobs:
         working-directory: frontend
         env:
           E2E_TESTING: true
-          BASE_URL: http://localhost:5174
+          BASE_URL: http://localhost:5173
         run: pnpm run test:e2e
 
       - name: Upload test results

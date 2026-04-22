@@ -2,7 +2,7 @@ import { PrismaClient, Difficulty, MealType } from '@prisma/client';
 
 const prisma = new PrismaClient();
 
-const TEST_USER_ID = 'df262615-e86b-4b04-94eb-8369d0ad242d'; // The test user we created
+const TEST_USER_ID = 'test-user-00-0000-0000-000000000001'; // The test user from database init
 
 const recipes = [
   // Breakfast recipes
