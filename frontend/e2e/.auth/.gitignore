@@ -1,0 +1,4 @@
+# Ignore all files in this directory (session state files)
+*
+# But keep the directory itself
+!.gitignore
