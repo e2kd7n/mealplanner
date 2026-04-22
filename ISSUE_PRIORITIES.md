@@ -1,12 +1,18 @@
 # Issue Prioritization
 
-**Last Updated:** 2026-04-21
+**Last Updated:** 2026-04-22 11:56:39 UTC / 2026-04-22 06:56:39 CDT
 
 This file reflects the current state of GitHub issues by priority. Issues are managed via GitHub labels (P0-critical, P1-high, P2-medium, P3-low, P4-future).
 
 ## 🔴 P0 - CRITICAL (Drop Everything)
 Issues that make the application unusable or cause data loss.
 
+- #109 - [P0][CRITICAL] Remove Production Console Logging
+- #108 - [P0][CRITICAL] Fix Recipe Image Loading Failures
+- #102 - [P0][CRITICAL] Remove Production Console Logging
+- #101 - [P0][CRITICAL] Fix Recipe Image Loading Failures
+- #96 - [P0][CRITICAL] Remove Production Console Logging
+- #95 - [P0][CRITICAL] Fix Recipe Image Loading Failures
 - #94 - family members in profile not showing in chef assignment dropdown when scheduling meal
 - #93 - Add backend connection error banner for local development
 - #92 - Improve Recipe Scraping and Database Connection Monitoring
@@ -14,11 +20,35 @@ Issues that make the application unusable or cause data loss.
 ## 🔴 P1 - HIGH (Current Sprint)
 Issues that significantly impact core functionality or user experience.
 
-**No P1 issues currently open** ✅
+- #114 - [P1][MEAL] Add Meal Prep & Batch Cooking Support
+- #113 - [P1][GROCERY] Organize Grocery List by Store Aisle/Category
+- #112 - [P1][COLLAB] Implement Real-Time Collaboration with WebSockets
+- #111 - [P1][FTUE] Add Recipe Discovery on Empty State
+- #110 - [P1][FTUE] Implement Guided Onboarding Wizard
+- #107 - [P1][MEAL] Add Meal Prep & Batch Cooking Support
+- #106 - [P1][GROCERY] Organize Grocery List by Store Aisle/Category
+- #105 - [P1][COLLAB] Implement Real-Time Collaboration with WebSockets
+- #104 - [P1][FTUE] Add Recipe Discovery on Empty State
+- #103 - [P1][FTUE] Implement Guided Onboarding Wizard
+- #100 - [P1][GROCERY] Organize Grocery List by Store Aisle/Category
+- #99 - [P1][COLLAB] Implement Real-Time Collaboration with WebSockets
+- #98 - [P1][FTUE] Add Recipe Discovery on Empty State
+- #97 - [P1][FTUE] Implement Guided Onboarding Wizard
 
 ## 🟡 P2 - MEDIUM (Next Sprint)
 Important improvements that enhance functionality but don't block core workflows.
 
+- #125 - [P2][PERF] Optimize Image Loading and Caching
+- #124 - [P2][PERF] Optimize Initial Page Load Performance
+- #123 - [P2][A11Y] Verify Color Contrast and WCAG Compliance
+- #122 - [P2][A11Y] Add ARIA Labels and Semantic HTML
+- #121 - [P2][A11Y] Implement Full Keyboard Navigation
+- #120 - [P2][SEARCH] Improve Recipe Search & Discovery
+- #119 - [P2][MOBILE] Optimize Mobile Experience for Key Workflows
+- #118 - [P2][UX] Integrate Pantry with Meal Planning
+- #117 - [P2][UX] Enhance Dietary Restriction Support & Safety
+- #116 - [P2][UX] Add Cost Tracking for Budget-Conscious Users
+- #115 - [P2][UX] Improve Error Messages with Actionable Details
 - #83 - [Testing] Add automated accessibility and performance tests
 - #82 - [P2][Feature] Add automatic nutrition calculation from ingredients
 

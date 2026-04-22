@@ -178,20 +178,14 @@ const MealPlanner: React.FC = () => {
       const response = await mealPlanAPI.getAll({ status: 'draft' });
       const mealPlans = response.data.data || [];
       
-      console.log('📅 All meal plans:', mealPlans);
-      
       // Find the meal plan that matches the current week
       const weekStartStr = formatDateForAPI(currentWeekStart);
-      console.log('🔍 Looking for week starting:', weekStartStr);
       
       const mealPlan = mealPlans.find((mp: any) => {
         // Extract just the date part from the ISO string (YYYY-MM-DD)
         const mpDateStr = mp.weekStartDate.split('T')[0];
-        console.log('  Checking meal plan:', mp.id, 'weekStartDate:', mpDateStr, 'vs', weekStartStr);
         return mpDateStr === weekStartStr;
       });
-      
-      console.log('✅ Found meal plan:', mealPlan?.id, 'with', mealPlan?.plannedMeals?.length || 0, 'meals');
       
       if (mealPlan) {
         setCurrentMealPlanId(mealPlan.id);
@@ -200,7 +194,6 @@ const MealPlanner: React.FC = () => {
         const transformedMeals: Meal[] = (mealPlan.plannedMeals || []).map((pm: any) => {
           // Parse the date - it comes as ISO string from backend
           const mealDate = new Date(pm.date);
-          console.log('  Parsing meal date:', pm.date, '→', mealDate);
           
           return {
             id: pm.id,
@@ -216,16 +209,16 @@ const MealPlanner: React.FC = () => {
           };
         });
         
-        console.log('🍽️ Transformed meals:', transformedMeals);
         setMeals(transformedMeals);
       } else {
-        console.log('❌ No meal plan found for this week');
         // No meal plan for this week yet
         setCurrentMealPlanId(null);
         setMeals([]);
       }
     } catch (error) {
-      console.error('Failed to load meals:', error);
+      if (import.meta.env.DEV) {
+        if (import.meta.env.DEV) console.error('Failed to load meals:', error);
+      }
       setMeals([]);
     } finally {
       setMealsLoading(false);
@@ -239,7 +232,7 @@ const MealPlanner: React.FC = () => {
       const recipesData = response.data.recipes || response.data.data?.recipes || [];
       setRecipes(recipesData);
     } catch (error) {
-      console.error('Failed to load recipes:', error);
+      if (import.meta.env.DEV) console.error('Failed to load recipes:', error);
       setRecipes([]);
     } finally {
       setRecipeSearchLoading(false);
@@ -252,7 +245,7 @@ const MealPlanner: React.FC = () => {
       const response = await familyMemberAPI.getAll();
       setFamilyMembers(response.data.data || []);
     } catch (error) {
-      console.error('Failed to load family members:', error);
+      if (import.meta.env.DEV) console.error('Failed to load family members:', error);
       // Set empty array on error so UI still works
       setFamilyMembers([]);
     } finally {
@@ -275,7 +268,7 @@ const MealPlanner: React.FC = () => {
       setCurrentMealPlanId(newMealPlanId);
       return newMealPlanId;
     } catch (error) {
-      console.error('Failed to create meal plan:', error);
+      if (import.meta.env.DEV) console.error('Failed to create meal plan:', error);
       throw error;
     }
   };
@@ -321,7 +314,7 @@ const MealPlanner: React.FC = () => {
       setIsEditingMeal(false);
       setEditingMealId(null);
     } catch (error) {
-      console.error('Failed to add meal:', error);
+      if (import.meta.env.DEV) console.error('Failed to add meal:', error);
       alert('Failed to add meal. Please try again.');
     }
   };
@@ -354,7 +347,7 @@ const MealPlanner: React.FC = () => {
       setIsEditingMeal(false);
       setEditingMealId(null);
     } catch (error) {
-      console.error('Failed to update meal:', error);
+      if (import.meta.env.DEV) console.error('Failed to update meal:', error);
       alert('Failed to update meal. Please try again.');
     }
   };
@@ -373,7 +366,7 @@ const MealPlanner: React.FC = () => {
       // Remove from local state
       setMeals(meals.filter(meal => meal.id !== id));
     } catch (error) {
-      console.error('Failed to delete meal:', error);
+      if (import.meta.env.DEV) console.error('Failed to delete meal:', error);
       alert('Failed to delete meal. Please try again.');
     }
   };
@@ -395,7 +388,7 @@ const MealPlanner: React.FC = () => {
       setOpenGroceryDialog(false);
       navigate('/grocery-list');
     } catch (error) {
-      console.error('Failed to generate grocery list:', error);
+      if (import.meta.env.DEV) console.error('Failed to generate grocery list:', error);
       alert('Failed to generate grocery list. Please try again.');
     }
   };
@@ -467,7 +460,7 @@ const MealPlanner: React.FC = () => {
       
       setMeals([...meals, newMeal]);
     } catch (error) {
-      console.error('Failed to paste meal:', error);
+      if (import.meta.env.DEV) console.error('Failed to paste meal:', error);
       alert('Failed to paste meal. Please try again.');
     }
   };
@@ -499,7 +492,7 @@ const MealPlanner: React.FC = () => {
       setEditingSchedule(false);
       setOpenMealDetail(false);
     } catch (error) {
-      console.error('Failed to update meal schedule:', error);
+      if (import.meta.env.DEV) console.error('Failed to update meal schedule:', error);
       alert('Failed to update meal schedule. Please try again.');
     }
   };
@@ -527,7 +520,7 @@ const MealPlanner: React.FC = () => {
       setMeals(meals.filter(meal => !isSameDay(meal.date, selectedDay)));
       setOpenDaySummary(false);
     } catch (error) {
-      console.error('Error clearing day:', error);
+      if (import.meta.env.DEV) console.error('Error clearing day:', error);
     }
   };
 
@@ -578,7 +571,7 @@ const MealPlanner: React.FC = () => {
       );
       setMeals(updatedMeals);
     } catch (error) {
-      console.error('Failed to move meal:', error);
+      if (import.meta.env.DEV) console.error('Failed to move meal:', error);
       alert('Failed to move meal. Please try again.');
     }
   };

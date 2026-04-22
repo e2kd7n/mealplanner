@@ -55,7 +55,7 @@ export const useUndo = (autoHideDuration: number = 5000): UseUndoReturn => {
       await undoAction.undo();
       hideUndo();
     } catch (error) {
-      console.error('Error performing undo:', error);
+      if (import.meta.env.DEV) console.error('Error performing undo:', error);
       throw error;
     } finally {
       setIsUndoing(false);

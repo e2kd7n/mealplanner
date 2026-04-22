@@ -128,7 +128,7 @@ const GroceryList: React.FC = () => {
         setCurrentList(data.data[0]);
       }
     } catch (err) {
-      console.error('Error fetching grocery lists:', err);
+      if (import.meta.env.DEV) console.error('Error fetching grocery lists:', err);
       setError('Failed to load grocery lists. Please try again.');
     } finally {
       setLoading(false);
@@ -168,7 +168,7 @@ const GroceryList: React.FC = () => {
         ),
       });
     } catch (err) {
-      console.error('Error toggling item:', err);
+      if (import.meta.env.DEV) console.error('Error toggling item:', err);
       alert('Failed to update item. Please try again.');
     }
   };
@@ -195,7 +195,7 @@ const GroceryList: React.FC = () => {
         items: currentList.items.filter(i => i.id !== itemId),
       });
     } catch (err) {
-      console.error('Error deleting item:', err);
+      if (import.meta.env.DEV) console.error('Error deleting item:', err);
       alert('Failed to delete item. Please try again.');
     }
   };
@@ -211,7 +211,7 @@ const GroceryList: React.FC = () => {
       alert('Adding custom items requires ingredient management. Please use the meal planner to generate grocery lists from recipes.');
       setOpenDialog(false);
     } catch (err) {
-      console.error('Error adding item:', err);
+      if (import.meta.env.DEV) console.error('Error adding item:', err);
       alert('Failed to add item. Please try again.');
     }
   };
@@ -242,7 +242,7 @@ const GroceryList: React.FC = () => {
         items: currentList.items.filter(item => !item.isChecked),
       });
     } catch (err) {
-      console.error('Error clearing checked items:', err);
+      if (import.meta.env.DEV) console.error('Error clearing checked items:', err);
       alert('Failed to clear checked items. Please try again.');
     }
   };

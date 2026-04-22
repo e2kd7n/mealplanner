@@ -29,7 +29,7 @@ class ImageCache {
       const request = indexedDB.open(DB_NAME, DB_VERSION);
 
       request.onerror = () => {
-        console.error('Failed to open image cache database:', request.error);
+        if (import.meta.env.DEV) console.error('Failed to open image cache database:', request.error);
         reject(request.error);
       };
 
@@ -90,12 +90,12 @@ class ImageCache {
         };
 
         request.onerror = () => {
-          console.error('Failed to get cached image:', request.error);
+          if (import.meta.env.DEV) console.error('Failed to get cached image:', request.error);
           reject(request.error);
         };
       });
     } catch (error) {
-      console.error('Error getting cached image:', error);
+      if (import.meta.env.DEV) console.error('Error getting cached image:', error);
       return null;
     }
   }
@@ -148,7 +148,7 @@ class ImageCache {
 
         if (!response.ok) {
           // Log specific error for debugging but don't throw
-          console.warn(`Failed to fetch image (${response.status}): ${url.substring(0, 100)}`);
+          if (import.meta.env.DEV) console.warn(`Failed to fetch image (${response.status}): ${url.substring(0, 100)}`);
           return null;
         }
 
@@ -156,7 +156,7 @@ class ImageCache {
         
         // Validate it's actually an image
         if (!blob.type.startsWith('image/')) {
-          console.warn('Fetched content is not an image:', blob.type);
+          if (import.meta.env.DEV) console.warn('Fetched content is not an image:', blob.type);
           return null;
         }
         
@@ -179,21 +179,21 @@ class ImageCache {
           };
 
           request.onerror = () => {
-            console.error('Failed to cache image:', request.error);
+            if (import.meta.env.DEV) console.error('Failed to cache image:', request.error);
             reject(request.error);
           };
         });
       } catch (fetchError: any) {
         clearTimeout(timeoutId);
         if (fetchError.name === 'AbortError') {
-          console.warn('Image fetch timeout:', url.substring(0, 100));
+          if (import.meta.env.DEV) console.warn('Image fetch timeout:', url.substring(0, 100));
         } else {
-          console.warn('Image fetch error:', fetchError.message);
+          if (import.meta.env.DEV) console.warn('Image fetch error:', fetchError.message);
         }
         return null;
       }
     } catch (error) {
-      console.error('Error caching image:', error);
+      if (import.meta.env.DEV) console.error('Error caching image:', error);
       return null;
     }
   }
@@ -213,7 +213,7 @@ class ImageCache {
       const newUrl = await this.set(url);
       return newUrl || url; // Fallback to original URL if caching fails
     } catch (error) {
-      console.error('Error in getOrFetch:', error);
+      if (import.meta.env.DEV) console.error('Error in getOrFetch:', error);
       return url; // Fallback to original URL
     }
   }
@@ -233,12 +233,12 @@ class ImageCache {
 
         request.onsuccess = () => resolve();
         request.onerror = () => {
-          console.error('Failed to delete cached image:', request.error);
+          if (import.meta.env.DEV) console.error('Failed to delete cached image:', request.error);
           reject(request.error);
         };
       });
     } catch (error) {
-      console.error('Error deleting cached image:', error);
+      if (import.meta.env.DEV) console.error('Error deleting cached image:', error);
     }
   }
 
@@ -257,12 +257,12 @@ class ImageCache {
 
         request.onsuccess = () => resolve();
         request.onerror = () => {
-          console.error('Failed to clear image cache:', request.error);
+          if (import.meta.env.DEV) console.error('Failed to clear image cache:', request.error);
           reject(request.error);
         };
       });
     } catch (error) {
-      console.error('Error clearing image cache:', error);
+      if (import.meta.env.DEV) console.error('Error clearing image cache:', error);
     }
   }
 
@@ -287,12 +287,12 @@ class ImageCache {
         };
 
         request.onerror = () => {
-          console.error('Failed to get cache stats:', request.error);
+          if (import.meta.env.DEV) console.error('Failed to get cache stats:', request.error);
           reject(request.error);
         };
       });
     } catch (error) {
-      console.error('Error getting cache stats:', error);
+      if (import.meta.env.DEV) console.error('Error getting cache stats:', error);
       return { count: 0, size: 0 };
     }
   }

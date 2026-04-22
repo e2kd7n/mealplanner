@@ -17,7 +17,7 @@
 ### Proper Workflow for Large Features
 
 1. **Draft issue content** in a temporary local file if needed
-2. **Create GitHub issues immediately** using `gh issue create`
+2. **Create GitHub issues immediately** using `gh issue create` using labels existing in the project (do not arbitrarily invent labels)
 3. **Delete the local markdown file** after GitHub issues are created
 4. **Reference GitHub issue numbers** in code and documentation
 

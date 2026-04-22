@@ -95,7 +95,7 @@ export default function ImportRecipe() {
       const recipeId = response.data?.data?.id || response.data?.id;
       
       if (!recipeId) {
-        console.error('No recipe ID in response:', response.data);
+        if (import.meta.env.DEV) console.error('No recipe ID in response:', response.data);
         setError('Recipe saved but unable to navigate to detail page');
         setSaving(false);
         return;
