@@ -55,6 +55,12 @@ jobs:
           pnpm prisma generate
           pnpm prisma migrate deploy
           pnpm run prisma:seed
+          # Verify seed data was created
+          echo "Verifying database seed..."
+          pnpm prisma db execute --stdin <<EOF
+          SELECT COUNT(*) as user_count FROM users;
+          SELECT COUNT(*) as recipe_count FROM recipes;
+          EOF
 
       - name: Start backend server
         working-directory: backend
@@ -68,20 +74,53 @@ jobs:
           PORT: 3000
           CORS_ORIGIN: http://localhost:5173
         run: |
-          pnpm dev &
+          pnpm dev > backend.log 2>&1 &
           echo $! > backend.pid
-          # Wait for backend to be ready
-          timeout 60 bash -c 'until curl -f http://localhost:3000/health; do sleep 2; done'
+          echo "Backend PID: $(cat backend.pid)"
+          
+          # Wait for backend to be ready with improved health check
+          echo "Waiting for backend server..."
+          for i in {1..30}; do
+            if curl -f -s http://localhost:3000/health > /dev/null 2>&1; then
+              echo "Backend is ready!"
+              curl -s http://localhost:3000/health | jq '.'
+              break
+            fi
+            if [ $i -eq 30 ]; then
+              echo "Backend failed to start within 60 seconds"
+              echo "=== Backend logs ==="
+              cat backend.log
+              exit 1
+            fi
+            echo "Attempt $i/30: Backend not ready yet..."
+            sleep 2
+          done
 
       - name: Start frontend server
         working-directory: frontend
         env:
           VITE_API_URL: http://localhost:3000
         run: |
-          pnpm run dev &
+          pnpm run dev > frontend.log 2>&1 &
           echo $! > frontend.pid
+          echo "Frontend PID: $(cat frontend.pid)"
+          
           # Wait for frontend to be ready
-          timeout 60 bash -c 'until curl -f http://localhost:5173; do sleep 2; done'
+          echo "Waiting for frontend server..."
+          for i in {1..30}; do
+            if curl -f -s http://localhost:5173 > /dev/null 2>&1; then
+              echo "Frontend is ready!"
+              break
+            fi
+            if [ $i -eq 30 ]; then
+              echo "Frontend failed to start within 60 seconds"
+              echo "=== Frontend logs ==="
+              cat frontend.log
+              exit 1
+            fi
+            echo "Attempt $i/30: Frontend not ready yet..."
+            sleep 2
+          done
 
       - name: Create auth directory
         working-directory: frontend
@@ -114,14 +153,39 @@ jobs:
           path: frontend/test-results/
           retention-days: 7
 
+      - name: Upload server logs
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: server-logs
+          path: |
+            backend/backend.log
+            frontend/frontend.log
+          retention-days: 7
+
       - name: Cleanup
         if: always()
         run: |
+          echo "Cleaning up processes..."
           if [ -f backend/backend.pid ]; then
-            kill $(cat backend/backend.pid) || true
+            PID=$(cat backend/backend.pid)
+            echo "Killing backend process $PID"
+            kill $PID 2>/dev/null || true
+            # Wait for graceful shutdown
+            sleep 2
+            # Force kill if still running
+            kill -9 $PID 2>/dev/null || true
           fi
           if [ -f frontend/frontend.pid ]; then
-            kill $(cat frontend/frontend.pid) || true
+            PID=$(cat frontend/frontend.pid)
+            echo "Killing frontend process $PID"
+            kill $PID 2>/dev/null || true
+            sleep 2
+            kill -9 $PID 2>/dev/null || true
           fi
+          # Kill any remaining node processes on ports 3000 and 5173
+          lsof -ti:3000 | xargs kill -9 2>/dev/null || true
+          lsof -ti:5173 | xargs kill -9 2>/dev/null || true
+          echo "Cleanup complete"
 
 # Made with Bob
