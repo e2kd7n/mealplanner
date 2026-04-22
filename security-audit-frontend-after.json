@@ -1,0 +1,136 @@
+{
+  "actions": [],
+  "advisories": {
+    "1115357": {
+      "findings": [
+        {
+          "version": "3.4.1",
+          "paths": [
+            ".>eslint>file-entry-cache>flat-cache>flatted"
+          ]
+        }
+      ],
+      "found_by": null,
+      "deleted": null,
+      "references": "- https://github.com/WebReflection/flatted/security/advisories/GHSA-rf6f-7fwh-wjgh\n- https://nvd.nist.gov/vuln/detail/CVE-2026-33228\n- https://github.com/WebReflection/flatted/commit/885ddcc33cf9657caf38c57c7be45ae1c5272802\n- https://github.com/WebReflection/flatted/releases/tag/v3.4.2\n- https://github.com/advisories/GHSA-rf6f-7fwh-wjgh",
+      "created": "2026-03-19T17:43:54.000Z",
+      "id": 1115357,
+      "npm_advisory_id": null,
+      "overview": "---\n  **Summary**\n\n  The parse() function in flatted can use attacker-controlled string values from the parsed JSON as direct array index\n  keys, without validating that they are numeric. Since the internal input buffer is a JavaScript Array, accessing it\n  with the key \"\\_\\_proto\\_\\_\" returns Array.prototype via the inherited getter. This object is then treated as a legitimate\n   parsed value and assigned as a property of the output object, effectively leaking a live reference to Array.prototype\n   to the consumer. Any code that subsequently writes to that property will pollute the global prototype.\n\n  ---\n  **Root Cause**\n\n  File: esm/index.js:29 (identical in cjs/index.js)\n```\n  const resolver = (input, lazy, parsed, $) => output => {\n    for (let ke = keys(output), {length} = ke, y = 0; y < length; y++) {\n      const k = ke[y];\n      const value = output[k];    \n      if (value instanceof Primitive) {\n        const tmp = input[value];      // Bug is here\n```\n\nNo validation that value is a safe numeric index input is built as a plain Array. JavaScript's property lookup on arrays traverses the prototype chain for non-numeric  keys. The key \"\\_\\_proto\\_\\_\" resolves to Array.prototype, which:\n\n  - has type \"object\" → passes the typeof tmp === object guard at line 30\n  - is not in the parsed Set yet → passes the !parsed.has(tmp) guard.\n  - The reference to Array.prototype is then enqueued in lazy and later unconditionally assigned to the output object.\n  ---\n  **Replication Steps**\n```\n  const Flatted = require('flatted'); \n  const parsed = Flatted.parse('[{\"x\":\"__proto__\"}]');\n  parsed.x.polluted = 'pwned';\n  console.log([].polluted);  // Returns true\n``` \n ---\n  **Impact**\n An attacker can supply a crafted flatted string to parse() that causes the returned object to hold a live reference to Array.prototype, enabling any downstream code that writes to that property to pollute the global prototype chain, potentially causing denial of service or code execution.\n\n  **Recommended solution**\n Validate that the index string represents an integer within the bounds of input before accessing it:\n\n  // Before (vulnerable)\n  const tmp = input[value];\n\n  // After (safe)\n  const idx = +value;  // coerce boxed String → number\n  const tmp = (Number.isInteger(idx) && idx >= 0 && idx < input.length)\n    ? input[idx]\n    : undefined;",
+      "reported_by": null,
+      "title": "Prototype Pollution via parse() in NodeJS flatted",
+      "metadata": null,
+      "cves": [
+        "CVE-2026-33228"
+      ],
+      "access": "public",
+      "severity": "high",
+      "module_name": "flatted",
+      "vulnerable_versions": "<=3.4.1",
+      "github_advisory_id": "GHSA-rf6f-7fwh-wjgh",
+      "recommendation": "Upgrade to version 3.4.2 or later",
+      "patched_versions": ">=3.4.2",
+      "updated": "2026-03-25T18:22:01.000Z",
+      "cvss": {
+        "score": 0,
+        "vectorString": null
+      },
+      "cwe": [
+        "CWE-1321"
+      ],
+      "url": "https://github.com/advisories/GHSA-rf6f-7fwh-wjgh"
+    },
+    "1115540": {
+      "findings": [
+        {
+          "version": "1.1.12",
+          "paths": [
+            ".>eslint>minimatch>brace-expansion"
+          ]
+        }
+      ],
+      "found_by": null,
+      "deleted": null,
+      "references": "- https://github.com/juliangruber/brace-expansion/security/advisories/GHSA-f886-m6hf-6m8v\n- https://github.com/juliangruber/brace-expansion/blob/daa71bcb4a30a2df9bcb7f7b8daaf2ab30e5794a/src/index.ts#L107-L113\n- https://github.com/juliangruber/brace-expansion/blob/daa71bcb4a30a2df9bcb7f7b8daaf2ab30e5794a/src/index.ts#L184\n- https://github.com/juliangruber/brace-expansion/issues/98\n- https://github.com/juliangruber/brace-expansion/pull/95\n- https://github.com/juliangruber/brace-expansion/pull/96\n- https://github.com/juliangruber/brace-expansion/pull/97\n- https://github.com/juliangruber/brace-expansion/commit/311ac0d54994158c0a384e286a7d6cbb17ee8ed5\n- https://github.com/juliangruber/brace-expansion/commit/7fd684f89fdde3549563d0a6522226a9189472a2\n- https://github.com/juliangruber/brace-expansion/commit/b9cacd9e55e7a1fa588fe4b7bb1159d52f1d902a\n- https://nvd.nist.gov/vuln/detail/CVE-2026-33750\n- https://github.com/advisories/GHSA-f886-m6hf-6m8v",
+      "created": "2026-03-26T18:29:42.000Z",
+      "id": 1115540,
+      "npm_advisory_id": null,
+      "overview": "### Impact\n\nA brace pattern with a zero step value (e.g., `{1..2..0}`) causes the sequence generation loop to run indefinitely, making the process hang for seconds and allocate heaps of memory.\n\nThe loop in question:\n\nhttps://github.com/juliangruber/brace-expansion/blob/daa71bcb4a30a2df9bcb7f7b8daaf2ab30e5794a/src/index.ts#L184\n\n`test()` is one of\n\nhttps://github.com/juliangruber/brace-expansion/blob/daa71bcb4a30a2df9bcb7f7b8daaf2ab30e5794a/src/index.ts#L107-L113\n\nThe increment is computed as `Math.abs(0) = 0`, so the loop variable never advances. On a test machine, the process hangs for about 3.5 seconds and allocates roughly 1.9 GB of memory before throwing a `RangeError`. Setting max to any value has no effect because the limit is only checked at the output combination step, not during sequence generation.\n\nThis affects any application that passes untrusted strings to expand(), or by error sets a step value of `0`. That includes tools built on minimatch/glob that resolve patterns from CLI arguments or config files. The input needed is just 10 bytes.\n\n### Patches\n\n\nUpgrade to versions\n- 5.0.5+\n\nA step increment of 0 is now sanitized to 1, which matches bash behavior.\n\n### Workarounds\n\nSanitize strings passed to `expand()` to ensure a step value of `0` is not used.",
+      "reported_by": null,
+      "title": "brace-expansion: Zero-step sequence causes process hang and memory exhaustion",
+      "metadata": null,
+      "cves": [
+        "CVE-2026-33750"
+      ],
+      "access": "public",
+      "severity": "moderate",
+      "module_name": "brace-expansion",
+      "vulnerable_versions": "<1.1.13",
+      "github_advisory_id": "GHSA-f886-m6hf-6m8v",
+      "recommendation": "Upgrade to version 1.1.13 or later",
+      "patched_versions": ">=1.1.13",
+      "updated": "2026-03-27T21:38:55.000Z",
+      "cvss": {
+        "score": 6.5,
+        "vectorString": "CVSS:3.1/AV:N/AC:L/PR:N/UI:R/S:U/C:N/I:N/A:H"
+      },
+      "cwe": [
+        "CWE-400"
+      ],
+      "url": "https://github.com/advisories/GHSA-f886-m6hf-6m8v"
+    },
+    "1115555": {
+      "findings": [
+        {
+          "version": "1.10.2",
+          "paths": [
+            ".>@emotion/react>@emotion/babel-plugin>babel-plugin-macros>cosmiconfig>yaml"
+          ]
+        }
+      ],
+      "found_by": null,
+      "deleted": null,
+      "references": "- https://github.com/eemeli/yaml/security/advisories/GHSA-48c2-rrv3-qjmp\n- https://github.com/eemeli/yaml/commit/1e84ebbea7ec35011a4c61bbb820a529ee4f359b\n- https://github.com/eemeli/yaml/releases/tag/v1.10.3\n- https://github.com/eemeli/yaml/releases/tag/v2.8.3\n- https://nvd.nist.gov/vuln/detail/CVE-2026-33532\n- https://github.com/advisories/GHSA-48c2-rrv3-qjmp",
+      "created": "2026-03-25T20:08:24.000Z",
+      "id": 1115555,
+      "npm_advisory_id": null,
+      "overview": "Parsing a YAML document with `yaml` may throw a RangeError due to a stack overflow.\n\nThe node resolution/composition phase uses recursive function calls without a depth bound. An attacker who can supply YAML for parsing can trigger a `RangeError: Maximum call stack size exceeded` with a small payload (~2–10 KB). The `RangeError` is not a `YAMLParseError`, so applications that only catch YAML-specific errors will encounter an unexpected exception type. Depending on the host application's exception handling, this can fail requests or terminate the Node.js process.\n\nFlow sequences allow deep nesting with minimal bytes (2 bytes per level: one `[` and one `]`). On the default Node.js stack, approximately 1,000–5,000 levels of nesting (2–10 KB input) exhaust the call stack. The exact threshold is environment-dependent (Node.js version, stack size, call stack depth at invocation).\n\nNote: the library's `Parser` (CST phase) uses a stack-based iterative approach and is not affected. Only the compose/resolve phase uses actual call-stack recursion.\n\nAll three public parsing APIs are affected: `YAML.parse()`, `YAML.parseDocument()`, and `YAML.parseAllDocuments()`.\n\n### PoC\n\n```javascript\nconst YAML = require('yaml');\n\n// ~10 KB payload: 5000 levels of nested flow sequences\nconst payload = '['.repeat(5000) + '1' + ']'.repeat(5000);\n\ntry {\n  YAML.parse(payload);\n} catch (e) {\n  console.log(e.constructor.name); // RangeError (NOT YAMLParseError)\n  console.log(e.message);          // Maximum call stack size exceeded\n}\n```\n\nTest environment: Node.js v24.12.0, macOS darwin arm64\n\n| Version | Nesting Depth | Input Size | Result |\n|---|---|---|---|\n| 1.0.0 | 5,000 | 10,001 B | RangeError |\n| 1.10.2 | 5,000 | 10,001 B | RangeError |\n| 2.0.0 | 5,000 | 10,001 B | RangeError |\n| 2.8.2 | 5,000 | 10,001 B | RangeError |\n| 2.8.3 | 5,000 | 10,001 B | YAMLParseError |\n\nDepth threshold on yaml 2.8.2:\n\n| Nesting Depth | Input Size | Result |\n|---|---|---|\n| 500 | 1,001 B | Parses successfully |\n| 1,000 | 2,001 B | RangeError (threshold varies by stack size) |\n| 5,000 | 10,001 B | RangeError |",
+      "reported_by": null,
+      "title": "yaml is vulnerable to Stack Overflow via deeply nested YAML collections",
+      "metadata": null,
+      "cves": [
+        "CVE-2026-33532"
+      ],
+      "access": "public",
+      "severity": "moderate",
+      "module_name": "yaml",
+      "vulnerable_versions": ">=1.0.0 <1.10.3",
+      "github_advisory_id": "GHSA-48c2-rrv3-qjmp",
+      "recommendation": "Upgrade to version 1.10.3 or later",
+      "patched_versions": ">=1.10.3",
+      "updated": "2026-03-27T21:34:54.000Z",
+      "cvss": {
+        "score": 4.3,
+        "vectorString": "CVSS:3.1/AV:N/AC:L/PR:L/UI:N/S:U/C:N/I:N/A:L"
+      },
+      "cwe": [
+        "CWE-674"
+      ],
+      "url": "https://github.com/advisories/GHSA-48c2-rrv3-qjmp"
+    }
+  },
+  "muted": [],
+  "metadata": {
+    "vulnerabilities": {
+      "info": 0,
+      "low": 0,
+      "moderate": 2,
+      "high": 1,
+      "critical": 0
+    },
+    "dependencies": 363,
+    "devDependencies": 0,
+    "optionalDependencies": 0,
+    "totalDependencies": 363
+  }
+}
