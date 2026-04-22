@@ -14,6 +14,13 @@
     "test:e2e:debug": "E2E_TESTING=true playwright test --debug",
     "test:e2e:report": "playwright show-report"
   },
+  "pnpm": {
+    "overrides": {
+      "flatted": ">=3.4.2",
+      "brace-expansion": ">=1.1.13",
+      "yaml": ">=1.10.3"
+    }
+  },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",
     "@dnd-kit/sortable": "^10.0.0",
@@ -24,7 +31,7 @@
     "@mui/icons-material": "^7.3.9",
     "@mui/material": "^7.3.9",
     "@reduxjs/toolkit": "^2.11.2",
-    "axios": "^1.13.6",
+    "axios": "^1.15.2",
     "date-fns": "^4.1.0",
     "react": "^19.2.4",
     "react-dom": "^19.2.4",
@@ -48,7 +55,7 @@
     "eslint-plugin-react-refresh": "^0.5.2",
     "globals": "^17.4.0",
     "typescript": "~5.9.3",
-    "typescript-eslint": "^8.56.1",
-    "vite": "^8.0.0"
+    "typescript-eslint": "^8.59.0",
+    "vite": "^8.0.9"
   }
 }
