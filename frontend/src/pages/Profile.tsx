@@ -42,6 +42,7 @@ import {
   Cancel as CancelIcon,
 } from '@mui/icons-material';
 import { userAPI, familyMemberAPI } from '../services/api';
+import { DIETARY_PREFERENCES, COMMON_ALLERGENS, getDietaryLabel, isAllergen } from '../constants/dietaryOptions';
 
 interface TabPanelProps {
   children?: React.ReactNode;
@@ -86,7 +87,6 @@ interface FamilyMember {
   avoidedIngredients?: string[];
 }
 
-const dietaryOptions = ['vegetarian', 'vegan', 'gluten-free', 'dairy-free', 'nut-free'];
 const skillLevels = ['beginner', 'intermediate', 'advanced'];
 const ageGroups = ['child', 'teen', 'adult'];
 
@@ -400,16 +400,48 @@ const Profile: React.FC = () => {
             </FormControl>
             <Box>
               <Typography variant="subtitle1" gutterBottom>
-                Dietary Restrictions
+                Dietary Preferences
               </Typography>
-              <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
-                {dietaryOptions.map((option) => (
+              <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, mb: 3 }}>
+                {DIETARY_PREFERENCES.map((option) => (
                   <Chip
                     key={option}
                     label={option}
                     color={
                       (editingPreferences ? preferencesForm.dietaryRestrictions : preferences.dietaryRestrictions).includes(option)
                         ? 'primary'
+                        : 'default'
+                    }
+                    onClick={() => {
+                      if (editingPreferences) {
+                        const current = preferencesForm.dietaryRestrictions;
+                        setPreferencesForm({
+                          ...preferencesForm,
+                          dietaryRestrictions: current.includes(option)
+                            ? current.filter((r) => r !== option)
+                            : [...current, option],
+                        });
+                      }
+                    }}
+                    disabled={!editingPreferences}
+                  />
+                ))}
+              </Box>
+              
+              <Typography variant="subtitle1" gutterBottom sx={{ color: 'error.main', fontWeight: 600 }}>
+                ⚠️ Food Allergens
+              </Typography>
+              <Alert severity="warning" sx={{ mb: 2 }}>
+                <strong>Important:</strong> Allergen selections will trigger warnings when recipes contain these ingredients.
+              </Alert>
+              <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
+                {COMMON_ALLERGENS.map((option) => (
+                  <Chip
+                    key={option}
+                    label={getDietaryLabel(option)}
+                    color={
+                      (editingPreferences ? preferencesForm.dietaryRestrictions : preferences.dietaryRestrictions).includes(option)
+                        ? 'error'
                         : 'default'
                     }
                     onClick={() => {
@@ -597,14 +629,36 @@ const Profile: React.FC = () => {
             </FormControl>
             <Box>
               <Typography variant="subtitle2" gutterBottom>
-                Dietary Restrictions
+                Dietary Preferences
               </Typography>
-              <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
-                {dietaryOptions.map((option) => (
+              <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, mb: 2 }}>
+                {DIETARY_PREFERENCES.map((option) => (
                   <Chip
                     key={option}
                     label={option}
                     color={memberForm.dietaryRestrictions.includes(option) ? 'primary' : 'default'}
+                    onClick={() => {
+                      const current = memberForm.dietaryRestrictions;
+                      setMemberForm({
+                        ...memberForm,
+                        dietaryRestrictions: current.includes(option)
+                          ? current.filter((r) => r !== option)
+                          : [...current, option],
+                      });
+                    }}
+                  />
+                ))}
+              </Box>
+              
+              <Typography variant="subtitle2" gutterBottom sx={{ color: 'error.main', fontWeight: 600 }}>
+                ⚠️ Food Allergens
+              </Typography>
+              <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
+                {COMMON_ALLERGENS.map((option) => (
+                  <Chip
+                    key={option}
+                    label={getDietaryLabel(option)}
+                    color={memberForm.dietaryRestrictions.includes(option) ? 'error' : 'default'}
                     onClick={() => {
                       const current = memberForm.dietaryRestrictions;
                       setMemberForm({

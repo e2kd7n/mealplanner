@@ -39,6 +39,7 @@ import {
   ArrowBack as ArrowBackIcon,
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
+import { DIETARY_PREFERENCES, COMMON_ALLERGENS, getDietaryLabel } from '../constants/dietaryOptions';
 
 interface OnboardingWizardProps {
   open: boolean;
@@ -54,17 +55,6 @@ export interface OnboardingData {
   weeklyBudget: string;
   completed: boolean;
 }
-
-const DIETARY_OPTIONS = [
-  'Vegetarian',
-  'Vegan',
-  'Gluten-Free',
-  'Dairy-Free',
-  'Nut-Free',
-  'Low-Carb',
-  'Keto',
-  'Paleo',
-];
 
 const CUISINE_OPTIONS = [
   'Italian',
@@ -206,15 +196,20 @@ const OnboardingWizard: React.FC<OnboardingWizardProps> = ({ open, onClose, onCo
               <FavoriteIcon sx={{ mr: 2, color: 'error.main', fontSize: 40 }} />
               <Box>
                 <Typography variant="h5" gutterBottom>
-                  Dietary Preferences
+                  Dietary Preferences & Allergens
                 </Typography>
                 <Typography variant="body2" color="text.secondary">
-                  Select any dietary restrictions or preferences (optional)
+                  Select any dietary restrictions, preferences, or allergens (optional)
                 </Typography>
               </Box>
             </Box>
+            
+            {/* Dietary Preferences Section */}
+            <Typography variant="subtitle2" gutterBottom sx={{ mt: 2, mb: 1, fontWeight: 600 }}>
+              Dietary Preferences
+            </Typography>
             <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, mb: 3 }}>
-              {DIETARY_OPTIONS.map((option) => (
+              {DIETARY_PREFERENCES.map((option) => (
                 <Chip
                   key={option}
                   label={option}
@@ -225,6 +220,28 @@ const OnboardingWizard: React.FC<OnboardingWizardProps> = ({ open, onClose, onCo
                 />
               ))}
             </Box>
+
+            {/* Allergens Section */}
+            <Typography variant="subtitle2" gutterBottom sx={{ mt: 2, mb: 1, fontWeight: 600, color: 'error.main' }}>
+              ⚠️ Food Allergens
+            </Typography>
+            <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, mb: 3 }}>
+              {COMMON_ALLERGENS.map((option) => (
+                <Chip
+                  key={option}
+                  label={getDietaryLabel(option)}
+                  onClick={() => toggleDietaryPreference(option)}
+                  color={dietaryPreferences.includes(option) ? 'error' : 'default'}
+                  variant={dietaryPreferences.includes(option) ? 'filled' : 'outlined'}
+                  icon={dietaryPreferences.includes(option) ? <CheckCircleIcon /> : undefined}
+                />
+              ))}
+            </Box>
+
+            <Alert severity="warning" sx={{ mb: 2 }}>
+              <strong>Important:</strong> Allergen selections will trigger warnings when recipes contain these ingredients.
+            </Alert>
+            
             <Card variant="outlined">
               <CardContent>
                 <Typography variant="body2" color="text.secondary">
