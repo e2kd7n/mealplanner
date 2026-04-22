@@ -15,6 +15,7 @@ import {
   addMealToPlan,
   updateMeal,
   removeMealFromPlan,
+  batchCookMeal,
 } from '../controllers/mealPlan.controller';
 import { generateFromMealPlan } from '../controllers/groceryList.controller';
 
@@ -78,6 +79,13 @@ router.put('/:planId/meals/:mealId', updateMeal);
  * @access  Private
  */
 router.delete('/:planId/meals/:mealId', removeMealFromPlan);
+
+/**
+ * @route   POST /api/meal-plans/:planId/meals/:mealId/batch-cook
+ * @desc    Batch cook a meal to multiple dates
+ * @access  Private
+ */
+router.post('/:planId/meals/:mealId/batch-cook', batchCookMeal);
 
 /**
  * @route   POST /api/meal-plans/:id/generate-grocery-list

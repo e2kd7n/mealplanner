@@ -16,7 +16,6 @@ import {
   CardActions,
   Button,
   Chip,
-  CircularProgress,
   Alert,
   Stack,
   Pagination,
@@ -50,7 +49,7 @@ import { useCachedImage } from '../hooks/useCachedImage';
 
 // Memoized Recipe Card Component
 interface BrowseRecipeCardProps {
-  recipe: any;
+  recipe: import('../store/slices/recipeBrowseSlice').SpoonacularRecipe;
   onAddToBox: (id: number) => void;
   isAdding: boolean;
 }
@@ -266,7 +265,7 @@ const BrowseRecipes: React.FC = () => {
         setSuccessMessage('Recipe added to your recipe box!');
       }
     },
-    [dispatch]
+    [dispatch, setSuccessMessage]
   );
 
   const handleClearError = () => {

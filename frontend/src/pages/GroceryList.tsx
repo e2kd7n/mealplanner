@@ -33,6 +33,8 @@ import {
   MenuItem,
   CircularProgress,
   Alert,
+  Collapse,
+  Avatar,
 } from '@mui/material';
 import {
   Add as AddIcon,
@@ -40,6 +42,17 @@ import {
   ShoppingCart as ShoppingCartIcon,
   CheckCircle as CheckCircleIcon,
   Refresh as RefreshIcon,
+  ExpandMore as ExpandMoreIcon,
+  ExpandLess as ExpandLessIcon,
+  Spa as ProduceIcon,
+  Restaurant as MeatIcon,
+  LocalDrink as DairyIcon,
+  Cake as BakeryIcon,
+  Kitchen as PantryIcon,
+  AcUnit as FrozenIcon,
+  LocalCafe as BeveragesIcon,
+  Fastfood as SnacksIcon,
+  Category as OtherIcon,
 } from '@mui/icons-material';
 
 interface Ingredient {
@@ -72,17 +85,33 @@ interface GroceryList {
   items: GroceryItem[];
 }
 
-const CATEGORIES = [
-  'Produce',
-  'Meat & Seafood',
-  'Dairy & Eggs',
-  'Bakery',
-  'Pantry',
-  'Frozen',
-  'Beverages',
-  'Snacks',
-  'Other',
+// Category configuration with icons and display order
+const CATEGORY_CONFIG = [
+  { key: 'produce', label: 'Produce', icon: ProduceIcon, color: '#4caf50', emoji: '🥬' },
+  { key: 'dairy', label: 'Dairy & Eggs', icon: DairyIcon, color: '#2196f3', emoji: '🥛' },
+  { key: 'protein', label: 'Meat & Seafood', icon: MeatIcon, color: '#f44336', emoji: '🥩' },
+  { key: 'grains', label: 'Bakery & Grains', icon: BakeryIcon, color: '#ff9800', emoji: '🍞' },
+  { key: 'pantry', label: 'Pantry', icon: PantryIcon, color: '#795548', emoji: '🥫' },
+  { key: 'frozen', label: 'Frozen', icon: FrozenIcon, color: '#00bcd4', emoji: '❄️' },
+  { key: 'beverages', label: 'Beverages', icon: BeveragesIcon, color: '#9c27b0', emoji: '🥤' },
+  { key: 'snacks', label: 'Snacks', icon: SnacksIcon, color: '#ff5722', emoji: '🍿' },
+  { key: 'spices', label: 'Spices & Seasonings', icon: OtherIcon, color: '#607d8b', emoji: '🌶️' },
+  { key: 'other', label: 'Other', icon: OtherIcon, color: '#9e9e9e', emoji: '📦' },
 ];
+
+// Map ingredient categories to store categories
+const mapIngredientCategoryToStore = (ingredientCategory: string): string => {
+  const mapping: Record<string, string> = {
+    'produce': 'produce',
+    'protein': 'protein',
+    'dairy': 'dairy',
+    'grains': 'grains',
+    'pantry': 'pantry',
+    'spices': 'spices',
+    'other': 'other',
+  };
+  return mapping[ingredientCategory.toLowerCase()] || 'other';
+};
 
 const GroceryList: React.FC = () => {
   const [groceryLists, setGroceryLists] = useState<GroceryList[]>([]);
@@ -90,6 +119,7 @@ const GroceryList: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [openDialog, setOpenDialog] = useState(false);
+  const [expandedCategories, setExpandedCategories] = useState<Record<string, boolean>>({});
   const [newItem, setNewItem] = useState({
     name: '',
     quantity: 1,
@@ -133,6 +163,25 @@ const GroceryList: React.FC = () => {
     } finally {
       setLoading(false);
     }
+  };
+
+  const toggleCategory = (category: string) => {
+    setExpandedCategories(prev => ({
+      ...prev,
+      [category]: !prev[category]
+    }));
+  };
+
+  const expandAllCategories = () => {
+    const allExpanded: Record<string, boolean> = {};
+    CATEGORY_CONFIG.forEach(cat => {
+      allExpanded[cat.key] = true;
+    });
+    setExpandedCategories(allExpanded);
+  };
+
+  const collapseAllCategories = () => {
+    setExpandedCategories({});
   };
 
   const handleToggleItem = async (itemId: string) => {
@@ -274,12 +323,14 @@ const GroceryList: React.FC = () => {
   }
 
   const items = currentList?.items || [];
+  
+  // Group items by store category
   const groupedItems = items.reduce((acc, item) => {
-    const category = item.ingredient.category || 'Other';
-    if (!acc[category]) {
-      acc[category] = [];
+    const storeCategory = mapIngredientCategoryToStore(item.ingredient.category || 'other');
+    if (!acc[storeCategory]) {
+      acc[storeCategory] = [];
     }
-    acc[category].push(item);
+    acc[storeCategory].push(item);
     return acc;
   }, {} as Record<string, GroceryItem[]>);
 
@@ -287,15 +338,44 @@ const GroceryList: React.FC = () => {
   const totalCount = items.length;
   const progress = totalCount > 0 ? (checkedCount / totalCount) * 100 : 0;
 
+  // Initialize expanded state for categories with items
+  useEffect(() => {
+    if (currentList && Object.keys(expandedCategories).length === 0) {
+      const initialExpanded: Record<string, boolean> = {};
+      CATEGORY_CONFIG.forEach(cat => {
+        if (groupedItems[cat.key] && groupedItems[cat.key].length > 0) {
+          initialExpanded[cat.key] = true;
+        }
+      });
+      setExpandedCategories(initialExpanded);
+    }
+  }, [currentList]);
+
   return (
     <Container maxWidth="lg">
       <Box sx={{ mb: 4 }}>
         {/* Header */}
-        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3, flexWrap: 'wrap', gap: 2 }}>
           <Typography variant="h4">
             Grocery List
           </Typography>
-          <Stack direction="row" spacing={2}>
+          <Stack direction="row" spacing={1} flexWrap="wrap">
+            <Button
+              variant="outlined"
+              size="small"
+              onClick={expandAllCategories}
+              aria-label="Expand all categories"
+            >
+              Expand All
+            </Button>
+            <Button
+              variant="outlined"
+              size="small"
+              onClick={collapseAllCategories}
+              aria-label="Collapse all categories"
+            >
+              Collapse All
+            </Button>
             <Button
               variant="outlined"
               startIcon={<RefreshIcon />}
@@ -360,69 +440,116 @@ const GroceryList: React.FC = () => {
             </CardContent>
           </Card>
         ) : (
-          /* Grouped Items */
+          /* Grouped Items by Category */
           <Box>
-            {Object.keys(groupedItems).sort().map(category => {
-              const categoryItems = groupedItems[category];
+            {CATEGORY_CONFIG.map(categoryConfig => {
+              const categoryItems = groupedItems[categoryConfig.key];
               if (!categoryItems || categoryItems.length === 0) return null;
 
               const categoryChecked = categoryItems.filter(item => item.isChecked).length;
               const categoryTotal = categoryItems.length;
+              const isExpanded = expandedCategories[categoryConfig.key] !== false;
+              const CategoryIcon = categoryConfig.icon;
 
               return (
-                <Card key={category} sx={{ mb: 2 }}>
-                  <CardContent>
-                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-                      <Typography variant="h6">
-                        {category}
-                      </Typography>
-                      <Chip
-                        label={`${categoryChecked}/${categoryTotal}`}
-                        size="small"
-                        color={categoryChecked === categoryTotal ? 'success' : 'default'}
-                        icon={categoryChecked === categoryTotal ? <CheckCircleIcon /> : undefined}
-                      />
+                <Card key={categoryConfig.key} sx={{ mb: 2, border: `2px solid ${categoryConfig.color}20` }}>
+                  <CardContent sx={{ pb: isExpanded ? 2 : 1, '&:last-child': { pb: isExpanded ? 2 : 1 } }}>
+                    <Box
+                      sx={{
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        alignItems: 'center',
+                        cursor: 'pointer',
+                        '&:hover': { bgcolor: 'action.hover' },
+                        p: 1,
+                        mx: -1,
+                        borderRadius: 1,
+                      }}
+                      onClick={() => toggleCategory(categoryConfig.key)}
+                    >
+                      <Stack direction="row" spacing={2} alignItems="center">
+                        <Avatar sx={{ bgcolor: categoryConfig.color, width: 40, height: 40 }}>
+                          <CategoryIcon />
+                        </Avatar>
+                        <Box>
+                          <Typography variant="h6" sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                            <span>{categoryConfig.emoji}</span>
+                            {categoryConfig.label}
+                          </Typography>
+                          <Typography variant="caption" color="text.secondary">
+                            {categoryChecked} of {categoryTotal} items checked
+                          </Typography>
+                        </Box>
+                      </Stack>
+                      <Stack direction="row" spacing={1} alignItems="center">
+                        <Chip
+                          label={`${categoryChecked}/${categoryTotal}`}
+                          size="small"
+                          color={categoryChecked === categoryTotal ? 'success' : 'default'}
+                          icon={categoryChecked === categoryTotal ? <CheckCircleIcon /> : undefined}
+                        />
+                        <IconButton size="small">
+                          {isExpanded ? <ExpandLessIcon /> : <ExpandMoreIcon />}
+                        </IconButton>
+                      </Stack>
                     </Box>
-                    <Divider sx={{ mb: 1 }} />
-                    <List disablePadding>
-                      {categoryItems.map((item) => (
-                        <ListItem
-                          key={item.id}
-                          disablePadding
-                          secondaryAction={
-                            <IconButton
-                              edge="end"
-                              aria-label={`Delete ${item.ingredient.name}`}
-                              onClick={() => handleDeleteItem(item.id)}
-                            >
-                              <DeleteIcon />
-                            </IconButton>
-                          }
-                        >
-                          <ListItemButton
-                            onClick={() => handleToggleItem(item.id)}
-                            dense
+                    
+                    <Collapse in={isExpanded} timeout="auto" unmountOnExit>
+                      <Divider sx={{ my: 2 }} />
+                      <List disablePadding>
+                        {categoryItems.map((item) => (
+                          <ListItem
+                            key={item.id}
+                            disablePadding
+                            secondaryAction={
+                              <IconButton
+                                edge="end"
+                                aria-label={`Delete ${item.ingredient.name}`}
+                                onClick={() => handleDeleteItem(item.id)}
+                                size="small"
+                              >
+                                <DeleteIcon />
+                              </IconButton>
+                            }
                           >
-                            <ListItemIcon>
-                              <Checkbox
-                                edge="start"
-                                checked={item.isChecked}
-                                tabIndex={-1}
-                                disableRipple
-                              />
-                            </ListItemIcon>
-                            <ListItemText
-                              primary={item.ingredient.name}
-                              secondary={`${item.quantity} ${item.unit}`}
+                            <ListItemButton
+                              onClick={() => handleToggleItem(item.id)}
+                              dense
                               sx={{
-                                textDecoration: item.isChecked ? 'line-through' : 'none',
-                                color: item.isChecked ? 'text.secondary' : 'text.primary',
+                                borderRadius: 1,
+                                mb: 0.5,
+                                '&:hover': {
+                                  bgcolor: `${categoryConfig.color}10`,
+                                }
                               }}
-                            />
-                          </ListItemButton>
-                        </ListItem>
-                      ))}
-                    </List>
+                            >
+                              <ListItemIcon>
+                                <Checkbox
+                                  edge="start"
+                                  checked={item.isChecked}
+                                  tabIndex={-1}
+                                  disableRipple
+                                  sx={{
+                                    color: categoryConfig.color,
+                                    '&.Mui-checked': {
+                                      color: categoryConfig.color,
+                                    }
+                                  }}
+                                />
+                              </ListItemIcon>
+                              <ListItemText
+                                primary={item.ingredient.name}
+                                secondary={`${item.quantity} ${item.unit}`}
+                                sx={{
+                                  textDecoration: item.isChecked ? 'line-through' : 'none',
+                                  color: item.isChecked ? 'text.secondary' : 'text.primary',
+                                }}
+                              />
+                            </ListItemButton>
+                          </ListItem>
+                        ))}
+                      </List>
+                    </Collapse>
                   </CardContent>
                 </Card>
               );

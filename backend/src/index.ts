@@ -47,6 +47,8 @@ import { conditionalCsrfProtection, csrfProtection, getCsrfToken, csrfErrorHandl
 import { logger } from './utils/logger';
 import { initializeCache } from './utils/cache';
 import { metricsMiddleware } from './utils/monitoring';
+import logPruner from './utils/logPruner';
+import { initializeWebSocket } from './services/websocket.service';
 
 const app: Application = express();
 const PORT = process.env.PORT || 3000;
@@ -186,6 +188,14 @@ async function startServer() {
     // Initialize in-memory cache
     initializeCache();
     logger.info('In-memory cache initialized successfully');
+
+    // Start log pruner (runs every 24 hours by default)
+    logPruner.start();
+    logger.info('Log pruner started');
+
+    // Initialize WebSocket service
+    initializeWebSocket(server);
+    logger.info('WebSocket service initialized');
 
     // Start server
     const serverPort = USE_HTTPS && existsSync(SSL_KEY_PATH) && existsSync(SSL_CERT_PATH) ? HTTPS_PORT : PORT;

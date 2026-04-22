@@ -6,6 +6,7 @@
 import { Request, Response } from 'express';
 import prisma from '../utils/prisma';
 import { logger } from '../utils/logger';
+import logPruner from '../utils/logPruner';
 
 interface LogEntry {
   level: string;
@@ -285,5 +286,34 @@ function sanitizeLogData(data: any): any {
 
   return sanitized;
 }
+
+/**
+ * Get log file and database statistics (admin only)
+ */
+export const getLogFileStats = async (_req: Request, res: Response): Promise<void> => {
+  try {
+    const stats = await logPruner.getLogStats();
+    res.json(stats);
+  } catch (error) {
+    logger.error('Error fetching log file stats', error);
+    res.status(500).json({ error: 'Failed to fetch log statistics' });
+  }
+};
+
+/**
+ * Manually trigger log pruning (admin only)
+ */
+export const triggerLogPruning = async (_req: Request, res: Response): Promise<void> => {
+  try {
+    await logPruner.pruneAll();
+    res.json({
+      success: true,
+      message: 'Log pruning completed successfully'
+    });
+  } catch (error) {
+    logger.error('Error triggering log pruning', error);
+    res.status(500).json({ error: 'Failed to prune logs' });
+  }
+};
 
 // Made with Bob

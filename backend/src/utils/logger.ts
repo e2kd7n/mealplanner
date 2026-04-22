@@ -5,9 +5,20 @@
 
 
 import winston from 'winston';
+import path from 'path';
+import fs from 'fs';
 
 const logLevel = process.env.LOG_LEVEL || 'info';
 const logFormat = process.env.LOG_FORMAT || 'dev';
+
+// Ensure logs directory exists
+// Use /mealplanner/logs in production (Docker), ./logs in development
+const LOG_DIR = process.env.LOG_DIR ||
+  (process.env.NODE_ENV === 'production' ? '/mealplanner/logs' : path.join(process.cwd(), 'logs'));
+
+if (!fs.existsSync(LOG_DIR)) {
+  fs.mkdirSync(LOG_DIR, { recursive: true });
+}
 
 // Define log format
 const customFormat = winston.format.combine(
@@ -40,16 +51,18 @@ export const logger = winston.createLogger({
     }),
     // File transport for errors
     new winston.transports.File({
-      filename: 'logs/error.log',
+      filename: path.join(LOG_DIR, 'error.log'),
       level: 'error',
-      maxsize: 5242880, // 5MB
-      maxFiles: 5,
+      maxsize: 10485760, // 10MB
+      maxFiles: 10,
+      tailable: true,
     }),
     // File transport for all logs
     new winston.transports.File({
-      filename: 'logs/combined.log',
-      maxsize: 5242880, // 5MB
-      maxFiles: 5,
+      filename: path.join(LOG_DIR, 'combined.log'),
+      maxsize: 10485760, // 10MB
+      maxFiles: 10,
+      tailable: true,
     }),
   ],
 });

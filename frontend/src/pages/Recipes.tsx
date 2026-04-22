@@ -44,6 +44,7 @@ import { fetchRecipes } from '../store/slices/recipesSlice';
 import { useDebounce } from '../hooks/useDebounce';
 import { useCachedImage } from '../hooks/useCachedImage';
 import BrowseRecipes from './BrowseRecipes';
+import RecipeDiscoveryEmptyState from '../components/RecipeDiscoveryEmptyState';
 
 // Memoized Recipe Card Component for better performance
 interface RecipeCardProps {
@@ -430,15 +431,20 @@ const Recipes: React.FC = () => {
                 ))}
               </Box>
             ) : recipes.length === 0 ? (
-              <Box sx={{ textAlign: 'center', py: 8 }}>
-                <RestaurantIcon sx={{ fontSize: 64, color: 'text.secondary', mb: 2 }} />
-                <Typography variant="h6" color="text.secondary">
-                  No recipes found
-                </Typography>
-                <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
-                  Try adjusting your search or filters
-                </Typography>
-              </Box>
+              // Show enhanced discovery empty state only when no filters are applied
+              !searchInput && !difficulty && !mealType && !cleanupScore ? (
+                <RecipeDiscoveryEmptyState />
+              ) : (
+                <Box sx={{ textAlign: 'center', py: 8 }}>
+                  <RestaurantIcon sx={{ fontSize: 64, color: 'text.secondary', mb: 2 }} />
+                  <Typography variant="h6" color="text.secondary">
+                    No recipes found
+                  </Typography>
+                  <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
+                    Try adjusting your search or filters
+                  </Typography>
+                </Box>
+              )
             ) : (
               <>
                 {/* Recipe Grid */}

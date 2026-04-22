@@ -37,6 +37,7 @@ import {
 } from '@mui/icons-material';
 import { useAppDispatch, useAppSelector } from '../store/hooks';
 import { logout } from '../store/slices/authSlice';
+import BackendStatusBanner from './BackendStatusBanner';
 
 const drawerWidth = 240;
 
@@ -116,6 +117,9 @@ const Layout: React.FC = () => {
 
   return (
     <Box sx={{ display: 'flex' }}>
+      {/* Backend Status Banner */}
+      <BackendStatusBanner />
+      
       {/* Skip Navigation Links */}
       <Link
         href="#main-content"

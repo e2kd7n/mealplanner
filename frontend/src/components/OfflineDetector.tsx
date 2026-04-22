@@ -13,13 +13,11 @@ import { WifiOff as WifiOffIcon } from '@mui/icons-material';
  * and offers retry functionality when connection is restored
  */
 const OfflineDetector: React.FC = () => {
-  const [isOnline, setIsOnline] = useState(navigator.onLine);
   const [showOfflineAlert, setShowOfflineAlert] = useState(false);
   const [showOnlineAlert, setShowOnlineAlert] = useState(false);
 
   useEffect(() => {
     const handleOnline = () => {
-      setIsOnline(true);
       setShowOfflineAlert(false);
       setShowOnlineAlert(true);
       // Auto-hide the "back online" message after 3 seconds
@@ -27,7 +25,6 @@ const OfflineDetector: React.FC = () => {
     };
 
     const handleOffline = () => {
-      setIsOnline(false);
       setShowOfflineAlert(true);
       setShowOnlineAlert(false);
     };
