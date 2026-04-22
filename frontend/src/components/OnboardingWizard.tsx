@@ -174,7 +174,19 @@ const OnboardingWizard: React.FC<OnboardingWizardProps> = ({ open, onClose, onCo
               type="number"
               label="Number of people"
               value={householdSize}
-              onChange={(e) => setHouseholdSize(Math.max(1, parseInt(e.target.value) || 1))}
+              onChange={(e) => {
+                const value = e.target.value;
+                // Allow empty string for user to clear and retype
+                if (value === '') {
+                  setHouseholdSize(1);
+                } else {
+                  const parsed = parseInt(value, 10);
+                  if (!isNaN(parsed)) {
+                    setHouseholdSize(Math.max(1, Math.min(20, parsed)));
+                  }
+                }
+              }}
+              onFocus={(e) => e.target.select()}
               inputProps={{ min: 1, max: 20 }}
               helperText="This helps us suggest appropriate serving sizes"
               sx={{ mb: 3 }}
