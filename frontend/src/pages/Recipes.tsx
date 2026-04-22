@@ -28,6 +28,7 @@ import {
   Tooltip,
   Tabs,
   Tab,
+  Skeleton,
 } from '@mui/material';
 import {
   Search as SearchIcon,
@@ -170,6 +171,26 @@ const RecipeCard = memo(({ recipe, onNavigate }: RecipeCardProps) => {
 });
 
 RecipeCard.displayName = 'RecipeCard';
+
+// D1-1 FIX: Skeleton loader for recipe cards
+const RecipeCardSkeleton = () => (
+  <Card sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
+    <Skeleton variant="rectangular" height={200} />
+    <CardContent sx={{ flexGrow: 1 }}>
+      <Skeleton variant="text" width="80%" height={32} sx={{ mb: 1 }} />
+      <Skeleton variant="text" width="100%" />
+      <Skeleton variant="text" width="90%" sx={{ mb: 2 }} />
+      <Stack direction="row" spacing={1}>
+        <Skeleton variant="rectangular" width={60} height={24} />
+        <Skeleton variant="rectangular" width={80} height={24} />
+        <Skeleton variant="rectangular" width={70} height={24} />
+      </Stack>
+    </CardContent>
+    <CardActions>
+      <Skeleton variant="rectangular" width={100} height={30} />
+    </CardActions>
+  </Card>
+);
 
 const Recipes: React.FC = () => {
   const navigate = useNavigate();
@@ -391,8 +412,22 @@ const Recipes: React.FC = () => {
             )}
 
             {loading ? (
-              <Box sx={{ display: 'flex', justifyContent: 'center', py: 8 }}>
-                <CircularProgress />
+              <Box
+                sx={{
+                  display: 'grid',
+                  gridTemplateColumns: {
+                    xs: '1fr',
+                    sm: 'repeat(2, 1fr)',
+                    md: 'repeat(3, 1fr)',
+                    lg: 'repeat(4, 1fr)',
+                  },
+                  gap: 3,
+                  mb: 4,
+                }}
+              >
+                {[...Array(8)].map((_, index) => (
+                  <RecipeCardSkeleton key={index} />
+                ))}
               </Box>
             ) : recipes.length === 0 ? (
               <Box sx={{ textAlign: 'center', py: 8 }}>

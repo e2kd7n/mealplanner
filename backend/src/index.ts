@@ -35,12 +35,13 @@ import ingredientRoutes from './routes/ingredient.routes';
 import pantryRoutes from './routes/pantry.routes';
 import adminRoutes from './routes/admin.routes';
 import imageRoutes from './routes/image.routes';
+import logsRoutes from './routes/logs.routes';
 
 // Import middleware
 import { errorHandler } from './middleware/errorHandler';
 import { requestLogger } from './middleware/logger';
 import rateLimiter from './middleware/rateLimiter';
-import { conditionalCsrfProtection, getCsrfToken, csrfErrorHandler } from './middleware/csrf';
+import { conditionalCsrfProtection, csrfProtection, getCsrfToken, csrfErrorHandler } from './middleware/csrf';
 
 // Import utilities
 import { logger } from './utils/logger';
@@ -111,7 +112,8 @@ app.get('/health/live', (_req, res) => {
 });
 
 // CSRF token endpoint (needs CSRF middleware but doesn't validate token)
-app.get('/api/csrf-token', getCsrfToken);
+// Apply csrfProtection directly here so it initializes but doesn't validate
+app.get('/api/csrf-token', csrfProtection, getCsrfToken);
 
 // API routes
 app.use('/api/auth', authRoutes);
@@ -126,6 +128,7 @@ app.use('/api/ingredients', ingredientRoutes);
 app.use('/api/pantry', pantryRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/images', imageRoutes);
+app.use('/api/logs', logsRoutes);
 
 // Serve static files from frontend build (in production)
 if (process.env.NODE_ENV === 'production') {

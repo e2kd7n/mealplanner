@@ -87,6 +87,25 @@ export function optionalAuthenticate(
   }
 }
 
-export default { authenticate, optionalAuthenticate };
+/**
+ * Middleware to require admin role
+ */
+export function requireAdmin(
+  req: Request,
+  _res: Response,
+  next: NextFunction
+): void {
+  if (!req.user) {
+    throw new AppError('Authentication required', 401);
+  }
+
+  if (req.user.role !== 'admin' && req.user.role !== 'superadmin') {
+    throw new AppError('Admin access required', 403);
+  }
+
+  next();
+}
+
+export default { authenticate, optionalAuthenticate, requireAdmin };
 
 // Made with Bob
