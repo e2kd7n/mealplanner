@@ -83,13 +83,18 @@ const RecipeCard = memo(({ recipe, onNavigate }: RecipeCardProps) => {
       }}
       onClick={() => onNavigate(recipe.id)}
     >
-      <Box sx={{ position: 'relative', height: 200 }}>
+      <Box sx={{ position: 'relative', height: 200, flexShrink: 0 }}>
         <CardMedia
           component="img"
           height="200"
           image={imageSrc}
           alt={recipe.title}
-          sx={{ objectFit: 'cover' }}
+          sx={{
+            objectFit: 'cover',
+            width: '100%',
+            height: '100%',
+            display: 'block',
+          }}
         />
         {imageLoading && (
           <Box

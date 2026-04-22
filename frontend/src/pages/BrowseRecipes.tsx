@@ -3,7 +3,7 @@
  * All rights reserved.
  */
 
-import React, { useEffect, useState, memo, useCallback } from 'react';
+import React, { useEffect, useState, memo, useCallback, useRef } from 'react';
 import {
   Container,
   Typography,
@@ -28,6 +28,7 @@ import {
   Skeleton,
   Snackbar,
   Badge,
+  ClickAwayListener,
 } from '@mui/material';
 import {
   Search as SearchIcon,
@@ -36,6 +37,7 @@ import {
   CheckCircle as CheckCircleIcon,
   Explore as ExploreIcon,
   FilterList as FilterListIcon,
+  Lightbulb as LightbulbIcon,
 } from '@mui/icons-material';
 import { useSearchParams } from 'react-router-dom';
 import { useAppDispatch, useAppSelector } from '../store/hooks';
@@ -46,6 +48,9 @@ import {
 } from '../store/slices/recipeBrowseSlice';
 import { useDebounce } from '../hooks/useDebounce';
 import { useCachedImage } from '../hooks/useCachedImage';
+import { useSearchSuggestions } from '../hooks/useSearchSuggestions';
+import { parseNaturalLanguage, formatParsedQuery } from '../utils/searchParser';
+import SearchSuggestions from '../components/SearchSuggestions';
 
 // Memoized Recipe Card Component
 interface BrowseRecipeCardProps {
@@ -173,8 +178,13 @@ const BrowseRecipes: React.FC = () => {
   const [maxTime, setMaxTime] = useState<number>(parseInt(searchParams.get('maxTime') || '0') || 0);
   const [sortBy, setSortBy] = useState(searchParams.get('sort') || 'popularity');
   const [successMessage, setSuccessMessage] = useState('');
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const [highlightedIndex, setHighlightedIndex] = useState(-1);
+  const [parsedQueryInfo, setParsedQueryInfo] = useState<string>('');
+  const searchInputRef = useRef<HTMLInputElement>(null);
   
   const debouncedSearch = useDebounce(searchQuery, 500);
+  const { suggestions, addRecentSearch } = useSearchSuggestions(searchQuery);
 
   // D2-3 FIX: Keyboard shortcuts for better navigation
   useEffect(() => {
@@ -182,18 +192,68 @@ const BrowseRecipes: React.FC = () => {
       // Ctrl/Cmd + K to focus search
       if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
         e.preventDefault();
-        const searchInput = document.querySelector('input[placeholder*="Search recipes"]') as HTMLInputElement;
-        searchInput?.focus();
+        searchInputRef.current?.focus();
+        setShowSuggestions(true);
       }
-      // Escape to clear search
-      if (e.key === 'Escape' && searchQuery) {
-        setSearchQuery('');
+      // Escape to clear search or close suggestions
+      if (e.key === 'Escape') {
+        if (showSuggestions) {
+          setShowSuggestions(false);
+        } else if (searchQuery) {
+          setSearchQuery('');
+        }
+      }
+      // Arrow keys for suggestion navigation
+      if (showSuggestions && suggestions.length > 0) {
+        if (e.key === 'ArrowDown') {
+          e.preventDefault();
+          setHighlightedIndex(prev =>
+            prev < suggestions.length - 1 ? prev + 1 : 0
+          );
+        } else if (e.key === 'ArrowUp') {
+          e.preventDefault();
+          setHighlightedIndex(prev =>
+            prev > 0 ? prev - 1 : suggestions.length - 1
+          );
+        } else if (e.key === 'Enter' && highlightedIndex >= 0) {
+          e.preventDefault();
+          handleSuggestionSelect(suggestions[highlightedIndex].text);
+        }
       }
     };
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [searchQuery]);
+  }, [searchQuery, showSuggestions, suggestions, highlightedIndex]);
+
+  // Parse natural language queries
+  useEffect(() => {
+    if (debouncedSearch && debouncedSearch.length > 5) {
+      const parsed = parseNaturalLanguage(debouncedSearch);
+      
+      // Auto-apply parsed filters
+      if (parsed.maxTime && maxTime === 0) {
+        setMaxTime(parsed.maxTime);
+      }
+      if (parsed.diet && !diet) {
+        setDiet(parsed.diet);
+      }
+      if (parsed.mealType && !mealType) {
+        setMealType(parsed.mealType);
+      }
+      if (parsed.cuisine && !cuisine) {
+        setCuisine(parsed.cuisine);
+      }
+      
+      // Show parsed query info
+      const info = formatParsedQuery(parsed);
+      if (info) {
+        setParsedQueryInfo(info);
+      }
+    } else {
+      setParsedQueryInfo('');
+    }
+  }, [debouncedSearch]);
 
   // Calculate current page from offset
   const currentPage = Math.floor(pagination.offset / pagination.number) + 1;
@@ -229,6 +289,25 @@ const BrowseRecipes: React.FC = () => {
 
   const handleSearchChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     setSearchQuery(event.target.value);
+    setShowSuggestions(true);
+    setHighlightedIndex(-1);
+  };
+
+  const handleSearchFocus = () => {
+    setShowSuggestions(true);
+  };
+
+  const handleSuggestionSelect = (suggestion: string) => {
+    setSearchQuery(suggestion);
+    setShowSuggestions(false);
+    setHighlightedIndex(-1);
+    addRecentSearch(suggestion);
+    searchInputRef.current?.blur();
+  };
+
+  const handleClickAway = () => {
+    setShowSuggestions(false);
+    setHighlightedIndex(-1);
   };
 
   const handleClearFilters = () => {
@@ -296,31 +375,50 @@ const BrowseRecipes: React.FC = () => {
           Discover new recipes from Spoonacular's database of 360,000+ recipes
         </Typography>
 
-        {/* D2-3 FIX: Enhanced search bar with keyboard accessibility */}
-        <TextField
-          fullWidth
-          placeholder="Search recipes by name or ingredients... (Ctrl+K)"
-          value={searchQuery}
-          onChange={handleSearchChange}
-          InputProps={{
-            startAdornment: (
-              <InputAdornment position="start">
-                <SearchIcon />
-              </InputAdornment>
-            ),
-          }}
-          sx={{ mb: 2 }}
-          autoComplete="off"
-          inputProps={{
-            'aria-label': 'Search recipes',
-            'aria-describedby': 'search-help-text',
-          }}
-          helperText={
-            <Typography variant="caption" id="search-help-text" sx={{ display: 'block', mt: 0.5 }}>
-              Press Ctrl+K to focus search, Escape to clear
-            </Typography>
-          }
-        />
+        {/* Enhanced search bar with natural language support and suggestions */}
+        <ClickAwayListener onClickAway={handleClickAway}>
+          <Box sx={{ position: 'relative', mb: 2 }}>
+            <TextField
+              fullWidth
+              placeholder="Try: 'quick dinner for two' or 'healthy vegetarian pasta'..."
+              value={searchQuery}
+              onChange={handleSearchChange}
+              onFocus={handleSearchFocus}
+              inputRef={searchInputRef}
+              InputProps={{
+                startAdornment: (
+                  <InputAdornment position="start">
+                    <SearchIcon />
+                  </InputAdornment>
+                ),
+              }}
+              autoComplete="off"
+              inputProps={{
+                'aria-label': 'Search recipes with natural language',
+                'aria-describedby': 'search-help-text',
+                'aria-expanded': showSuggestions,
+                'aria-autocomplete': 'list',
+                'aria-controls': showSuggestions ? 'search-suggestions' : undefined,
+              }}
+              helperText={
+                parsedQueryInfo
+                  ? `Press Ctrl+K to focus • Use ↑↓ to navigate • ${parsedQueryInfo}`
+                  : "Press Ctrl+K to focus • Use ↑↓ to navigate suggestions • Enter to select"
+              }
+              FormHelperTextProps={{
+                id: 'search-help-text',
+              }}
+            />
+            {showSuggestions && suggestions.length > 0 && (
+              <SearchSuggestions
+                suggestions={suggestions}
+                onSelect={handleSuggestionSelect}
+                onClose={() => setShowSuggestions(false)}
+                highlightedIndex={highlightedIndex}
+              />
+            )}
+          </Box>
+        </ClickAwayListener>
 
         {/* D2-2 FIX: Enhanced filters section with visual indicators */}
         <Box sx={{ mb: 3 }}>
