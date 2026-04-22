@@ -28,9 +28,9 @@ declare global {
 
 // Enhanced Prisma configuration with connection pooling and retry logic
 const prismaConfig = {
-  log: process.env.NODE_ENV === 'production'
-    ? ['error', 'warn'] as const
-    : ['query', 'error', 'warn'] as const,
+  log: (process.env.NODE_ENV === 'production'
+    ? ['error', 'warn']
+    : ['query', 'error', 'warn']) as Array<'query' | 'info' | 'warn' | 'error'>,
   datasources: {
     db: {
       url: process.env.DATABASE_URL,
