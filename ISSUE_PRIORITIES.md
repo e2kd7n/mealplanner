@@ -1,26 +1,23 @@
 # Issue Prioritization
 
-**Last Updated:** 2026-04-22 17:55:39 UTC / 2026-04-22 12:55:39 CDT
+**Last Updated:** 2026-04-22 18:57:38 UTC / 2026-04-22 13:57:38 CDT
 
 This file reflects the current state of GitHub issues by priority. Issues are managed via GitHub labels (P0-critical, P1-high, P2-medium, P3-low, P4-future).
 
 ## 🔴 P0 - CRITICAL (Drop Everything)
 Issues that make the application unusable or cause data loss.
 
-- #131 - inconsistent image display on recipe cards
-- #130 - cannot delete recipe
+**No P0 issues currently open** ✅
 
 ## 🔴 P1 - HIGH (Current Sprint)
 Issues that significantly impact core functionality or user experience.
 
-- #129 - new family profiles should not be prepopulated with test recipes
-- #128 - dietary restrictions need to include known allergens
+**No P1 issues currently open** ✅
 
 ## 🟡 P2 - MEDIUM (Next Sprint)
 Important improvements that enhance functionality but don't block core workflows.
 
 - #127 - can't type into household size quantity - typed numerals are placed after the default "1"
-- #120 - [P2][SEARCH] Improve Recipe Search & Discovery
 - #118 - [P2][UX] Integrate Pantry with Meal Planning
 - #117 - [P2][UX] Enhance Dietary Restriction Support & Safety
 - #116 - [P2][UX] Add Cost Tracking for Budget-Conscious Users
