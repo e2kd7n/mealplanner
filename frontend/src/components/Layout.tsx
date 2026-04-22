@@ -29,7 +29,6 @@ import {
   Menu as MenuIcon,
   Dashboard as DashboardIcon,
   Restaurant as RestaurantIcon,
-  Explore as ExploreIcon,
   CalendarMonth as CalendarIcon,
   ShoppingCart as ShoppingCartIcon,
   Kitchen as KitchenIcon,
