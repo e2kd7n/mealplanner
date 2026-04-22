@@ -14,6 +14,7 @@ import { AuthProvider } from './contexts/AuthContext';
 import PrivateRoute from './components/PrivateRoute';
 import Layout from './components/Layout';
 import ErrorBoundary from './components/ErrorBoundary';
+import OfflineDetector from './components/OfflineDetector';
 
 // Lazy load pages for better performance
 const Login = lazy(() => import('./pages/Login'));
@@ -50,6 +51,8 @@ function App() {
       <Provider store={store}>
         <ThemeProvider theme={theme}>
           <CssBaseline />
+          {/* D1-2 FIX: Global offline detector for better error messaging */}
+          <OfflineDetector />
           <AuthProvider>
             <Router>
             <Suspense fallback={<LoadingFallback />}>

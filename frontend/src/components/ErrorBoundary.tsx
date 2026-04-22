@@ -7,6 +7,7 @@ import { Component } from 'react';
 import type { ErrorInfo, ReactNode } from 'react';
 import { Box, Typography, Button, Container, Paper } from '@mui/material';
 import { Error as ErrorIcon } from '@mui/icons-material';
+import logger from '../utils/logger';
 
 interface Props {
   children: ReactNode;
@@ -37,47 +38,22 @@ class ErrorBoundary extends Component<Props, State> {
   }
 
   componentDidCatch(error: Error, errorInfo: ErrorInfo) {
-    // Log error to console in development
-    if (import.meta.env.DEV) {
-      console.error('Error caught by boundary:', error, errorInfo);
-    }
-
     // Update state with error details
     this.setState({
       error,
       errorInfo,
     });
 
-    // Log error to backend in production
-    if (import.meta.env.PROD) {
-      this.logErrorToBackend(error, errorInfo);
-    }
-  }
-
-  private logErrorToBackend(error: Error, errorInfo: ErrorInfo) {
-    try {
-      // Send error to backend logging endpoint
-      fetch('/api/logs/client-error', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          message: error.message,
-          stack: error.stack,
-          componentStack: errorInfo.componentStack,
-          timestamp: new Date().toISOString(),
-          userAgent: navigator.userAgent,
-          url: window.location.href,
-        }),
-      }).catch((fetchError) => {
-        // Silently fail if logging fails - don't want to cause more errors
-        console.error('Failed to log error to backend:', fetchError);
-      });
-    } catch (loggingError) {
-      // Silently fail if logging fails
-      console.error('Error in error logging:', loggingError);
-    }
+    // Log error using the centralized logger
+    logger.error(
+      error.message,
+      'ErrorBoundary',
+      {
+        componentStack: errorInfo.componentStack,
+        errorName: error.name,
+      },
+      error
+    );
   }
 
   handleReset = () => {
