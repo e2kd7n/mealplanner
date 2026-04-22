@@ -133,38 +133,65 @@ class ImageCache {
       // Use proxy for external URLs to avoid CORS issues
       const fetchUrl = this.isExternalUrl(url) ? this.getProxyUrl(url) : url;
 
-      // Fetch the image
-      const response = await fetch(fetchUrl);
-      if (!response.ok) {
-        console.error('Failed to fetch image:', response.statusText);
+      // Fetch the image with timeout
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 10000); // 10s timeout
+
+      try {
+        const response = await fetch(fetchUrl, {
+          signal: controller.signal,
+          headers: {
+            'Accept': 'image/*',
+          },
+        });
+        clearTimeout(timeoutId);
+
+        if (!response.ok) {
+          // Log specific error for debugging but don't throw
+          console.warn(`Failed to fetch image (${response.status}): ${url.substring(0, 100)}`);
+          return null;
+        }
+
+        const blob = await response.blob();
+        
+        // Validate it's actually an image
+        if (!blob.type.startsWith('image/')) {
+          console.warn('Fetched content is not an image:', blob.type);
+          return null;
+        }
+        
+        // Store in IndexedDB
+        return new Promise((resolve, reject) => {
+          const transaction = this.db!.transaction([STORE_NAME], 'readwrite');
+          const store = transaction.objectStore(STORE_NAME);
+          
+          const cachedImage: CachedImage = {
+            url,
+            blob,
+            timestamp: Date.now(),
+          };
+
+          const request = store.put(cachedImage);
+
+          request.onsuccess = () => {
+            const objectUrl = URL.createObjectURL(blob);
+            resolve(objectUrl);
+          };
+
+          request.onerror = () => {
+            console.error('Failed to cache image:', request.error);
+            reject(request.error);
+          };
+        });
+      } catch (fetchError: any) {
+        clearTimeout(timeoutId);
+        if (fetchError.name === 'AbortError') {
+          console.warn('Image fetch timeout:', url.substring(0, 100));
+        } else {
+          console.warn('Image fetch error:', fetchError.message);
+        }
         return null;
       }
-
-      const blob = await response.blob();
-      
-      // Store in IndexedDB
-      return new Promise((resolve, reject) => {
-        const transaction = this.db!.transaction([STORE_NAME], 'readwrite');
-        const store = transaction.objectStore(STORE_NAME);
-        
-        const cachedImage: CachedImage = {
-          url,
-          blob,
-          timestamp: Date.now(),
-        };
-
-        const request = store.put(cachedImage);
-
-        request.onsuccess = () => {
-          const objectUrl = URL.createObjectURL(blob);
-          resolve(objectUrl);
-        };
-
-        request.onerror = () => {
-          console.error('Failed to cache image:', request.error);
-          reject(request.error);
-        };
-      });
     } catch (error) {
       console.error('Error caching image:', error);
       return null;

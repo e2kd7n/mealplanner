@@ -47,8 +47,10 @@ import {
   DragIndicator as DragIndicatorIcon,
 } from '@mui/icons-material';
 import { format, addDays, startOfWeek, isSameDay, startOfMonth, endOfMonth, eachDayOfInterval } from 'date-fns';
-import { DndContext, DragOverlay, closestCenter, PointerSensor, useSensor, useSensors, useDraggable, useDroppable } from '@dnd-kit/core';
+import { DndContext, DragOverlay, PointerSensor, useSensor, useSensors, useDraggable, useDroppable } from '@dnd-kit/core';
+import { mealPlanAPI } from '../services/api';
 import type { DragEndEvent, DragStartEvent } from '@dnd-kit/core';
+import { recipeAPI, familyMemberAPI, groceryListAPI } from '../services/api';
 
 interface FamilyMember {
   id: string;
@@ -172,50 +174,52 @@ const MealPlanner: React.FC = () => {
   const loadMealsForWeek = async () => {
     try {
       setMealsLoading(true);
-      const token = localStorage.getItem('accessToken');
-      const apiBase = import.meta.env.VITE_API_URL || '/api';
       
-      // Format dates for API query using formatDateForAPI to avoid timezone issues
-      const startDate = formatDateForAPI(currentWeekStart);
-      const endDate = formatDateForAPI(addDays(currentWeekStart, 6));
+      const response = await mealPlanAPI.getAll({ status: 'draft' });
+      const mealPlans = response.data.data || [];
       
-      const response = await fetch(
-        `${apiBase}/meal-plans?startDate=${startDate}&endDate=${endDate}`,
-        {
-          headers: {
-            'Authorization': `Bearer ${token}`,
-          },
-        }
-      );
-
-      if (!response.ok) {
-        throw new Error('Failed to load meal plans');
-      }
-
-      const result = await response.json();
-      const mealPlans = result.data || [];
+      console.log('📅 All meal plans:', mealPlans);
       
-      // Get the meal plan for this week (should be only one)
-      if (mealPlans.length > 0) {
-        const mealPlan = mealPlans[0];
+      // Find the meal plan that matches the current week
+      const weekStartStr = formatDateForAPI(currentWeekStart);
+      console.log('🔍 Looking for week starting:', weekStartStr);
+      
+      const mealPlan = mealPlans.find((mp: any) => {
+        // Extract just the date part from the ISO string (YYYY-MM-DD)
+        const mpDateStr = mp.weekStartDate.split('T')[0];
+        console.log('  Checking meal plan:', mp.id, 'weekStartDate:', mpDateStr, 'vs', weekStartStr);
+        return mpDateStr === weekStartStr;
+      });
+      
+      console.log('✅ Found meal plan:', mealPlan?.id, 'with', mealPlan?.plannedMeals?.length || 0, 'meals');
+      
+      if (mealPlan) {
         setCurrentMealPlanId(mealPlan.id);
         
         // Transform planned meals to our Meal interface
-        const transformedMeals: Meal[] = mealPlan.plannedMeals.map((pm: any) => ({
-          id: pm.id,
-          recipeId: pm.recipeId,
-          recipeName: pm.recipe?.title || 'Unknown Recipe',
-          mealType: pm.mealType.toUpperCase() as 'BREAKFAST' | 'LUNCH' | 'DINNER' | 'SNACK',
-          date: new Date(pm.date + 'T00:00:00'),
-          servings: pm.servings,
-          assignedCookId: pm.assignedCookId || undefined,
-          assignedCookName: pm.assignedCook?.name,
-          recipeImageUrl: pm.recipe?.imageUrl || undefined,
-          recipeSourceUrl: pm.recipe?.sourceUrl || undefined,
-        }));
+        const transformedMeals: Meal[] = (mealPlan.plannedMeals || []).map((pm: any) => {
+          // Parse the date - it comes as ISO string from backend
+          const mealDate = new Date(pm.date);
+          console.log('  Parsing meal date:', pm.date, '→', mealDate);
+          
+          return {
+            id: pm.id,
+            recipeId: pm.recipeId,
+            recipeName: pm.recipe?.title || 'Unknown Recipe',
+            mealType: pm.mealType.toUpperCase() as 'BREAKFAST' | 'LUNCH' | 'DINNER' | 'SNACK',
+            date: mealDate,
+            servings: pm.servings,
+            assignedCookId: pm.assignedCookId || undefined,
+            assignedCookName: pm.assignedCook?.name,
+            recipeImageUrl: pm.recipe?.imageUrl || undefined,
+            recipeSourceUrl: pm.recipe?.sourceUrl || undefined,
+          };
+        });
         
+        console.log('🍽️ Transformed meals:', transformedMeals);
         setMeals(transformedMeals);
       } else {
+        console.log('❌ No meal plan found for this week');
         // No meal plan for this week yet
         setCurrentMealPlanId(null);
         setMeals([]);
@@ -231,20 +235,8 @@ const MealPlanner: React.FC = () => {
   const loadRecipes = async () => {
     try {
       setRecipeSearchLoading(true);
-      const token = localStorage.getItem('accessToken');
-      const apiBase = import.meta.env.VITE_API_URL || '/api';
-      const response = await fetch(`${apiBase}/recipes?limit=100`, {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-        },
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to load recipes');
-      }
-
-      const result = await response.json();
-      const recipesData = result.recipes || result.data?.recipes || [];
+      const response = await recipeAPI.getAll({ limit: 100 });
+      const recipesData = response.data.recipes || response.data.data?.recipes || [];
       setRecipes(recipesData);
     } catch (error) {
       console.error('Failed to load recipes:', error);
@@ -257,20 +249,8 @@ const MealPlanner: React.FC = () => {
   const loadFamilyMembers = async () => {
     try {
       setFamilyMembersLoading(true);
-      const token = localStorage.getItem('accessToken');
-      const apiBase = import.meta.env.VITE_API_URL || '/api';
-      const response = await fetch(`${apiBase}/family-members`, {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-        },
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to load family members');
-      }
-
-      const result = await response.json();
-      setFamilyMembers(result.data || []);
+      const response = await familyMemberAPI.getAll();
+      setFamilyMembers(response.data.data || []);
     } catch (error) {
       console.error('Failed to load family members:', error);
       // Set empty array on error so UI still works
@@ -285,29 +265,13 @@ const MealPlanner: React.FC = () => {
       return currentMealPlanId;
     }
     
-    // Create a new meal plan for this week
+    // Create a new meal plan for this week using the API service (includes CSRF token)
     try {
-      const token = localStorage.getItem('accessToken');
-      const apiBase = import.meta.env.VITE_API_URL || '/api';
-      
-      const response = await fetch(`${apiBase}/meal-plans`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          weekStartDate: formatDateForAPI(currentWeekStart),
-          status: 'draft',
-        }),
+      const response = await mealPlanAPI.create({
+        weekStartDate: formatDateForAPI(currentWeekStart),
       });
 
-      if (!response.ok) {
-        throw new Error('Failed to create meal plan');
-      }
-
-      const result = await response.json();
-      const newMealPlanId = result.data.id;
+      const newMealPlanId = response.data.data.id;
       setCurrentMealPlanId(newMealPlanId);
       return newMealPlanId;
     } catch (error) {
@@ -341,27 +305,14 @@ const MealPlanner: React.FC = () => {
 
     try {
       const mealPlanId = await ensureMealPlanExists();
-      const token = localStorage.getItem('accessToken');
-      const apiBase = import.meta.env.VITE_API_URL || '/api';
       
-      const response = await fetch(`${apiBase}/meal-plans/${mealPlanId}/meals`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          recipeId: newMeal.recipeId,
-          date: formatDateForAPI(selectedDate),
-          mealType: selectedMealType.toLowerCase(),
-          servings: newMeal.servings,
-          assignedCookId: newMeal.assignedCookId || null,
-        }),
+      await mealPlanAPI.addMeal(mealPlanId, {
+        recipeId: newMeal.recipeId,
+        date: formatDateForAPI(selectedDate),
+        mealType: selectedMealType.toLowerCase(),
+        servings: newMeal.servings,
+        assignedCookId: newMeal.assignedCookId || undefined,
       });
-
-      if (!response.ok) {
-        throw new Error('Failed to add meal');
-      }
 
       // Reload meals from server to ensure consistency
       await loadMealsForWeek();
@@ -379,29 +330,12 @@ const MealPlanner: React.FC = () => {
     if (!selectedDate || !newMeal.recipeId || !editingMealId || !currentMealPlanId) return;
 
     try {
-      const token = localStorage.getItem('accessToken');
-      const apiBase = import.meta.env.VITE_API_URL || '/api';
-      
-      const response = await fetch(
-        `${apiBase}/meal-plans/${currentMealPlanId}/meals/${editingMealId}`,
-        {
-          method: 'PUT',
-          headers: {
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            date: formatDateForAPI(selectedDate),
-            mealType: selectedMealType.toLowerCase(),
-            servings: newMeal.servings,
-            assignedCookId: newMeal.assignedCookId || null,
-          }),
-        }
-      );
-
-      if (!response.ok) {
-        throw new Error('Failed to update meal');
-      }
+      await mealPlanAPI.updateMeal(currentMealPlanId, editingMealId, {
+        date: formatDateForAPI(selectedDate),
+        mealType: selectedMealType.toLowerCase(),
+        servings: newMeal.servings,
+        assignedCookId: newMeal.assignedCookId || undefined,
+      });
 
       // Update local state
       const updatedMeals = meals.map(meal =>
@@ -434,22 +368,7 @@ const MealPlanner: React.FC = () => {
     if (!currentMealPlanId) return;
     
     try {
-      const token = localStorage.getItem('accessToken');
-      const apiBase = import.meta.env.VITE_API_URL || '/api';
-      
-      const response = await fetch(
-        `${apiBase}/meal-plans/${currentMealPlanId}/meals/${id}`,
-        {
-          method: 'DELETE',
-          headers: {
-            'Authorization': `Bearer ${token}`,
-          },
-        }
-      );
-
-      if (!response.ok) {
-        throw new Error('Failed to delete meal');
-      }
+      await mealPlanAPI.deleteMeal(currentMealPlanId, id);
 
       // Remove from local state
       setMeals(meals.filter(meal => meal.id !== id));
@@ -470,21 +389,8 @@ const MealPlanner: React.FC = () => {
     }
 
     try {
-      const token = localStorage.getItem('accessToken');
-      const apiBase = import.meta.env.VITE_API_URL || '/api';
-      
       // Generate grocery list from meal plan
-      const response = await fetch(`${apiBase}/grocery-lists/from-meal-plan/${currentMealPlanId}`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to generate grocery list');
-      }
+      await groceryListAPI.generateFromMealPlan(currentMealPlanId);
 
       setOpenGroceryDialog(false);
       navigate('/grocery-list');
@@ -534,30 +440,16 @@ const MealPlanner: React.FC = () => {
     
     try {
       const mealPlanId = await ensureMealPlanExists();
-      const token = localStorage.getItem('accessToken');
-      const apiBase = import.meta.env.VITE_API_URL || '/api';
       
-      const response = await fetch(`${apiBase}/meal-plans/${mealPlanId}/meals`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          recipeId: copiedMeal.recipeId,
-          date: formatDateForAPI(date),
-          mealType: mealType.toLowerCase(),
-          servings: copiedMeal.servings,
-          assignedCookId: copiedMeal.assignedCookId || null,
-        }),
+      const response = await mealPlanAPI.addMeal(mealPlanId, {
+        recipeId: copiedMeal.recipeId,
+        date: formatDateForAPI(date),
+        mealType: mealType.toLowerCase(),
+        servings: copiedMeal.servings,
+        assignedCookId: copiedMeal.assignedCookId || undefined,
       });
 
-      if (!response.ok) {
-        throw new Error('Failed to paste meal');
-      }
-
-      const result = await response.json();
-      const addedMeal = result.data;
+      const addedMeal = response.data.data;
       
       // Add to local state
       const newMeal: Meal = {
@@ -592,27 +484,10 @@ const MealPlanner: React.FC = () => {
     if (!selectedMeal || !editDate || !editMealType || !currentMealPlanId) return;
     
     try {
-      const token = localStorage.getItem('accessToken');
-      const apiBase = import.meta.env.VITE_API_URL || '/api';
-      
-      const response = await fetch(
-        `${apiBase}/meal-plans/${currentMealPlanId}/meals/${selectedMeal.id}`,
-        {
-          method: 'PUT',
-          headers: {
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            date: formatDateForAPI(editDate),
-            mealType: editMealType.toLowerCase(),
-          }),
-        }
-      );
-
-      if (!response.ok) {
-        throw new Error('Failed to update meal schedule');
-      }
+      await mealPlanAPI.updateMeal(currentMealPlanId, selectedMeal.id, {
+        date: formatDateForAPI(editDate),
+        mealType: editMealType.toLowerCase(),
+      });
 
       // Update local state
       const updatedMeals = meals.map(meal =>
@@ -641,18 +516,10 @@ const MealPlanner: React.FC = () => {
     const mealsToDelete = meals.filter(meal => isSameDay(meal.date, selectedDay));
     
     try {
-      const token = localStorage.getItem('accessToken');
-      const apiBase = import.meta.env.VITE_API_URL || '/api';
-      
       // Delete all meals for this day
       await Promise.all(
         mealsToDelete.map(meal =>
-          fetch(`${apiBase}/meal-plans/${currentMealPlanId}/meals/${meal.id}`, {
-            method: 'DELETE',
-            headers: {
-              'Authorization': `Bearer ${token}`,
-            },
-          })
+          mealPlanAPI.deleteMeal(currentMealPlanId, meal.id)
         )
       );
       
@@ -698,27 +565,10 @@ const MealPlanner: React.FC = () => {
     }
 
     try {
-      const token = localStorage.getItem('accessToken');
-      const apiBase = import.meta.env.VITE_API_URL || '/api';
-
-      const response = await fetch(
-        `${apiBase}/meal-plans/${currentMealPlanId}/meals/${meal.id}`,
-        {
-          method: 'PUT',
-          headers: {
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            date: formatDateForAPI(newDate),
-            mealType: newMealType.toLowerCase(),
-          }),
-        }
-      );
-
-      if (!response.ok) {
-        throw new Error('Failed to update meal');
-      }
+      await mealPlanAPI.updateMeal(currentMealPlanId, meal.id, {
+        date: formatDateForAPI(newDate),
+        mealType: newMealType.toLowerCase(),
+      });
 
       // Update local state
       const updatedMeals = meals.map(m =>
@@ -792,14 +642,20 @@ const MealPlanner: React.FC = () => {
         style={style}
         {...attributes}
         {...listeners}
+        onClick={(e) => {
+          // Only open modal if not dragging
+          if (!isDragging) {
+            handleOpenMealDetail(meal);
+          }
+        }}
         sx={{
-          p: 1,
+          p: 0.75,
           bgcolor: 'background.default',
           borderRadius: 1,
           borderLeft: 3,
           borderColor: getMealTypeColor(mealType),
           mb: 0.5,
-          cursor: isDragging ? 'grabbing' : 'grab',
+          cursor: isDragging ? 'grabbing' : 'pointer',
           '&:hover': {
             bgcolor: 'action.hover',
           },
@@ -807,7 +663,14 @@ const MealPlanner: React.FC = () => {
       >
         <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start' }}>
           <Box sx={{ display: 'flex', alignItems: 'center', flex: 1, minWidth: 0 }}>
-            <DragIndicatorIcon sx={{ fontSize: 16, mr: 0.5, color: 'text.secondary' }} />
+            <DragIndicatorIcon
+              sx={{
+                fontSize: 14,
+                mr: 0.5,
+                color: 'text.secondary',
+                display: { xs: 'none', lg: 'block' }
+              }}
+            />
             <Box sx={{ flex: 1, minWidth: 0 }}>
               <Typography
                 variant="caption"
@@ -817,15 +680,16 @@ const MealPlanner: React.FC = () => {
                   overflow: 'hidden',
                   textOverflow: 'ellipsis',
                   whiteSpace: 'nowrap',
+                  fontSize: '0.75rem',
                 }}
               >
                 {meal.recipeName}
               </Typography>
-              <Box sx={{ display: 'flex', gap: 0.5, mt: 0.5, flexWrap: 'wrap' }}>
+              <Box sx={{ display: { xs: 'none', md: 'flex' }, gap: 0.5, mt: 0.5, flexWrap: 'wrap' }}>
                 <Chip
                   label={`${meal.servings} servings`}
                   size="small"
-                  sx={{ height: 16, fontSize: '0.65rem' }}
+                  sx={{ height: 16, fontSize: '0.6rem' }}
                 />
                 {meal.assignedCookName && (
                   <Chip
@@ -833,22 +697,12 @@ const MealPlanner: React.FC = () => {
                     size="small"
                     color="primary"
                     variant="outlined"
-                    sx={{ height: 16, fontSize: '0.65rem' }}
+                    sx={{ height: 16, fontSize: '0.6rem' }}
                   />
                 )}
               </Box>
             </Box>
           </Box>
-          <IconButton
-            size="small"
-            onClick={(e) => {
-              e.stopPropagation();
-              handleOpenMealDetail(meal);
-            }}
-            sx={{ ml: 0.5 }}
-          >
-            <EditIcon fontSize="small" />
-          </IconButton>
         </Box>
       </Box>
     );
@@ -983,11 +837,12 @@ const MealPlanner: React.FC = () => {
               sx={{
                 display: 'grid',
                 gridTemplateColumns: viewMode === 'month'
-                  ? 'repeat(7, 1fr)'
+                  ? 'repeat(7, minmax(120px, 1fr))'
                   : viewMode === '3-day'
-                  ? 'repeat(3, 1fr)'
-                  : 'repeat(7, 1fr)',
-                gap: 2,
+                  ? 'repeat(3, minmax(200px, 1fr))'
+                  : 'repeat(7, minmax(120px, 1fr))',
+                gap: { xs: 1, md: 1.5, lg: 2 },
+                overflowX: 'auto',
               }}
             >
             {weekDays.map((day, dayIndex) => {

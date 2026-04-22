@@ -162,12 +162,19 @@ const Layout: React.FC = () => {
         }}
       >
         <Toolbar>
+          {/* D1-4 FIX: Enhanced hamburger menu with proper touch target size (44px minimum) */}
           <IconButton
             color="inherit"
-            aria-label="open drawer"
+            aria-label={mobileOpen ? "close navigation menu" : "open navigation menu"}
+            aria-expanded={mobileOpen}
             edge="start"
             onClick={handleDrawerToggle}
-            sx={{ mr: 2, display: { md: 'none' } }}
+            sx={{
+              mr: 2,
+              display: { md: 'none' },
+              minWidth: 44,
+              minHeight: 44,
+            }}
           >
             <MenuIcon />
           </IconButton>
@@ -218,6 +225,7 @@ const Layout: React.FC = () => {
         tabIndex={-1}
         sx={{ width: { md: drawerWidth }, flexShrink: { md: 0 } }}
       >
+        {/* D1-4 FIX: Enhanced mobile drawer with proper z-index and accessibility */}
         <Drawer
           variant="temporary"
           open={mobileOpen}
@@ -227,8 +235,16 @@ const Layout: React.FC = () => {
           }}
           sx={{
             display: { xs: 'block', md: 'none' },
-            '& .MuiDrawer-paper': { boxSizing: 'border-box', width: drawerWidth },
+            '& .MuiDrawer-paper': {
+              boxSizing: 'border-box',
+              width: drawerWidth,
+              zIndex: 1200, // Ensure drawer is above other content
+            },
+            '& .MuiBackdrop-root': {
+              zIndex: 1199, // Backdrop just below drawer
+            },
           }}
+          aria-label="Mobile navigation menu"
         >
           {drawer}
         </Drawer>

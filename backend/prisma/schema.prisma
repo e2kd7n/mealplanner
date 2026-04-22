@@ -338,3 +338,25 @@ enum PantryLocation {
   freezer
   pantry
 }
+
+// Client-side logging
+model ClientLog {
+  id        String   @id @default(uuid())
+  level     String   // error, warn, info, debug
+  message   String   @db.Text
+  context   String?
+  sessionId String   @map("session_id")
+  userAgent String?  @map("user_agent") @db.Text
+  url       String?  @db.Text
+  stack     String?  @db.Text
+  data      Json?
+  timestamp BigInt   // Client timestamp in milliseconds
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@index([level])
+  @@index([sessionId])
+  @@index([context])
+  @@index([timestamp])
+  @@index([createdAt])
+  @@map("client_logs")
+}
