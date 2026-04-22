@@ -4,7 +4,7 @@
  */
 
 
-import React, { memo, useCallback } from 'react';
+import React, { memo, useCallback, useState, useEffect } from 'react';
 import {
   Box,
   Container,
@@ -23,6 +23,8 @@ import {
   Kitchen as KitchenIcon,
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
+import OnboardingWizard from '../components/OnboardingWizard';
+import type { OnboardingData } from '../components/OnboardingWizard';
 
 // Memoized Quick Action Card
 interface QuickActionCardProps {
@@ -81,10 +83,40 @@ QuickActionCard.displayName = 'QuickActionCard';
 
 const Dashboard: React.FC = () => {
   const navigate = useNavigate();
+  const [showOnboarding, setShowOnboarding] = useState(false);
+
+  // Check if user has completed onboarding
+  useEffect(() => {
+    const onboardingCompleted = localStorage.getItem('onboardingCompleted');
+    if (!onboardingCompleted) {
+      // Show onboarding after a brief delay for better UX
+      const timer = setTimeout(() => {
+        setShowOnboarding(true);
+      }, 500);
+      return () => clearTimeout(timer);
+    }
+  }, []);
 
   const handleNavigate = useCallback((path: string) => {
     navigate(path);
   }, [navigate]);
+
+  const handleOnboardingComplete = (data: OnboardingData) => {
+    // Save onboarding data to localStorage
+    localStorage.setItem('onboardingCompleted', 'true');
+    localStorage.setItem('onboardingData', JSON.stringify(data));
+    setShowOnboarding(false);
+    
+    // In a real app, you would save this to the backend
+    if (import.meta.env.DEV) {
+      console.log('Onboarding completed with data:', data);
+    }
+  };
+
+  const handleOnboardingClose = () => {
+    localStorage.setItem('onboardingCompleted', 'true');
+    setShowOnboarding(false);
+  };
 
   const quickActions = [
     {
@@ -118,41 +150,50 @@ const Dashboard: React.FC = () => {
   ];
 
   return (
-    <Container maxWidth="lg">
-      <Box sx={{ mb: 4 }}>
-        <Typography variant="h4" gutterBottom>
-          Welcome to Meal Planner
-        </Typography>
-        <Typography variant="body1" color="text.secondary">
-          Plan your meals, manage your grocery list, and track your pantry inventory all in one place.
-        </Typography>
-      </Box>
-
-      <Grid container spacing={3}>
-        {quickActions.map((action) => (
-          <Grid size={{ xs: 12, sm: 6, md: 3 }} key={action.title}>
-            <QuickActionCard
-              title={action.title}
-              description={action.description}
-              icon={action.icon}
-              color={action.color}
-              onNavigate={() => handleNavigate(action.path)}
-            />
-          </Grid>
-        ))}
-      </Grid>
-
-      <Box sx={{ mt: 4 }}>
-        <Paper sx={{ p: 3 }}>
-          <Typography variant="h6" gutterBottom>
-            Recent Activity
+    <>
+      <Container maxWidth="lg">
+        <Box sx={{ mb: 4 }}>
+          <Typography variant="h4" gutterBottom>
+            Welcome to Meal Planner
           </Typography>
-          <Typography variant="body2" color="text.secondary">
-            Your recent meal plans and grocery lists will appear here.
+          <Typography variant="body1" color="text.secondary">
+            Plan your meals, manage your grocery list, and track your pantry inventory all in one place.
           </Typography>
-        </Paper>
-      </Box>
-    </Container>
+        </Box>
+
+        <Grid container spacing={3}>
+          {quickActions.map((action) => (
+            <Grid size={{ xs: 12, sm: 6, md: 3 }} key={action.title}>
+              <QuickActionCard
+                title={action.title}
+                description={action.description}
+                icon={action.icon}
+                color={action.color}
+                onNavigate={() => handleNavigate(action.path)}
+              />
+            </Grid>
+          ))}
+        </Grid>
+
+        <Box sx={{ mt: 4 }}>
+          <Paper sx={{ p: 3 }}>
+            <Typography variant="h6" gutterBottom>
+              Recent Activity
+            </Typography>
+            <Typography variant="body2" color="text.secondary">
+              Your recent meal plans and grocery lists will appear here.
+            </Typography>
+          </Paper>
+        </Box>
+      </Container>
+
+      {/* Onboarding Wizard */}
+      <OnboardingWizard
+        open={showOnboarding}
+        onClose={handleOnboardingClose}
+        onComplete={handleOnboardingComplete}
+      />
+    </>
   );
 };
 

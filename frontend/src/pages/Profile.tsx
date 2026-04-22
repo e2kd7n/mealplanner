@@ -31,6 +31,8 @@ import {
   Snackbar,
   CircularProgress,
   Stack,
+  FormControlLabel,
+  Checkbox,
 } from '@mui/material';
 import {
   Edit as EditIcon,
@@ -78,6 +80,7 @@ interface FamilyMember {
   id: string;
   name: string;
   ageGroup: string;
+  canCook?: boolean;
   dietaryRestrictions?: string[];
   cookingSkillLevel?: string;
   avoidedIngredients?: string[];
@@ -119,6 +122,7 @@ const Profile: React.FC = () => {
   const [memberForm, setMemberForm] = useState({
     name: '',
     ageGroup: 'adult',
+    canCook: false,
     dietaryRestrictions: [] as string[],
     cookingSkillLevel: 'beginner',
     avoidedIngredients: [] as string[],
@@ -222,6 +226,7 @@ const Profile: React.FC = () => {
       setMemberForm({
         name: member.name,
         ageGroup: member.ageGroup,
+        canCook: member.canCook || false,
         dietaryRestrictions: member.dietaryRestrictions || [],
         cookingSkillLevel: member.cookingSkillLevel || 'beginner',
         avoidedIngredients: member.avoidedIngredients || [],
@@ -231,6 +236,7 @@ const Profile: React.FC = () => {
       setMemberForm({
         name: '',
         ageGroup: 'adult',
+        canCook: false,
         dietaryRestrictions: [],
         cookingSkillLevel: 'beginner',
         avoidedIngredients: [],
@@ -566,6 +572,15 @@ const Profile: React.FC = () => {
                 ))}
               </Select>
             </FormControl>
+            <FormControlLabel
+              control={
+                <Checkbox
+                  checked={memberForm.canCook}
+                  onChange={(e) => setMemberForm({ ...memberForm, canCook: e.target.checked })}
+                />
+              }
+              label="Can Cook (will appear in chef assignment dropdown)"
+            />
             <FormControl fullWidth>
               <InputLabel>Cooking Skill Level</InputLabel>
               <Select

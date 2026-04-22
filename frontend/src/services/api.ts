@@ -351,6 +351,12 @@ export const mealPlanAPI = {
   deleteMeal: (planId: string, mealId: string) =>
     api.delete(`/meal-plans/${planId}/meals/${mealId}`),
   
+  batchCookMeal: (planId: string, mealId: string, data: {
+    dates: string[];
+    servingsMultiplier?: number;
+    markAsLeftovers?: boolean;
+  }) => api.post(`/meal-plans/${planId}/meals/${mealId}/batch-cook`, data),
+  
   getCurrent: () =>
     api.get('/meal-plans/current'),
 };

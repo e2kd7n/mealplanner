@@ -255,7 +255,7 @@ export async function getRecipes(
     ]);
 
     // Calculate average ratings
-    const recipesWithRatings = recipes.map((recipe) => ({
+    const recipesWithRatings = recipes.map((recipe: { ratings: { rating: number }[] }) => ({
       ...recipe,
       averageRating: calculateAverageRating(recipe.ratings),
       ratingCount: recipe.ratings.length,
@@ -796,7 +796,7 @@ export async function getRecipeRatings(
     const averageRating = calculateAverageRating(ratings) || 0;
 
     // Calculate would make again percentage
-    const wouldMakeAgainCount = ratings.filter(r => r.wouldMakeAgain).length;
+    const wouldMakeAgainCount = ratings.filter((r: { wouldMakeAgain: boolean }) => r.wouldMakeAgain).length;
     const wouldMakeAgainPercentage = ratings.length > 0
       ? (wouldMakeAgainCount / ratings.length) * 100
       : 0;
@@ -904,7 +904,7 @@ export async function searchRecipes(
     ]);
 
     // Calculate average ratings and filter by minRating if specified
-    let recipesWithRatings = recipes.map((recipe) => ({
+    let recipesWithRatings = recipes.map((recipe: { ratings: { rating: number }[] }) => ({
       ...recipe,
       averageRating: calculateAverageRating(recipe.ratings) || 0,
       ratingCount: recipe.ratings.length,
@@ -914,7 +914,7 @@ export async function searchRecipes(
     if (minRating) {
       const minRatingNum = parseFloat(minRating as string);
       recipesWithRatings = recipesWithRatings.filter(
-        (r) => r.averageRating >= minRatingNum
+        (r: { averageRating: number }) => r.averageRating >= minRatingNum
       );
     }
 
@@ -976,8 +976,8 @@ export async function getRecommendations(
     });
 
     // Extract preferred meal types and cuisines
-    const preferredMealTypes = [...new Set(userRatings.flatMap(r => r.recipe.mealTypes))];
-    const preferredCuisines = [...new Set(userRatings.map(r => r.recipe.cuisineType).filter(Boolean))];
+    const preferredMealTypes = [...new Set(userRatings.flatMap((r: { recipe: { mealTypes: string[] } }) => r.recipe.mealTypes))];
+    const preferredCuisines = [...new Set(userRatings.map((r: { recipe: { cuisineType: string | null } }) => r.recipe.cuisineType).filter(Boolean))];
 
     // Build recommendation query
     const where: any = {
@@ -1037,10 +1037,10 @@ export async function getRecommendations(
 
     // Calculate average ratings and sort by rating
     const recipesWithRatings = recipes
-      .map((recipe) => {
-        const ratings = recipe.ratings.map((r) => r.rating);
+      .map((recipe: { ratings: { rating: number }[] }) => {
+        const ratings = recipe.ratings.map((r: { rating: number }) => r.rating);
         const avgRating = ratings.length > 0
-          ? ratings.reduce((a, b) => a + b, 0) / ratings.length
+          ? ratings.reduce((a: number, b: number) => a + b, 0) / ratings.length
           : 0;
 
         return {
@@ -1049,8 +1049,8 @@ export async function getRecommendations(
           ratingCount: ratings.length,
         };
       })
-      .filter((r) => r.averageRating >= 3.5) // Only recommend well-rated recipes
-      .sort((a, b) => b.averageRating - a.averageRating)
+      .filter((r: { averageRating: number }) => r.averageRating >= 3.5) // Only recommend well-rated recipes
+      .sort((a: { averageRating: number }, b: { averageRating: number }) => b.averageRating - a.averageRating)
       .slice(0, limitNum);
 
     res.json({
@@ -1100,7 +1100,7 @@ export async function getSimilarRecipes(
     }
 
     // Extract ingredient IDs
-    const sourceIngredientIds = sourceRecipe.ingredients.map(ri => ri.ingredientId);
+    const sourceIngredientIds = sourceRecipe.ingredients.map((ri: { ingredientId: string }) => ri.ingredientId);
 
     // Find recipes with similar attributes
     const where: any = {
@@ -1144,11 +1144,11 @@ export async function getSimilarRecipes(
     });
 
     // Calculate similarity scores
-    const recipesWithScores = candidates.map((recipe) => {
-      const recipeIngredientIds = recipe.ingredients.map(ri => ri.ingredientId);
+    const recipesWithScores = candidates.map((recipe: { ingredients: { ingredientId: string }[]; mealTypes: typeof sourceRecipe.mealTypes; cuisineType: string | null; difficulty: typeof sourceRecipe.difficulty; kidFriendly: boolean; ratings: { rating: number }[] }) => {
+      const recipeIngredientIds = recipe.ingredients.map((ri: { ingredientId: string }) => ri.ingredientId);
       
       // Calculate ingredient overlap (Jaccard similarity)
-      const intersection = sourceIngredientIds.filter(id =>
+      const intersection = sourceIngredientIds.filter((id: string) =>
         recipeIngredientIds.includes(id)
       ).length;
       const union = new Set([...sourceIngredientIds, ...recipeIngredientIds]).size;
@@ -1156,7 +1156,7 @@ export async function getSimilarRecipes(
 
       // Calculate attribute similarity
       let attributeScore = 0;
-      const mealTypeOverlap = recipe.mealTypes.filter(mt => sourceRecipe.mealTypes.includes(mt)).length;
+      const mealTypeOverlap = recipe.mealTypes.filter((mt: (typeof sourceRecipe.mealTypes)[number]) => sourceRecipe.mealTypes.includes(mt)).length;
       if (mealTypeOverlap > 0) attributeScore += 0.3 * (mealTypeOverlap / Math.max(recipe.mealTypes.length, sourceRecipe.mealTypes.length));
       if (recipe.cuisineType === sourceRecipe.cuisineType) attributeScore += 0.3;
       if (recipe.difficulty === sourceRecipe.difficulty) attributeScore += 0.2;
@@ -1166,9 +1166,9 @@ export async function getSimilarRecipes(
       const similarityScore = (ingredientSimilarity * 0.6) + (attributeScore * 0.4);
 
       // Calculate average rating
-      const ratings = recipe.ratings.map((r) => r.rating);
+      const ratings = recipe.ratings.map((r: { rating: number }) => r.rating);
       const avgRating = ratings.length > 0
-        ? ratings.reduce((a, b) => a + b, 0) / ratings.length
+        ? ratings.reduce((a: number, b: number) => a + b, 0) / ratings.length
         : 0;
 
       return {
@@ -1182,7 +1182,7 @@ export async function getSimilarRecipes(
 
     // Sort by similarity score and take top results
     const similarRecipes = recipesWithScores
-      .sort((a, b) => b.similarityScore - a.similarityScore)
+      .sort((a: { similarityScore: number }, b: { similarityScore: number }) => b.similarityScore - a.similarityScore)
       .slice(0, limitNum);
 
     res.json({
