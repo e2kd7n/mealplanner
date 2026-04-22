@@ -26,17 +26,76 @@ declare global {
   var __prisma: PrismaClient | undefined;
 }
 
+// Enhanced Prisma configuration with connection pooling and retry logic
+const prismaConfig = {
+  log: process.env.NODE_ENV === 'production'
+    ? ['error', 'warn'] as const
+    : ['query', 'error', 'warn'] as const,
+  datasources: {
+    db: {
+      url: process.env.DATABASE_URL,
+    },
+  },
+};
+
 if (process.env.NODE_ENV === 'production') {
-  prisma = new PrismaClient({
-    log: ['error', 'warn'],
-  });
+  prisma = new PrismaClient(prismaConfig);
 } else {
   if (!global.__prisma) {
-    global.__prisma = new PrismaClient({
-      log: ['query', 'error', 'warn'],
-    });
+    global.__prisma = new PrismaClient(prismaConfig);
   }
   prisma = global.__prisma;
+}
+
+/**
+ * Retry database operations with exponential backoff
+ * Handles transient connection errors
+ */
+export async function withRetry<T>(
+  operation: () => Promise<T>,
+  maxRetries: number = 3,
+  baseDelay: number = 1000
+): Promise<T> {
+  let lastError: Error | undefined;
+  
+  for (let attempt = 0; attempt <= maxRetries; attempt++) {
+    try {
+      return await operation();
+    } catch (error: any) {
+      lastError = error;
+      
+      // Check if error is retryable (connection issues)
+      const isRetryable =
+        error?.code === 'P1001' || // Can't reach database server
+        error?.code === 'P1002' || // Database server timeout
+        error?.code === 'P1008' || // Operations timed out
+        error?.code === 'P1017' || // Server has closed the connection
+        error?.message?.includes('Server has closed the connection') ||
+        error?.message?.includes('Connection terminated unexpectedly');
+      
+      if (!isRetryable || attempt === maxRetries) {
+        throw error;
+      }
+      
+      // Exponential backoff with jitter
+      const delay = baseDelay * Math.pow(2, attempt) + Math.random() * 1000;
+      logger.warn(`Database operation failed (attempt ${attempt + 1}/${maxRetries + 1}), retrying in ${Math.round(delay)}ms...`, {
+        error: error.message,
+        code: error.code,
+      });
+      
+      await new Promise(resolve => setTimeout(resolve, delay));
+      
+      // Try to reconnect
+      try {
+        await prisma.$connect();
+      } catch (reconnectError) {
+        logger.debug('Reconnection attempt failed, will retry operation');
+      }
+    }
+  }
+  
+  throw lastError;
 }
 
 // Log database connection

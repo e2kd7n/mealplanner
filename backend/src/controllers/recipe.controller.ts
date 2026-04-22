@@ -350,22 +350,38 @@ async function findOrCreateIngredient(
   ingredientName: string,
   unit: string
 ): Promise<string> {
-  // If we have an ID, use it
+  // Validate ingredient name
+  if (!ingredientName || typeof ingredientName !== 'string' || ingredientName.trim() === '') {
+    throw new AppError('Ingredient name is required and must be a non-empty string', 400);
+  }
+
+  const trimmedName = ingredientName.trim();
+
+  // If we have an ID, verify it exists before using it
   if (ingredientId) {
-    return ingredientId;
+    const existingIngredient = await prisma.ingredient.findUnique({
+      where: { id: ingredientId },
+    });
+    
+    if (existingIngredient) {
+      return ingredientId;
+    }
+    
+    // If ID provided but doesn't exist, log warning and fall through to create/find by name
+    logger.warn(`Ingredient ID ${ingredientId} not found, searching by name: ${trimmedName}`);
   }
 
   // Check if ingredient exists by name
   let ingredient = await prisma.ingredient.findFirst({
-    where: { name: { equals: ingredientName, mode: 'insensitive' } },
+    where: { name: { equals: trimmedName, mode: 'insensitive' } },
   });
 
   if (!ingredient) {
     // Create new ingredient
-    logger.info(`Creating new ingredient: ${ingredientName}`);
+    logger.info(`Creating new ingredient: ${trimmedName}`);
     ingredient = await prisma.ingredient.create({
       data: {
-        name: ingredientName,
+        name: trimmedName,
         category: 'other',
         seasonalMonths: [],
         averagePrice: 0,
