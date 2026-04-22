@@ -13,7 +13,7 @@ if (!process.env.DATABASE_URL) {
   try {
     process.env.DATABASE_URL = getDatabaseUrl();
     logger.info('DATABASE_URL constructed from secrets');
-  } catch (error) {
+  } catch (error: unknown) {
     logger.error('Failed to construct DATABASE_URL from secrets:', error);
     throw error;
   }
@@ -27,6 +27,10 @@ declare global {
 }
 
 // Enhanced Prisma configuration with connection pooling and retry logic
+// Connection pool settings are configured via DATABASE_URL query parameters:
+// - connection_limit: Maximum number of connections in the pool (default: num_cpus * 2 + 1)
+// - pool_timeout: Seconds to wait for a connection from the pool (default: 10)
+// Example: postgresql://user:pass@host:5432/db?connection_limit=10&pool_timeout=30
 const prismaConfig = {
   log: (process.env.NODE_ENV === 'production'
     ? ['error', 'warn']
@@ -103,7 +107,7 @@ prisma.$connect()
   .then(() => {
     logger.info('Database connected successfully');
   })
-  .catch((error) => {
+  .catch((error: unknown) => {
     logger.error('Database connection failed:', error);
     process.exit(1);
   });

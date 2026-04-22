@@ -1,18 +1,12 @@
 # Issue Prioritization
 
-**Last Updated:** 2026-04-22 11:56:39 UTC / 2026-04-22 06:56:39 CDT
+**Last Updated:** 2026-04-22 14:43:52 UTC / 2026-04-22 09:43:52 CDT
 
 This file reflects the current state of GitHub issues by priority. Issues are managed via GitHub labels (P0-critical, P1-high, P2-medium, P3-low, P4-future).
 
 ## 🔴 P0 - CRITICAL (Drop Everything)
 Issues that make the application unusable or cause data loss.
 
-- #109 - [P0][CRITICAL] Remove Production Console Logging
-- #108 - [P0][CRITICAL] Fix Recipe Image Loading Failures
-- #102 - [P0][CRITICAL] Remove Production Console Logging
-- #101 - [P0][CRITICAL] Fix Recipe Image Loading Failures
-- #96 - [P0][CRITICAL] Remove Production Console Logging
-- #95 - [P0][CRITICAL] Fix Recipe Image Loading Failures
 - #94 - family members in profile not showing in chef assignment dropdown when scheduling meal
 - #93 - Add backend connection error banner for local development
 - #92 - Improve Recipe Scraping and Database Connection Monitoring
