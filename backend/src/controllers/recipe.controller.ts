@@ -140,13 +140,14 @@ export async function getRecipes(
     const limitNum = parseInt(limit as string);
     const skip = (pageNum - 1) * limitNum;
 
-    // Build where clause - show all recipes (single-family deployment)
-    // For multitenant deployment, uncomment the userId filtering below
+    // Build where clause - filter by user to prevent test recipes from appearing
     const where: any = {};
     
-    // MULTITENANT: Uncomment to filter by user
-    // const userId = getUserId(req);
-    // where.userId = userId;
+    // Filter recipes by userId so users only see their own recipes
+    const userId = getUserId(req);
+    if (userId) {
+      where.userId = userId;
+    }
 
     if (search) {
       // Add search conditions while preserving access control
@@ -818,7 +819,7 @@ export async function getRecipeRatings(
 
 /**
  * @route   GET /api/recipes/search
- * @desc    Advanced recipe search with full-text search
+ * @desc    Advanced recipe search with fuzzy matching and ingredient search
  * @access  Public
  */
 export async function searchRecipes(
@@ -829,6 +830,7 @@ export async function searchRecipes(
   try {
     const {
       q, // search query
+      ingredients, // comma-separated ingredient names
       page = '1',
       limit = '20',
       mealType,
@@ -840,27 +842,48 @@ export async function searchRecipes(
       minRating,
     } = req.query;
 
-    if (!q) {
-      throw new AppError('Search query is required', 400);
+    if (!q && !ingredients) {
+      throw new AppError('Search query or ingredients are required', 400);
     }
 
     const pageNum = parseInt(page as string);
     const limitNum = parseInt(limit as string);
     const skip = (pageNum - 1) * limitNum;
 
-    // Build where clause with full-text search
+    // Build where clause
     const where: any = {
       AND: [
         { userId: req.user?.userId },
-        {
-          OR: [
-            { title: { contains: q as string, mode: 'insensitive' } },
-            { description: { contains: q as string, mode: 'insensitive' } },
-            { cuisineType: { contains: q as string, mode: 'insensitive' } },
-          ],
-        },
       ],
     };
+
+    // Add text search
+    if (q) {
+      where.AND.push({
+        OR: [
+          { title: { contains: q as string, mode: 'insensitive' } },
+          { description: { contains: q as string, mode: 'insensitive' } },
+          { cuisineType: { contains: q as string, mode: 'insensitive' } },
+        ],
+      });
+    }
+
+    // Add ingredient-based search
+    if (ingredients) {
+      const ingredientList = (ingredients as string).split(',').map(i => i.trim());
+      where.AND.push({
+        ingredients: {
+          some: {
+            ingredient: {
+              name: {
+                in: ingredientList,
+                mode: 'insensitive',
+              },
+            },
+          },
+        },
+      });
+    }
 
     // Apply filters
     if (mealType) {
@@ -928,6 +951,7 @@ export async function searchRecipes(
           totalPages: Math.ceil(recipesWithRatings.length / limitNum),
         },
         query: q,
+        ingredients: ingredients ? (ingredients as string).split(',').map(i => i.trim()) : undefined,
       },
     });
   } catch (error) {
