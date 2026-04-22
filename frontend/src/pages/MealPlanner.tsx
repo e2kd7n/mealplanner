@@ -45,17 +45,23 @@ import {
   CalendarMonth as CalendarMonthIcon,
   ViewDay as ViewDayIcon,
   DragIndicator as DragIndicatorIcon,
+  Restaurant as RestaurantIcon,
 } from '@mui/icons-material';
 import { format, addDays, startOfWeek, isSameDay, startOfMonth, endOfMonth, eachDayOfInterval } from 'date-fns';
 import { DndContext, DragOverlay, PointerSensor, useSensor, useSensors, useDraggable, useDroppable } from '@dnd-kit/core';
 import { mealPlanAPI } from '../services/api';
 import type { DragEndEvent, DragStartEvent } from '@dnd-kit/core';
 import { recipeAPI, familyMemberAPI, groceryListAPI } from '../services/api';
+import BatchCookingDialog from '../components/BatchCookingDialog';
+import { websocketService } from '../services/websocket.service';
+import type { MealPlanUpdate } from '../services/websocket.service';
 
 interface FamilyMember {
   id: string;
   name: string;
   canCook: boolean;
+  ageGroup?: string;
+  dietaryRestrictions?: string[];
 }
 
 interface Recipe {
@@ -78,6 +84,7 @@ interface Meal {
   assignedCookName?: string;
   recipeImageUrl?: string;
   recipeSourceUrl?: string;
+  isLeftover?: boolean;
 }
 
 const MEAL_TYPES = ['BREAKFAST', 'LUNCH', 'DINNER', 'SNACK'];
@@ -160,6 +167,9 @@ const MealPlanner: React.FC = () => {
   // Copy/paste state
   const [copiedMeal, setCopiedMeal] = useState<Meal | null>(null);
   
+  // Batch cooking state
+  const [openBatchCooking, setOpenBatchCooking] = useState(false);
+  
   // Load recipes and family members on mount (only once)
   useEffect(() => {
     loadRecipes();
@@ -170,6 +180,92 @@ const MealPlanner: React.FC = () => {
   useEffect(() => {
     loadMealsForWeek();
   }, [currentWeekStart]); // Only reload when week changes
+  
+  // WebSocket connection and meal plan updates
+  useEffect(() => {
+    // Connect to WebSocket when component mounts
+    websocketService.connect();
+    
+    // Subscribe to meal plan updates
+    const unsubscribe = websocketService.onMealPlanUpdate((update: MealPlanUpdate) => {
+      console.log('[MealPlanner] Received update:', update);
+      
+      // Only process updates for the current meal plan
+      if (update.mealPlanId !== currentMealPlanId) {
+        return;
+      }
+      
+      // Handle different update types
+      switch (update.type) {
+        case 'meal_added':
+          // Add new meal to state
+          setMeals((prevMeals) => {
+            // Check if meal already exists (avoid duplicates)
+            if (prevMeals.some(m => m.id === update.data.id)) {
+              return prevMeals;
+            }
+            return [...prevMeals, {
+              id: update.data.id,
+              recipeId: update.data.recipeId,
+              recipeName: update.data.recipe?.title || 'Unknown Recipe',
+              mealType: update.data.mealType,
+              date: new Date(update.data.date),
+              servings: update.data.servings,
+              assignedCookId: update.data.assignedCookId,
+              assignedCookName: update.data.assignedCook?.name,
+              recipeImageUrl: update.data.recipe?.imageUrl,
+              recipeSourceUrl: update.data.recipe?.sourceUrl,
+              isLeftover: update.data.isLeftover,
+            }];
+          });
+          break;
+          
+        case 'meal_updated':
+          // Update existing meal in state
+          setMeals((prevMeals) =>
+            prevMeals.map((meal) =>
+              meal.id === update.data.id
+                ? {
+                    ...meal,
+                    mealType: update.data.mealType,
+                    date: new Date(update.data.date),
+                    servings: update.data.servings,
+                    assignedCookId: update.data.assignedCookId,
+                    assignedCookName: update.data.assignedCook?.name,
+                  }
+                : meal
+            )
+          );
+          break;
+          
+        case 'meal_deleted':
+          // Remove meal from state
+          setMeals((prevMeals) =>
+            prevMeals.filter((meal) => meal.id !== update.data.mealId)
+          );
+          break;
+      }
+    });
+    
+    // Cleanup on unmount
+    return () => {
+      unsubscribe();
+      websocketService.disconnect();
+    };
+  }, [currentMealPlanId]);
+  
+  // Join/leave meal plan rooms when meal plan changes
+  useEffect(() => {
+    if (currentMealPlanId && websocketService.isConnected()) {
+      websocketService.joinMealPlan(currentMealPlanId);
+    }
+    
+    return () => {
+      if (currentMealPlanId) {
+        websocketService.leaveMealPlan(currentMealPlanId);
+      }
+    };
+  }, [currentMealPlanId]);
   
   const loadMealsForWeek = async () => {
     try {
@@ -497,6 +593,34 @@ const MealPlanner: React.FC = () => {
     }
   };
 
+  const handleBatchCook = async (dates: Date[], servingsMultiplier: number, markAsLeftovers: boolean) => {
+    if (!selectedMeal || !currentMealPlanId) return;
+
+    try {
+      const formattedDates = dates.map(date => formatDateForAPI(date));
+      
+      await mealPlanAPI.batchCookMeal(currentMealPlanId, selectedMeal.id, {
+        dates: formattedDates,
+        servingsMultiplier,
+        markAsLeftovers,
+      });
+
+      // Reload meals to get the newly created batch cooked meals
+      await loadMealsForWeek();
+      
+      setOpenBatchCooking(false);
+      setOpenMealDetail(false);
+    } catch (error) {
+      if (import.meta.env.DEV) console.error('Failed to batch cook meal:', error);
+      throw error; // Re-throw to let BatchCookingDialog handle the error
+    }
+  };
+
+  const handleOpenBatchCooking = () => {
+    setOpenBatchCooking(true);
+    setOpenMealDetail(false);
+  };
+
   const handleCancelEditSchedule = () => {
     setEditingSchedule(false);
     setEditDate(null);
@@ -635,7 +759,7 @@ const MealPlanner: React.FC = () => {
         style={style}
         {...attributes}
         {...listeners}
-        onClick={(e) => {
+        onClick={() => {
           // Only open modal if not dragging
           if (!isDragging) {
             handleOpenMealDetail(meal);
@@ -1285,6 +1409,13 @@ const MealPlanner: React.FC = () => {
           ) : (
             <>
               <Button
+                startIcon={<RestaurantIcon />}
+                onClick={handleOpenBatchCooking}
+                color="primary"
+              >
+                Batch Cook
+              </Button>
+              <Button
                 startIcon={<ContentCopyIcon />}
                 onClick={handleCopyMeal}
               >
@@ -1503,6 +1634,15 @@ const MealPlanner: React.FC = () => {
           </Button>
         </DialogActions>
       </Dialog>
+
+      {/* Batch Cooking Dialog */}
+      <BatchCookingDialog
+        open={openBatchCooking}
+        onClose={() => setOpenBatchCooking(false)}
+        meal={selectedMeal}
+        onBatchCook={handleBatchCook}
+        currentWeekStart={currentWeekStart}
+      />
     </Container>
   );
 };

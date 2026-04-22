@@ -9,6 +9,8 @@ import {
   getClientLogs,
   getLogStats,
   deleteOldLogs,
+  getLogFileStats,
+  triggerLogPruning,
 } from '../controllers/logs.controller';
 import { authenticate, requireAdmin } from '../middleware/auth';
 import { clientLogsRateLimiter } from '../middleware/rateLimiter';
@@ -57,6 +59,28 @@ router.delete(
   authenticate,
   requireAdmin,
   deleteOldLogs
+);
+
+/**
+ * GET /api/logs/file-stats
+ * Get log file and database statistics (admin only)
+ */
+router.get(
+  '/file-stats',
+  authenticate,
+  requireAdmin,
+  getLogFileStats
+);
+
+/**
+ * POST /api/logs/prune
+ * Manually trigger log pruning (admin only)
+ */
+router.post(
+  '/prune',
+  authenticate,
+  requireAdmin,
+  triggerLogPruning
 );
 
 export default router;

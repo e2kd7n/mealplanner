@@ -209,6 +209,7 @@ model PlannedMeal {
   servings       Int
   assignedCookId String?  @map("assigned_cook")
   notes          String?  @db.Text
+  isLeftover     Boolean  @default(false) @map("is_leftover")
 
   // Relations
   mealPlan     MealPlan     @relation(fields: [mealPlanId], references: [id], onDelete: Cascade)
