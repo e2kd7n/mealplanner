@@ -37,7 +37,7 @@ export const useAutoSave = ({
       const saved = localStorage.getItem(`autosave_${key}`);
       return saved ? JSON.parse(saved) : null;
     } catch (error) {
-      console.error('Error loading autosave data:', error);
+      if (import.meta.env.DEV) console.error('Error loading autosave data:', error);
       return null;
     }
   });
@@ -65,7 +65,7 @@ export const useAutoSave = ({
         setLastSaved(new Date());
         setSavedData(data);
       } catch (error) {
-        console.error('Error auto-saving data:', error);
+        if (import.meta.env.DEV) console.error('Error auto-saving data:', error);
       } finally {
         setIsSaving(false);
       }
@@ -85,7 +85,7 @@ export const useAutoSave = ({
       setLastSaved(null);
       previousDataRef.current = '';
     } catch (error) {
-      console.error('Error clearing autosave data:', error);
+      if (import.meta.env.DEV) console.error('Error clearing autosave data:', error);
     }
   }, [key]);
 

@@ -330,7 +330,10 @@ echo "" >&2
 # Main script - Generate markdown report
 echo "# Issue Prioritization"
 echo ""
-echo "**Last Updated:** $(date +%Y-%m-%d)"
+# Generate timestamp with both UTC and US Central time
+TIMESTAMP_UTC=$(date -u +"%Y-%m-%d %H:%M:%S UTC" 2>/dev/null || date +"%Y-%m-%d %H:%M:%S")
+TIMESTAMP_CENTRAL=$(TZ="America/Chicago" date +"%Y-%m-%d %H:%M:%S %Z" 2>/dev/null || date +"%Y-%m-%d %H:%M:%S")
+echo "**Last Updated:** ${TIMESTAMP_UTC} / ${TIMESTAMP_CENTRAL}"
 echo ""
 echo "This file reflects the current state of GitHub issues by priority. Issues are managed via GitHub labels (P0-critical, P1-high, P2-medium, P3-low, P4-future)."
 echo ""

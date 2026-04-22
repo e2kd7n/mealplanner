@@ -2,8 +2,8 @@
 
 **Copyright (c) 2026 e2kd7n. All rights reserved.**
 
-**Version:** 2.0.0
-**Last Updated:** March 22, 2026
+**Version:** 2.1.0
+**Last Updated:** April 22, 2026
 **Status:** Production (Simplified Architecture)
 
 ---
@@ -17,11 +17,12 @@
 5. [Component Architecture](#component-architecture)
 6. [Data Architecture](#data-architecture)
 7. [Security Architecture](#security-architecture)
-8. [Integration Architecture](#integration-architecture)
-9. [Deployment Architecture](#deployment-architecture)
-10. [Design Patterns](#design-patterns)
-11. [Scalability Considerations](#scalability-considerations)
-12. [Future Architecture Plans](#future-architecture-plans)
+8. [Logging & Monitoring Architecture](#logging--monitoring-architecture)
+9. [Integration Architecture](#integration-architecture)
+10. [Deployment Architecture](#deployment-architecture)
+11. [Design Patterns](#design-patterns)
+12. [Scalability Considerations](#scalability-considerations)
+13. [Future Architecture Plans](#future-architecture-plans)
 
 ---
 
@@ -485,6 +486,237 @@ PantryItem
 - **Dependency Scanning**: Regular security audits
 
 ---
+## Logging & Monitoring Architecture
+
+### Overview
+
+The application implements a comprehensive logging and monitoring strategy with environment-aware behavior to ensure clean production deployments while maintaining robust debugging capabilities in development.
+
+### Frontend Logging Architecture
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                    Frontend Logging Flow                     │
+└─────────────────────────────────────────────────────────────┘
+
+Development Mode (import.meta.env.DEV):
+  ├── Console Logging: Enabled
+  ├── Error Tracking: Console output
+  ├── Performance Monitoring: Verbose
+  └── Debug Information: Full stack traces
+
+Production Mode (import.meta.env.PROD):
+  ├── Console Logging: Disabled (clean console)
+  ├── Error Tracking: Sent to backend via logger utility
+  ├── Performance Monitoring: Metrics only
+  └── Debug Information: Sanitized (no sensitive data)
+```
+
+#### Frontend Logger Utility
+
+**Location:** `frontend/src/utils/logger.ts`
+
+**Features:**
+- Environment-aware logging (only errors in production)
+- Batched log transmission (reduces network overhead)
+- Automatic log sampling and throttling
+- Sensitive data sanitization
+- Session tracking
+- Client-side error aggregation
+
+**Configuration:**
+```typescript
+{
+  enabled: import.meta.env.PROD,  // Only in production
+  minLevel: LogLevel.ERROR,        // Only log errors
+  batchSize: 10,                   // Batch 10 logs before sending
+  batchInterval: 30000,            // Or send every 30 seconds
+  maxBatchSize: 50,                // Maximum queue size
+  sampleRate: 1.0,                 // 100% for errors
+  endpoint: '/api/logs/client'     // Backend endpoint
+}
+```
+
+**Usage:**
+```typescript
+import logger from '@/utils/logger';
+
+// Error logging (sent to backend in production)
+logger.error('Failed to load data', 'DataService', { userId, error });
+
+// Development-only logging
+if (import.meta.env.DEV) {
+  console.log('Debug info:', data);
+}
+```
+
+### Backend Logging Architecture
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                    Backend Logging Flow                      │
+└─────────────────────────────────────────────────────────────┘
+
+Request → Middleware Logger → Winston Logger → Console/File
+                                    ↓
+                              Log Levels:
+                              - error: Critical issues
+                              - warn: Warnings
+                              - info: General info
+                              - debug: Debug info
+```
+
+**Location:** `backend/src/utils/logger.ts`
+
+**Features:**
+- Structured logging with Winston
+- Request/response logging
+- Error tracking with stack traces
+- Performance metrics
+- User action audit trail
+- Sensitive data redaction
+
+**Log Levels:**
+- `error`: Application errors, exceptions
+- `warn`: Warnings, deprecated features
+- `info`: General information, user actions
+- `debug`: Detailed debugging information
+
+### Client Log Collection
+
+**Endpoint:** `POST /api/logs/client`
+
+**Purpose:** Collect frontend errors and metrics for monitoring
+
+**Schema:**
+```typescript
+{
+  logs: [
+    {
+      level: 'error' | 'warn' | 'info' | 'debug',
+      message: string,
+      timestamp: number,
+      context?: string,
+      data?: any,
+      stack?: string,
+      userAgent?: string,
+      url?: string,
+      sessionId?: string
+    }
+  ]
+}
+```
+
+**Database Storage:**
+- Table: `client_logs`
+- Retention: 30 days
+- Indexed by: timestamp, level, sessionId
+
+### Monitoring Strategy
+
+#### Application Metrics
+
+1. **Performance Metrics**
+   - API response times
+   - Database query performance
+   - Cache hit/miss rates
+   - Image loading times
+
+2. **Error Metrics**
+   - Error rates by endpoint
+   - Client-side error frequency
+   - Failed authentication attempts
+   - Database connection errors
+
+3. **Usage Metrics**
+   - Active users
+   - Recipe views/creates
+   - Meal plan generations
+   - Grocery list exports
+
+#### Health Checks
+
+**Endpoints:**
+- `/health` - Basic health check
+- `/api/health` - Detailed health status
+
+**Monitored Components:**
+- Database connectivity
+- Redis connectivity
+- Disk space
+- Memory usage
+
+### Production Console Logging Policy
+
+**Status:** ✅ IMPLEMENTED (April 2026)
+
+**Policy:**
+- **NO** `console.log()` statements in production
+- **NO** `console.debug()` statements in production
+- **NO** `console.info()` statements in production
+- `console.error()` and `console.warn()` wrapped in DEV checks
+- All production errors sent to backend logger
+
+**Implementation:**
+- All console statements removed or wrapped in `if (import.meta.env.DEV)` checks
+- Logger utility handles production error tracking
+- Clean browser console for end users
+- No internal logic exposed via console
+
+**Benefits:**
+- Improved performance (no console overhead)
+- Enhanced security (no exposed internals)
+- Professional appearance
+- Centralized error tracking
+
+### Log Retention & Rotation
+
+**Client Logs:**
+- Retention: 30 days
+- Rotation: Daily
+- Storage: PostgreSQL
+
+**Server Logs:**
+- Retention: 90 days
+- Rotation: Daily
+- Storage: File system + optional log aggregation
+
+### Security Considerations
+
+1. **Sensitive Data Redaction**
+   - Passwords, tokens, API keys automatically redacted
+   - User PII sanitized in logs
+   - Credit card numbers masked
+
+2. **Log Access Control**
+   - Admin-only access to logs
+   - Audit trail for log access
+   - Encrypted log storage
+
+3. **Error Message Sanitization**
+   - Generic error messages to users
+   - Detailed errors only in logs
+   - No stack traces exposed to clients
+
+### Future Enhancements
+
+1. **Log Aggregation**
+   - ELK Stack (Elasticsearch, Logstash, Kibana)
+   - Grafana dashboards
+   - Real-time alerting
+
+2. **Advanced Monitoring**
+   - Application Performance Monitoring (APM)
+   - Distributed tracing
+   - User session replay
+
+3. **Analytics**
+   - User behavior analytics
+   - Feature usage tracking
+   - A/B testing framework
+
+---
+
 
 ## Integration Architecture
 

@@ -136,7 +136,7 @@ const RecipeDetail: React.FC = () => {
           return;
         }
       } catch (error) {
-        console.error('Failed to check meal plans:', error);
+        if (import.meta.env.DEV) console.error('Failed to check meal plans:', error);
         alert('Please visit the Meal Planner to set up your weekly meal plan.');
         navigate('/meal-planner');
         return;
@@ -172,7 +172,7 @@ const RecipeDetail: React.FC = () => {
       setSelectedMealPlanId('');
       alert(`Successfully added "${recipe.title}" to meal plan!`);
     } catch (error: any) {
-      console.error('Failed to add to meal plan:', error);
+      if (import.meta.env.DEV) console.error('Failed to add to meal plan:', error);
       alert(error.message || 'Failed to add recipe to meal plan');
     } finally {
       setAddingToMealPlan(false);
@@ -212,7 +212,7 @@ const RecipeDetail: React.FC = () => {
       setSelectedListId('');
       alert(`Successfully added ${recipe.ingredients?.length || 0} ingredients to grocery list!`);
     } catch (error: any) {
-      console.error('Failed to add ingredients:', error);
+      if (import.meta.env.DEV) console.error('Failed to add ingredients:', error);
       alert(error.message || 'Failed to add ingredients to grocery list');
     } finally {
       setAddingToList(false);
@@ -233,7 +233,7 @@ const RecipeDetail: React.FC = () => {
       alert(`Successfully deleted "${recipe.title}"`);
       navigate('/recipes');
     } catch (error: any) {
-      console.error('Failed to delete recipe:', error);
+      if (import.meta.env.DEV) console.error('Failed to delete recipe:', error);
       alert(error.message || 'Failed to delete recipe');
     } finally {
       setDeleting(false);

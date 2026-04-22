@@ -43,7 +43,7 @@ const fetchCsrfToken = async (): Promise<string> => {
     csrfToken = response.data.csrfToken;
     return csrfToken as string;
   } catch (error) {
-    console.error('Failed to fetch CSRF token:', error);
+    if (import.meta.env.DEV) console.error('Failed to fetch CSRF token:', error);
     throw error;
   }
 };
@@ -196,7 +196,7 @@ api.interceptors.request.use(
         const csrf = await getCsrfToken();
         config.headers['X-CSRF-Token'] = csrf;
       } catch (error) {
-        console.error('Failed to add CSRF token to request:', error);
+        if (import.meta.env.DEV) console.error('Failed to add CSRF token to request:', error);
       }
     }
     
