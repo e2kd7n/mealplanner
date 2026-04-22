@@ -25,7 +25,7 @@ This will:
 ### Access Your Application
 
 Once running, access at:
-- **Frontend**: http://localhost:8080
+- **Frontend**: http://localhost:5173 (Vite dev server)
 - **Backend API**: http://localhost:3000/api
 - **Health Check**: http://localhost:3000/health
 
@@ -240,7 +240,7 @@ podman-compose -f podman-compose.yml down
 
 ### 3. View Changes
 
-Open http://localhost:8080 in your browser.
+Open http://localhost:5173 in your browser.
 
 ## 🎯 Hot Reload Development (Optional)
 
@@ -311,15 +311,17 @@ podman exec meals-backend npx prisma db seed
 
 ### Port Already in Use
 
-If port 8080 is already in use:
+If port 5173 or 3000 is already in use:
 
 ```bash
-# Edit podman-compose.yml
-# Change nginx ports from "8080:80" to "8081:80"
+# Find and kill the process using the port
+lsof -ti:5173 | xargs kill -9  # Frontend
+lsof -ti:3000 | xargs kill -9  # Backend
 
-# Or stop the conflicting service
-lsof -ti:8080 | xargs kill -9
+# Or use a different port by modifying the dev server config
 ```
+
+**Note:** Port 8080 is used when running with podman-compose (nginx). Port 5173 is used when running with `./scripts/run-local.sh` (Vite dev server).
 
 ### Images Not Building
 
