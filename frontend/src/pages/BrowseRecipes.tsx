@@ -260,11 +260,35 @@ const BrowseRecipes: React.FC = () => {
   // Calculate current page from offset
   const currentPage = Math.floor(pagination.offset / pagination.number) + 1;
 
-  // Load recipes on mount and when filters change with deduplication
+  // Load recipes when filters change with deduplication
   useEffect(() => {
-    // Skip the initial mount to prevent double-loading
+    // Skip the initial mount to prevent loading on page load
     if (isInitialMount.current) {
       isInitialMount.current = false;
+      // Set initial search params ref to prevent immediate search
+      const params: any = {
+        offset: pagination.offset,
+        number: pagination.number,
+      };
+      if (debouncedSearch) params.query = debouncedSearch;
+      if (cuisine) params.cuisine = cuisine;
+      if (diet) params.diet = diet;
+      if (mealType) params.type = mealType;
+      if (maxTime > 0) params.maxReadyTime = maxTime;
+      if (sortBy) params.sort = sortBy;
+      
+      const searchParamsKey = JSON.stringify(params);
+      lastSearchParamsRef.current = searchParamsKey;
+      
+      // Only search on initial mount if there are URL parameters with actual search criteria
+      if (debouncedSearch || cuisine || diet || mealType || maxTime > 0) {
+        dispatch(searchSpoonacularRecipes(params));
+      }
+      return;
+    }
+
+    // Don't search if there are no search criteria
+    if (!debouncedSearch && !cuisine && !diet && !mealType && maxTime === 0) {
       return;
     }
 
@@ -289,29 +313,6 @@ const BrowseRecipes: React.FC = () => {
       dispatch(searchSpoonacularRecipes(params));
     }
   }, [dispatch, debouncedSearch, cuisine, diet, mealType, maxTime, sortBy, pagination.offset, pagination.number, loading]);
-
-  // Initial load effect - runs only once on mount
-  useEffect(() => {
-    const params: any = {
-      offset: pagination.offset,
-      number: pagination.number,
-    };
-
-    if (debouncedSearch) params.query = debouncedSearch;
-    if (cuisine) params.cuisine = cuisine;
-    if (diet) params.diet = diet;
-    if (mealType) params.type = mealType;
-    if (maxTime > 0) params.maxReadyTime = maxTime;
-    if (sortBy) params.sort = sortBy;
-
-    const searchParamsKey = JSON.stringify(params);
-    lastSearchParamsRef.current = searchParamsKey;
-
-    // Only load if there are actual search parameters (not just defaults)
-    if (debouncedSearch || cuisine || diet || mealType || maxTime > 0) {
-      dispatch(searchSpoonacularRecipes(params));
-    }
-  }, []); // Empty dependency array - runs only once on mount
 
   // Update URL when filters change
   useEffect(() => {
