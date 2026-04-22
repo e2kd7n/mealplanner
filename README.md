@@ -16,7 +16,7 @@ A Progressive Web App (PWA) designed for families to simplify meal planning and 
 
 **Why this matters:** Using default/weak secrets can lead to complete system compromise, data breaches, and legal liability.
 
-📖 **Full Security Guide:** [SECURITY_SETUP.md](./SECURITY_SETUP.md)
+📖 **Full Security Guide:** [SECURITY_SETUP.md](./docs/SECURITY_SETUP.md)
 
 ---
 
@@ -31,13 +31,12 @@ This application helps families (like a family of 4 with 2 adults and 2 teenager
 - Assign cooking responsibilities to family members
 - Work offline with full PWA capabilities
 
-**MVP Status:** All core workflows are functional and tested. See [MVP_RELEASE_SUMMARY.md](./MVP_RELEASE_SUMMARY.md) for complete feature list and testing results.
+**MVP Status:** All core workflows are functional and tested. See [MVP_RELEASE_SUMMARY.md](./docs/releases/MVP_RELEASE_SUMMARY.md) for complete feature list and testing results.
 ## 📋 Issue Tracking
 
 All bugs, features, and improvements are tracked in [GitHub Issues](https://github.com/e2kd7n/mealplanner/issues).
 
 - **Workflow Guidelines**: See [/Users/erik/dev/workflow-guidelines.md](/Users/erik/dev/workflow-guidelines.md) for comprehensive issue management practices
-- **Project Workflow**: See [WORKFLOW_GUIDE.md](./WORKFLOW_GUIDE.md) for project-specific guidelines
 - **Priorities**: See [ISSUE_PRIORITIES.md](./ISSUE_PRIORITIES.md) for current sprint priorities
 - **Current Sprint**: Focus on HIGH priority issues (#1, #6)
 
@@ -208,7 +207,7 @@ pnpm dev
 ### Production Deployment (Raspberry Pi)
 
 For deploying to Raspberry Pi with Podman, see:
-- **Quick Start**: [RASPBERRY_PI_QUICKSTART.md](./RASPBERRY_PI_QUICKSTART.md)
+- **Quick Start**: [RASPBERRY_PI_QUICKSTART.md](./docs/archive/RASPBERRY_PI_QUICKSTART.md)
 - **Full Guide**: [DEPLOYMENT.md](./DEPLOYMENT.md)
 
 **TL;DR:**
@@ -262,7 +261,6 @@ meals/
 ├── LICENSE
 ├── README.md
 ├── SETUP.md            # Development setup guide
-├── ATTRIBUTION.md      # Third-party licenses
 └── meal-planner-app-plan.md  # Detailed technical plan
 ```
 
@@ -304,9 +302,9 @@ pnpm test:e2e:report   # View test report
 ```
 
 **Documentation:**
-- 📘 [E2E Testing Implementation Plan](E2E_TESTING_IMPLEMENTATION_PLAN.md) - Complete implementation guide
-- 🚀 [E2E Testing Quick Start](E2E_TESTING_QUICK_START.md) - Quick reference for developers
-- 🏗️ [E2E Testing Architecture](E2E_TESTING_ARCHITECTURE.md) - Visual architecture diagrams
+- 📘 [E2E Testing Implementation Plan](docs/archive/E2E_TESTING_IMPLEMENTATION_PLAN.md) - Complete implementation guide
+- 🚀 [E2E Testing Quick Start](docs/archive/E2E_TESTING_QUICK_START.md) - Quick reference for developers
+- 🏗️ [E2E Testing Architecture](docs/archive/E2E_TESTING_ARCHITECTURE.md) - Visual architecture diagrams
 
 ### Unit & Integration Tests
 
@@ -390,15 +388,13 @@ git push origin feature/your-feature-name
 ## 📚 Documentation
 
 ### Workflow & Development
-- **[Workflow Guide](./WORKFLOW_GUIDE.md)** - **START HERE** - Single source of truth for all workflows
 - [Issue Priorities](./ISSUE_PRIORITIES.md) - Current issue priorities
-- [Weekly Maintenance](./WEEKLY_MAINTENANCE.md) - Regular maintenance tasks
 
 ### Setup & Deployment
 - [Setup Guide](./SETUP.md) - Development environment setup
 - [Deployment Guide](./DEPLOYMENT.md) - Production deployment
-- [Security Setup](./SECURITY_SETUP.md) - Security configuration
-- [Database Backup](./DATABASE_BACKUP.md) - Backup procedures
+- [Security Setup](./docs/SECURITY_SETUP.md) - Security configuration
+- [Database Backup](./docs/DATABASE_BACKUP.md) - Backup procedures
 
 ### Architecture & Technical
 - [System Architecture](./docs/ARCHITECTURE.md) - Complete architecture documentation
@@ -422,7 +418,7 @@ This project is proprietary software for personal/family use. See [LICENSE](./LI
 
 ## 🙏 Acknowledgments
 
-See [ATTRIBUTION.md](./ATTRIBUTION.md) for third-party licenses and attributions.
+See [ATTRIBUTION.md](./docs/archive/ATTRIBUTION.md) for third-party licenses and attributions.
 
 ## 📞 Support
 
