@@ -138,7 +138,10 @@ export function verifyAccessToken(token: string): TokenPayload {
     // Try with current secret first
     const config = getJwtConfigCached();
     return jwt.verify(token, config.secret) as TokenPayload;
-  } catch (currentError) {
+  } catch (currentError: any) {
+    // Don't log expired tokens as errors - they're expected
+    const isExpired = currentError?.name === 'TokenExpiredError';
+    
     // If current secret fails, try with versioned secrets (rotation support)
     try {
       const versionedSecret = getSecretVersioned('jwt_secret');
@@ -148,10 +151,12 @@ export function verifyAccessToken(token: string): TokenPayload {
           const payload = jwt.verify(token, versionedSecret.previous) as TokenPayload;
           logger.info('Access token verified with previous secret (rotation in progress)');
           return payload;
-        } catch (previousError) {
+        } catch (previousError: any) {
           // Both current and previous failed
-          logger.error('Access token verification failed with both current and previous secrets');
-          throw new Error('Invalid or expired access token');
+          if (!isExpired && previousError?.name !== 'TokenExpiredError') {
+            logger.error('Access token verification failed with both current and previous secrets');
+          }
+          throw currentError; // Throw original error to preserve error type
         }
       }
     } catch (versionError) {
@@ -160,8 +165,11 @@ export function verifyAccessToken(token: string): TokenPayload {
     }
     
     // No previous secret or it also failed
-    logger.error('Access token verification failed:', currentError);
-    throw new Error('Invalid or expired access token');
+    // Only log non-expired token errors
+    if (!isExpired) {
+      logger.error('Access token verification failed:', currentError);
+    }
+    throw currentError; // Throw original error to preserve error type
   }
 }
 
@@ -178,7 +186,10 @@ export function verifyRefreshToken(token: string): TokenPayload {
     // Try with current secret first
     const config = getJwtConfigCached();
     return jwt.verify(token, config.refreshSecret) as TokenPayload;
-  } catch (currentError) {
+  } catch (currentError: any) {
+    // Don't log expired tokens as errors - they're expected
+    const isExpired = currentError?.name === 'TokenExpiredError';
+    
     // If current secret fails, try with versioned secrets (rotation support)
     try {
       const versionedSecret = getSecretVersioned('jwt_refresh_secret');
@@ -188,10 +199,12 @@ export function verifyRefreshToken(token: string): TokenPayload {
           const payload = jwt.verify(token, versionedSecret.previous) as TokenPayload;
           logger.info('Refresh token verified with previous secret (rotation in progress)');
           return payload;
-        } catch (previousError) {
+        } catch (previousError: any) {
           // Both current and previous failed
-          logger.error('Refresh token verification failed with both current and previous secrets');
-          throw new Error('Invalid or expired refresh token');
+          if (!isExpired && previousError?.name !== 'TokenExpiredError') {
+            logger.error('Refresh token verification failed with both current and previous secrets');
+          }
+          throw currentError; // Throw original error to preserve error type
         }
       }
     } catch (versionError) {
@@ -200,8 +213,11 @@ export function verifyRefreshToken(token: string): TokenPayload {
     }
     
     // No previous secret or it also failed
-    logger.error('Refresh token verification failed:', currentError);
-    throw new Error('Invalid or expired refresh token');
+    // Only log non-expired token errors
+    if (!isExpired) {
+      logger.error('Refresh token verification failed:', currentError);
+    }
+    throw currentError; // Throw original error to preserve error type
   }
 }
 

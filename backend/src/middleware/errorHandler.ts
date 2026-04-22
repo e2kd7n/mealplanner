@@ -45,20 +45,25 @@ export function errorHandler(
     message = 'Token expired';
   }
 
-  // Log error
-  if (statusCode >= 500) {
-    logger.error('Server error:', {
-      message: err.message,
-      stack: err.stack,
-      url: req.url,
-      method: req.method,
-    });
-  } else {
-    logger.warn('Client error:', {
-      message: err.message,
-      url: req.url,
-      method: req.method,
-    });
+  // Log error (but skip logging expired tokens - they're expected)
+  const isExpiredToken = err.name === 'TokenExpiredError';
+  
+  if (!isExpiredToken) {
+    if (statusCode >= 500) {
+      logger.error('Server error:', {
+        message: err.message,
+        stack: err.stack,
+        url: req.url,
+        method: req.method,
+      });
+    } else if (statusCode !== 401) {
+      // Don't log 401 errors as warnings - they're expected for auth failures
+      logger.warn('Client error:', {
+        message: err.message,
+        url: req.url,
+        method: req.method,
+      });
+    }
   }
 
   // Send error response
