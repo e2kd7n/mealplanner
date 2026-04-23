@@ -27,7 +27,7 @@ import {
   CheckCircle as CheckCircleIcon,
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
-import { useAppDispatch } from '../store/hooks';
+import { useAppDispatch, useAppSelector } from '../store/hooks';
 import { searchSpoonacularRecipes, addSpoonacularRecipeToBox } from '../store/slices/recipeBrowseSlice';
 import { useCachedImage } from '../hooks/useCachedImage';
 import SpoonacularRecipeDialog from './SpoonacularRecipeDialog';
@@ -36,26 +36,22 @@ interface RecipeCardProps {
   recipe: any;
   onAdd: (id: number) => void;
   onView: (id: number) => void;
+  isAdded: boolean;
 }
 
-const QuickRecipeCard: React.FC<RecipeCardProps> = ({ recipe, onAdd, onView }) => {
+const QuickRecipeCard: React.FC<RecipeCardProps> = ({ recipe, onAdd, onView, isAdded }) => {
   const { src: imageSrc, isLoading: imageLoading } = useCachedImage(recipe.image);
   const [adding, setAdding] = useState(false);
-  const [added, setAdded] = useState(false);
 
   const handleAdd = async (e: React.MouseEvent) => {
     e.stopPropagation();
-    if (added || adding) return;
+    if (isAdded || adding) return;
     
     setAdding(true);
     try {
       await onAdd(recipe.id);
-      setAdded(true);
     } catch (err: any) {
-      // Check if it's a duplicate error
-      if (err?.message?.includes('already in your recipe box')) {
-        setAdded(true);
-      }
+      // Error handled by Redux
     } finally {
       setAdding(false);
     }
@@ -127,14 +123,14 @@ const QuickRecipeCard: React.FC<RecipeCardProps> = ({ recipe, onAdd, onView }) =
         </Button>
         <Button
           size="small"
-          variant={added ? "outlined" : "contained"}
-          color={added ? "success" : "primary"}
-          startIcon={added ? <CheckCircleIcon /> : <AddIcon />}
+          variant={isAdded ? "outlined" : "contained"}
+          color={isAdded ? "success" : "primary"}
+          startIcon={isAdded ? <CheckCircleIcon /> : <AddIcon />}
           onClick={handleAdd}
-          disabled={adding || added}
+          disabled={adding || isAdded}
           sx={{ flex: 1 }}
         >
-          {added ? 'In Box' : adding ? 'Adding...' : 'Add'}
+          {isAdded ? 'In Box' : adding ? 'Adding...' : 'Add'}
         </Button>
       </CardActions>
     </Card>
@@ -144,6 +140,7 @@ const QuickRecipeCard: React.FC<RecipeCardProps> = ({ recipe, onAdd, onView }) =
 const RecipeDiscoveryEmptyState: React.FC = () => {
   const navigate = useNavigate();
   const dispatch = useAppDispatch();
+  const { addedRecipeIds } = useAppSelector((state) => state.recipeBrowse);
   const [trendingRecipes, setTrendingRecipes] = useState<any[]>([]);
   const [quickDinners, setQuickDinners] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -281,7 +278,13 @@ const RecipeDiscoveryEmptyState: React.FC = () => {
             }}
           >
             {trendingRecipes.map((recipe) => (
-              <QuickRecipeCard key={recipe.id} recipe={recipe} onAdd={handleAddRecipe} onView={handleViewRecipe} />
+              <QuickRecipeCard
+                key={recipe.id}
+                recipe={recipe}
+                onAdd={handleAddRecipe}
+                onView={handleViewRecipe}
+                isAdded={addedRecipeIds.has(recipe.id)}
+              />
             ))}
           </Box>
         ) : (
@@ -336,7 +339,13 @@ const RecipeDiscoveryEmptyState: React.FC = () => {
             }}
           >
             {quickDinners.map((recipe) => (
-              <QuickRecipeCard key={recipe.id} recipe={recipe} onAdd={handleAddRecipe} onView={handleViewRecipe} />
+              <QuickRecipeCard
+                key={recipe.id}
+                recipe={recipe}
+                onAdd={handleAddRecipe}
+                onView={handleViewRecipe}
+                isAdded={addedRecipeIds.has(recipe.id)}
+              />
             ))}
           </Box>
         ) : (
