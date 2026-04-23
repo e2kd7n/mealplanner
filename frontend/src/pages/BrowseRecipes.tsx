@@ -38,6 +38,7 @@ import {
   Explore as ExploreIcon,
   FilterList as FilterListIcon,
   Lightbulb as LightbulbIcon,
+  Visibility as VisibilityIcon,
 } from '@mui/icons-material';
 import { useSearchParams } from 'react-router-dom';
 import { useAppDispatch, useAppSelector } from '../store/hooks';
@@ -51,15 +52,17 @@ import { useCachedImage } from '../hooks/useCachedImage';
 import { useSearchSuggestions } from '../hooks/useSearchSuggestions';
 import { parseNaturalLanguage, formatParsedQuery } from '../utils/searchParser';
 import SearchSuggestions from '../components/SearchSuggestions';
+import SpoonacularRecipeDialog from '../components/SpoonacularRecipeDialog';
 
 // Memoized Recipe Card Component
 interface BrowseRecipeCardProps {
   recipe: import('../store/slices/recipeBrowseSlice').SpoonacularRecipe;
   onAddToBox: (id: number) => void;
+  onViewDetails: (id: number) => void;
   isAdding: boolean;
 }
 
-const BrowseRecipeCard = memo(({ recipe, onAddToBox, isAdding }: BrowseRecipeCardProps) => {
+const BrowseRecipeCard = memo(({ recipe, onAddToBox, onViewDetails, isAdding }: BrowseRecipeCardProps) => {
   const [added, setAdded] = useState(false);
   // Use cached image hook for proper error handling and fallback
   const { src: imageSrc, isLoading: imageLoading } = useCachedImage(recipe.image);
@@ -70,14 +73,20 @@ const BrowseRecipeCard = memo(({ recipe, onAddToBox, isAdding }: BrowseRecipeCar
     setAdded(true);
   };
 
+  const handleCardClick = () => {
+    onViewDetails(recipe.id);
+  };
+
   return (
     <Card
       data-testid="recipe-card"
+      onClick={handleCardClick}
       sx={{
         height: '100%',
         display: 'flex',
         flexDirection: 'column',
         transition: 'transform 0.2s, box-shadow 0.2s',
+        cursor: 'pointer',
         '&:hover': {
           transform: 'translateY(-4px)',
           boxShadow: 4,
@@ -130,7 +139,16 @@ const BrowseRecipeCard = memo(({ recipe, onAddToBox, isAdding }: BrowseRecipeCar
           </Typography>
         )}
       </CardContent>
-      <CardActions>
+      <CardActions sx={{ gap: 1 }}>
+        <Button
+          size="small"
+          variant="outlined"
+          startIcon={<VisibilityIcon />}
+          onClick={handleCardClick}
+          sx={{ flex: 1 }}
+        >
+          View
+        </Button>
         <Button
           size="small"
           variant={added ? "outlined" : "contained"}
@@ -138,9 +156,9 @@ const BrowseRecipeCard = memo(({ recipe, onAddToBox, isAdding }: BrowseRecipeCar
           startIcon={added ? <CheckCircleIcon /> : <AddIcon />}
           onClick={handleAddClick}
           disabled={isAdding || added}
-          fullWidth
+          sx={{ flex: 1 }}
         >
-          {added ? 'Added to Recipe Box' : 'Add to Recipe Box'}
+          {added ? 'Added' : 'Add'}
         </Button>
       </CardActions>
     </Card>
@@ -181,6 +199,8 @@ const BrowseRecipes: React.FC = () => {
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [highlightedIndex, setHighlightedIndex] = useState(-1);
   const [parsedQueryInfo, setParsedQueryInfo] = useState<string>('');
+  const [selectedRecipeId, setSelectedRecipeId] = useState<number | null>(null);
+  const [dialogOpen, setDialogOpen] = useState(false);
   const searchInputRef = useRef<HTMLInputElement>(null);
   const lastSearchParamsRef = useRef<string>('');
   const isInitialMount = useRef(true);
@@ -386,6 +406,16 @@ const BrowseRecipes: React.FC = () => {
     },
     [dispatch, setSuccessMessage]
   );
+
+  const handleViewDetails = useCallback((recipeId: number) => {
+    setSelectedRecipeId(recipeId);
+    setDialogOpen(true);
+  }, []);
+
+  const handleCloseDialog = useCallback(() => {
+    setDialogOpen(false);
+    setSelectedRecipeId(null);
+  }, []);
 
   const handleClearError = () => {
     dispatch(clearError());
@@ -698,6 +728,7 @@ const BrowseRecipes: React.FC = () => {
                 key={recipe.id}
                 recipe={recipe}
                 onAddToBox={handleAddToBox}
+                onViewDetails={handleViewDetails}
                 isAdding={addingToBox}
               />
             ))}
@@ -736,6 +767,13 @@ const BrowseRecipes: React.FC = () => {
           {successMessage}
         </Alert>
       </Snackbar>
+
+      {/* Recipe Details Dialog */}
+      <SpoonacularRecipeDialog
+        open={dialogOpen}
+        recipeId={selectedRecipeId}
+        onClose={handleCloseDialog}
+      />
     </Container>
   );
 };
