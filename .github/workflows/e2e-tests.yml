@@ -57,10 +57,7 @@ jobs:
           pnpm run prisma:seed
           # Verify seed data was created
           echo "Verifying database seed..."
-          pnpm prisma db execute --stdin <<EOF
-          SELECT COUNT(*) as user_count FROM users;
-          SELECT COUNT(*) as recipe_count FROM recipes;
-          EOF
+          echo "SELECT COUNT(*) as user_count FROM users; SELECT COUNT(*) as recipe_count FROM recipes;" | pnpm prisma db execute --stdin --url "$DATABASE_URL"
 
       - name: Start backend server
         working-directory: backend
