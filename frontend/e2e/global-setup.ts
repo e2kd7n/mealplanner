@@ -29,14 +29,25 @@ async function globalSetup(config: FullConfig) {
     console.log('📍 Navigating to login page...');
     await page.goto(`${baseURL}/login`, { waitUntil: 'networkidle' });
 
+    // Wait for page to be fully loaded
+    await page.waitForLoadState('domcontentloaded');
+    
     // Fill in credentials
     console.log('📝 Filling in credentials...');
-    await page.getByLabel(/email/i).fill('test@example.com');
-    await page.getByLabel(/password/i).fill('TestPass123!');
+    const emailInput = page.getByLabel(/email/i);
+    const passwordInput = page.getByLabel(/password/i);
+    
+    await emailInput.fill('test@example.com');
+    await passwordInput.fill('TestPass123!');
+    
+    console.log('✓ Credentials filled');
 
-    // Click login button and wait for navigation
+    // Find and click the correct login button (not the test login button)
     console.log('🔑 Clicking login button...');
-    await page.getByRole('button', { name: /sign in/i }).click();
+    const loginButton = page.getByRole('button', { name: /^sign in$/i });
+    await loginButton.click();
+    
+    console.log('✓ Login button clicked');
     
     // Wait for navigation with increased timeout
     console.log('⏳ Waiting for dashboard redirect...');
