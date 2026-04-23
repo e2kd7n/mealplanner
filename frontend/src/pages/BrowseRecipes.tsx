@@ -287,11 +287,6 @@ const BrowseRecipes: React.FC = () => {
       return;
     }
 
-    // Don't search if there are no search criteria
-    if (!debouncedSearch && !cuisine && !diet && !mealType && maxTime === 0) {
-      return;
-    }
-
     const params: any = {
       offset: pagination.offset,
       number: pagination.number,
