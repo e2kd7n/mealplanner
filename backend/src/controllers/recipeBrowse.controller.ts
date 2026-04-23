@@ -136,7 +136,7 @@ export const addToRecipeBox = async (req: Request, res: Response) => {
       where: {
         userId,
         source: 'spoonacular' as any,
-        sourceUrl: { contains: `/${spoonacularId}` },
+        externalId: spoonacularId.toString(),
       },
     });
 
@@ -164,6 +164,7 @@ export const addToRecipeBox = async (req: Request, res: Response) => {
         description: recipeData.description || '',
         source: 'spoonacular' as any,
         sourceUrl: recipeData.sourceUrl || null,
+        externalId: spoonacularId.toString(),
         prepTime: recipeData.prepTime,
         cookTime: recipeData.cookTime,
         servings: recipeData.servings,
