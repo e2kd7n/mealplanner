@@ -60,27 +60,23 @@ interface BrowseRecipeCardProps {
   onAddToBox: (id: number) => void;
   onViewDetails: (id: number) => void;
   isAdding: boolean;
+  isAdded: boolean;
 }
 
-const BrowseRecipeCard = memo(({ recipe, onAddToBox, onViewDetails, isAdding }: BrowseRecipeCardProps) => {
-  const [added, setAdded] = useState(false);
+const BrowseRecipeCard = memo(({ recipe, onAddToBox, onViewDetails, isAdding, isAdded }: BrowseRecipeCardProps) => {
   const [adding, setAdding] = useState(false);
   // Use cached image hook for proper error handling and fallback
   const { src: imageSrc, isLoading: imageLoading } = useCachedImage(recipe.image);
 
   const handleAddClick = async (e: React.MouseEvent) => {
     e.stopPropagation();
-    if (added || adding) return;
+    if (isAdded || adding) return;
     
     setAdding(true);
     try {
       await onAddToBox(recipe.id);
-      setAdded(true);
     } catch (err: any) {
-      // Check if it's a duplicate error
-      if (err?.message?.includes('already in your recipe box')) {
-        setAdded(true);
-      }
+      // Error handled by Redux
     } finally {
       setAdding(false);
     }
@@ -164,14 +160,14 @@ const BrowseRecipeCard = memo(({ recipe, onAddToBox, onViewDetails, isAdding }: 
         </Button>
         <Button
           size="small"
-          variant={added ? "outlined" : "contained"}
-          color={added ? "success" : "primary"}
-          startIcon={added ? <CheckCircleIcon /> : <AddIcon />}
+          variant={isAdded ? "outlined" : "contained"}
+          color={isAdded ? "success" : "primary"}
+          startIcon={isAdded ? <CheckCircleIcon /> : <AddIcon />}
           onClick={handleAddClick}
-          disabled={adding || added}
+          disabled={adding || isAdded}
           sx={{ flex: 1 }}
         >
-          {added ? 'In Box' : adding ? 'Adding...' : 'Add'}
+          {isAdded ? 'In Box' : adding ? 'Adding...' : 'Add'}
         </Button>
       </CardActions>
     </Card>
@@ -198,7 +194,7 @@ const RecipeCardSkeleton = () => (
 const BrowseRecipes: React.FC = () => {
   const dispatch = useAppDispatch();
   const [searchParams, setSearchParams] = useSearchParams();
-  const { recipes, loading, error, pagination, addingToBox, addToBoxError } = useAppSelector(
+  const { recipes, loading, error, pagination, addingToBox, addToBoxError, addedRecipeIds } = useAppSelector(
     (state) => state.recipeBrowse
   );
 
@@ -743,6 +739,7 @@ const BrowseRecipes: React.FC = () => {
                 onAddToBox={handleAddToBox}
                 onViewDetails={handleViewDetails}
                 isAdding={addingToBox}
+                isAdded={addedRecipeIds.has(recipe.id)}
               />
             ))}
           </Box>
