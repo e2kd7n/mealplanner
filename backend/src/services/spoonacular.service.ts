@@ -10,7 +10,7 @@ const SPOONACULAR_API_KEY = process.env.SPOONACULAR_API_KEY;
 const SPOONACULAR_BASE_URL = 'https://api.spoonacular.com';
 
 // Cache configuration
-const CACHE_TTL = 10 * 60 * 1000; // 10 minutes in milliseconds
+const CACHE_TTL = 24 * 60 * 60 * 1000; // 24 hours in milliseconds
 
 interface CacheEntry<T> {
   data: T;
