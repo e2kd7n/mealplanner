@@ -317,8 +317,8 @@ const Recipes: React.FC = () => {
         </Box>
 
         {/* Tab Content */}
-        {activeTab === 0 ? (
-          // My Recipes Tab
+        <Box sx={{ display: activeTab === 0 ? 'block' : 'none' }}>
+          {/* My Recipes Tab */}
           <>
             {/* Search and Filters */}
             <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} sx={{ mb: 3 }}>
@@ -490,10 +490,12 @@ const Recipes: React.FC = () => {
               </>
             )}
           </>
-        ) : (
-          // Browse Recipes Tab
+        </Box>
+
+        {/* Browse Recipes Tab */}
+        <Box sx={{ display: activeTab === 1 ? 'block' : 'none' }}>
           <BrowseRecipes />
-        )}
+        </Box>
       </Box>
     </Container>
   );
