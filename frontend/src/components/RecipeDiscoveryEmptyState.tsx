@@ -158,6 +158,7 @@ const RecipeDiscoveryEmptyState: React.FC = () => {
             query: '',
             number: 6,
             sort: 'popularity',
+            skipPaginationUpdate: true,
           })
         ).unwrap();
         
@@ -168,6 +169,7 @@ const RecipeDiscoveryEmptyState: React.FC = () => {
             number: 6,
             maxReadyTime: 30,
             sort: 'time',
+            skipPaginationUpdate: true,
           })
         ).unwrap();
 
