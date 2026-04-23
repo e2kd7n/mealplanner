@@ -23,34 +23,44 @@ import {
   TrendingUp as TrendingIcon,
   Explore as ExploreIcon,
   Add as AddIcon,
+  Visibility as VisibilityIcon,
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import { useAppDispatch } from '../store/hooks';
 import { searchSpoonacularRecipes, addSpoonacularRecipeToBox } from '../store/slices/recipeBrowseSlice';
 import { useCachedImage } from '../hooks/useCachedImage';
+import SpoonacularRecipeDialog from './SpoonacularRecipeDialog';
 
 interface RecipeCardProps {
   recipe: any;
   onAdd: (id: number) => void;
+  onView: (id: number) => void;
 }
 
-const QuickRecipeCard: React.FC<RecipeCardProps> = ({ recipe, onAdd }) => {
+const QuickRecipeCard: React.FC<RecipeCardProps> = ({ recipe, onAdd, onView }) => {
   const { src: imageSrc, isLoading: imageLoading } = useCachedImage(recipe.image);
   const [adding, setAdding] = useState(false);
 
-  const handleAdd = async () => {
+  const handleAdd = async (e: React.MouseEvent) => {
+    e.stopPropagation();
     setAdding(true);
     await onAdd(recipe.id);
     setAdding(false);
   };
 
+  const handleView = () => {
+    onView(recipe.id);
+  };
+
   return (
     <Card
+      onClick={handleView}
       sx={{
         height: '100%',
         display: 'flex',
         flexDirection: 'column',
         transition: 'transform 0.2s, box-shadow 0.2s',
+        cursor: 'pointer',
         '&:hover': {
           transform: 'translateY(-4px)',
           boxShadow: 4,
@@ -92,15 +102,25 @@ const QuickRecipeCard: React.FC<RecipeCardProps> = ({ recipe, onAdd }) => {
           )}
         </Stack>
       </CardContent>
-      <CardActions sx={{ pt: 0 }}>
+      <CardActions sx={{ pt: 0, gap: 1 }}>
         <Button
           size="small"
+          variant="outlined"
+          startIcon={<VisibilityIcon />}
+          onClick={handleView}
+          sx={{ flex: 1 }}
+        >
+          View
+        </Button>
+        <Button
+          size="small"
+          variant="contained"
           startIcon={<AddIcon />}
           onClick={handleAdd}
           disabled={adding}
-          fullWidth
+          sx={{ flex: 1 }}
         >
-          {adding ? 'Adding...' : 'Add to My Recipes'}
+          {adding ? 'Adding...' : 'Add'}
         </Button>
       </CardActions>
     </Card>
@@ -113,6 +133,8 @@ const RecipeDiscoveryEmptyState: React.FC = () => {
   const [trendingRecipes, setTrendingRecipes] = useState<any[]>([]);
   const [quickDinners, setQuickDinners] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [selectedRecipeId, setSelectedRecipeId] = useState<number | null>(null);
+  const [dialogOpen, setDialogOpen] = useState(false);
 
   useEffect(() => {
     const fetchSuggestions = async () => {
@@ -156,6 +178,16 @@ const RecipeDiscoveryEmptyState: React.FC = () => {
     } catch (error) {
       if (import.meta.env.DEV) console.error('Error adding recipe:', error);
     }
+  };
+
+  const handleViewRecipe = (recipeId: number) => {
+    setSelectedRecipeId(recipeId);
+    setDialogOpen(true);
+  };
+
+  const handleCloseDialog = () => {
+    setDialogOpen(false);
+    setSelectedRecipeId(null);
   };
 
   return (
@@ -235,7 +267,7 @@ const RecipeDiscoveryEmptyState: React.FC = () => {
             }}
           >
             {trendingRecipes.map((recipe) => (
-              <QuickRecipeCard key={recipe.id} recipe={recipe} onAdd={handleAddRecipe} />
+              <QuickRecipeCard key={recipe.id} recipe={recipe} onAdd={handleAddRecipe} onView={handleViewRecipe} />
             ))}
           </Box>
         ) : (
@@ -290,7 +322,7 @@ const RecipeDiscoveryEmptyState: React.FC = () => {
             }}
           >
             {quickDinners.map((recipe) => (
-              <QuickRecipeCard key={recipe.id} recipe={recipe} onAdd={handleAddRecipe} />
+              <QuickRecipeCard key={recipe.id} recipe={recipe} onAdd={handleAddRecipe} onView={handleViewRecipe} />
             ))}
           </Box>
         ) : (
@@ -317,6 +349,13 @@ const RecipeDiscoveryEmptyState: React.FC = () => {
           Browse All Recipes
         </Button>
       </Box>
+
+      {/* Recipe Details Dialog */}
+      <SpoonacularRecipeDialog
+        open={dialogOpen}
+        recipeId={selectedRecipeId}
+        onClose={handleCloseDialog}
+      />
     </Container>
   );
 };
