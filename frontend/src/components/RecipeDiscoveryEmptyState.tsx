@@ -24,6 +24,7 @@ import {
   Explore as ExploreIcon,
   Add as AddIcon,
   Visibility as VisibilityIcon,
+  CheckCircle as CheckCircleIcon,
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import { useAppDispatch } from '../store/hooks';
@@ -40,12 +41,24 @@ interface RecipeCardProps {
 const QuickRecipeCard: React.FC<RecipeCardProps> = ({ recipe, onAdd, onView }) => {
   const { src: imageSrc, isLoading: imageLoading } = useCachedImage(recipe.image);
   const [adding, setAdding] = useState(false);
+  const [added, setAdded] = useState(false);
 
   const handleAdd = async (e: React.MouseEvent) => {
     e.stopPropagation();
+    if (added || adding) return;
+    
     setAdding(true);
-    await onAdd(recipe.id);
-    setAdding(false);
+    try {
+      await onAdd(recipe.id);
+      setAdded(true);
+    } catch (err: any) {
+      // Check if it's a duplicate error
+      if (err?.message?.includes('already in your recipe box')) {
+        setAdded(true);
+      }
+    } finally {
+      setAdding(false);
+    }
   };
 
   const handleView = () => {
@@ -114,13 +127,14 @@ const QuickRecipeCard: React.FC<RecipeCardProps> = ({ recipe, onAdd, onView }) =
         </Button>
         <Button
           size="small"
-          variant="contained"
-          startIcon={<AddIcon />}
+          variant={added ? "outlined" : "contained"}
+          color={added ? "success" : "primary"}
+          startIcon={added ? <CheckCircleIcon /> : <AddIcon />}
           onClick={handleAdd}
-          disabled={adding}
+          disabled={adding || added}
           sx={{ flex: 1 }}
         >
-          {adding ? 'Adding...' : 'Add'}
+          {added ? 'In Box' : adding ? 'Adding...' : 'Add'}
         </Button>
       </CardActions>
     </Card>

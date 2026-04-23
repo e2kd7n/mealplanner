@@ -74,8 +74,12 @@ const SpoonacularRecipeDialog: React.FC<SpoonacularRecipeDialogProps> = ({
       setAdding(true);
       await dispatch(addSpoonacularRecipeToBox(recipeId)).unwrap();
       setAdded(true);
-    } catch (err) {
-      // Error handled by Redux
+    } catch (err: any) {
+      // Check if it's a duplicate error (409)
+      if (err?.includes('already in your recipe box')) {
+        setAdded(true);
+      }
+      // Other errors handled by Redux
     } finally {
       setAdding(false);
     }
@@ -262,13 +266,13 @@ const SpoonacularRecipeDialog: React.FC<SpoonacularRecipeDialogProps> = ({
         <Button onClick={onClose}>Close</Button>
         {recipe && (
           <Button
-            variant="contained"
+            variant={added ? 'outlined' : 'contained'}
             startIcon={added ? <CheckCircleIcon /> : <AddIcon />}
             onClick={handleAddToBox}
             disabled={adding || added}
             color={added ? 'success' : 'primary'}
           >
-            {added ? 'Added to Recipe Box' : adding ? 'Adding...' : 'Add to Recipe Box'}
+            {added ? 'In Recipe Box' : adding ? 'Adding...' : 'Add to Recipe Box'}
           </Button>
         )}
       </DialogActions>
