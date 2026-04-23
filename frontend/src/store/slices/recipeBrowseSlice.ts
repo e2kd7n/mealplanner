@@ -89,7 +89,8 @@ export const searchSpoonacularRecipes = createAsyncThunk(
   } = {}, { rejectWithValue }) => {
     try {
       const response = await recipeBrowseAPI.search(params);
-      return response.data;
+      // Backend wraps response in { success: true, data: {...} }
+      return response.data.data;
     } catch (error: any) {
       if (import.meta.env.DEV) console.error('Spoonacular search error:', error);
       return rejectWithValue(error.response?.data?.message || 'Failed to search recipes');
@@ -102,7 +103,8 @@ export const getSpoonacularRecipeDetails = createAsyncThunk(
   async (id: number, { rejectWithValue }) => {
     try {
       const response = await recipeBrowseAPI.getDetails(id);
-      return response.data;
+      // Backend wraps response in { success: true, data: {...} }
+      return response.data.data;
     } catch (error: any) {
       if (import.meta.env.DEV) console.error('Spoonacular recipe details error:', error);
       return rejectWithValue(error.response?.data?.message || 'Failed to fetch recipe details');
@@ -115,7 +117,8 @@ export const addSpoonacularRecipeToBox = createAsyncThunk(
   async (id: number, { rejectWithValue }) => {
     try {
       const response = await recipeBrowseAPI.addToBox(id);
-      return response.data;
+      // Backend wraps response in { success: true, data: {...} }
+      return response.data.data;
     } catch (error: any) {
       if (import.meta.env.DEV) console.error('Add to recipe box error:', error);
       return rejectWithValue(error.response?.data?.message || 'Failed to add recipe to box');
