@@ -64,13 +64,26 @@ interface BrowseRecipeCardProps {
 
 const BrowseRecipeCard = memo(({ recipe, onAddToBox, onViewDetails, isAdding }: BrowseRecipeCardProps) => {
   const [added, setAdded] = useState(false);
+  const [adding, setAdding] = useState(false);
   // Use cached image hook for proper error handling and fallback
   const { src: imageSrc, isLoading: imageLoading } = useCachedImage(recipe.image);
 
-  const handleAddClick = (e: React.MouseEvent) => {
+  const handleAddClick = async (e: React.MouseEvent) => {
     e.stopPropagation();
-    onAddToBox(recipe.id);
-    setAdded(true);
+    if (added || adding) return;
+    
+    setAdding(true);
+    try {
+      await onAddToBox(recipe.id);
+      setAdded(true);
+    } catch (err: any) {
+      // Check if it's a duplicate error
+      if (err?.message?.includes('already in your recipe box')) {
+        setAdded(true);
+      }
+    } finally {
+      setAdding(false);
+    }
   };
 
   const handleCardClick = () => {
@@ -155,10 +168,10 @@ const BrowseRecipeCard = memo(({ recipe, onAddToBox, onViewDetails, isAdding }: 
           color={added ? "success" : "primary"}
           startIcon={added ? <CheckCircleIcon /> : <AddIcon />}
           onClick={handleAddClick}
-          disabled={isAdding || added}
+          disabled={adding || added}
           sx={{ flex: 1 }}
         >
-          {added ? 'Added' : 'Add'}
+          {added ? 'In Box' : adding ? 'Adding...' : 'Add'}
         </Button>
       </CardActions>
     </Card>
