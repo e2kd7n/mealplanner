@@ -88,11 +88,12 @@ export const searchSpoonacularRecipes = createAsyncThunk(
     sort?: string;
     offset?: number;
     number?: number;
+    skipPaginationUpdate?: boolean; // Flag to skip updating pagination state
   } = {}, { rejectWithValue }) => {
     try {
       const response = await recipeBrowseAPI.search(params);
       // Backend wraps response in { success: true, data: {...} }
-      return response.data.data;
+      return { ...response.data.data, skipPaginationUpdate: params.skipPaginationUpdate };
     } catch (error: any) {
       if (import.meta.env.DEV) console.error('Spoonacular search error:', error);
       return rejectWithValue(error.response?.data?.message || 'Failed to search recipes');
@@ -157,11 +158,14 @@ const recipeBrowseSlice = createSlice({
         state.loading = false;
         if (action.payload) {
           state.recipes = action.payload.results || [];
-          state.pagination = {
-            offset: action.payload.offset || 0,
-            number: action.payload.number || 12,
-            totalResults: action.payload.totalResults || 0,
-          };
+          // Only update pagination if not skipped (for suggestion fetches)
+          if (!action.payload.skipPaginationUpdate) {
+            state.pagination = {
+              offset: action.payload.offset || 0,
+              number: action.payload.number || 12,
+              totalResults: action.payload.totalResults || 0,
+            };
+          }
         }
       })
       .addCase(searchSpoonacularRecipes.rejected, (state, action) => {
