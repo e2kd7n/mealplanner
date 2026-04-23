@@ -15,10 +15,10 @@ async function globalSetup(config: FullConfig) {
   const storageStatePath = 'e2e/.auth/user.json';
 
   console.log('🔐 Global Setup: Authenticating and saving session state...');
-  console.log('⏳ Waiting 15 seconds to avoid rate limiting from previous test runs...');
+  console.log('⏳ Waiting 20 seconds to avoid rate limiting from previous test runs...');
   
   // Wait to avoid rate limiting from previous test runs
-  await new Promise(resolve => setTimeout(resolve, 15000));
+  await new Promise(resolve => setTimeout(resolve, 20000));
 
   const browser = await chromium.launch();
   const context = await browser.newContext();
@@ -26,17 +26,21 @@ async function globalSetup(config: FullConfig) {
 
   try {
     // Navigate to login page
-    await page.goto(`${baseURL}/login`);
+    console.log('📍 Navigating to login page...');
+    await page.goto(`${baseURL}/login`, { waitUntil: 'networkidle' });
 
     // Fill in credentials
+    console.log('📝 Filling in credentials...');
     await page.getByLabel(/email/i).fill('test@example.com');
     await page.getByLabel(/password/i).fill('TestPass123!');
 
     // Click login button and wait for navigation
-    await Promise.all([
-      page.waitForURL('**/dashboard', { timeout: 15000 }),
-      page.getByRole('button', { name: /sign in/i }).click(),
-    ]);
+    console.log('🔑 Clicking login button...');
+    await page.getByRole('button', { name: /sign in/i }).click();
+    
+    // Wait for navigation with increased timeout
+    console.log('⏳ Waiting for dashboard redirect...');
+    await page.waitForURL('**/dashboard', { timeout: 30000 });
 
     // Wait a bit for any async operations to complete
     await page.waitForTimeout(2000);
@@ -47,6 +51,16 @@ async function globalSetup(config: FullConfig) {
     console.log('✅ Global Setup: Session state saved successfully');
   } catch (error) {
     console.error('❌ Global Setup: Authentication failed', error);
+    console.error('Current URL:', page.url());
+    
+    // Take a screenshot for debugging
+    try {
+      await page.screenshot({ path: 'e2e/.auth/login-failure.png', fullPage: true });
+      console.log('📸 Screenshot saved to e2e/.auth/login-failure.png');
+    } catch (screenshotError) {
+      console.error('Failed to take screenshot:', screenshotError);
+    }
+    
     throw error;
   } finally {
     await browser.close();
