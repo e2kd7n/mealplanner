@@ -16,7 +16,7 @@ export interface Recipe {
   cookTime: number;
   servings: number;
   difficulty: 'easy' | 'medium' | 'hard';
-  mealType: 'breakfast' | 'lunch' | 'dinner' | 'snack' | 'dessert';
+  mealTypes: ('breakfast' | 'lunch' | 'dinner' | 'snack' | 'dessert')[];
   cuisineType?: string;
   imageUrl?: string;
   ingredients: Array<{

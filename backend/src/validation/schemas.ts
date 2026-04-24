@@ -179,13 +179,9 @@ export const saveImportedRecipeSchema = z.object({
   difficulty: z.enum(['easy', 'medium', 'hard'], {
     message: 'Difficulty must be easy, medium, or hard',
   }),
-  // Support both mealType (singular, legacy) and mealTypes (plural, current)
-  mealType: z.enum(['breakfast', 'lunch', 'dinner', 'snack', 'dessert'], {
-    message: 'Invalid meal type',
-  }).optional(),
   mealTypes: z.array(z.enum(['breakfast', 'lunch', 'dinner', 'snack', 'dessert'], {
     message: 'Invalid meal type',
-  })).optional(),
+  })).min(1, 'At least one meal type is required'),
   cuisineType: z.string().nullable().optional(),
   imageUrl: z.string().nullable().optional(),
   ingredients: z.array(z.object({
@@ -207,9 +203,6 @@ export const saveImportedRecipeSchema = z.object({
     sugar: z.number().optional(),
   }).nullable().optional(),
   sourceUrl: z.string().url('Invalid source URL').optional(),
-}).refine(
-  (data) => data.mealType || (data.mealTypes && data.mealTypes.length > 0),
-  { message: 'Either mealType or mealTypes must be provided' }
-);
+});
 
 // Made with Bob

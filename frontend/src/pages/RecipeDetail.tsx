@@ -400,10 +400,13 @@ const RecipeDetail: React.FC = () => {
                   variant="outlined"
                   color={scalingFactor !== 1 ? 'primary' : 'default'}
                 />
-                <Chip
-                  label={recipe.mealType}
-                  variant="outlined"
-                />
+                {recipe.mealTypes?.map((mealType) => (
+                  <Chip
+                    key={mealType}
+                    label={mealType}
+                    variant="outlined"
+                  />
+                ))}
                 {recipe.cuisineType && (
                   <Chip
                     icon={<RestaurantIcon />}
