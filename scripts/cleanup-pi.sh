@@ -50,40 +50,42 @@ show_disk_usage
 # Check if cleanup is actually needed
 check_cleanup_needed
 
-# Stop all running containers
-echo -e "${YELLOW}🛑 Stopping all containers...${NC}"
+# Stop mealplanner containers only
+echo -e "${YELLOW}🛑 Stopping mealplanner containers...${NC}"
 if command -v podman-compose &> /dev/null && [ -f "podman-compose.yml" ]; then
     podman-compose -f podman-compose.yml down 2>/dev/null || true
+    echo -e "${GREEN}✓ Stopped containers via podman-compose${NC}"
+else
+    echo -e "${BLUE}ℹ️  No podman-compose.yml found, skipping compose down${NC}"
 fi
 
-# Stop any remaining podman containers
+# Remove only mealplanner-specific containers by name
 if command -v podman &> /dev/null; then
-    echo -e "${YELLOW}🛑 Stopping remaining podman containers...${NC}"
-    podman stop $(podman ps -aq) 2>/dev/null || true
+    echo -e "${YELLOW}🗑️  Removing mealplanner containers...${NC}"
+    podman rm -f meals-backend meals-frontend meals-db 2>/dev/null || true
+    echo -e "${GREEN}✓ Removed mealplanner containers${NC}"
 fi
 
-# Remove all containers
-echo -e "${YELLOW}🗑️  Removing all containers...${NC}"
+# Remove only mealplanner images
+echo -e "${YELLOW}🗑️  Removing mealplanner images...${NC}"
 if command -v podman &> /dev/null; then
-    podman rm -f $(podman ps -aq) 2>/dev/null || true
+    podman rmi -f meals-backend:latest meals-frontend:latest 2>/dev/null || true
+    podman rmi -f postgres:15-alpine 2>/dev/null || true
+    echo -e "${GREEN}✓ Removed mealplanner images${NC}"
 fi
 
-# Remove all images
-echo -e "${YELLOW}🗑️  Removing all images...${NC}"
+# Remove only mealplanner volumes
+echo -e "${YELLOW}🗑️  Removing mealplanner volumes...${NC}"
 if command -v podman &> /dev/null; then
-    podman rmi -f $(podman images -aq) 2>/dev/null || true
+    podman volume rm -f mealplanner_postgres-data mealplanner_data-uploads mealplanner_data-backups mealplanner_data-images 2>/dev/null || true
+    echo -e "${GREEN}✓ Removed mealplanner volumes${NC}"
 fi
 
-# Remove all volumes
-echo -e "${YELLOW}🗑️  Removing all volumes...${NC}"
+# Clean up only dangling resources (safe - doesn't remove other apps)
+echo -e "${YELLOW}🧹 Cleaning dangling podman resources...${NC}"
 if command -v podman &> /dev/null; then
-    podman volume rm -f $(podman volume ls -q) 2>/dev/null || true
-fi
-
-# Clean up podman system
-echo -e "${YELLOW}🧹 Cleaning podman system...${NC}"
-if command -v podman &> /dev/null; then
-    podman system prune -af --volumes 2>/dev/null || true
+    podman system prune -f 2>/dev/null || true
+    echo -e "${GREEN}✓ Cleaned dangling resources${NC}"
 fi
 
 # Remove image tar files (both compressed and uncompressed)
@@ -106,10 +108,10 @@ if command -v podman &> /dev/null; then
     podman builder prune -af 2>/dev/null || true
 fi
 
-# Remove temporary files
+# Remove temporary files (only mealplanner-related)
 echo -e "${YELLOW}🗑️  Removing temporary files...${NC}"
-rm -rf /tmp/podman-* 2>/dev/null || true
-rm -rf /tmp/buildah-* 2>/dev/null || true
+# Note: Skipping /tmp cleanup to avoid affecting other applications
+echo -e "${BLUE}ℹ️  Skipping /tmp cleanup (system-wide)${NC}"
 
 # Clean up data directories (optional - prompts user)
 echo ""
@@ -141,14 +143,12 @@ else
     echo -e "${BLUE}ℹ️  Keeping secrets${NC}"
 fi
 
-# Clean package manager cache
-echo -e "${YELLOW}🧹 Cleaning package manager cache...${NC}"
-sudo apt-get clean 2>/dev/null || true
-sudo apt-get autoremove -y 2>/dev/null || true
-
-# Clean journal logs (keep last 3 days)
-echo -e "${YELLOW}🧹 Cleaning old journal logs...${NC}"
-sudo journalctl --vacuum-time=3d 2>/dev/null || true
+# Skip system-wide cleanup operations
+echo -e "${BLUE}ℹ️  Skipping system-wide cleanup (apt cache, journal logs)${NC}"
+echo -e "${BLUE}ℹ️  These operations could affect other applications on the Pi${NC}"
+echo -e "${YELLOW}💡 If you need system-wide cleanup, run manually:${NC}"
+echo -e "   sudo apt-get clean && sudo apt-get autoremove -y"
+echo -e "   sudo journalctl --vacuum-time=3d"
 
 # Show final disk usage
 echo ""
@@ -163,14 +163,12 @@ SPACE_FREED=$((DISK_USAGE - DISK_FINAL))
 
 # Show what was cleaned
 echo -e "${BLUE}📊 Cleanup summary:${NC}"
-echo -e "   ✓ All containers stopped and removed"
-echo -e "   ✓ All images removed"
-echo -e "   ✓ All volumes removed"
+echo -e "   ✓ All mealplanner containers stopped and removed"
+echo -e "   ✓ All mealplanner images removed"
+echo -e "   ✓ All mealplanner volumes removed"
 echo -e "   ✓ Podman system cache cleaned"
-echo -e "   ✓ Image tar files removed"
-echo -e "   ✓ Temporary files cleaned"
-echo -e "   ✓ Package cache cleaned"
-echo -e "   ✓ Old journal logs removed"
+echo -e "   ✓ Image tar files removed from ./pi-images/"
+echo -e "   ℹ️  System-wide cleanup skipped (safe for multi-app Pi)"
 echo ""
 echo -e "${GREEN}💾 Space freed: ~${SPACE_FREED}%${NC}"
 echo ""
