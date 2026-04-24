@@ -67,20 +67,35 @@ if [ "$DISK_USAGE" -gt 70 ]; then
 fi
 
 # Load backend image
-echo -e "${YELLOW}📥 Loading backend image...${NC}"
+echo -e "${YELLOW}📥 Loading backend image (1/2)...${NC}"
+echo -e "${BLUE}   This may take 2-3 minutes for the backend image...${NC}"
 if [ "$USE_COMPRESSED" = true ]; then
-    gunzip -c "$BACKEND_COMPRESSED" | podman load
+    echo -e "${BLUE}   Decompressing and loading 416MB compressed file...${NC}"
+    gunzip -c "$BACKEND_COMPRESSED" | podman load --progress=plain 2>&1 | while IFS= read -r line; do
+        if [[ "$line" =~ "Copying blob" ]] || [[ "$line" =~ "Copying config" ]] || [[ "$line" =~ "Writing manifest" ]]; then
+            echo -e "${GREEN}   ✓ $line${NC}"
+        fi
+    done
 else
-    podman load -i "$BACKEND_UNCOMPRESSED"
+    podman load -i "$BACKEND_UNCOMPRESSED" --progress=plain
 fi
+echo -e "${GREEN}✓ Backend image loaded${NC}"
+echo ""
 
 # Load frontend image
-echo -e "${YELLOW}📥 Loading frontend image...${NC}"
+echo -e "${YELLOW}📥 Loading frontend image (2/2)...${NC}"
+echo -e "${BLUE}   This should be quick (~30 seconds)...${NC}"
 if [ "$USE_COMPRESSED" = true ]; then
-    gunzip -c "$FRONTEND_COMPRESSED" | podman load
+    echo -e "${BLUE}   Decompressing and loading 24MB compressed file...${NC}"
+    gunzip -c "$FRONTEND_COMPRESSED" | podman load --progress=plain 2>&1 | while IFS= read -r line; do
+        if [[ "$line" =~ "Copying blob" ]] || [[ "$line" =~ "Copying config" ]] || [[ "$line" =~ "Writing manifest" ]]; then
+            echo -e "${GREEN}   ✓ $line${NC}"
+        fi
+    done
 else
-    podman load -i "$FRONTEND_UNCOMPRESSED"
+    podman load -i "$FRONTEND_UNCOMPRESSED" --progress=plain
 fi
+echo -e "${GREEN}✓ Frontend image loaded${NC}"
 
 # Verify images are loaded
 echo -e "${GREEN}✅ Images loaded successfully!${NC}"
