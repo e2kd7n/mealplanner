@@ -1,5 +1,5 @@
 # Multi-stage build for React frontend
-# Optimized for ARM architecture (Raspberry Pi)
+# Optimized for ARM architecture (Raspberry Pi) with minimal size
 
 FROM docker.io/library/node:20-alpine AS builder
 
@@ -11,8 +11,8 @@ COPY package.json pnpm-lock.yaml ./
 # Install pnpm
 RUN npm install -g pnpm@10
 
-# Install dependencies
-RUN pnpm install --frozen-lockfile
+# Install dependencies (build only, no dev dependencies needed in final image)
+RUN pnpm install --frozen-lockfile --prod=false
 
 # Copy source code
 COPY . .
@@ -24,14 +24,23 @@ ENV VITE_API_URL=$VITE_API_URL
 # Build the application
 RUN pnpm build
 
-# Production stage with nginx
+# Clean up node_modules after build to reduce layer size
+RUN rm -rf node_modules
+
+# Production stage with nginx (OPTIMIZED)
 FROM docker.io/library/nginx:alpine
 
-# Copy built assets from builder
+# Remove default nginx static assets and config
+RUN rm -rf /usr/share/nginx/html/* /etc/nginx/conf.d/default.conf
+
+# Copy built assets from builder (only dist folder, not node_modules)
 COPY --from=builder /app/dist /usr/share/nginx/html
 
 # Copy nginx configuration
 COPY nginx.conf /etc/nginx/conf.d/default.conf
+
+# Remove unnecessary nginx modules and files to save space
+RUN rm -rf /usr/share/nginx/html/*.map 2>/dev/null || true
 
 # Expose port
 EXPOSE 80
