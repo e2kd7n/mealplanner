@@ -54,6 +54,18 @@ else
     exit 1
 fi
 
+# Check disk space before loading
+DISK_USAGE=$(df / | awk 'NR==2 {print $5}' | sed 's/%//')
+if [ "$DISK_USAGE" -gt 70 ]; then
+    echo -e "${YELLOW}⚠️  Disk usage is ${DISK_USAGE}% - cleanup recommended before loading${NC}"
+    echo -e "${YELLOW}Run: ./scripts/cleanup-pi.sh${NC}"
+    read -p "Continue anyway? (y/N): " -n 1 -r
+    echo
+    if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+        exit 1
+    fi
+fi
+
 # Load backend image
 echo -e "${YELLOW}📥 Loading backend image...${NC}"
 if [ "$USE_COMPRESSED" = true ]; then
@@ -75,6 +87,21 @@ echo -e "${GREEN}✅ Images loaded successfully!${NC}"
 echo ""
 echo -e "${BLUE}📋 Loaded images:${NC}"
 podman images | grep meals
+
+# Cleanup tar files after successful load
+echo ""
+echo -e "${YELLOW}🧹 Cleaning up tar files to save space...${NC}"
+if [ "$USE_COMPRESSED" = true ]; then
+    rm -f "$BACKEND_COMPRESSED" "$FRONTEND_COMPRESSED"
+    echo -e "${GREEN}✓ Removed compressed tar files${NC}"
+else
+    rm -f "$BACKEND_UNCOMPRESSED" "$FRONTEND_UNCOMPRESSED"
+    echo -e "${GREEN}✓ Removed uncompressed tar files${NC}"
+fi
+
+# Show disk space after cleanup
+DISK_AFTER=$(df / | awk 'NR==2 {print $5}')
+echo -e "${BLUE}💾 Disk usage after cleanup: ${DISK_AFTER}${NC}"
 
 echo ""
 echo -e "${GREEN}🚀 Next step: Deploy the application${NC}"
