@@ -69,14 +69,20 @@ This script:
 Transfer the built images to your Raspberry Pi:
 
 ```bash
-# Using SCP
+# Using SCP (recommended - transfer compressed files)
+scp pi-images/*.tar.gz pi@pihole.local:~/mealplanner/pi-images/
+
+# Or transfer uncompressed (larger, slower)
 scp pi-images/*.tar pi@pihole.local:~/mealplanner/pi-images/
 
 # Or using rsync (faster, resumable)
-rsync -avz --progress pi-images/ pi@pihole.local:~/mealplanner/pi-images/
+rsync -avz --progress pi-images/*.tar.gz pi@pihole.local:~/mealplanner/pi-images/
 ```
 
-**Note:** Ensure the `~/mealplanner` directory exists on the Pi and contains all project files.
+**Note:**
+- Ensure the `~/mealplanner` directory exists on the Pi and contains all project files
+- Use compressed `.tar.gz` files for faster transfer (60% smaller)
+- The load script handles both compressed and uncompressed files automatically
 
 ### Step 3: Load Images on Raspberry Pi
 
@@ -87,6 +93,13 @@ ssh pi@pihole.local
 cd ~/mealplanner
 ./scripts/load-pi-images.sh
 ```
+
+**What this script does:**
+- Automatically detects compressed (.tar.gz) or uncompressed (.tar) files
+- Decompresses on-the-fly (no manual unzip needed)
+- Loads images into podman
+- Automatically removes tar files after successful load to save space
+- Shows disk usage before and after
 
 This script:
 - ✅ Verifies Podman is installed
