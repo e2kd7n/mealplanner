@@ -1,5 +1,5 @@
 # Multi-stage build for Node.js backend with integrated frontend
-# Optimized for ARM architecture (Raspberry Pi)
+# Optimized for ARM architecture (Raspberry Pi) with minimal size
 
 # Stage 1: Build frontend
 FROM docker.io/library/node:20-alpine AS frontend-builder
@@ -12,8 +12,8 @@ COPY frontend/package.json frontend/pnpm-lock.yaml ./
 # Install pnpm
 RUN npm install -g pnpm@10
 
-# Install frontend dependencies
-RUN pnpm install --frozen-lockfile
+# Install frontend dependencies (production only)
+RUN pnpm install --frozen-lockfile --prod=false
 
 # Copy frontend source code
 COPY frontend ./
@@ -54,7 +54,7 @@ RUN npx prisma generate
 # Build TypeScript
 RUN pnpm build
 
-# Stage 3: Production
+# Stage 3: Production (OPTIMIZED)
 FROM docker.io/library/node:20-alpine
 
 # Install runtime dependencies
@@ -68,8 +68,8 @@ RUN npm install -g pnpm@10
 # Copy package files
 COPY backend/package.json backend/pnpm-lock.yaml ./
 
-# Install all dependencies (includes Prisma CLI from devDependencies)
-RUN pnpm install --frozen-lockfile
+# Install ONLY production dependencies (excludes devDependencies like TypeScript, @types/*, etc.)
+RUN pnpm install --frozen-lockfile --prod
 
 # Copy prisma schema
 COPY --from=backend-builder /app/prisma ./prisma
@@ -79,6 +79,9 @@ COPY --from=backend-builder /app/prisma ./prisma
 ENV PRISMA_ENGINES_CHECKSUM_IGNORE_MISSING=1
 ENV DATABASE_URL="postgresql://dummy:dummy@localhost:5432/dummy"
 RUN npx prisma generate
+
+# Clean up pnpm cache and store to save space
+RUN pnpm store prune && rm -rf /root/.local/share/pnpm/store
 
 # Copy built backend from builder
 COPY --from=backend-builder /app/dist ./dist
@@ -95,6 +98,9 @@ RUN chmod +x /app/docker-entrypoint.sh
 
 # Set environment
 ENV NODE_ENV=production
+
+# Remove npm cache to save space
+RUN npm cache clean --force
 
 # Expose port
 EXPOSE 3000
