@@ -151,13 +151,15 @@ const RecipeCard = memo(({ recipe, onNavigate }: RecipeCardProps) => {
               variant="outlined"
             />
           </Tooltip>
-          <Tooltip title={`Meal type: ${recipe.mealType}`} arrow>
-            <Chip
-              label={recipe.mealType}
-              size="small"
-              variant="outlined"
-            />
-          </Tooltip>
+          {recipe.mealTypes?.map((mealType: string) => (
+            <Tooltip key={mealType} title={`Meal type: ${mealType}`} arrow>
+              <Chip
+                label={mealType}
+                size="small"
+                variant="outlined"
+              />
+            </Tooltip>
+          ))}
         </Stack>
       </CardContent>
       <CardActions>
