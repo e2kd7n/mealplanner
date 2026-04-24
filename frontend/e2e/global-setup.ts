@@ -24,6 +24,37 @@ async function globalSetup(config: FullConfig) {
   const context = await browser.newContext();
   const page = await context.newPage();
 
+  // Capture console logs
+  page.on('console', msg => console.log('BROWSER CONSOLE:', msg.type(), msg.text()));
+  
+  // Capture page errors
+  page.on('pageerror', error => console.error('BROWSER ERROR:', error));
+  
+  // Track network requests
+  const requests: string[] = [];
+  page.on('request', request => {
+    const url = request.url();
+    if (url.includes('/api/')) {
+      requests.push(`${request.method()} ${url}`);
+      console.log('API REQUEST:', request.method(), url);
+    }
+  });
+  
+  page.on('response', async response => {
+    const url = response.url();
+    if (url.includes('/api/')) {
+      console.log('API RESPONSE:', response.status(), url);
+      if (response.status() >= 400) {
+        try {
+          const body = await response.text();
+          console.log('ERROR RESPONSE BODY:', body);
+        } catch (e) {
+          console.log('Could not read error response body');
+        }
+      }
+    }
+  });
+
   try {
     // Navigate to login page
     console.log('📍 Navigating to login page...');
@@ -48,6 +79,7 @@ async function globalSetup(config: FullConfig) {
     await loginButton.click();
     
     console.log('✓ Login button clicked');
+    console.log('📡 API requests made:', requests.length);
     
     // Wait for navigation with increased timeout
     console.log('⏳ Waiting for dashboard redirect...');
