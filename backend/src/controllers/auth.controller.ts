@@ -10,6 +10,44 @@ import { generateTokenPair, verifyRefreshToken } from '../utils/jwt';
 import { AppError } from '../middleware/errorHandler';
 import { logger } from '../utils/logger';
 
+/**
+ * Get the start of the current week (Sunday)
+ */
+function getWeekStartDate(): Date {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const dayOfWeek = today.getDay();
+  const diff = dayOfWeek; // Days since Sunday
+  const weekStart = new Date(today);
+  weekStart.setDate(today.getDate() - diff);
+  return weekStart;
+}
+
+/**
+ * Create initial meal plan for new user
+ */
+async function createInitialMealPlan(userId: string): Promise<void> {
+  try {
+    const weekStartDate = getWeekStartDate();
+    
+    await prisma.mealPlan.create({
+      data: {
+        userId,
+        weekStartDate,
+        status: 'draft',
+      },
+    });
+    
+    logger.info('Initial meal plan created for new user', { userId });
+  } catch (error) {
+    // Log error but don't fail registration if meal plan creation fails
+    logger.error('Failed to create initial meal plan for new user', {
+      userId,
+      error: error instanceof Error ? error.message : 'Unknown error'
+    });
+  }
+}
+
 // TypeScript interfaces for request bodies
 interface RegisterRequestBody {
   email: string;
@@ -293,6 +331,9 @@ export async function register(
       userId: user.id,
       emailDomain: maskEmail(user.email)
     });
+
+    // Create initial meal plan for the new user
+    await createInitialMealPlan(user.id);
 
     res.status(201).json({
       message: 'User registered successfully',
