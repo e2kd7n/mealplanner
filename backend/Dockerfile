@@ -74,11 +74,8 @@ RUN pnpm install --frozen-lockfile --prod
 # Copy prisma schema
 COPY --from=backend-builder /app/prisma ./prisma
 
-# Generate Prisma client in production stage
-# Use dummy DATABASE_URL for build time (will be replaced at runtime)
-ENV PRISMA_ENGINES_CHECKSUM_IGNORE_MISSING=1
-ENV DATABASE_URL="postgresql://dummy:dummy@localhost:5432/dummy"
-RUN npx prisma generate
+# Copy generated Prisma client from builder (pnpm structure)
+COPY --from=backend-builder /app/node_modules/.pnpm ./node_modules/.pnpm
 
 # Clean up pnpm cache and store to save space
 RUN pnpm store prune && rm -rf /root/.local/share/pnpm/store
