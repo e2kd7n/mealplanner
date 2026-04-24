@@ -57,7 +57,7 @@ interface RecipeBrowseState {
   };
   addingToBox: boolean;
   addToBoxError: string | null;
-  addedRecipeIds: Set<number>;
+  addedRecipeIds: number[]; // Changed from Set to array for Redux serializability
 }
 
 const initialState: RecipeBrowseState = {
@@ -73,7 +73,7 @@ const initialState: RecipeBrowseState = {
   filters: {},
   addingToBox: false,
   addToBoxError: null,
-  addedRecipeIds: new Set<number>(),
+  addedRecipeIds: [], // Changed from Set to array
 };
 
 // Async thunks
@@ -194,7 +194,9 @@ const recipeBrowseSlice = createSlice({
         state.addingToBox = false;
         // Extract recipe ID from the meta argument
         const recipeId = action.meta.arg;
-        state.addedRecipeIds.add(recipeId);
+        if (!state.addedRecipeIds.includes(recipeId)) {
+          state.addedRecipeIds.push(recipeId);
+        }
       })
       .addCase(addSpoonacularRecipeToBox.rejected, (state, action) => {
         state.addingToBox = false;
@@ -202,7 +204,9 @@ const recipeBrowseSlice = createSlice({
         // If it's a duplicate error, still mark as added
         if (error?.includes('already in your recipe box')) {
           const recipeId = action.meta.arg;
-          state.addedRecipeIds.add(recipeId);
+          if (!state.addedRecipeIds.includes(recipeId)) {
+            state.addedRecipeIds.push(recipeId);
+          }
         }
         state.addToBoxError = error;
       });

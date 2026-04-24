@@ -285,7 +285,7 @@ const RecipeDiscoveryEmptyState: React.FC = () => {
                 recipe={recipe}
                 onAdd={handleAddRecipe}
                 onView={handleViewRecipe}
-                isAdded={addedRecipeIds.has(recipe.id)}
+                isAdded={addedRecipeIds.includes(recipe.id)}
               />
             ))}
           </Box>
@@ -346,7 +346,7 @@ const RecipeDiscoveryEmptyState: React.FC = () => {
                 recipe={recipe}
                 onAdd={handleAddRecipe}
                 onView={handleViewRecipe}
-                isAdded={addedRecipeIds.has(recipe.id)}
+                isAdded={addedRecipeIds.includes(recipe.id)}
               />
             ))}
           </Box>
