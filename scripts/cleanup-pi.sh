@@ -21,9 +21,34 @@ show_disk_usage() {
     echo ""
 }
 
+# Function to check if cleanup is needed
+check_cleanup_needed() {
+    DISK_USAGE=$(df / | awk 'NR==2 {print $5}' | sed 's/%//')
+    
+    if [ "$DISK_USAGE" -lt 60 ]; then
+        echo -e "${GREEN}✓ Disk usage is healthy (${DISK_USAGE}%)${NC}"
+        echo -e "${BLUE}No cleanup needed at this time.${NC}"
+        echo ""
+        echo -e "${YELLOW}Current status:${NC}"
+        show_disk_usage
+        podman system df 2>/dev/null || true
+        exit 0
+    elif [ "$DISK_USAGE" -lt 70 ]; then
+        echo -e "${YELLOW}⚠️  Disk usage is moderate (${DISK_USAGE}%)${NC}"
+        echo -e "${BLUE}Cleanup recommended but not critical.${NC}"
+    else
+        echo -e "${RED}❌ Disk usage is high (${DISK_USAGE}%)${NC}"
+        echo -e "${YELLOW}Cleanup strongly recommended!${NC}"
+    fi
+    echo ""
+}
+
 # Show initial disk usage
 echo -e "${YELLOW}Before cleanup:${NC}"
 show_disk_usage
+
+# Check if cleanup is actually needed
+check_cleanup_needed
 
 # Stop all running containers
 echo -e "${YELLOW}🛑 Stopping all containers...${NC}"
@@ -61,11 +86,18 @@ if command -v podman &> /dev/null; then
     podman system prune -af --volumes 2>/dev/null || true
 fi
 
-# Remove image tar files
+# Remove image tar files (both compressed and uncompressed)
 echo -e "${YELLOW}🗑️  Removing image tar files...${NC}"
 if [ -d "./pi-images" ]; then
-    rm -rf ./pi-images/*.tar 2>/dev/null || true
-    echo -e "${GREEN}✓ Removed tar files from ./pi-images/${NC}"
+    TAR_COUNT=$(ls -1 ./pi-images/*.tar ./pi-images/*.tar.gz 2>/dev/null | wc -l)
+    if [ "$TAR_COUNT" -gt 0 ]; then
+        rm -f ./pi-images/*.tar ./pi-images/*.tar.gz 2>/dev/null || true
+        echo -e "${GREEN}✓ Removed ${TAR_COUNT} tar files from ./pi-images/${NC}"
+    else
+        echo -e "${BLUE}ℹ️  No tar files found in ./pi-images/${NC}"
+    fi
+else
+    echo -e "${BLUE}ℹ️  No pi-images directory found${NC}"
 fi
 
 # Clean up build cache
@@ -125,6 +157,10 @@ echo ""
 echo -e "${YELLOW}After cleanup:${NC}"
 show_disk_usage
 
+# Calculate space freed
+DISK_FINAL=$(df / | awk 'NR==2 {print $5}' | sed 's/%//')
+SPACE_FREED=$((DISK_USAGE - DISK_FINAL))
+
 # Show what was cleaned
 echo -e "${BLUE}📊 Cleanup summary:${NC}"
 echo -e "   ✓ All containers stopped and removed"
@@ -136,8 +172,25 @@ echo -e "   ✓ Temporary files cleaned"
 echo -e "   ✓ Package cache cleaned"
 echo -e "   ✓ Old journal logs removed"
 echo ""
+echo -e "${GREEN}💾 Space freed: ~${SPACE_FREED}%${NC}"
+echo ""
+
+if [ "$DISK_FINAL" -lt 60 ]; then
+    echo -e "${GREEN}✓ Disk usage is now healthy (${DISK_FINAL}%)${NC}"
+elif [ "$DISK_FINAL" -lt 70 ]; then
+    echo -e "${YELLOW}⚠️  Disk usage is moderate (${DISK_FINAL}%)${NC}"
+    echo -e "${BLUE}Consider expanding storage if this persists${NC}"
+else
+    echo -e "${RED}⚠️  Disk usage is still high (${DISK_FINAL}%)${NC}"
+    echo -e "${YELLOW}Additional cleanup may be needed:${NC}"
+    echo -e "   - Check /var/log for large log files"
+    echo -e "   - Check /home for large files: du -sh /home/*"
+    echo -e "   - Consider expanding SD card storage"
+fi
+
+echo ""
 echo -e "${GREEN}💡 To redeploy:${NC}"
-echo -e "   1. Transfer new images: ${BLUE}scp pi-images/*.tar pi@pihole.local:~/mealplanner/pi-images/${NC}"
+echo -e "   1. Transfer new images: ${BLUE}scp pi-images/*.tar.gz pi@pihole.local:~/mealplanner/pi-images/${NC}"
 echo -e "   2. Load images: ${BLUE}./scripts/load-pi-images.sh${NC}"
 echo -e "   3. Deploy: ${BLUE}./scripts/deploy-podman.sh${NC}"
 

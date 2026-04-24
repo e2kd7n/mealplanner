@@ -11,7 +11,27 @@ echo "🚀 Starting Podman deployment for Meal Planner..."
 RED='\033[0;31m'
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
+BLUE='\033[0;34m'
 NC='\033[0m' # No Color
+
+# Check disk space before deployment
+DISK_USAGE=$(df / | awk 'NR==2 {print $5}' | sed 's/%//')
+echo -e "${BLUE}💾 Current disk usage: ${DISK_USAGE}%${NC}"
+
+if [ "$DISK_USAGE" -gt 80 ]; then
+    echo -e "${RED}❌ Disk usage is critically high (${DISK_USAGE}%)${NC}"
+    echo -e "${YELLOW}Please run cleanup before deploying:${NC}"
+    echo -e "   ${GREEN}./scripts/cleanup-pi.sh${NC}"
+    exit 1
+elif [ "$DISK_USAGE" -gt 70 ]; then
+    echo -e "${YELLOW}⚠️  Disk usage is high (${DISK_USAGE}%) - cleanup recommended${NC}"
+    echo -e "${YELLOW}Run: ./scripts/cleanup-pi.sh${NC}"
+    read -p "Continue anyway? (y/N): " -n 1 -r
+    echo
+    if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+        exit 1
+    fi
+fi
 
 # Check if podman is installed
 if ! command -v podman &> /dev/null; then
@@ -84,5 +104,34 @@ echo -e "${GREEN}✅ Deployment complete!${NC}"
 echo -e "${GREEN}🌐 Application is available at: http://localhost:3000${NC}"
 echo -e "${GREEN}🔒 HTTPS available at: https://localhost:443 (if SSL certificates configured)${NC}"
 echo -e "${GREEN}📝 View logs with: podman-compose -f podman-compose.yml logs -f${NC}"
+
+# Post-deployment cleanup check
+echo ""
+echo -e "${YELLOW}🧹 Checking for cleanup opportunities...${NC}"
+DISK_AFTER=$(df / | awk 'NR==2 {print $5}' | sed 's/%//')
+echo -e "${BLUE}💾 Disk usage after deployment: ${DISK_AFTER}${NC}"
+
+# Check for old/unused images
+UNUSED_IMAGES=$(podman images -f "dangling=true" -q | wc -l)
+if [ "$UNUSED_IMAGES" -gt 0 ]; then
+    echo -e "${YELLOW}⚠️  Found ${UNUSED_IMAGES} unused/dangling images${NC}"
+    echo -e "${YELLOW}Run cleanup to remove them: ./scripts/cleanup-pi.sh${NC}"
+fi
+
+# Check for stopped containers
+STOPPED_CONTAINERS=$(podman ps -a -f "status=exited" -q | wc -l)
+if [ "$STOPPED_CONTAINERS" -gt 0 ]; then
+    echo -e "${YELLOW}⚠️  Found ${STOPPED_CONTAINERS} stopped containers${NC}"
+    echo -e "${YELLOW}Run cleanup to remove them: ./scripts/cleanup-pi.sh${NC}"
+fi
+
+if [ "$DISK_AFTER" -gt 70 ]; then
+    echo -e "${YELLOW}⚠️  Disk usage is still high (${DISK_AFTER}%)${NC}"
+    echo -e "${YELLOW}Consider running: ./scripts/cleanup-pi.sh${NC}"
+fi
+
+echo ""
+echo -e "${BLUE}💡 Tip: Run diagnostics to monitor system health:${NC}"
+echo -e "   ${GREEN}./scripts/pi-diagnostics.sh${NC}"
 
 # Made with Bob
