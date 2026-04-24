@@ -739,7 +739,7 @@ const BrowseRecipes: React.FC = () => {
                 onAddToBox={handleAddToBox}
                 onViewDetails={handleViewDetails}
                 isAdding={addingToBox}
-                isAdded={addedRecipeIds.has(recipe.id)}
+                isAdded={addedRecipeIds.includes(recipe.id)}
               />
             ))}
           </Box>

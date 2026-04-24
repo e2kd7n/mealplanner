@@ -13,7 +13,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 # Run stop script
 echo "Step 1/2: Stopping services..."
-"$SCRIPT_DIR/stop-local.sh"
+"$SCRIPT_DIR/local-stop.sh"
 
 echo ""
 echo "⏳ Waiting 2 seconds before restart..."
@@ -22,6 +22,6 @@ echo ""
 
 # Run start script
 echo "Step 2/2: Starting services..."
-"$SCRIPT_DIR/run-local.sh"
+"$SCRIPT_DIR/local-run.sh"
 
 # Made with Bob
