@@ -54,7 +54,7 @@ fi
 
 # Stop and remove existing containers
 echo -e "${YELLOW}🛑 Stopping existing containers...${NC}"
-podman-compose -f podman-compose.yml down 2>/dev/null || true
+podman-compose -f podman-compose.pi.yml down 2>/dev/null || true
 
 # Check if pre-built images exist
 if podman images | grep -q "meals-backend"; then
@@ -67,15 +67,21 @@ fi
 
 # Build images only if needed
 if [ "$SKIP_BUILD" = false ]; then
-    echo -e "${GREEN}🔨 Building images...${NC}"
-    podman-compose -f podman-compose.yml build --no-cache
+    echo -e "${RED}❌ Pre-built images not found!${NC}"
+    echo -e "${YELLOW}On Raspberry Pi, you must use pre-built images.${NC}"
+    echo -e "${YELLOW}Please follow these steps:${NC}"
+    echo -e "   1. On dev machine: ${GREEN}./scripts/build-for-pi.sh${NC}"
+    echo -e "   2. Transfer images: ${GREEN}scp pi-images/*.tar.gz pi@pihole.local:~/mealplanner/pi-images/${NC}"
+    echo -e "   3. On Pi: ${GREEN}./scripts/load-pi-images.sh${NC}"
+    echo -e "   4. Then run: ${GREEN}./scripts/deploy-podman.sh${NC}"
+    exit 1
 else
-    echo -e "${BLUE}ℹ️  Skipping build (using pre-loaded images)${NC}"
+    echo -e "${BLUE}ℹ️  Using pre-loaded images${NC}"
 fi
 
 # Start services
 echo -e "${GREEN}🚀 Starting services...${NC}"
-podman-compose -f podman-compose.yml up -d
+podman-compose -f podman-compose.pi.yml up -d
 
 # Wait for services to be healthy
 echo -e "${YELLOW}⏳ Waiting for services to be healthy...${NC}"
@@ -83,7 +89,7 @@ sleep 10
 
 # Check service status
 echo -e "${GREEN}📊 Service status:${NC}"
-podman-compose -f podman-compose.yml ps
+podman-compose -f podman-compose.pi.yml ps
 
 # Wait a bit more for backend to fully start
 echo -e "${YELLOW}⏳ Waiting for backend to be ready...${NC}"
@@ -92,7 +98,7 @@ sleep 15
 # Verify backend container exists and is running
 if ! podman ps --format "{{.Names}}" | grep -q "meals-backend"; then
     echo -e "${RED}❌ Backend container not running. Checking logs...${NC}"
-    podman-compose -f podman-compose.yml logs backend
+    podman-compose -f podman-compose.pi.yml logs backend
     exit 1
 fi
 
@@ -101,9 +107,8 @@ echo -e "${GREEN}🔄 Running database migrations...${NC}"
 podman exec meals-backend sh -c "cd /app && npx prisma migrate deploy"
 
 echo -e "${GREEN}✅ Deployment complete!${NC}"
-echo -e "${GREEN}🌐 Application is available at: http://localhost:3000${NC}"
-echo -e "${GREEN}🔒 HTTPS available at: https://localhost:443 (if SSL certificates configured)${NC}"
-echo -e "${GREEN}📝 View logs with: podman-compose -f podman-compose.yml logs -f${NC}"
+echo -e "${GREEN}🌐 Application is available at: http://localhost:8080${NC}"
+echo -e "${GREEN}📝 View logs with: podman-compose -f podman-compose.pi.yml logs -f${NC}"
 
 # Post-deployment cleanup check
 echo ""
