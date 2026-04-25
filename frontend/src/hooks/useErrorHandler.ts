@@ -4,7 +4,7 @@
  */
 
 import { useState, useCallback } from 'react';
-import { getErrorMessage, parseError, logError } from '../utils/errorHandler';
+import { parseError, logError } from '../utils/errorHandler';
 import type { AppError } from '../utils/errorHandler';
 
 interface UseErrorHandlerReturn {

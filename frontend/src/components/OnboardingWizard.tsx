@@ -16,9 +16,7 @@ import {
   TextField,
   FormControl,
   FormLabel,
-  FormGroup,
   FormControlLabel,
-  Checkbox,
   RadioGroup,
   Radio,
   Chip,
@@ -72,7 +70,7 @@ const CUISINE_OPTIONS = [
 const OnboardingWizard: React.FC<OnboardingWizardProps> = ({ open, onClose, onComplete }) => {
   const navigate = useNavigate();
   const [activeStep, setActiveStep] = useState(0);
-  const [skipped, setSkipped] = useState(false);
+  const [, setSkipped] = useState(false);
   
   // Form state
   const [householdSize, setHouseholdSize] = useState<number>(2);
