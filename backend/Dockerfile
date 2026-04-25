@@ -9,8 +9,8 @@ WORKDIR /frontend
 # Copy frontend package files
 COPY frontend/package.json frontend/pnpm-lock.yaml ./
 
-# Install pnpm
-RUN npm install -g pnpm@10
+# Install pnpm using corepack (more reliable on ARM)
+RUN corepack enable && corepack prepare pnpm@10.0.0 --activate
 
 # Install frontend dependencies (production only)
 RUN pnpm install --frozen-lockfile --prod=false
@@ -36,8 +36,8 @@ WORKDIR /app
 # Copy package files
 COPY backend/package.json backend/pnpm-lock.yaml ./
 
-# Install pnpm
-RUN npm install -g pnpm@10
+# Install pnpm using corepack (more reliable on ARM)
+RUN corepack enable && corepack prepare pnpm@10.0.0 --activate
 
 # Install dependencies
 RUN pnpm install --frozen-lockfile
@@ -62,8 +62,8 @@ RUN apk add --no-cache wget
 
 WORKDIR /app
 
-# Install pnpm
-RUN npm install -g pnpm@10
+# Install pnpm using corepack (more reliable on ARM)
+RUN corepack enable && corepack prepare pnpm@10.0.0 --activate
 
 # Copy package files
 COPY backend/package.json backend/pnpm-lock.yaml ./
