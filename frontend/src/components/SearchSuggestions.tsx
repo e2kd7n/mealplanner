@@ -53,18 +53,6 @@ const SearchSuggestions: React.FC<SearchSuggestionsProps> = ({
     }
   };
 
-  const getTypeLabel = (type: SearchSuggestion['type']) => {
-    switch (type) {
-      case 'recent':
-        return 'Recent';
-      case 'popular':
-        return 'Popular';
-      case 'ingredient':
-        return 'Ingredient';
-      default:
-        return '';
-    }
-  };
 
   // Group suggestions by type
   const recentSuggestions = suggestions.filter(s => s.type === 'recent');

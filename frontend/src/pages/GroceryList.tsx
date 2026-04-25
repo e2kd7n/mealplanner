@@ -26,18 +26,12 @@ import {
   DialogTitle,
   DialogContent,
   DialogActions,
-  TextField,
-  FormControl,
-  InputLabel,
-  Select,
-  MenuItem,
   CircularProgress,
   Alert,
   Collapse,
   Avatar,
 } from '@mui/material';
 import {
-  Add as AddIcon,
   Delete as DeleteIcon,
   ShoppingCart as ShoppingCartIcon,
   CheckCircle as CheckCircleIcon,
@@ -114,18 +108,12 @@ const mapIngredientCategoryToStore = (ingredientCategory: string): string => {
 };
 
 const GroceryList: React.FC = () => {
-  const [groceryLists, setGroceryLists] = useState<GroceryList[]>([]);
+  const [, setGroceryLists] = useState<GroceryList[]>([]);
   const [currentList, setCurrentList] = useState<GroceryList | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [openDialog, setOpenDialog] = useState(false);
   const [expandedCategories, setExpandedCategories] = useState<Record<string, boolean>>({});
-  const [newItem, setNewItem] = useState({
-    name: '',
-    quantity: 1,
-    unit: 'pieces',
-    category: 'Other',
-  });
 
   const apiBase = import.meta.env.VITE_API_URL || '/api';
 
@@ -249,21 +237,6 @@ const GroceryList: React.FC = () => {
     }
   };
 
-  const handleAddItem = async () => {
-    if (!currentList) return;
-
-    try {
-      const token = localStorage.getItem('accessToken');
-      
-      // First, we need to find or create an ingredient
-      // For now, we'll show an error that this feature needs ingredient management
-      alert('Adding custom items requires ingredient management. Please use the meal planner to generate grocery lists from recipes.');
-      setOpenDialog(false);
-    } catch (err) {
-      if (import.meta.env.DEV) console.error('Error adding item:', err);
-      alert('Failed to add item. Please try again.');
-    }
-  };
 
   const handleClearChecked = async () => {
     if (!currentList) return;
