@@ -2,10 +2,9 @@
 
 # Run the Meal Planner application locally for development
 # This script starts the database container and local dev services, then opens the UI in Chrome
+# ⚠️  FOR LOCAL DEVELOPMENT ONLY - Use pi-run.sh on Raspberry Pi
 
 set -e
-
-echo "🚀 Starting Meal Planner in local development mode..."
 
 # Colors for output
 RED='\033[0;31m'
@@ -13,6 +12,24 @@ GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 BLUE='\033[0;34m'
 NC='\033[0m' # No Color
+
+# Detect if running on Raspberry Pi
+if [ -f /proc/device-tree/model ]; then
+    PI_MODEL=$(cat /proc/device-tree/model 2>/dev/null | tr -d '\0')
+    if [[ "$PI_MODEL" == *"Raspberry Pi"* ]]; then
+        echo -e "${RED}❌ ERROR: This is a LOCAL DEVELOPMENT script!${NC}"
+        echo ""
+        echo -e "${YELLOW}For Raspberry Pi deployment, use:${NC}"
+        echo -e "  ${GREEN}./scripts/pi-run.sh${NC}"
+        echo ""
+        echo -e "${BLUE}This script runs services directly (not in containers)${NC}"
+        echo -e "${BLUE}and is intended for development machines only.${NC}"
+        echo ""
+        exit 1
+    fi
+fi
+
+echo "🚀 Starting Meal Planner in local development mode..."
 
 # Cleanup function to kill background processes on exit
 cleanup() {
