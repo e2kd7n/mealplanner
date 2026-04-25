@@ -9,8 +9,9 @@ WORKDIR /frontend
 # Copy frontend package files
 COPY frontend/package.json frontend/pnpm-lock.yaml ./
 
-# Install pnpm using corepack (more reliable on ARM)
-RUN corepack enable && corepack prepare pnpm@10.0.0 --activate
+# Install pnpm directly via wget (bypasses syscall issues on ARM)
+RUN wget -qO- https://get.pnpm.io/install.sh | ENV="$HOME/.shrc" SHELL="$(which sh)" sh - && \
+    ln -s /root/.local/share/pnpm/pnpm /usr/local/bin/pnpm
 
 # Install frontend dependencies (production only)
 RUN pnpm install --frozen-lockfile --prod=false
@@ -36,8 +37,9 @@ WORKDIR /app
 # Copy package files
 COPY backend/package.json backend/pnpm-lock.yaml ./
 
-# Install pnpm using corepack (more reliable on ARM)
-RUN corepack enable && corepack prepare pnpm@10.0.0 --activate
+# Install pnpm directly via wget (bypasses syscall issues on ARM)
+RUN wget -qO- https://get.pnpm.io/install.sh | ENV="$HOME/.shrc" SHELL="$(which sh)" sh - && \
+    ln -s /root/.local/share/pnpm/pnpm /usr/local/bin/pnpm
 
 # Install dependencies
 RUN pnpm install --frozen-lockfile
@@ -57,13 +59,12 @@ RUN pnpm build
 # Stage 3: Production (OPTIMIZED)
 FROM docker.io/library/node:20-alpine
 
-# Install runtime dependencies
-RUN apk add --no-cache wget
+# Install runtime dependencies and pnpm
+RUN apk add --no-cache wget && \
+    wget -qO- https://get.pnpm.io/install.sh | ENV="$HOME/.shrc" SHELL="$(which sh)" sh - && \
+    ln -s /root/.local/share/pnpm/pnpm /usr/local/bin/pnpm
 
 WORKDIR /app
-
-# Install pnpm using corepack (more reliable on ARM)
-RUN corepack enable && corepack prepare pnpm@10.0.0 --activate
 
 # Copy package files
 COPY backend/package.json backend/pnpm-lock.yaml ./

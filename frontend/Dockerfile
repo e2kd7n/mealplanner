@@ -8,8 +8,10 @@ WORKDIR /app
 # Copy package files
 COPY package.json pnpm-lock.yaml ./
 
-# Install pnpm using corepack (more reliable on ARM)
-RUN corepack enable && corepack prepare pnpm@10.0.0 --activate
+# Install pnpm directly via wget (bypasses syscall issues on ARM)
+RUN apk add --no-cache wget && \
+    wget -qO- https://get.pnpm.io/install.sh | ENV="$HOME/.shrc" SHELL="$(which sh)" sh - && \
+    ln -s /root/.local/share/pnpm/pnpm /usr/local/bin/pnpm
 
 # Install dependencies (build only, no dev dependencies needed in final image)
 RUN pnpm install --frozen-lockfile --prod=false
