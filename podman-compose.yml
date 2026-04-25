@@ -117,7 +117,7 @@ services:
 
 networks:
   meals-network:
-    driver: bridge
+    external: true
 
 volumes:
   postgres_data: {}
