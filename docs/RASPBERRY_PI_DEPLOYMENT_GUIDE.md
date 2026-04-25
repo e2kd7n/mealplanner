@@ -217,6 +217,36 @@ crontab -e
 - CPU load (Warning: >2.0, Critical: >3.5)
 - Container status (all 4 containers running)
 
+### Auto-Start on Boot
+
+The setup script can configure the application to start automatically when the Pi boots:
+
+```bash
+./scripts/pi-setup.sh
+# Answer 'yes' when prompted for auto-start
+```
+
+**Systemd service commands:**
+```bash
+# Check status
+sudo systemctl status mealplanner
+
+# Start manually
+sudo systemctl start mealplanner
+
+# Stop
+sudo systemctl stop mealplanner
+
+# Restart
+sudo systemctl restart mealplanner
+
+# Disable auto-start
+sudo systemctl disable mealplanner
+
+# Re-enable auto-start
+sudo systemctl enable mealplanner
+```
+
 ### Management Commands
 
 ```bash
@@ -523,6 +553,9 @@ openssl req -x509 -nodes -days 365 -newkey rsa:2048 \
 ## Quick Reference Commands
 
 ```bash
+# First Time Setup
+./scripts/pi-setup.sh              # Generate quick start guide + auto-start
+
 # Status & Health
 ./scripts/pi-health-check.sh
 podman ps
