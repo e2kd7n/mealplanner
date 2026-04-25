@@ -37,6 +37,7 @@ fi
 echo -e "${BLUE}🔨 Building backend image...${NC}"
 podman build \
     --platform linux/arm64 \
+    --security-opt seccomp=unconfined \
     -t meals-backend:latest \
     -f backend/Dockerfile \
     --build-arg VITE_API_URL=/api \
@@ -53,6 +54,7 @@ fi
 echo -e "${BLUE}🔨 Building frontend image...${NC}"
 podman build \
     --platform linux/arm64 \
+    --security-opt seccomp=unconfined \
     -t meals-frontend:latest \
     -f frontend/Dockerfile \
     --build-arg VITE_API_URL=/api \
