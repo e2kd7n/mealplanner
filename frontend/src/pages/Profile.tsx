@@ -42,7 +42,7 @@ import {
   Cancel as CancelIcon,
 } from '@mui/icons-material';
 import { userAPI, familyMemberAPI } from '../services/api';
-import { DIETARY_PREFERENCES, COMMON_ALLERGENS, getDietaryLabel, isAllergen } from '../constants/dietaryOptions';
+import { DIETARY_PREFERENCES, COMMON_ALLERGENS, getDietaryLabel } from '../constants/dietaryOptions';
 
 interface TabPanelProps {
   children?: React.ReactNode;

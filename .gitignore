@@ -39,10 +39,14 @@ lerna-debug.log*
 *.sln
 *.sw?
 
-# Secrets
+# Secrets - NEVER commit these files!
 secrets/
+secrets.backup.*/
 *.pem
 *.key
+*.txt.sha256
+*.txt.metadata
+*.txt.previous
 
 # Database
 *.db

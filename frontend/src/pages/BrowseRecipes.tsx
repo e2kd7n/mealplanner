@@ -37,7 +37,6 @@ import {
   CheckCircle as CheckCircleIcon,
   Explore as ExploreIcon,
   FilterList as FilterListIcon,
-  Lightbulb as LightbulbIcon,
   Visibility as VisibilityIcon,
 } from '@mui/icons-material';
 import { useSearchParams } from 'react-router-dom';
@@ -63,7 +62,7 @@ interface BrowseRecipeCardProps {
   isAdded: boolean;
 }
 
-const BrowseRecipeCard = memo(({ recipe, onAddToBox, onViewDetails, isAdding, isAdded }: BrowseRecipeCardProps) => {
+const BrowseRecipeCard = memo(({ recipe, onAddToBox, onViewDetails, isAdded }: BrowseRecipeCardProps) => {
   const [adding, setAdding] = useState(false);
   // Use cached image hook for proper error handling and fallback
   const { src: imageSrc, isLoading: imageLoading } = useCachedImage(recipe.image);
