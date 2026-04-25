@@ -2,10 +2,9 @@
 
 # Build container images locally for Raspberry Pi (ARM64)
 # This script builds multi-arch images and saves them as tar files for transfer
+# ⚠️  RUN THIS ON YOUR DEVELOPMENT MACHINE, NOT ON THE RASPBERRY PI
 
 set -e
-
-echo "🏗️  Building container images for Raspberry Pi..."
 
 # Colors for output
 RED='\033[0;31m'
@@ -13,6 +12,27 @@ GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 BLUE='\033[0;34m'
 NC='\033[0m' # No Color
+
+# Detect if running on Raspberry Pi
+if [ -f /proc/device-tree/model ]; then
+    PI_MODEL=$(cat /proc/device-tree/model 2>/dev/null | tr -d '\0')
+    if [[ "$PI_MODEL" == *"Raspberry Pi"* ]]; then
+        echo -e "${RED}❌ ERROR: This script should NOT be run on a Raspberry Pi!${NC}"
+        echo ""
+        echo -e "${YELLOW}This script builds images FOR the Pi, not ON the Pi.${NC}"
+        echo -e "${YELLOW}It must be run on a development machine with more resources.${NC}"
+        echo ""
+        echo -e "${BLUE}Correct workflow:${NC}"
+        echo -e "  1. Run this script on your ${GREEN}development machine${NC}"
+        echo -e "  2. Transfer images: ${GREEN}scp pi-images/*.tar.gz pi@pihole:~/mealplanner/pi-images/${NC}"
+        echo -e "  3. On Pi, load images: ${GREEN}./scripts/load-pi-images.sh${NC}"
+        echo -e "  4. On Pi, deploy: ${GREEN}./scripts/pi-run.sh${NC}"
+        echo ""
+        exit 1
+    fi
+fi
+
+echo "🏗️  Building container images for Raspberry Pi..."
 
 # Check if podman or docker is available
 if command -v podman &> /dev/null; then
