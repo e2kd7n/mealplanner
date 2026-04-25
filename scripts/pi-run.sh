@@ -25,7 +25,7 @@ if podman ps | grep -q "meals-backend"; then
     echo -e "${YELLOW}⚠️  Application is already running${NC}"
     echo ""
     echo -e "${BLUE}Container status:${NC}"
-    podman-compose -f podman-compose.yml ps
+    podman-compose -f podman-compose.pi.yml ps
     echo ""
     echo -e "${BLUE}To restart, use: ./scripts/pi-bounce.sh${NC}"
     exit 0
@@ -42,7 +42,7 @@ fi
 
 # Start services
 echo -e "${GREEN}🚀 Starting services...${NC}"
-podman-compose -f podman-compose.yml up -d
+podman-compose -f podman-compose.pi.yml up -d
 
 # Wait for services to be healthy
 echo -e "${YELLOW}⏳ Waiting for services to start...${NC}"
@@ -51,7 +51,7 @@ sleep 10
 # Check service status
 echo ""
 echo -e "${GREEN}📊 Service status:${NC}"
-podman-compose -f podman-compose.yml ps
+podman-compose -f podman-compose.pi.yml ps
 
 # Verify backend is running
 if podman ps | grep -q "meals-backend"; then
@@ -63,7 +63,7 @@ if podman ps | grep -q "meals-backend"; then
     echo -e "   🌐 Local: http://localhost:8080"
     echo ""
     echo -e "${BLUE}Useful commands:${NC}"
-    echo -e "   📝 View logs: podman-compose -f podman-compose.yml logs -f"
+    echo -e "   📝 View logs: podman-compose -f podman-compose.pi.yml logs -f"
     echo -e "   🛑 Stop: ./scripts/pi-stop.sh"
     echo -e "   🔄 Restart: ./scripts/pi-bounce.sh"
     echo -e "   📊 Diagnostics: ./scripts/pi-diagnostics.sh"
@@ -71,7 +71,7 @@ else
     echo ""
     echo -e "${RED}❌ Failed to start backend container${NC}"
     echo -e "${YELLOW}Checking logs...${NC}"
-    podman-compose -f podman-compose.yml logs backend
+    podman-compose -f podman-compose.pi.yml logs backend
     exit 1
 fi
 

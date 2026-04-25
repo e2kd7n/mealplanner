@@ -24,7 +24,7 @@ if ! podman ps | grep -q "meals-"; then
     echo -e "${YELLOW}⚠️  No containers are currently running${NC}"
     echo ""
     echo -e "${BLUE}Container status:${NC}"
-    podman-compose -f podman-compose.yml ps
+    podman-compose -f podman-compose.pi.yml ps
     exit 0
 fi
 
@@ -36,7 +36,7 @@ echo ""
 echo -e "${YELLOW}🛑 Stopping all services...${NC}"
 
 # Stop services
-podman-compose -f podman-compose.yml down
+podman-compose -f podman-compose.pi.yml down
 
 # Verify containers are stopped
 echo ""
@@ -48,7 +48,7 @@ else
     echo -e "${GREEN}✅ All services stopped successfully${NC}"
     echo ""
     echo -e "${BLUE}Container status:${NC}"
-    podman-compose -f podman-compose.yml ps
+    podman-compose -f podman-compose.pi.yml ps
     echo ""
     echo -e "${BLUE}To start again: ./scripts/pi-run.sh${NC}"
 fi
