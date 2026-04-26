@@ -57,11 +57,18 @@ echo -e "${YELLOW}🛑 Stopping existing containers...${NC}"
 podman-compose -f podman-compose.pi.yml down 2>/dev/null || true
 
 # Check if pre-built images exist
-if podman images | grep -q "meals-backend"; then
-    echo -e "${GREEN}✓ Using pre-built images${NC}"
+echo -e "${BLUE}🔍 Checking for pre-built images...${NC}"
+BACKEND_EXISTS=$(podman images --format "{{.Repository}}:{{.Tag}}" | grep -c "^meals-backend:latest$" || true)
+FRONTEND_EXISTS=$(podman images --format "{{.Repository}}:{{.Tag}}" | grep -c "^meals-frontend:latest$" || true)
+
+if [ "$BACKEND_EXISTS" -gt 0 ] && [ "$FRONTEND_EXISTS" -gt 0 ]; then
+    echo -e "${GREEN}✓ Found pre-built images:${NC}"
+    podman images --format "table {{.Repository}}\t{{.Tag}}\t{{.Size}}" | grep -E "REPOSITORY|meals-"
     SKIP_BUILD=true
 else
-    echo -e "${YELLOW}⚠️  Pre-built images not found, building locally...${NC}"
+    echo -e "${YELLOW}⚠️  Pre-built images not found${NC}"
+    echo -e "${BLUE}Current images:${NC}"
+    podman images --format "table {{.Repository}}\t{{.Tag}}\t{{.Size}}" | head -10
     SKIP_BUILD=false
 fi
 
