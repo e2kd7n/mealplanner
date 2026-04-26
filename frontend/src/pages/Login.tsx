@@ -14,10 +14,10 @@ import {
   Typography,
   Paper,
   Link,
-  Alert,
 } from '@mui/material';
 import { useAppDispatch, useAppSelector } from '../store/hooks';
 import { login, clearError } from '../store/slices/authSlice';
+import ErrorAlert from '../components/ErrorAlert';
 
 const Login: React.FC = () => {
   const navigate = useNavigate();
@@ -70,9 +70,13 @@ const Login: React.FC = () => {
           </Typography>
 
           {error && (
-            <Alert severity="error" sx={{ mt: 2, mb: 2 }}>
-              {error}
-            </Alert>
+            <ErrorAlert
+              error={error}
+              title="Login Failed"
+              onClose={() => dispatch(clearError())}
+              additionalContext="User attempted to log in"
+              sx={{ mt: 2, mb: 2 }}
+            />
           )}
 
           <Box component="form" onSubmit={handleSubmit} sx={{ mt: 1 }}>

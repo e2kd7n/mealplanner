@@ -14,10 +14,10 @@ import {
   Typography,
   Paper,
   Link,
-  Alert,
 } from '@mui/material';
 import { useAppDispatch, useAppSelector } from '../store/hooks';
 import { register, clearError } from '../store/slices/authSlice';
+import ErrorAlert from '../components/ErrorAlert';
 
 const Register: React.FC = () => {
   const navigate = useNavigate();
@@ -78,9 +78,16 @@ const Register: React.FC = () => {
           </Typography>
 
           {(error || validationError) && (
-            <Alert severity="error" sx={{ mt: 2, mb: 2 }}>
-              {validationError || error}
-            </Alert>
+            <ErrorAlert
+              error={validationError || error || 'Registration failed'}
+              title="Registration Failed"
+              onClose={() => {
+                dispatch(clearError());
+                setValidationError('');
+              }}
+              additionalContext="User attempted to register"
+              sx={{ mt: 2, mb: 2 }}
+            />
           )}
 
           <Box component="form" onSubmit={handleSubmit} sx={{ mt: 1 }}>
