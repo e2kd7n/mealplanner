@@ -1,6 +1,3 @@
-// Prisma Schema for Family Meal Planner
-// Database: PostgreSQL
-
 generator client {
   provider = "prisma-client-js"
 }
@@ -10,29 +7,280 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-// User and Family Management
 model User {
-  id            String   @id @default(uuid())
-  email         String   @unique
-  passwordHash  String   @map("password_hash")
-  familyName    String   @map("family_name")
-  role          UserRole @default(user)
-  isBlocked     Boolean  @default(false) @map("is_blocked")
-  createdAt     DateTime @default(now()) @map("created_at")
-  updatedAt     DateTime @updatedAt @map("updated_at")
-
-  // Relations
+  id              String            @id @default(uuid())
+  email           String            @unique
+  passwordHash    String            @map("password_hash")
+  familyName      String            @map("family_name")
+  createdAt       DateTime          @default(now()) @map("created_at")
+  updatedAt       DateTime          @updatedAt @map("updated_at")
+  isBlocked       Boolean           @default(false) @map("is_blocked")
+  role            UserRole          @default(user)
   familyMembers   FamilyMember[]
-  recipes         Recipe[]
-  mealPlans       MealPlan[]
   groceryLists    GroceryList[]
-  userPreferences UserPreferences?
+  mealPlans       MealPlan[]
   pantryInventory PantryInventory[]
   recipeRatings   RecipeRating[]
+  recipes         Recipe[]
+  feedback        UserFeedback[]
+  userPreferences UserPreferences?
 
   @@index([email])
   @@index([role])
   @@map("users")
+}
+
+model FamilyMember {
+  id                  String         @id @default(uuid())
+  userId              String         @map("user_id")
+  name                String
+  ageGroup            AgeGroup       @map("age_group")
+  canCook             Boolean        @default(false) @map("can_cook")
+  dietaryRestrictions Json           @map("dietary_restrictions")
+  createdAt           DateTime       @default(now()) @map("created_at")
+  user                User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  plannedMeals        PlannedMeal[]
+  recipeRatings       RecipeRating[]
+
+  @@map("family_members")
+}
+
+model Recipe {
+  id            String             @id @default(uuid())
+  userId        String?            @map("user_id")
+  title         String
+  description   String?
+  source        RecipeSource
+  externalId    String?            @map("external_id")
+  prepTime      Int                @map("prep_time")
+  cookTime      Int                @map("cook_time")
+  servings      Int
+  difficulty    Difficulty
+  kidFriendly   Boolean            @default(false) @map("kid_friendly")
+  cuisineType   String?            @map("cuisine_type")
+  imageUrl      String?            @map("image_url")
+  instructions  Json
+  nutritionInfo Json?              @map("nutrition_info")
+  costEstimate  Decimal?           @map("cost_estimate") @db.Decimal(10, 2)
+  createdAt     DateTime           @default(now()) @map("created_at")
+  updatedAt     DateTime           @updatedAt @map("updated_at")
+  sourceUrl     String?            @map("source_url")
+  mealTypes     MealType[]         @map("meal_types")
+  cleanupScore  Int?               @map("cleanup_score")
+  plannedMeals  PlannedMeal[]
+  ingredients   RecipeIngredient[]
+  ratings       RecipeRating[]
+  user          User?              @relation(fields: [userId], references: [id])
+
+  @@index([userId])
+  @@index([difficulty])
+  @@index([cuisineType])
+  @@index([kidFriendly])
+  @@index([createdAt])
+  @@index([title])
+  @@index([sourceUrl])
+  @@index([cuisineType(ops: raw("gin_trgm_ops"))], map: "recipes_cuisine_type_trgm_idx", type: Gin)
+  @@index([description(ops: raw("gin_trgm_ops"))], map: "recipes_description_trgm_idx", type: Gin)
+  @@index([title(ops: raw("gin_trgm_ops"))], map: "recipes_title_trgm_idx", type: Gin)
+  @@map("recipes")
+}
+
+model Ingredient {
+  id                String             @id @default(uuid())
+  name              String             @unique
+  category          IngredientCategory
+  seasonalMonths    Int[]              @map("seasonal_months")
+  averagePrice      Decimal            @map("average_price") @db.Decimal(10, 2)
+  unit              String
+  allergens         String[]
+  createdAt         DateTime           @default(now()) @map("created_at")
+  groceryListItems  GroceryListItem[]
+  pantryInventory   PantryInventory[]
+  recipeIngredients RecipeIngredient[]
+  avoidedBy         UserPreferences[]  @relation("AvoidedIngredients")
+
+  @@index([name(ops: raw("gin_trgm_ops"))], map: "ingredients_name_trgm_idx", type: Gin)
+  @@map("ingredients")
+}
+
+model RecipeIngredient {
+  id           String     @id @default(uuid())
+  recipeId     String     @map("recipe_id")
+  ingredientId String     @map("ingredient_id")
+  quantity     Decimal    @db.Decimal(10, 2)
+  unit         String
+  notes        String?
+  isOptional   Boolean    @default(false) @map("is_optional")
+  ingredient   Ingredient @relation(fields: [ingredientId], references: [id], onDelete: Cascade)
+  recipe       Recipe     @relation(fields: [recipeId], references: [id], onDelete: Cascade)
+
+  @@map("recipe_ingredients")
+}
+
+model MealPlan {
+  id            String         @id @default(uuid())
+  userId        String         @map("user_id")
+  weekStartDate DateTime       @map("week_start_date") @db.Date
+  status        MealPlanStatus
+  createdAt     DateTime       @default(now()) @map("created_at")
+  updatedAt     DateTime       @updatedAt @map("updated_at")
+  groceryLists  GroceryList[]
+  user          User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  plannedMeals  PlannedMeal[]
+
+  @@index([userId])
+  @@index([weekStartDate])
+  @@index([status])
+  @@map("meal_plans")
+}
+
+model PlannedMeal {
+  id             String        @id @default(uuid())
+  mealPlanId     String        @map("meal_plan_id")
+  recipeId       String        @map("recipe_id")
+  date           DateTime      @db.Date
+  mealType       MealType      @map("meal_type")
+  servings       Int
+  assignedCookId String?       @map("assigned_cook")
+  notes          String?
+  isLeftover     Boolean       @default(false) @map("is_leftover")
+  assignedCook   FamilyMember? @relation(fields: [assignedCookId], references: [id])
+  mealPlan       MealPlan      @relation(fields: [mealPlanId], references: [id], onDelete: Cascade)
+  recipe         Recipe        @relation(fields: [recipeId], references: [id], onDelete: Cascade)
+
+  @@index([mealPlanId])
+  @@index([recipeId])
+  @@index([date])
+  @@map("planned_meals")
+}
+
+model GroceryList {
+  id                 String            @id @default(uuid())
+  mealPlanId         String            @map("meal_plan_id")
+  userId             String            @map("user_id")
+  status             GroceryListStatus
+  totalEstimatedCost Decimal?          @map("total_estimated_cost") @db.Decimal(10, 2)
+  createdAt          DateTime          @default(now()) @map("created_at")
+  updatedAt          DateTime          @updatedAt @map("updated_at")
+  items              GroceryListItem[]
+  mealPlan           MealPlan          @relation(fields: [mealPlanId], references: [id], onDelete: Cascade)
+  user               User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([mealPlanId])
+  @@index([status])
+  @@map("grocery_lists")
+}
+
+model GroceryListItem {
+  id             String      @id @default(uuid())
+  groceryListId  String      @map("grocery_list_id")
+  ingredientId   String      @map("ingredient_id")
+  quantity       Decimal     @db.Decimal(10, 2)
+  unit           String
+  estimatedPrice Decimal     @map("estimated_price") @db.Decimal(10, 2)
+  isChecked      Boolean     @default(false) @map("is_checked")
+  storeSection   String?     @map("store_section")
+  notes          String?
+  groceryList    GroceryList @relation(fields: [groceryListId], references: [id], onDelete: Cascade)
+  ingredient     Ingredient  @relation(fields: [ingredientId], references: [id], onDelete: Cascade)
+
+  @@map("grocery_list_items")
+}
+
+model RecipeRating {
+  id             String        @id @default(uuid())
+  recipeId       String        @map("recipe_id")
+  userId         String        @map("user_id")
+  familyMemberId String?       @map("family_member_id")
+  rating         Int
+  notes          String?
+  wouldMakeAgain Boolean       @map("would_make_again")
+  createdAt      DateTime      @default(now()) @map("created_at")
+  familyMember   FamilyMember? @relation(fields: [familyMemberId], references: [id])
+  recipe         Recipe        @relation(fields: [recipeId], references: [id], onDelete: Cascade)
+  user           User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([recipeId])
+  @@index([userId])
+  @@index([rating])
+  @@map("recipe_ratings")
+}
+
+model UserPreferences {
+  id                   String       @id @default(uuid())
+  userId               String       @unique @map("user_id")
+  weeklyBudget         Decimal?     @map("weekly_budget") @db.Decimal(10, 2)
+  preferredCuisines    String[]     @map("preferred_cuisines")
+  cookingSkillLevel    SkillLevel   @map("cooking_skill_level")
+  maxPrepTimeWeeknight Int          @map("max_prep_time_weeknight")
+  maxPrepTimeWeekend   Int          @map("max_prep_time_weekend")
+  dietaryPreferences   Json         @map("dietary_preferences")
+  notificationSettings Json         @map("notification_settings")
+  user                 User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  avoidedIngredients   Ingredient[] @relation("AvoidedIngredients")
+
+  @@map("user_preferences")
+}
+
+model PantryInventory {
+  id             String         @id @default(uuid())
+  userId         String         @map("user_id")
+  ingredientId   String         @map("ingredient_id")
+  quantity       Decimal        @db.Decimal(10, 2)
+  unit           String
+  expirationDate DateTime?      @map("expiration_date") @db.Date
+  location       PantryLocation
+  updatedAt      DateTime       @updatedAt @map("updated_at")
+  ingredient     Ingredient     @relation(fields: [ingredientId], references: [id], onDelete: Cascade)
+  user           User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([ingredientId])
+  @@index([expirationDate])
+  @@map("pantry_inventory")
+}
+
+model ClientLog {
+  id        String   @id @default(uuid())
+  level     String
+  message   String
+  context   String?
+  sessionId String   @map("session_id")
+  userAgent String?  @map("user_agent")
+  url       String?
+  stack     String?
+  data      Json?
+  timestamp BigInt
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@index([level])
+  @@index([sessionId])
+  @@index([context])
+  @@index([timestamp])
+  @@index([createdAt])
+  @@map("client_logs")
+}
+
+model UserFeedback {
+  id           String         @id @default(uuid())
+  userId       String         @map("user_id")
+  page         String
+  feedbackType FeedbackType   @map("feedback_type")
+  rating       Int?
+  message      String
+  screenshot   String?
+  status       FeedbackStatus @default(pending)
+  adminNotes   String?        @map("admin_notes")
+  createdAt    DateTime       @default(now()) @map("created_at")
+  updatedAt    DateTime       @updatedAt @map("updated_at")
+  user         User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([feedbackType])
+  @@index([status])
+  @@index([createdAt])
+  @@map("user_feedback")
 }
 
 enum UserRole {
@@ -41,71 +289,10 @@ enum UserRole {
   superadmin
 }
 
-model FamilyMember {
-  id                   String   @id @default(uuid())
-  userId               String   @map("user_id")
-  name                 String
-  ageGroup             AgeGroup @map("age_group")
-  canCook              Boolean  @default(false) @map("can_cook")
-  dietaryRestrictions  Json     @map("dietary_restrictions")
-  createdAt            DateTime @default(now()) @map("created_at")
-
-  // Relations
-  user          User           @relation(fields: [userId], references: [id], onDelete: Cascade)
-  plannedMeals  PlannedMeal[]
-  recipeRatings RecipeRating[]
-
-  @@map("family_members")
-}
-
 enum AgeGroup {
   child
   teen
   adult
-}
-
-// Recipe Management
-model Recipe {
-  id             String     @id @default(uuid())
-  userId         String?    @map("user_id")
-  title          String
-  description    String?    @db.Text
-  source         RecipeSource
-  sourceUrl      String?    @map("source_url") @db.Text
-  externalId     String?    @map("external_id")
-  prepTime       Int        @map("prep_time") // minutes
-  cookTime       Int        @map("cook_time") // minutes
-  servings       Int
-  difficulty     Difficulty
-  kidFriendly    Boolean    @default(false) @map("kid_friendly")
-  cuisineType    String?    @map("cuisine_type")
-  mealTypes      MealType[] @map("meal_types") // Changed to array to support multiple meal types
-  imageUrl       String?    @map("image_url")
-  instructions   Json
-  nutritionInfo  Json?      @map("nutrition_info")
-  costEstimate   Decimal?   @map("cost_estimate") @db.Decimal(10, 2)
-  cleanupScore   Int?       @map("cleanup_score") // 1-5, higher = more cleanup needed
-  // MULTITENANT: Uncomment isPublic field for multi-tenant deployment
-  // isPublic       Boolean    @default(false) @map("is_public")
-  createdAt      DateTime   @default(now()) @map("created_at")
-  updatedAt      DateTime   @updatedAt @map("updated_at")
-
-  // Relations
-  user              User?              @relation(fields: [userId], references: [id], onDelete: SetNull)
-  ingredients       RecipeIngredient[]
-  plannedMeals      PlannedMeal[]
-  ratings           RecipeRating[]
-
-  @@index([userId])
-  @@index([difficulty])
-  @@index([cuisineType])
-  @@index([kidFriendly])
-  // MULTITENANT: Uncomment isPublic index for multi-tenant deployment
-  // @@index([isPublic])
-  @@index([createdAt])
-  @@index([title])
-  @@index([sourceUrl])
-  @@map("recipes")
 }
 
 enum RecipeSource {
@@ -129,25 +316,6 @@ enum MealType {
   dessert
 }
 
-model Ingredient {
-  id             String   @id @default(uuid())
-  name           String   @unique
-  category       IngredientCategory
-  seasonalMonths Int[]    @map("seasonal_months")
-  averagePrice   Decimal  @map("average_price") @db.Decimal(10, 2)
-  unit           String
-  allergens      String[]
-  createdAt      DateTime @default(now()) @map("created_at")
-
-  // Relations
-  recipeIngredients RecipeIngredient[]
-  groceryListItems  GroceryListItem[]
-  pantryInventory   PantryInventory[]
-  avoidedBy         UserPreferences[]  @relation("AvoidedIngredients")
-
-  @@map("ingredients")
-}
-
 enum IngredientCategory {
   produce
   protein
@@ -158,89 +326,10 @@ enum IngredientCategory {
   other
 }
 
-model RecipeIngredient {
-  id           String  @id @default(uuid())
-  recipeId     String  @map("recipe_id")
-  ingredientId String  @map("ingredient_id")
-  quantity     Decimal @db.Decimal(10, 2)
-  unit         String
-  notes        String?
-  isOptional   Boolean @default(false) @map("is_optional")
-
-  // Relations
-  recipe     Recipe     @relation(fields: [recipeId], references: [id], onDelete: Cascade)
-  ingredient Ingredient @relation(fields: [ingredientId], references: [id], onDelete: Cascade)
-
-  @@map("recipe_ingredients")
-}
-
-// Meal Planning
-model MealPlan {
-  id            String         @id @default(uuid())
-  userId        String         @map("user_id")
-  weekStartDate DateTime       @map("week_start_date") @db.Date
-  status        MealPlanStatus
-  createdAt     DateTime       @default(now()) @map("created_at")
-  updatedAt     DateTime       @updatedAt @map("updated_at")
-
-  // Relations
-  user          User           @relation(fields: [userId], references: [id], onDelete: Cascade)
-  plannedMeals  PlannedMeal[]
-  groceryLists  GroceryList[]
-
-  @@index([userId])
-  @@index([weekStartDate])
-  @@index([status])
-  @@map("meal_plans")
-}
-
 enum MealPlanStatus {
   draft
   active
   completed
-}
-
-model PlannedMeal {
-  id             String   @id @default(uuid())
-  mealPlanId     String   @map("meal_plan_id")
-  recipeId       String   @map("recipe_id")
-  date           DateTime @db.Date
-  mealType       MealType @map("meal_type")
-  servings       Int
-  assignedCookId String?  @map("assigned_cook")
-  notes          String?  @db.Text
-  isLeftover     Boolean  @default(false) @map("is_leftover")
-
-  // Relations
-  mealPlan     MealPlan     @relation(fields: [mealPlanId], references: [id], onDelete: Cascade)
-  recipe       Recipe       @relation(fields: [recipeId], references: [id], onDelete: Cascade)
-  assignedCook FamilyMember? @relation(fields: [assignedCookId], references: [id], onDelete: SetNull)
-
-  @@index([mealPlanId])
-  @@index([recipeId])
-  @@index([date])
-  @@map("planned_meals")
-}
-
-// Grocery Lists
-model GroceryList {
-  id                  String            @id @default(uuid())
-  mealPlanId          String            @map("meal_plan_id")
-  userId              String            @map("user_id")
-  status              GroceryListStatus
-  totalEstimatedCost  Decimal?          @map("total_estimated_cost") @db.Decimal(10, 2)
-  createdAt           DateTime          @default(now()) @map("created_at")
-  updatedAt           DateTime          @updatedAt @map("updated_at")
-
-  // Relations
-  mealPlan MealPlan          @relation(fields: [mealPlanId], references: [id], onDelete: Cascade)
-  user     User              @relation(fields: [userId], references: [id], onDelete: Cascade)
-  items    GroceryListItem[]
-
-  @@index([userId])
-  @@index([mealPlanId])
-  @@index([status])
-  @@map("grocery_lists")
 }
 
 enum GroceryListStatus {
@@ -249,89 +338,10 @@ enum GroceryListStatus {
   completed
 }
 
-model GroceryListItem {
-  id             String  @id @default(uuid())
-  groceryListId  String  @map("grocery_list_id")
-  ingredientId   String  @map("ingredient_id")
-  quantity       Decimal @db.Decimal(10, 2)
-  unit           String
-  estimatedPrice Decimal @map("estimated_price") @db.Decimal(10, 2)
-  isChecked      Boolean @default(false) @map("is_checked")
-  storeSection   String? @map("store_section")
-  notes          String?
-
-  // Relations
-  groceryList GroceryList @relation(fields: [groceryListId], references: [id], onDelete: Cascade)
-  ingredient  Ingredient  @relation(fields: [ingredientId], references: [id], onDelete: Cascade)
-
-  @@map("grocery_list_items")
-}
-
-// Ratings and Preferences
-model RecipeRating {
-  id             String   @id @default(uuid())
-  recipeId       String   @map("recipe_id")
-  userId         String   @map("user_id")
-  familyMemberId String?  @map("family_member_id")
-  rating         Int      // 1-5
-  notes          String?  @db.Text
-  wouldMakeAgain Boolean  @map("would_make_again")
-  createdAt      DateTime @default(now()) @map("created_at")
-
-  // Relations
-  recipe       Recipe        @relation(fields: [recipeId], references: [id], onDelete: Cascade)
-  user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
-  familyMember FamilyMember? @relation(fields: [familyMemberId], references: [id], onDelete: SetNull)
-
-  @@index([recipeId])
-  @@index([userId])
-  @@index([rating])
-  @@map("recipe_ratings")
-}
-
-model UserPreferences {
-  id                     String   @id @default(uuid())
-  userId                 String   @unique @map("user_id")
-  weeklyBudget           Decimal? @map("weekly_budget") @db.Decimal(10, 2)
-  preferredCuisines      String[] @map("preferred_cuisines")
-  cookingSkillLevel      SkillLevel @map("cooking_skill_level")
-  maxPrepTimeWeeknight   Int      @map("max_prep_time_weeknight") // minutes
-  maxPrepTimeWeekend     Int      @map("max_prep_time_weekend") // minutes
-  dietaryPreferences     Json     @map("dietary_preferences")
-  notificationSettings   Json     @map("notification_settings")
-
-  // Relations
-  user              User         @relation(fields: [userId], references: [id], onDelete: Cascade)
-  avoidedIngredients Ingredient[] @relation("AvoidedIngredients")
-
-  @@map("user_preferences")
-}
-
 enum SkillLevel {
   beginner
   intermediate
   advanced
-}
-
-// Pantry Management
-model PantryInventory {
-  id             String    @id @default(uuid())
-  userId         String    @map("user_id")
-  ingredientId   String    @map("ingredient_id")
-  quantity       Decimal   @db.Decimal(10, 2)
-  unit           String
-  expirationDate DateTime? @map("expiration_date") @db.Date
-  location       PantryLocation
-  updatedAt      DateTime  @updatedAt @map("updated_at")
-
-  // Relations
-  user       User       @relation(fields: [userId], references: [id], onDelete: Cascade)
-  ingredient Ingredient @relation(fields: [ingredientId], references: [id], onDelete: Cascade)
-
-  @@index([userId])
-  @@index([ingredientId])
-  @@index([expirationDate])
-  @@map("pantry_inventory")
 }
 
 enum PantryLocation {
@@ -340,24 +350,18 @@ enum PantryLocation {
   pantry
 }
 
-// Client-side logging
-model ClientLog {
-  id        String   @id @default(uuid())
-  level     String   // error, warn, info, debug
-  message   String   @db.Text
-  context   String?
-  sessionId String   @map("session_id")
-  userAgent String?  @map("user_agent") @db.Text
-  url       String?  @db.Text
-  stack     String?  @db.Text
-  data      Json?
-  timestamp BigInt   // Client timestamp in milliseconds
-  createdAt DateTime @default(now()) @map("created_at")
+enum FeedbackType {
+  bug
+  feature
+  improvement
+  question
+  other
+}
 
-  @@index([level])
-  @@index([sessionId])
-  @@index([context])
-  @@index([timestamp])
-  @@index([createdAt])
-  @@map("client_logs")
+enum FeedbackStatus {
+  pending
+  reviewed
+  in_progress
+  resolved
+  wont_fix
 }
