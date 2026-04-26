@@ -101,7 +101,10 @@ echo -e "${GREEN}✓ Frontend image loaded${NC}"
 echo -e "${GREEN}✅ Images loaded successfully!${NC}"
 echo ""
 echo -e "${BLUE}📋 Loaded images:${NC}"
-podman images | grep meals
+podman images | grep -E "meals-backend|meals-frontend"
+echo ""
+echo -e "${BLUE}Verifying image tags:${NC}"
+podman images --format "{{.Repository}}:{{.Tag}}" | grep meals
 
 # Cleanup tar files after successful load
 echo ""
