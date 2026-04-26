@@ -71,15 +71,25 @@ echo -e "${YELLOW}📥 Loading backend image (1/2)...${NC}"
 echo -e "${BLUE}   This may take 2-3 minutes for the backend image...${NC}"
 if [ "$USE_COMPRESSED" = true ]; then
     echo -e "${BLUE}   Decompressing and loading 416MB compressed file...${NC}"
-    gunzip -c "$BACKEND_COMPRESSED" | podman load --progress=plain 2>&1 | while IFS= read -r line; do
-        if [[ "$line" =~ "Copying blob" ]] || [[ "$line" =~ "Copying config" ]] || [[ "$line" =~ "Writing manifest" ]]; then
-            echo -e "${GREEN}   ✓ $line${NC}"
-        fi
-    done
+    LOAD_OUTPUT=$(gunzip -c "$BACKEND_COMPRESSED" | podman load 2>&1)
+    echo "$LOAD_OUTPUT"
+    if echo "$LOAD_OUTPUT" | grep -q "Loaded image"; then
+        echo -e "${GREEN}✓ Backend image loaded successfully${NC}"
+    else
+        echo -e "${RED}❌ Failed to load backend image${NC}"
+        echo "$LOAD_OUTPUT"
+        exit 1
+    fi
 else
-    podman load -i "$BACKEND_UNCOMPRESSED" --progress=plain
+    LOAD_OUTPUT=$(podman load -i "$BACKEND_UNCOMPRESSED" 2>&1)
+    echo "$LOAD_OUTPUT"
+    if echo "$LOAD_OUTPUT" | grep -q "Loaded image"; then
+        echo -e "${GREEN}✓ Backend image loaded successfully${NC}"
+    else
+        echo -e "${RED}❌ Failed to load backend image${NC}"
+        exit 1
+    fi
 fi
-echo -e "${GREEN}✓ Backend image loaded${NC}"
 echo ""
 
 # Load frontend image
@@ -87,15 +97,25 @@ echo -e "${YELLOW}📥 Loading frontend image (2/2)...${NC}"
 echo -e "${BLUE}   This should be quick (~30 seconds)...${NC}"
 if [ "$USE_COMPRESSED" = true ]; then
     echo -e "${BLUE}   Decompressing and loading 24MB compressed file...${NC}"
-    gunzip -c "$FRONTEND_COMPRESSED" | podman load --progress=plain 2>&1 | while IFS= read -r line; do
-        if [[ "$line" =~ "Copying blob" ]] || [[ "$line" =~ "Copying config" ]] || [[ "$line" =~ "Writing manifest" ]]; then
-            echo -e "${GREEN}   ✓ $line${NC}"
-        fi
-    done
+    LOAD_OUTPUT=$(gunzip -c "$FRONTEND_COMPRESSED" | podman load 2>&1)
+    echo "$LOAD_OUTPUT"
+    if echo "$LOAD_OUTPUT" | grep -q "Loaded image"; then
+        echo -e "${GREEN}✓ Frontend image loaded successfully${NC}"
+    else
+        echo -e "${RED}❌ Failed to load frontend image${NC}"
+        echo "$LOAD_OUTPUT"
+        exit 1
+    fi
 else
-    podman load -i "$FRONTEND_UNCOMPRESSED" --progress=plain
+    LOAD_OUTPUT=$(podman load -i "$FRONTEND_UNCOMPRESSED" 2>&1)
+    echo "$LOAD_OUTPUT"
+    if echo "$LOAD_OUTPUT" | grep -q "Loaded image"; then
+        echo -e "${GREEN}✓ Frontend image loaded successfully${NC}"
+    else
+        echo -e "${RED}❌ Failed to load frontend image${NC}"
+        exit 1
+    fi
 fi
-echo -e "${GREEN}✓ Frontend image loaded${NC}"
 
 # Verify images are loaded
 echo -e "${GREEN}✅ Images loaded successfully!${NC}"
