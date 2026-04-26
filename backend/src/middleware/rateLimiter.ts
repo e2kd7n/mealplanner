@@ -99,6 +99,28 @@ export const clientLogsRateLimiter = rateLimit({
   },
 });
 
+// Rate limiter for feedback submissions
+// Prevents feedback spam
+export const feedbackRateLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 5, // 5 feedback submissions per 15 minutes
+  message: 'Too many feedback submissions, please try again later.',
+  standardHeaders: true,
+  legacyHeaders: false,
+  handler: (req, res) => {
+    logger.warn('Feedback rate limit exceeded', {
+      ip: req.ip,
+      path: req.path,
+      userId: req.user?.id,
+    });
+    res.status(429).json({
+      error: 'Too Many Requests',
+      message: 'Too many feedback submissions. Please try again after 15 minutes.',
+      retryAfter: res.getHeader('Retry-After'),
+    });
+  },
+});
+
 export default rateLimiter;
 
 // Made with Bob

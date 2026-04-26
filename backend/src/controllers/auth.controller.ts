@@ -247,11 +247,12 @@ async function authenticateUser(email: string, password: string) {
 /**
  * Generate authentication response with tokens
  */
-function generateAuthResponse(user: { id: string; email: string; familyName: string }) {
+function generateAuthResponse(user: { id: string; email: string; familyName: string; role: string }) {
   const tokens = generateTokenPair({
     userId: user.id,
     email: user.email,
     familyName: user.familyName,
+    role: user.role,
   });
 
   return {
