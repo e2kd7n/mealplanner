@@ -1,0 +1,138 @@
+{
+  "summary": {
+    "totalFeedback": 8,
+    "totalErrors": 0,
+    "totalWarnings": 0,
+    "pendingFeedback": 8
+  },
+  "feedbackByType": {
+    "bug": 4,
+    "question": 1,
+    "improvement": 2,
+    "feature": 1
+  },
+  "feedbackByStatus": {
+    "pending": 8
+  },
+  "feedbackByPage": {
+    "/grocery-list": 2,
+    "/recipes": 1,
+    "/test-page": 4,
+    "/test": 1
+  },
+  "errorsByContext": {},
+  "warningsByContext": {},
+  "recommendations": [
+    {
+      "type": "feature",
+      "priority": "medium",
+      "title": "Feature requests for /test-page",
+      "description": "1 feature request(s):\n1. Test feedback with rating 1"
+    },
+    {
+      "type": "enhancement",
+      "priority": "medium",
+      "title": "Improvements for /test-page",
+      "description": "2 improvement suggestion(s):\n1. Test feedback with rating 3\n2. Test feedback without rating"
+    },
+    {
+      "type": "bug",
+      "priority": "high",
+      "title": "Bug reported: /grocery-list",
+      "description": "User: Test Family\nMessage: **Error Report**\n\n**Error:** Application Error\n**Message:** Rendered more hooks than during the previous render.\n**Code:** Error\n\n\n**Page:** /grocery-list\n**Timestamp:** 2026-04-26T02:50:45.671Z\n\n**User Description:**\nI just wanted to look at the grocery list\n\n**Additional Context:**\nError caught by ErrorBoundary\n\n\n**Technical Details:**\n```json\n{\n  \"componentStack\": \"\\n    at GroceryList (http://localhost:5173/src/pages/GroceryList.tsx?t=1777170898882:99:30)\\n    at RenderedRoute (http://localhost:5173/node_modules/.vite/deps/react-router-dom.js?v=b360a623:3978:26)\\n    at Outlet (http://localhost:5173/node_modules/.vite/deps/react-router-dom.js?v=b360a623:4544:25)\\n    at main (<anonymous>)\\n    at Styled(div) (http://localhost:5173/node_modules/.vite/deps/styled-BMU1Worj.js?v=b360a623:2926:50)\\n    at Box (http://localhost:5173/node_modules/.vite/deps/@mui_material.js?v=b360a623:35:17)\\n    at div (<anonymous>)\\n    at Styled(div) (http://localhost:5173/node_modules/.vite/deps/styled-BMU1Worj.js?v=b360a623:2926:50)\\n    at Box (http://localhost:5173/node_modules/.vite/deps/@mui_material.js?v=b360a623:35:17)\\n    at Layout (http://localhost:5173/src/components/Layout.tsx?t=1777171099008:78:16)\\n    at PrivateRoute (http://localhost:5173/src/components/PrivateRoute.tsx:12:25)\\n    at RenderedRoute (http://localhost:5173/node_modules/.vite/deps/react-router-dom.js?v=b360a623:3978:26)\\n    at Routes (http://localhost:5173/node_modules/.vite/deps/react-router-dom.js?v=b360a623:4597:19)\\n    at Suspense (<anonymous>)\\n    at Router (http://localhost:5173/node_modules/.vite/deps/react-router-dom.js?v=b360a623:4549:29)\\n    at BrowserRouter (http://localhost:5173/node_modules/.vite/deps/react-router-dom.js?v=b360a623:6899:26)\\n    at AuthProvider (http://localhost:5173/src/contexts/AuthContext.tsx:14:32)\\n    at DefaultPropsProvider (http://localhost:5173/node_modules/.vite/deps/styled-BMU1Worj.js?v=b360a623:4642:33)\\n    at RtlProvider (http://localhost:5173/node_modules/.vite/deps/styled-BMU1Worj.js?v=b360a623:4626:24)\\n    at ThemeProvider$1 (http://localhost:5173/node_modules/.vite/deps/styled-BMU1Worj.js?v=b360a623:4599:10)\\n    at ThemeProvider (http://localhost:5173/node_modules/.vite/deps/styled-BMU1Worj.js?v=b360a623:4761:10)\\n    at ThemeProviderNoVars (http://localhost:5173/node_modules/.vite/deps/styles-DxzcD2Aa.js?v=b360a623:305:39)\\n    at ThemeProvider (http://localhost:5173/node_modules/.vite/deps/styles-DxzcD2Aa.js?v=b360a623:436:26)\\n    at Provider (http://localhost:5173/node_modules/.vite/deps/react-redux.js?v=b360a623:737:10)\\n    at ErrorBoundary (http://localhost:5173/src/components/ErrorBoundary.tsx?t=1777171619230:14:3)\\n    at App (<anonymous>)\"\n}\n```\n\n**User Agent:** Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36\nDate: 2026-04-26T02:50:56.184Z"
+    },
+    {
+      "type": "bug",
+      "priority": "high",
+      "title": "Bug reported: /grocery-list",
+      "description": "User: Test Family\nMessage: **Error Report**\n\n**Error:** Application Error\n**Message:** Rendered more hooks than during the previous render.\n**Code:** Error\n\n\n**Page:** /grocery-list\n**Timestamp:** 2026-04-26T02:50:15.861Z\n\n**User Description:**\ntried to look at the grocery list\n\n**Additional Context:**\nError caught by ErrorBoundary\n\n\n**Technical Details:**\n```json\n{\n  \"componentStack\": \"\\n    at GroceryList (http://localhost:5173/src/pages/GroceryList.tsx?t=1777170898882:99:30)\\n    at RenderedRoute (http://localhost:5173/node_modules/.vite/deps/react-router-dom.js?v=b360a623:3978:26)\\n    at Outlet (http://localhost:5173/node_modules/.vite/deps/react-router-dom.js?v=b360a623:4544:25)\\n    at main (<anonymous>)\\n    at Styled(div) (http://localhost:5173/node_modules/.vite/deps/styled-BMU1Worj.js?v=b360a623:2926:50)\\n    at Box (http://localhost:5173/node_modules/.vite/deps/@mui_material.js?v=b360a623:35:17)\\n    at div (<anonymous>)\\n    at Styled(div) (http://localhost:5173/node_modules/.vite/deps/styled-BMU1Worj.js?v=b360a623:2926:50)\\n    at Box (http://localhost:5173/node_modules/.vite/deps/@mui_material.js?v=b360a623:35:17)\\n    at Layout (http://localhost:5173/src/components/Layout.tsx?t=1777171099008:78:16)\\n    at PrivateRoute (http://localhost:5173/src/components/PrivateRoute.tsx:12:25)\\n    at RenderedRoute (http://localhost:5173/node_modules/.vite/deps/react-router-dom.js?v=b360a623:3978:26)\\n    at Routes (http://localhost:5173/node_modules/.vite/deps/react-router-dom.js?v=b360a623:4597:19)\\n    at Suspense (<anonymous>)\\n    at Router (http://localhost:5173/node_modules/.vite/deps/react-router-dom.js?v=b360a623:4549:29)\\n    at BrowserRouter (http://localhost:5173/node_modules/.vite/deps/react-router-dom.js?v=b360a623:6899:26)\\n    at AuthProvider (http://localhost:5173/src/contexts/AuthContext.tsx:14:32)\\n    at DefaultPropsProvider (http://localhost:5173/node_modules/.vite/deps/styled-BMU1Worj.js?v=b360a623:4642:33)\\n    at RtlProvider (http://localhost:5173/node_modules/.vite/deps/styled-BMU1Worj.js?v=b360a623:4626:24)\\n    at ThemeProvider$1 (http://localhost:5173/node_modules/.vite/deps/styled-BMU1Worj.js?v=b360a623:4599:10)\\n    at ThemeProvider (http://localhost:5173/node_modules/.vite/deps/styled-BMU1Worj.js?v=b360a623:4761:10)\\n    at ThemeProviderNoVars (http://localhost:5173/node_modules/.vite/deps/styles-DxzcD2Aa.js?v=b360a623:305:39)\\n    at ThemeProvider (http://localhost:5173/node_modules/.vite/deps/styles-DxzcD2Aa.js?v=b360a623:436:26)\\n    at Provider (http://localhost:5173/node_modules/.vite/deps/react-redux.js?v=b360a623:737:10)\\n    at ErrorBoundary (http://localhost:5173/src/components/ErrorBoundary.tsx?t=1777171619230:14:3)\\n    at App (<anonymous>)\"\n}\n```\n\n**User Agent:** Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36\nDate: 2026-04-26T02:50:28.515Z"
+    },
+    {
+      "type": "bug",
+      "priority": "high",
+      "title": "Bug reported: /test-page",
+      "description": "User: Test Family\nMessage: Test feedback with undefined rating\nDate: 2026-04-26T02:28:40.551Z"
+    },
+    {
+      "type": "bug",
+      "priority": "high",
+      "title": "Bug reported: /test",
+      "description": "User: Test Family\nMessage: Test message\nDate: 2026-04-26T02:28:19.495Z"
+    }
+  ],
+  "detailedFeedback": [
+    {
+      "id": "4fc45f28-d7f7-4dde-9250-05c3dc8d8ebb",
+      "type": "bug",
+      "page": "/grocery-list",
+      "rating": 1,
+      "message": "**Error Report**\n\n**Error:** Application Error\n**Message:** Rendered more hooks than during the previous render.\n**Code:** Error\n\n\n**Page:** /grocery-list\n**Timestamp:** 2026-04-26T02:50:45.671Z\n\n**User Description:**\nI just wanted to look at the grocery list\n\n**Additional Context:**\nError caught by ErrorBoundary\n\n\n**Technical Details:**\n```json\n{\n  \"componentStack\": \"\\n    at GroceryList (http://localhost:5173/src/pages/GroceryList.tsx?t=1777170898882:99:30)\\n    at RenderedRoute (http://localhost:5173/node_modules/.vite/deps/react-router-dom.js?v=b360a623:3978:26)\\n    at Outlet (http://localhost:5173/node_modules/.vite/deps/react-router-dom.js?v=b360a623:4544:25)\\n    at main (<anonymous>)\\n    at Styled(div) (http://localhost:5173/node_modules/.vite/deps/styled-BMU1Worj.js?v=b360a623:2926:50)\\n    at Box (http://localhost:5173/node_modules/.vite/deps/@mui_material.js?v=b360a623:35:17)\\n    at div (<anonymous>)\\n    at Styled(div) (http://localhost:5173/node_modules/.vite/deps/styled-BMU1Worj.js?v=b360a623:2926:50)\\n    at Box (http://localhost:5173/node_modules/.vite/deps/@mui_material.js?v=b360a623:35:17)\\n    at Layout (http://localhost:5173/src/components/Layout.tsx?t=1777171099008:78:16)\\n    at PrivateRoute (http://localhost:5173/src/components/PrivateRoute.tsx:12:25)\\n    at RenderedRoute (http://localhost:5173/node_modules/.vite/deps/react-router-dom.js?v=b360a623:3978:26)\\n    at Routes (http://localhost:5173/node_modules/.vite/deps/react-router-dom.js?v=b360a623:4597:19)\\n    at Suspense (<anonymous>)\\n    at Router (http://localhost:5173/node_modules/.vite/deps/react-router-dom.js?v=b360a623:4549:29)\\n    at BrowserRouter (http://localhost:5173/node_modules/.vite/deps/react-router-dom.js?v=b360a623:6899:26)\\n    at AuthProvider (http://localhost:5173/src/contexts/AuthContext.tsx:14:32)\\n    at DefaultPropsProvider (http://localhost:5173/node_modules/.vite/deps/styled-BMU1Worj.js?v=b360a623:4642:33)\\n    at RtlProvider (http://localhost:5173/node_modules/.vite/deps/styled-BMU1Worj.js?v=b360a623:4626:24)\\n    at ThemeProvider$1 (http://localhost:5173/node_modules/.vite/deps/styled-BMU1Worj.js?v=b360a623:4599:10)\\n    at ThemeProvider (http://localhost:5173/node_modules/.vite/deps/styled-BMU1Worj.js?v=b360a623:4761:10)\\n    at ThemeProviderNoVars (http://localhost:5173/node_modules/.vite/deps/styles-DxzcD2Aa.js?v=b360a623:305:39)\\n    at ThemeProvider (http://localhost:5173/node_modules/.vite/deps/styles-DxzcD2Aa.js?v=b360a623:436:26)\\n    at Provider (http://localhost:5173/node_modules/.vite/deps/react-redux.js?v=b360a623:737:10)\\n    at ErrorBoundary (http://localhost:5173/src/components/ErrorBoundary.tsx?t=1777171619230:14:3)\\n    at App (<anonymous>)\"\n}\n```\n\n**User Agent:** Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36",
+      "user": "Test Family",
+      "date": "2026-04-26T02:50:56.184Z"
+    },
+    {
+      "id": "c8791e56-8909-4375-9a3c-6456c6a1eef7",
+      "type": "bug",
+      "page": "/grocery-list",
+      "rating": 1,
+      "message": "**Error Report**\n\n**Error:** Application Error\n**Message:** Rendered more hooks than during the previous render.\n**Code:** Error\n\n\n**Page:** /grocery-list\n**Timestamp:** 2026-04-26T02:50:15.861Z\n\n**User Description:**\ntried to look at the grocery list\n\n**Additional Context:**\nError caught by ErrorBoundary\n\n\n**Technical Details:**\n```json\n{\n  \"componentStack\": \"\\n    at GroceryList (http://localhost:5173/src/pages/GroceryList.tsx?t=1777170898882:99:30)\\n    at RenderedRoute (http://localhost:5173/node_modules/.vite/deps/react-router-dom.js?v=b360a623:3978:26)\\n    at Outlet (http://localhost:5173/node_modules/.vite/deps/react-router-dom.js?v=b360a623:4544:25)\\n    at main (<anonymous>)\\n    at Styled(div) (http://localhost:5173/node_modules/.vite/deps/styled-BMU1Worj.js?v=b360a623:2926:50)\\n    at Box (http://localhost:5173/node_modules/.vite/deps/@mui_material.js?v=b360a623:35:17)\\n    at div (<anonymous>)\\n    at Styled(div) (http://localhost:5173/node_modules/.vite/deps/styled-BMU1Worj.js?v=b360a623:2926:50)\\n    at Box (http://localhost:5173/node_modules/.vite/deps/@mui_material.js?v=b360a623:35:17)\\n    at Layout (http://localhost:5173/src/components/Layout.tsx?t=1777171099008:78:16)\\n    at PrivateRoute (http://localhost:5173/src/components/PrivateRoute.tsx:12:25)\\n    at RenderedRoute (http://localhost:5173/node_modules/.vite/deps/react-router-dom.js?v=b360a623:3978:26)\\n    at Routes (http://localhost:5173/node_modules/.vite/deps/react-router-dom.js?v=b360a623:4597:19)\\n    at Suspense (<anonymous>)\\n    at Router (http://localhost:5173/node_modules/.vite/deps/react-router-dom.js?v=b360a623:4549:29)\\n    at BrowserRouter (http://localhost:5173/node_modules/.vite/deps/react-router-dom.js?v=b360a623:6899:26)\\n    at AuthProvider (http://localhost:5173/src/contexts/AuthContext.tsx:14:32)\\n    at DefaultPropsProvider (http://localhost:5173/node_modules/.vite/deps/styled-BMU1Worj.js?v=b360a623:4642:33)\\n    at RtlProvider (http://localhost:5173/node_modules/.vite/deps/styled-BMU1Worj.js?v=b360a623:4626:24)\\n    at ThemeProvider$1 (http://localhost:5173/node_modules/.vite/deps/styled-BMU1Worj.js?v=b360a623:4599:10)\\n    at ThemeProvider (http://localhost:5173/node_modules/.vite/deps/styled-BMU1Worj.js?v=b360a623:4761:10)\\n    at ThemeProviderNoVars (http://localhost:5173/node_modules/.vite/deps/styles-DxzcD2Aa.js?v=b360a623:305:39)\\n    at ThemeProvider (http://localhost:5173/node_modules/.vite/deps/styles-DxzcD2Aa.js?v=b360a623:436:26)\\n    at Provider (http://localhost:5173/node_modules/.vite/deps/react-redux.js?v=b360a623:737:10)\\n    at ErrorBoundary (http://localhost:5173/src/components/ErrorBoundary.tsx?t=1777171619230:14:3)\\n    at App (<anonymous>)\"\n}\n```\n\n**User Agent:** Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36",
+      "user": "Test Family",
+      "date": "2026-04-26T02:50:28.515Z"
+    },
+    {
+      "id": "a1376c43-516b-4f36-8cf6-92d8579b7014",
+      "type": "question",
+      "page": "/recipes",
+      "rating": 4,
+      "message": "Why does the \"import from URL\" button dissappear when I click \"browse recipes\"?  Seems like it should stay there.\n\nAlso when I click \"create recipe\" is there a way to just snap a photo of the recipe card, even if it's handwritten?  It would be good to be able to upload a PDF also.",
+      "user": "Test Family",
+      "date": "2026-04-26T02:43:39.888Z"
+    },
+    {
+      "id": "b9074844-7df2-494f-8d46-1d659353b6c0",
+      "type": "improvement",
+      "page": "/test-page",
+      "rating": 3,
+      "message": "Test feedback with rating 3",
+      "user": "Test Family",
+      "date": "2026-04-26T02:28:40.573Z"
+    },
+    {
+      "id": "8be34802-2b8d-4e61-8f45-3028f38df279",
+      "type": "feature",
+      "page": "/test-page",
+      "rating": 1,
+      "message": "Test feedback with rating 1",
+      "user": "Test Family",
+      "date": "2026-04-26T02:28:40.564Z"
+    },
+    {
+      "id": "f3a7eb4e-a503-4598-8843-b2ac438eaf1a",
+      "type": "bug",
+      "page": "/test-page",
+      "rating": null,
+      "message": "Test feedback with undefined rating",
+      "user": "Test Family",
+      "date": "2026-04-26T02:28:40.551Z"
+    },
+    {
+      "id": "e1894821-656f-45bc-82f1-4461ee663564",
+      "type": "improvement",
+      "page": "/test-page",
+      "rating": null,
+      "message": "Test feedback without rating",
+      "user": "Test Family",
+      "date": "2026-04-26T02:28:40.538Z"
+    },
+    {
+      "id": "19683136-5de0-4001-bfea-0e23e5bb717d",
+      "type": "bug",
+      "page": "/test",
+      "rating": 5,
+      "message": "Test message",
+      "user": "Test Family",
+      "date": "2026-04-26T02:28:19.495Z"
+    }
+  ],
+  "topErrors": []
+}
