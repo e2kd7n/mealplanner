@@ -56,6 +56,13 @@ fi
 echo -e "${YELLOW}🛑 Stopping existing containers...${NC}"
 podman-compose -f podman-compose.pi.yml down 2>/dev/null || true
 
+# Force remove any stuck containers
+echo -e "${YELLOW}🧹 Cleaning up any stuck containers...${NC}"
+podman rm -f meals-postgres meals-backend meals-frontend meals-nginx 2>/dev/null || true
+
+# Remove any orphaned containers from previous failed attempts
+podman container prune -f 2>/dev/null || true
+
 # Check if pre-built images exist
 echo -e "${BLUE}🔍 Checking for pre-built images...${NC}"
 # Check for images with or without localhost/ prefix
