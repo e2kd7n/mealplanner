@@ -75,11 +75,15 @@ RUN pnpm install --frozen-lockfile --prod
 # Copy prisma schema
 COPY --from=backend-builder /app/prisma ./prisma
 
-# Copy generated Prisma client from builder (pnpm structure)
-COPY --from=backend-builder /app/node_modules/.pnpm ./node_modules/.pnpm
+# Regenerate Prisma client with production dependencies only
+ENV PRISMA_ENGINES_CHECKSUM_IGNORE_MISSING=1
+ENV DATABASE_URL="postgresql://dummy:dummy@localhost:5432/dummy"
+RUN npx prisma generate
 
 # Clean up pnpm cache and store to save space
-RUN pnpm store prune && rm -rf /root/.local/share/pnpm/store
+RUN pnpm store prune && \
+    rm -rf /root/.local/share/pnpm/store && \
+    rm -rf /tmp/* /var/cache/apk/*
 
 # Copy built backend from builder
 COPY --from=backend-builder /app/dist ./dist
