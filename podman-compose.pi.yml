@@ -5,8 +5,6 @@ services:
     image: docker.io/library/postgres:16-alpine
     container_name: meals-postgres
     restart: unless-stopped
-    mem_limit: 256m
-    mem_reservation: 128m
     environment:
       POSTGRES_DB: meal_planner
       POSTGRES_USER: mealplanner
@@ -44,8 +42,6 @@ services:
     image: meals-backend:latest
     container_name: meals-backend
     restart: unless-stopped
-    mem_limit: 384m
-    mem_reservation: 256m
     depends_on:
       postgres:
         condition: service_healthy
@@ -87,8 +83,6 @@ services:
     image: meals-frontend:latest
     container_name: meals-frontend
     restart: unless-stopped
-    mem_limit: 128m
-    mem_reservation: 64m
     depends_on:
       backend:
         condition: service_healthy
@@ -106,8 +100,6 @@ services:
     image: docker.io/library/nginx:alpine
     container_name: meals-nginx
     restart: unless-stopped
-    mem_limit: 64m
-    mem_reservation: 32m
     depends_on:
       backend:
         condition: service_healthy
