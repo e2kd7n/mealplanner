@@ -155,17 +155,31 @@ const FeedbackDialog: React.FC<FeedbackDialogProps> = ({ open, onClose }) => {
                 label="Feedback Type"
                 onChange={(e) => setFeedbackType(e.target.value)}
                 disabled={submitting}
+                aria-describedby="feedback-type-helper"
               >
-                <MenuItem value="bug">🐛 Bug Report</MenuItem>
-                <MenuItem value="feature">💡 Feature Request</MenuItem>
-                <MenuItem value="improvement">✨ Improvement</MenuItem>
-                <MenuItem value="question">❓ Question</MenuItem>
-                <MenuItem value="other">📝 Other</MenuItem>
+                <MenuItem value="bug" aria-label="Bug Report">
+                  <span aria-hidden="true">🐛</span> Bug Report
+                </MenuItem>
+                <MenuItem value="feature" aria-label="Feature Request">
+                  <span aria-hidden="true">💡</span> Feature Request
+                </MenuItem>
+                <MenuItem value="improvement" aria-label="Improvement">
+                  <span aria-hidden="true">✨</span> Improvement
+                </MenuItem>
+                <MenuItem value="question" aria-label="Question">
+                  <span aria-hidden="true">❓</span> Question
+                </MenuItem>
+                <MenuItem value="other" aria-label="Other">
+                  <span aria-hidden="true">📝</span> Other
+                </MenuItem>
               </Select>
+              <Typography id="feedback-type-helper" variant="caption" sx={{ mt: 0.5, display: 'block' }}>
+                Select the category that best describes your feedback
+              </Typography>
             </FormControl>
 
             <Box>
-              <Typography component="legend" gutterBottom>
+              <Typography component="legend" gutterBottom id="rating-label">
                 How would you rate your experience? (Optional)
               </Typography>
               <Rating
@@ -174,7 +188,13 @@ const FeedbackDialog: React.FC<FeedbackDialogProps> = ({ open, onClose }) => {
                 onChange={(_, newValue) => setRating(newValue)}
                 disabled={submitting}
                 size="large"
+                aria-label="Rate your experience from 1 to 5 stars"
+                aria-labelledby="rating-label"
+                aria-describedby="rating-helper"
               />
+              <Typography id="rating-helper" variant="caption" sx={{ display: 'block', mt: 0.5 }}>
+                {rating ? `You rated ${rating} out of 5 stars` : 'No rating selected'}
+              </Typography>
             </Box>
 
             <TextField
@@ -189,9 +209,14 @@ const FeedbackDialog: React.FC<FeedbackDialogProps> = ({ open, onClose }) => {
               fullWidth
               inputProps={{
                 maxLength: 2000,
+                'aria-describedby': 'feedback-message-helper',
               }}
               helperText={`${message.length}/2000 characters`}
+              aria-describedby="feedback-message-helper"
             />
+            <Typography id="feedback-message-helper" variant="caption" sx={{ display: 'block', mt: 0.5 }}>
+              Please describe your feedback in detail (required, maximum 2000 characters)
+            </Typography>
 
             <Box>
               <Button
@@ -200,14 +225,16 @@ const FeedbackDialog: React.FC<FeedbackDialogProps> = ({ open, onClose }) => {
                 disabled={submitting || !!screenshot}
                 variant="outlined"
                 size="small"
+                aria-label={screenshot ? 'Screenshot captured successfully' : 'Capture screenshot of current page'}
+                aria-describedby="screenshot-helper"
               >
                 {screenshot ? 'Screenshot Captured' : 'Capture Screenshot (Optional)'}
               </Button>
-              {screenshot && (
-                <Typography variant="caption" display="block" sx={{ mt: 1 }}>
-                  Screenshot will be included with your feedback
-                </Typography>
-              )}
+              <Typography id="screenshot-helper" variant="caption" display="block" sx={{ mt: 1 }}>
+                {screenshot
+                  ? 'Screenshot will be included with your feedback'
+                  : 'Optionally capture a screenshot to help illustrate your feedback'}
+              </Typography>
             </Box>
 
             <Typography variant="caption" color="text.secondary">
