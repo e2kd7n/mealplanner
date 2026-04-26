@@ -62,7 +62,7 @@ COPY backend .
 # Use dummy DATABASE_URL for build time (will be replaced at runtime)
 ENV PRISMA_ENGINES_CHECKSUM_IGNORE_MISSING=1
 ENV DATABASE_URL="postgresql://dummy:dummy@localhost:5432/dummy"
-RUN npx prisma generate
+RUN pnpm prisma generate
 
 # Build TypeScript
 RUN pnpm build
@@ -95,7 +95,7 @@ COPY --from=backend-builder /app/prisma ./prisma
 # Regenerate Prisma client with production dependencies only
 ENV PRISMA_ENGINES_CHECKSUM_IGNORE_MISSING=1
 ENV DATABASE_URL="postgresql://dummy:dummy@localhost:5432/dummy"
-RUN npx prisma generate
+RUN pnpm prisma generate
 
 # Clean up pnpm cache and store to save space
 RUN pnpm store prune && \
