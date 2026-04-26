@@ -25,8 +25,9 @@ export class RecipesPage {
     this.page = page;
     this.searchInput = page.getByPlaceholder(/search recipes/i);
     this.filterButton = page.getByRole('button', { name: /filter/i });
-    // MUI Select doesn't expose as combobox, use the label's for attribute to find the select
-    this.sortSelect = page.locator('#\\:r4\\:').or(page.locator('div').filter({ hasText: /^Sort By$/ }).locator('..').locator('div[role="button"]'));
+    // Issue #138: Fixed sort dropdown selector to work with MUI Select component
+    // Use a more robust selector that finds the Select by its label
+    this.sortSelect = page.locator('label:has-text("Sort By")').locator('..').locator('[role="combobox"]');
     this.createButton = page.getByRole('button', { name: /create recipe/i });
     this.importButton = page.getByRole('button', { name: /import recipe/i });
     this.recipeCards = page.locator('[data-testid="recipe-card"]').or(page.locator('.MuiCard-root'));

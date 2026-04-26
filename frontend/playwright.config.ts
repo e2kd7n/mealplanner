@@ -38,6 +38,11 @@ export default defineConfig({
     /* Base URL to use in actions like `await page.goto('/')`. */
     baseURL: process.env.BASE_URL || 'http://localhost:5173',
     
+    /* Issue #139: Configurable authentication delay to reduce timing failures
+     * Set AUTH_DELAY_MS environment variable to override default 10s delay
+     * Example: AUTH_DELAY_MS=5000 for 5 second delay
+     */
+    
     /* Collect trace when retrying the failed test. See https://playwright.dev/docs/trace-viewer */
     trace: 'on-first-retry',
     
