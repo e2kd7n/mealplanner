@@ -43,6 +43,10 @@ check_cleanup_needed() {
     echo ""
 }
 
+# Capture initial disk usage for calculation
+DISK_BEFORE=$(df / | awk 'NR==2 {print $3}')
+DISK_USAGE_PERCENT=$(df / | awk 'NR==2 {print $5}' | sed 's/%//')
+
 # Show initial disk usage
 echo -e "${YELLOW}Before cleanup:${NC}"
 show_disk_usage
@@ -150,16 +154,20 @@ echo -e "${YELLOW}💡 If you need system-wide cleanup, run manually:${NC}"
 echo -e "   sudo apt-get clean && sudo apt-get autoremove -y"
 echo -e "   sudo journalctl --vacuum-time=3d"
 
+# Calculate space freed
+DISK_AFTER=$(df / | awk 'NR==2 {print $3}')
+DISK_FINAL_PERCENT=$(df / | awk 'NR==2 {print $5}' | sed 's/%//')
+DISK_FREED=$((DISK_BEFORE - DISK_AFTER))
+DISK_FREED_MB=$((DISK_FREED / 1024))
+DISK_FREED_GB=$(echo "scale=2; $DISK_FREED_MB / 1024" | bc 2>/dev/null || echo "0")
+PERCENT_FREED=$((DISK_USAGE_PERCENT - DISK_FINAL_PERCENT))
+
 # Show final disk usage
 echo ""
 echo -e "${GREEN}✅ Cleanup complete!${NC}"
 echo ""
 echo -e "${YELLOW}After cleanup:${NC}"
 show_disk_usage
-
-# Calculate space freed
-DISK_FINAL=$(df / | awk 'NR==2 {print $5}' | sed 's/%//')
-SPACE_FREED=$((DISK_USAGE - DISK_FINAL))
 
 # Show what was cleaned
 echo -e "${BLUE}📊 Cleanup summary:${NC}"
@@ -170,16 +178,24 @@ echo -e "   ✓ Podman system cache cleaned"
 echo -e "   ✓ Image tar files removed from ./pi-images/"
 echo -e "   ℹ️  System-wide cleanup skipped (safe for multi-app Pi)"
 echo ""
-echo -e "${GREEN}💾 Space freed: ~${SPACE_FREED}%${NC}"
+
+# Show space freed summary
+echo -e "${GREEN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+if [ "$DISK_FREED_MB" -gt 1024 ]; then
+    echo -e "${GREEN}🎉 Freed ${DISK_FREED_GB}GB of disk space! (${PERCENT_FREED}% reduction)${NC}"
+else
+    echo -e "${GREEN}🎉 Freed ${DISK_FREED_MB}MB of disk space! (${PERCENT_FREED}% reduction)${NC}"
+fi
+echo -e "${GREEN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
 echo ""
 
-if [ "$DISK_FINAL" -lt 60 ]; then
-    echo -e "${GREEN}✓ Disk usage is now healthy (${DISK_FINAL}%)${NC}"
-elif [ "$DISK_FINAL" -lt 70 ]; then
-    echo -e "${YELLOW}⚠️  Disk usage is moderate (${DISK_FINAL}%)${NC}"
+if [ "$DISK_FINAL_PERCENT" -lt 60 ]; then
+    echo -e "${GREEN}✓ Disk usage is now healthy (${DISK_FINAL_PERCENT}%)${NC}"
+elif [ "$DISK_FINAL_PERCENT" -lt 70 ]; then
+    echo -e "${YELLOW}⚠️  Disk usage is moderate (${DISK_FINAL_PERCENT}%)${NC}"
     echo -e "${BLUE}Consider expanding storage if this persists${NC}"
 else
-    echo -e "${RED}⚠️  Disk usage is still high (${DISK_FINAL}%)${NC}"
+    echo -e "${RED}⚠️  Disk usage is still high (${DISK_FINAL_PERCENT}%)${NC}"
     echo -e "${YELLOW}Additional cleanup may be needed:${NC}"
     echo -e "   - Check /var/log for large log files"
     echo -e "   - Check /home for large files: du -sh /home/*"

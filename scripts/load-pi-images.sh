@@ -1,4 +1,4 @@
-r#!/bin/bash
+#!/bin/bash
 
 # Load container images from tar files on Raspberry Pi
 # This script loads pre-built images that were transferred from the build machine
