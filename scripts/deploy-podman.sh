@@ -58,8 +58,9 @@ podman-compose -f podman-compose.pi.yml down 2>/dev/null || true
 
 # Check if pre-built images exist
 echo -e "${BLUE}🔍 Checking for pre-built images...${NC}"
-BACKEND_EXISTS=$(podman images --format "{{.Repository}}:{{.Tag}}" | grep -c "^meals-backend:latest$" || true)
-FRONTEND_EXISTS=$(podman images --format "{{.Repository}}:{{.Tag}}" | grep -c "^meals-frontend:latest$" || true)
+# Check for images with or without localhost/ prefix
+BACKEND_EXISTS=$(podman images --format "{{.Repository}}:{{.Tag}}" | grep -c "meals-backend:latest$" || true)
+FRONTEND_EXISTS=$(podman images --format "{{.Repository}}:{{.Tag}}" | grep -c "meals-frontend:latest$" || true)
 
 if [ "$BACKEND_EXISTS" -gt 0 ] && [ "$FRONTEND_EXISTS" -gt 0 ]; then
     echo -e "${GREEN}✓ Found pre-built images:${NC}"
