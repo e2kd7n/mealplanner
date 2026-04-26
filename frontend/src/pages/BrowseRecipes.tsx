@@ -16,7 +16,6 @@ import {
   CardActions,
   Button,
   Chip,
-  Alert,
   Stack,
   Pagination,
   Tooltip,
@@ -29,6 +28,7 @@ import {
   Snackbar,
   Badge,
   ClickAwayListener,
+  Alert,
 } from '@mui/material';
 import {
   Search as SearchIcon,
@@ -52,6 +52,7 @@ import { useSearchSuggestions } from '../hooks/useSearchSuggestions';
 import { parseNaturalLanguage, formatParsedQuery } from '../utils/searchParser';
 import SearchSuggestions from '../components/SearchSuggestions';
 import SpoonacularRecipeDialog from '../components/SpoonacularRecipeDialog';
+import ErrorAlert from '../components/ErrorAlert';
 
 // Memoized Recipe Card Component
 interface BrowseRecipeCardProps {
@@ -659,14 +660,22 @@ const BrowseRecipes: React.FC = () => {
 
       {/* Error Messages */}
       {error && (
-        <Alert severity="error" onClose={handleClearError} sx={{ mb: 3 }}>
-          {error}
-        </Alert>
+        <ErrorAlert
+          error={error}
+          title="Search Error"
+          onClose={handleClearError}
+          additionalContext="Recipe search failed"
+          sx={{ mb: 3 }}
+        />
       )}
       {addToBoxError && (
-        <Alert severity="error" onClose={handleClearError} sx={{ mb: 3 }}>
-          {addToBoxError}
-        </Alert>
+        <ErrorAlert
+          error={addToBoxError}
+          title="Add to Box Failed"
+          onClose={handleClearError}
+          additionalContext="Failed to add recipe to box"
+          sx={{ mb: 3 }}
+        />
       )}
 
       {/* Loading State */}
