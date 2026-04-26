@@ -87,7 +87,7 @@ auto_close_completed_issues() {
   fi
   
   # Check for issues mentioned in completion/summary documents
-  for doc in *_COMPLETE*.md *_SUMMARY.md *_IMPLEMENTATION_SUMMARY.md; do
+  for doc in *_COMPLETE*.md *_SUMMARY.md *_IMPLEMENTATION_SUMMARY.md P0_*.md; do
     if [ -f "$doc" ]; then
       local doc_issues=$(grep -oE '#[0-9]+' "$doc" | sort -u | sed 's/#//')
       
@@ -113,57 +113,101 @@ auto_close_completed_issues() {
   echo "" >&2
 }
 
-# Function to check recent commits for completed work
+# Enhanced function to check recent commits for completed work
 check_commits_for_completed_work() {
   log_action "Checking recent commits for completed work..."
   
   local closed_count=0
   local temp_file=$(mktemp)
+  local commit_details=$(mktemp)
   
-  # Get last 20 commits with their messages
-  git log --oneline -20 --no-merges 2>/dev/null > "$temp_file"
+  # Get last 50 commits with full messages (increased from 20)
+  git log --format="%H|%s|%b" -50 --no-merges 2>/dev/null > "$commit_details"
   
-  if [ ! -s "$temp_file" ]; then
+  if [ ! -s "$commit_details" ]; then
     log_warning "No recent git history found"
-    rm -f "$temp_file"
+    rm -f "$temp_file" "$commit_details"
     return
   fi
   
-  # Extract issue numbers from commit messages
-  local commit_issues=$(grep -oE '#[0-9]+' "$temp_file" | sort -u | sed 's/#//')
+  # Extract all issue numbers from commits (subject + body)
+  grep -oE '#[0-9]+' "$commit_details" | sort -u | sed 's/#//' > "$temp_file"
   
-  if [ -z "$commit_issues" ]; then
+  if [ ! -s "$temp_file" ]; then
     log_success "No issue references found in recent commits"
-    rm -f "$temp_file"
+    rm -f "$temp_file" "$commit_details"
     return
   fi
   
   # Check each referenced issue
-  for issue_num in $commit_issues; do
+  while read -r issue_num; do
     local is_open=$(gh issue view "$issue_num" --json state --jq '.state' 2>/dev/null)
     
     if [ "$is_open" = "OPEN" ]; then
-      # Check if commit message indicates completion
-      local commit_msg=$(grep "#$issue_num" "$temp_file" | head -1)
+      # Get all commits that mention this issue
+      local issue_commits=$(grep "#$issue_num" "$commit_details")
       
-      if echo "$commit_msg" | grep -qiE "fix|close|resolve|complete|implement"; then
-        log_action "Issue #$issue_num referenced in recent commit with completion keywords"
+      # Enhanced completion detection patterns
+      local completion_patterns=(
+        "fix.*#$issue_num"
+        "close.*#$issue_num"
+        "resolve.*#$issue_num"
+        "complete.*#$issue_num"
+        "implement.*#$issue_num"
+        "#$issue_num.*fix"
+        "#$issue_num.*close"
+        "#$issue_num.*resolve"
+        "#$issue_num.*complete"
+        "#$issue_num.*implement"
+        "Resolves #$issue_num"
+        "Fixes #$issue_num"
+        "Closes #$issue_num"
+      )
+      
+      local should_close=false
+      local matching_pattern=""
+      
+      # Check if any commit message matches completion patterns
+      for pattern in "${completion_patterns[@]}"; do
+        if echo "$issue_commits" | grep -qiE "$pattern"; then
+          should_close=true
+          matching_pattern="$pattern"
+          break
+        fi
+      done
+      
+      # Additional check: if issue appears in commit with "feat:" or "fix:" prefix
+      # and the commit body contains the issue number, it's likely resolved
+      if echo "$issue_commits" | grep -qE "^[a-f0-9]+\|(feat|fix):.*#$issue_num"; then
+        should_close=true
+        matching_pattern="conventional commit with issue reference"
+      fi
+      
+      if [ "$should_close" = true ]; then
+        local commit_summary=$(echo "$issue_commits" | head -1 | cut -d'|' -f2 | cut -c1-80)
+        log_action "Issue #$issue_num appears resolved (pattern: $matching_pattern)"
         
         if [ "$AUTO_CLOSE" = true ] && [ "$DRY_RUN" = false ]; then
-          log_action "Auto-closing issue #$issue_num based on commit: $commit_msg"
-          gh issue close "$issue_num" --comment "Auto-closed: Referenced in recent commit with completion keywords: $commit_msg" 2>/dev/null
+          log_action "Auto-closing issue #$issue_num based on commit analysis"
+          gh issue close "$issue_num" --comment "Auto-closed: Issue appears resolved in recent commits. Last relevant commit: $commit_summary" 2>/dev/null
           if [ $? -eq 0 ]; then
             ((closed_count++))
             log_success "Closed issue #$issue_num"
           fi
         else
           echo "  Would close #$issue_num (use --auto-close to enable)" >&2
+          echo "  Commit: $commit_summary" >&2
         fi
+      else
+        # Issue mentioned but not with completion keywords - just log it
+        local commit_summary=$(echo "$issue_commits" | head -1 | cut -d'|' -f2 | cut -c1-60)
+        log_action "Issue #$issue_num mentioned in commits but not marked as resolved"
+        echo "  Last mention: $commit_summary" >&2
       fi
     fi
-  done
+  done < "$temp_file"
   
-  rm -f "$temp_file"
+  rm -f "$temp_file" "$commit_details"
   
   if [ $closed_count -gt 0 ]; then
     log_success "Auto-closed $closed_count issues based on commits"
@@ -340,6 +384,13 @@ while [[ $# -gt 0 ]]; do
       echo "  $0                           # Normal run with all checks"
       echo "  $0 --auto-close              # Auto-close completed issues"
       echo "  $0 --dry-run --auto-close    # Preview what would be closed"
+      echo ""
+      echo "Enhanced Features:"
+      echo "  - Analyzes last 50 commits (up from 20)"
+      echo "  - Detects conventional commit patterns (feat:, fix:)"
+      echo "  - Recognizes 'Resolves #N', 'Fixes #N', 'Closes #N' patterns"
+      echo "  - Checks both commit subject and body for issue references"
+      echo "  - Scans completion documents (P0_*.md, *_COMPLETE*.md, etc.)"
       exit 0
       ;;
     *)
