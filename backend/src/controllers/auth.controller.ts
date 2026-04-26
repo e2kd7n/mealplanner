@@ -402,6 +402,7 @@ export async function refreshToken(
       userId: user.id,
       email: user.email,
       familyName: user.familyName,
+      role: user.role,
     });
 
     res.json({
