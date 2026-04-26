@@ -293,6 +293,22 @@ const GroceryList: React.FC = () => {
     }
   };
 
+  const items = currentList?.items || [];
+  
+  // Group items by store category
+  const groupedItems = items.reduce((acc, item) => {
+    const storeCategory = mapIngredientCategoryToStore(item.ingredient.category || 'other');
+    if (!acc[storeCategory]) {
+      acc[storeCategory] = [];
+    }
+    acc[storeCategory].push(item);
+    return acc;
+  }, {} as Record<string, GroceryItem[]>);
+
+  const checkedCount = items.filter(item => item.isChecked).length;
+  const totalCount = items.length;
+  const progress = totalCount > 0 ? (checkedCount / totalCount) * 100 : 0;
+
   if (loading) {
     return (
       <Container maxWidth="lg">
@@ -318,22 +334,6 @@ const GroceryList: React.FC = () => {
       </Container>
     );
   }
-
-  const items = currentList?.items || [];
-  
-  // Group items by store category
-  const groupedItems = items.reduce((acc, item) => {
-    const storeCategory = mapIngredientCategoryToStore(item.ingredient.category || 'other');
-    if (!acc[storeCategory]) {
-      acc[storeCategory] = [];
-    }
-    acc[storeCategory].push(item);
-    return acc;
-  }, {} as Record<string, GroceryItem[]>);
-
-  const checkedCount = items.filter(item => item.isChecked).length;
-  const totalCount = items.length;
-  const progress = totalCount > 0 ? (checkedCount / totalCount) * 100 : 0;
 
   return (
     <Container maxWidth="lg">
@@ -382,7 +382,7 @@ const GroceryList: React.FC = () => {
 
         {/* Progress */}
         {currentList && (
-          <Card sx={{ mb: 3, bgcolor: 'primary.light', color: 'primary.contrastText' }}>
+          <Card sx={{ mb: 3, bgcolor: 'primary.main', color: 'primary.contrastText' }}>
             <CardContent>
               <Stack direction="row" alignItems="center" spacing={2}>
                 <ShoppingCartIcon sx={{ fontSize: 40 }} />
@@ -408,11 +408,11 @@ const GroceryList: React.FC = () => {
         {!currentList || items.length === 0 ? (
           <Card>
             <CardContent sx={{ textAlign: 'center', py: 8 }}>
-              <ShoppingCartIcon sx={{ fontSize: 64, color: 'text.secondary', mb: 2 }} />
-              <Typography variant="h6" color="text.secondary" gutterBottom>
+              <ShoppingCartIcon sx={{ fontSize: 64, color: 'text.primary', mb: 2 }} aria-hidden="true" />
+              <Typography variant="h6" sx={{ color: 'text.primary' }} gutterBottom>
                 Your grocery list is empty
               </Typography>
-              <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
+              <Typography variant="body2" sx={{ mb: 3, color: 'text.primary' }}>
                 Generate a grocery list from your meal plan to get started
               </Typography>
               <Button
@@ -439,17 +439,25 @@ const GroceryList: React.FC = () => {
                 <Card key={categoryConfig.key} sx={{ mb: 2, border: `2px solid ${categoryConfig.color}20` }}>
                   <CardContent sx={{ pb: isExpanded ? 2 : 1, '&:last-child': { pb: isExpanded ? 2 : 1 } }}>
                     <Box
+                      component="button"
+                      type="button"
                       sx={{
+                        width: '100%',
                         display: 'flex',
                         justifyContent: 'space-between',
                         alignItems: 'center',
                         cursor: 'pointer',
                         '&:hover': { bgcolor: 'action.hover' },
+                        background: 'transparent',
+                        border: 0,
+                        textAlign: 'left',
                         p: 1,
                         mx: -1,
                         borderRadius: 1,
                       }}
                       onClick={() => toggleCategory(categoryConfig.key)}
+                      aria-expanded={isExpanded}
+                      aria-label={`${isExpanded ? 'Collapse' : 'Expand'} ${categoryConfig.label} category`}
                     >
                       <Stack direction="row" spacing={2} alignItems="center">
                         <Avatar sx={{ bgcolor: categoryConfig.color, width: 40, height: 40 }}>
@@ -460,7 +468,7 @@ const GroceryList: React.FC = () => {
                             <span>{categoryConfig.emoji}</span>
                             {categoryConfig.label}
                           </Typography>
-                          <Typography variant="caption" color="text.secondary">
+                          <Typography variant="caption" sx={{ color: 'text.primary' }}>
                             {categoryChecked} of {categoryTotal} items checked
                           </Typography>
                         </Box>
@@ -472,7 +480,11 @@ const GroceryList: React.FC = () => {
                           color={categoryChecked === categoryTotal ? 'success' : 'default'}
                           icon={categoryChecked === categoryTotal ? <CheckCircleIcon /> : undefined}
                         />
-                        <IconButton size="small">
+                        <IconButton
+                          size="small"
+                          tabIndex={-1}
+                          aria-hidden="true"
+                        >
                           {isExpanded ? <ExpandLessIcon /> : <ExpandMoreIcon />}
                         </IconButton>
                       </Stack>
@@ -513,6 +525,9 @@ const GroceryList: React.FC = () => {
                                   checked={item.isChecked}
                                   tabIndex={-1}
                                   disableRipple
+                                  inputProps={{
+                                    'aria-label': `${item.isChecked ? 'Uncheck' : 'Check'} ${item.ingredient.name}`,
+                                  }}
                                   sx={{
                                     color: categoryConfig.color,
                                     '&.Mui-checked': {

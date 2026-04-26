@@ -1,13 +1,16 @@
 name: E2E Tests
 
-# DISABLED: E2E tests are currently failing and need investigation
-# See issue for details on failures and resolution plan
+# Re-enabled after implementing P1 fixes:
+# - Issue #137: API authentication
+# - Issue #136: Session reuse pattern
+# - Issue #139: Configurable authentication delays
+# - Issue #138: Fixed sort dropdown selector
 on:
   workflow_dispatch:
-  # push:
-  #   branches: [main, develop]
-  # pull_request:
-  #   branches: [main, develop]
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main, develop]
 
 jobs:
   e2e-tests:
