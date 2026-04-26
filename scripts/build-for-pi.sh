@@ -26,7 +26,7 @@ if [ -f /proc/device-tree/model ]; then
         echo -e "  1. Run this script on your ${GREEN}development machine${NC}"
         echo -e "  2. Transfer images: ${GREEN}scp pi-images/*.tar.gz pi@pihole:~/mealplanner/pi-images/${NC}"
         echo -e "  3. On Pi, load images: ${GREEN}./scripts/load-pi-images.sh${NC}"
-        echo -e "  4. On Pi, deploy: ${GREEN}./scripts/pi-run.sh${NC}"
+        echo -e "  4. On Pi, deploy: ${GREEN}./scripts/deploy-podman.sh${NC}"
         echo ""
         exit 1
     fi
