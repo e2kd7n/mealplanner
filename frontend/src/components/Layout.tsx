@@ -40,6 +40,7 @@ import { logout } from '../store/slices/authSlice';
 import BackendStatusBanner from './BackendStatusBanner';
 import { useKeyboardShortcuts } from '../hooks/useKeyboardShortcuts';
 import MobileBottomNav from './MobileBottomNav';
+import FeedbackButton from './FeedbackButton';
 
 const drawerWidth = 240;
 
@@ -285,6 +286,9 @@ const Layout: React.FC = () => {
       
       {/* Mobile Bottom Navigation */}
       <MobileBottomNav />
+      
+      {/* Global Feedback Button */}
+      <FeedbackButton />
     </Box>
   );
 };

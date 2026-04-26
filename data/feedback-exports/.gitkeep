@@ -1,0 +1,2 @@
+# This file ensures the feedback-exports directory is tracked by git
+# Actual feedback export files are ignored via .gitignore

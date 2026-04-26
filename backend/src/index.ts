@@ -36,6 +36,7 @@ import pantryRoutes from './routes/pantry.routes';
 import adminRoutes from './routes/admin.routes';
 import imageRoutes from './routes/image.routes';
 import logsRoutes from './routes/logs.routes';
+import feedbackRoutes from './routes/feedback.routes';
 
 // Import middleware
 import { errorHandler } from './middleware/errorHandler';
@@ -131,6 +132,7 @@ app.use('/api/pantry', pantryRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/images', imageRoutes);
 app.use('/api/logs', logsRoutes);
+app.use('/api/feedback', feedbackRoutes);
 
 // Serve static files from frontend build (in production)
 if (process.env.NODE_ENV === 'production') {

@@ -60,6 +60,9 @@ data/backups/*
 !data/backups/.gitkeep
 data/images/*
 !data/images/.gitkeep
+data/feedback-exports/*
+!data/feedback-exports/.gitkeep
+!data/feedback-exports/README.md
 
 # Docker/Podman volumes
 postgres_data/
