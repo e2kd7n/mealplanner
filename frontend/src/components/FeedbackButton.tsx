@@ -5,7 +5,7 @@
 
 import React, { useState } from 'react';
 import { Fab, Tooltip, useTheme, useMediaQuery } from '@mui/material';
-import { Feedback as FeedbackIcon } from '@mui/icons-material';
+import { Comment as CommentIcon } from '@mui/icons-material';
 import FeedbackDialog from './FeedbackDialog';
 
 const FeedbackButton: React.FC = () => {
@@ -41,7 +41,7 @@ const FeedbackButton: React.FC = () => {
             transition: 'all 0.2s ease-in-out',
           }}
         >
-          <FeedbackIcon />
+          <CommentIcon />
         </Fab>
       </Tooltip>
 
