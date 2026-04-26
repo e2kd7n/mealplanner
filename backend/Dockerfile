@@ -1,7 +1,16 @@
 # Multi-stage build for Node.js backend with integrated frontend
 # Optimized for ARM architecture (Raspberry Pi) with minimal size
+#
+# Build stages:
+#   [1/3] frontend-builder - Builds the React frontend application
+#   [2/3] backend-builder  - Builds the Node.js backend and TypeScript
+#   [3/3] production       - Final optimized image with only runtime dependencies
 
-# Stage 1: Build frontend
+# ============================================================================
+# STAGE 1/3: Frontend Builder
+# ============================================================================
+# Purpose: Build the React frontend application
+# Output: Compiled static files in /frontend/dist
 FROM docker.io/library/node:20-alpine AS frontend-builder
 
 WORKDIR /frontend
@@ -9,9 +18,8 @@ WORKDIR /frontend
 # Copy frontend package files
 COPY frontend/package.json frontend/pnpm-lock.yaml ./
 
-# Install pnpm directly via wget (bypasses syscall issues on ARM)
-RUN wget -qO- https://get.pnpm.io/install.sh | ENV="$HOME/.shrc" SHELL="$(which sh)" sh - && \
-    ln -s /root/.local/share/pnpm/pnpm /usr/local/bin/pnpm
+# Install pnpm via npm (more reliable for caching)
+RUN npm install -g pnpm@10
 
 # Install frontend dependencies (production only)
 RUN pnpm install --frozen-lockfile --prod=false
@@ -26,7 +34,11 @@ ENV VITE_API_URL=$VITE_API_URL
 # Build the frontend application
 RUN pnpm build
 
-# Stage 2: Build backend
+# ============================================================================
+# STAGE 2/3: Backend Builder
+# ============================================================================
+# Purpose: Build the Node.js backend and compile TypeScript
+# Output: Compiled JavaScript in /app/dist and Prisma client
 FROM docker.io/library/node:20-alpine AS backend-builder
 
 # Install build dependencies for native modules
@@ -37,9 +49,8 @@ WORKDIR /app
 # Copy package files
 COPY backend/package.json backend/pnpm-lock.yaml ./
 
-# Install pnpm directly via wget (bypasses syscall issues on ARM)
-RUN wget -qO- https://get.pnpm.io/install.sh | ENV="$HOME/.shrc" SHELL="$(which sh)" sh - && \
-    ln -s /root/.local/share/pnpm/pnpm /usr/local/bin/pnpm
+# Install pnpm via npm (more reliable for caching)
+RUN npm install -g pnpm@10
 
 # Install dependencies
 RUN pnpm install --frozen-lockfile
@@ -56,13 +67,19 @@ RUN npx prisma generate
 # Build TypeScript
 RUN pnpm build
 
-# Stage 3: Production (OPTIMIZED)
+# ============================================================================
+# STAGE 3/3: Production Image (OPTIMIZED FOR SIZE)
+# ============================================================================
+# Purpose: Create minimal production image with only runtime dependencies
+# Optimizations:
+#   - Production dependencies only (no TypeScript, @types/*, etc.)
+#   - Regenerated Prisma client (avoids copying dev dependencies)
+#   - Cleaned caches and temporary files
+# Expected size: 400-600MB (vs 1.2GB with dev dependencies)
 FROM docker.io/library/node:20-alpine
 
-# Install runtime dependencies and pnpm
-RUN apk add --no-cache wget && \
-    wget -qO- https://get.pnpm.io/install.sh | ENV="$HOME/.shrc" SHELL="$(which sh)" sh - && \
-    ln -s /root/.local/share/pnpm/pnpm /usr/local/bin/pnpm
+# Install pnpm via npm
+RUN npm install -g pnpm@10
 
 WORKDIR /app
 
