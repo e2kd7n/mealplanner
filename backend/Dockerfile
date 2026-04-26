@@ -89,13 +89,10 @@ COPY backend/package.json backend/pnpm-lock.yaml ./
 # Install ONLY production dependencies (excludes devDependencies like TypeScript, @types/*, etc.)
 RUN pnpm install --frozen-lockfile --prod
 
-# Copy prisma schema
+# Copy prisma schema and generated client from builder
 COPY --from=backend-builder /app/prisma ./prisma
-
-# Regenerate Prisma client with production dependencies only
-ENV PRISMA_ENGINES_CHECKSUM_IGNORE_MISSING=1
-ENV DATABASE_URL="postgresql://dummy:dummy@localhost:5432/dummy"
-RUN pnpm prisma generate
+COPY --from=backend-builder /app/node_modules/.prisma ./node_modules/.prisma
+COPY --from=backend-builder /app/node_modules/@prisma ./node_modules/@prisma
 
 # Clean up pnpm cache and store to save space
 RUN pnpm store prune && \
