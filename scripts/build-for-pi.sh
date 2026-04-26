@@ -38,6 +38,15 @@ echo "🏗️  Building container images for Raspberry Pi..."
 if command -v podman &> /dev/null; then
     CONTAINER_CMD="podman"
     echo -e "${GREEN}✓ Using Podman${NC}"
+    
+    # Check if podman machine is running (macOS/Windows)
+    if podman machine list &> /dev/null; then
+        if ! podman machine list | grep -q "Currently running"; then
+            echo -e "${YELLOW}⚠️  Podman machine not running, starting it...${NC}"
+            podman machine start
+            echo -e "${GREEN}✓ Podman machine started${NC}"
+        fi
+    fi
 elif command -v docker &> /dev/null; then
     CONTAINER_CMD="docker"
     echo -e "${GREEN}✓ Using Docker${NC}"
