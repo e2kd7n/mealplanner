@@ -22,6 +22,8 @@ import {
   IconButton,
   Stack,
   CircularProgress,
+  Paper,
+  Divider,
 } from '@mui/material';
 import {
   Close as CloseIcon,
@@ -62,10 +64,13 @@ const FeedbackDialog: React.FC<FeedbackDialogProps> = ({ open, onClose }) => {
 
   const captureScreenshot = async () => {
     try {
+      setError(null);
       const canvas = await html2canvas(document.body, {
         allowTaint: true,
         useCORS: true,
         logging: false,
+        backgroundColor: '#ffffff',
+        scale: 1,
       });
       const dataUrl = canvas.toDataURL('image/png');
       setScreenshot(dataUrl);
@@ -122,7 +127,7 @@ const FeedbackDialog: React.FC<FeedbackDialogProps> = ({ open, onClose }) => {
             edge="end"
             onClick={handleClose}
             disabled={submitting}
-            aria-label="close"
+            aria-label="Close feedback dialog"
           >
             <CloseIcon />
           </IconButton>
@@ -142,7 +147,7 @@ const FeedbackDialog: React.FC<FeedbackDialogProps> = ({ open, onClose }) => {
               </Alert>
             )}
 
-            <Typography variant="body2" color="text.secondary">
+            <Typography variant="body2" sx={{ color: 'text.primary' }}>
               We value your input! Please share your thoughts, report bugs, or suggest improvements.
             </Typography>
 
@@ -173,7 +178,11 @@ const FeedbackDialog: React.FC<FeedbackDialogProps> = ({ open, onClose }) => {
                   <span aria-hidden="true">📝</span> Other
                 </MenuItem>
               </Select>
-              <Typography id="feedback-type-helper" variant="caption" sx={{ mt: 0.5, display: 'block' }}>
+              <Typography
+                id="feedback-type-helper"
+                variant="caption"
+                sx={{ mt: 0.5, display: 'block', color: 'text.primary' }}
+              >
                 Select the category that best describes your feedback
               </Typography>
             </FormControl>
@@ -192,7 +201,11 @@ const FeedbackDialog: React.FC<FeedbackDialogProps> = ({ open, onClose }) => {
                 aria-labelledby="rating-label"
                 aria-describedby="rating-helper"
               />
-              <Typography id="rating-helper" variant="caption" sx={{ display: 'block', mt: 0.5 }}>
+              <Typography
+                id="rating-helper"
+                variant="caption"
+                sx={{ display: 'block', mt: 0.5, color: 'text.primary' }}
+              >
                 {rating ? `You rated ${rating} out of 5 stars` : 'No rating selected'}
               </Typography>
             </Box>
@@ -214,7 +227,11 @@ const FeedbackDialog: React.FC<FeedbackDialogProps> = ({ open, onClose }) => {
               helperText={`${message.length}/2000 characters`}
               aria-describedby="feedback-message-helper"
             />
-            <Typography id="feedback-message-helper" variant="caption" sx={{ display: 'block', mt: 0.5 }}>
+            <Typography
+              id="feedback-message-helper"
+              variant="caption"
+              sx={{ display: 'block', mt: 0.5, color: 'text.primary' }}
+            >
               Please describe your feedback in detail (required, maximum 2000 characters)
             </Typography>
 
@@ -230,16 +247,57 @@ const FeedbackDialog: React.FC<FeedbackDialogProps> = ({ open, onClose }) => {
               >
                 {screenshot ? 'Screenshot Captured' : 'Capture Screenshot (Optional)'}
               </Button>
-              <Typography id="screenshot-helper" variant="caption" display="block" sx={{ mt: 1 }}>
+              <Typography
+                id="screenshot-helper"
+                variant="caption"
+                display="block"
+                sx={{ mt: 1, color: 'text.primary' }}
+              >
                 {screenshot
                   ? 'Screenshot will be included with your feedback'
                   : 'Optionally capture a screenshot to help illustrate your feedback'}
               </Typography>
-            </Box>
 
-            <Typography variant="caption" color="text.secondary">
-              Current page: {location.pathname}
-            </Typography>
+              <Paper
+                variant="outlined"
+                sx={{
+                  mt: 2,
+                  p: 2,
+                  bgcolor: 'background.default',
+                }}
+                aria-live="polite"
+              >
+                <Typography variant="subtitle2" sx={{ mb: 1, color: 'text.primary' }}>
+                  Included context
+                </Typography>
+                <Stack spacing={1.5} divider={<Divider flexItem />}>
+                  <Box>
+                    <Typography variant="caption" sx={{ color: 'text.primary' }} component="div">
+                      Current page path
+                    </Typography>
+                    <Typography
+                      variant="body2"
+                      sx={{
+                        fontFamily: 'monospace',
+                        wordBreak: 'break-all',
+                        color: 'text.primary',
+                      }}
+                    >
+                      {location.pathname}
+                    </Typography>
+                  </Box>
+
+                  <Box>
+                    <Typography variant="caption" sx={{ color: 'text.primary' }} component="div">
+                      Screenshot attachment
+                    </Typography>
+                    <Typography variant="body2" color="text.primary">
+                      {screenshot ? 'Attached to this feedback submission' : 'Not attached'}
+                    </Typography>
+                  </Box>
+                </Stack>
+              </Paper>
+            </Box>
           </Stack>
         )}
       </DialogContent>

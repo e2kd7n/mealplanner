@@ -55,7 +55,7 @@ export const submitFeedback = async (req: Request, res: Response) => {
         userId,
         page,
         feedbackType,
-        rating: rating || null,
+        rating: rating !== null && rating !== undefined ? rating : null,
         message,
         screenshot: screenshot || null,
       },

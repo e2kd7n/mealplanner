@@ -102,8 +102,11 @@ const MobileGroceryList: React.FC<MobileGroceryListProps> = ({
             {/* Category Header */}
             {groupByCategory && (
               <Box
+                component="button"
+                type="button"
                 onClick={() => toggleCategory(category)}
                 sx={{
+                  width: '100%',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'space-between',
@@ -112,10 +115,14 @@ const MobileGroceryList: React.FC<MobileGroceryListProps> = ({
                   color: 'primary.contrastText',
                   cursor: 'pointer',
                   minHeight: 56, // Touch target
+                  border: 0,
+                  textAlign: 'left',
                   '&:active': {
                     bgcolor: 'primary.dark',
                   },
                 }}
+                aria-expanded={isExpanded}
+                aria-label={`${isExpanded ? 'Collapse' : 'Expand'} ${category} category`}
               >
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                   <Typography variant="h6" sx={{ fontWeight: 600 }}>
@@ -159,7 +166,7 @@ const MobileGroceryList: React.FC<MobileGroceryListProps> = ({
                       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                         <IconButton
                           edge="end"
-                          aria-label="delete"
+                          aria-label={`Delete ${item.name}`}
                           onClick={() => onDeleteItem(item.id)}
                           sx={{
                             minWidth: 44,
@@ -191,7 +198,7 @@ const MobileGroceryList: React.FC<MobileGroceryListProps> = ({
                         <Typography
                           sx={{
                             textDecoration: item.checked ? 'line-through' : 'none',
-                            color: item.checked ? 'text.secondary' : 'text.primary',
+                            color: 'text.primary',
                             fontWeight: item.checked ? 400 : 500,
                           }}
                         >

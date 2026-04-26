@@ -4,8 +4,8 @@
  */
 
 import React, { useState } from 'react';
-import { Fab, Tooltip, useTheme, useMediaQuery } from '@mui/material';
-import { Feedback as FeedbackIcon } from '@mui/icons-material';
+import { Fab, Tooltip, useTheme, useMediaQuery, Box } from '@mui/material';
+import { ChatBubbleOutline as FeedbackIcon } from '@mui/icons-material';
 import FeedbackDialog from './FeedbackDialog';
 
 const FeedbackButton: React.FC = () => {
@@ -26,14 +26,16 @@ const FeedbackButton: React.FC = () => {
       <Tooltip title="Share Feedback" placement="left">
         <Fab
           color="primary"
-          aria-label="feedback"
+          aria-label="Open feedback form"
           onClick={handleOpen}
           sx={{
             position: 'fixed',
-            bottom: isMobile ? 16 : 24,
+            bottom: isMobile ? 88 : 24,
             right: isMobile ? 16 : 24,
-            zIndex: 1000,
+            zIndex: 1300,
             boxShadow: 3,
+            minWidth: 56,
+            minHeight: 56,
             '&:hover': {
               boxShadow: 6,
               transform: 'scale(1.05)',
@@ -41,7 +43,11 @@ const FeedbackButton: React.FC = () => {
             transition: 'all 0.2s ease-in-out',
           }}
         >
-          <FeedbackIcon />
+          <Box
+            component={FeedbackIcon}
+            sx={{ fontSize: 28 }}
+            aria-hidden="true"
+          />
         </Fab>
       </Tooltip>
 

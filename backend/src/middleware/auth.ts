@@ -76,7 +76,11 @@ export function optionalAuthenticate(
       if (parts.length === 2 && parts[0] === 'Bearer') {
         const token = parts[1];
         const payload = verifyAccessToken(token);
-        req.user = payload;
+        // Attach user to request with both userId and id for compatibility
+        req.user = {
+          ...payload,
+          id: payload.userId, // Add id as an alias for userId
+        };
       }
     }
     
