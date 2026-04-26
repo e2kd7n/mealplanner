@@ -87,17 +87,7 @@ else
     echo -e "${BLUE}ℹ️  Using pre-loaded images${NC}"
 fi
 
-# Create network if it doesn't exist
-echo -e "${YELLOW}🔌 Checking network...${NC}"
-if ! podman network exists meals-network 2>/dev/null; then
-    echo -e "${YELLOW}Creating meals-network...${NC}"
-    podman network create meals-network
-    echo -e "${GREEN}✓ Network created${NC}"
-else
-    echo -e "${GREEN}✓ Network already exists${NC}"
-fi
-
-# Start services
+# Start services (podman-compose will create the network)
 echo -e "${GREEN}🚀 Starting services...${NC}"
 podman-compose -f podman-compose.pi.yml up -d
 
