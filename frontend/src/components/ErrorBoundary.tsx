@@ -6,8 +6,10 @@
 import { Component } from 'react';
 import type { ErrorInfo, ReactNode } from 'react';
 import { Box, Typography, Button, Container, Paper } from '@mui/material';
-import { Error as ErrorIcon } from '@mui/icons-material';
+import { Error as ErrorIcon, BugReport as BugReportIcon } from '@mui/icons-material';
 import logger from '../utils/logger';
+import ErrorReportDialog from './ErrorReportDialog';
+import type { ErrorReportData } from '../hooks/useErrorReport';
 
 interface Props {
   children: ReactNode;
@@ -17,6 +19,7 @@ interface State {
   hasError: boolean;
   error: Error | null;
   errorInfo: ErrorInfo | null;
+  showReportDialog: boolean;
 }
 
 class ErrorBoundary extends Component<Props, State> {
@@ -26,10 +29,11 @@ class ErrorBoundary extends Component<Props, State> {
       hasError: false,
       error: null,
       errorInfo: null,
+      showReportDialog: false,
     };
   }
 
-  static getDerivedStateFromError(error: Error): State {
+  static getDerivedStateFromError(error: Error): Partial<State> {
     return {
       hasError: true,
       error,
@@ -61,9 +65,37 @@ class ErrorBoundary extends Component<Props, State> {
       hasError: false,
       error: null,
       errorInfo: null,
+      showReportDialog: false,
     });
     // Reload the page to reset the app state
     window.location.href = '/';
+  };
+
+  handleOpenReportDialog = () => {
+    this.setState({ showReportDialog: true });
+  };
+
+  handleCloseReportDialog = () => {
+    this.setState({ showReportDialog: false });
+  };
+
+  getErrorReportData = (): ErrorReportData | null => {
+    if (!this.state.error) return null;
+
+    return {
+      error: {
+        message: this.state.error.message,
+        code: this.state.error.name,
+        details: {
+          componentStack: this.state.errorInfo?.componentStack,
+        },
+      },
+      errorTitle: 'Application Error',
+      page: window.location.pathname,
+      userAgent: navigator.userAgent,
+      timestamp: new Date().toISOString(),
+      additionalContext: 'Error caught by ErrorBoundary',
+    };
   };
 
   render() {
@@ -138,7 +170,7 @@ class ErrorBoundary extends Component<Props, State> {
                 </Box>
               )}
 
-              <Box sx={{ mt: 4, display: 'flex', gap: 2, justifyContent: 'center' }}>
+              <Box sx={{ mt: 4, display: 'flex', gap: 2, justifyContent: 'center', flexWrap: 'wrap' }}>
                 <Button
                   variant="contained"
                   onClick={this.handleReset}
@@ -153,7 +185,22 @@ class ErrorBoundary extends Component<Props, State> {
                 >
                   Reload Page
                 </Button>
+                <Button
+                  variant="outlined"
+                  color="error"
+                  startIcon={<BugReportIcon />}
+                  onClick={this.handleOpenReportDialog}
+                  size="large"
+                >
+                  Report Error
+                </Button>
               </Box>
+
+              <ErrorReportDialog
+                open={this.state.showReportDialog}
+                onClose={this.handleCloseReportDialog}
+                errorData={this.getErrorReportData()}
+              />
             </Paper>
           </Box>
         </Container>
