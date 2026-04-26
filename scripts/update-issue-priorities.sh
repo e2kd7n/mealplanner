@@ -113,6 +113,64 @@ auto_close_completed_issues() {
   echo "" >&2
 }
 
+# Function to check recent commits for completed work
+check_commits_for_completed_work() {
+  log_action "Checking recent commits for completed work..."
+  
+  local closed_count=0
+  local temp_file=$(mktemp)
+  
+  # Get last 20 commits with their messages
+  git log --oneline -20 --no-merges 2>/dev/null > "$temp_file"
+  
+  if [ ! -s "$temp_file" ]; then
+    log_warning "No recent git history found"
+    rm -f "$temp_file"
+    return
+  fi
+  
+  # Extract issue numbers from commit messages
+  local commit_issues=$(grep -oE '#[0-9]+' "$temp_file" | sort -u | sed 's/#//')
+  
+  if [ -z "$commit_issues" ]; then
+    log_success "No issue references found in recent commits"
+    rm -f "$temp_file"
+    return
+  fi
+  
+  # Check each referenced issue
+  for issue_num in $commit_issues; do
+    local is_open=$(gh issue view "$issue_num" --json state --jq '.state' 2>/dev/null)
+    
+    if [ "$is_open" = "OPEN" ]; then
+      # Check if commit message indicates completion
+      local commit_msg=$(grep "#$issue_num" "$temp_file" | head -1)
+      
+      if echo "$commit_msg" | grep -qiE "fix|close|resolve|complete|implement"; then
+        log_action "Issue #$issue_num referenced in recent commit with completion keywords"
+        
+        if [ "$AUTO_CLOSE" = true ] && [ "$DRY_RUN" = false ]; then
+          log_action "Auto-closing issue #$issue_num based on commit: $commit_msg"
+          gh issue close "$issue_num" --comment "Auto-closed: Referenced in recent commit with completion keywords: $commit_msg" 2>/dev/null
+          if [ $? -eq 0 ]; then
+            ((closed_count++))
+            log_success "Closed issue #$issue_num"
+          fi
+        else
+          echo "  Would close #$issue_num (use --auto-close to enable)" >&2
+        fi
+      fi
+    fi
+  done
+  
+  rm -f "$temp_file"
+  
+  if [ $closed_count -gt 0 ]; then
+    log_success "Auto-closed $closed_count issues based on commits"
+  fi
+  echo "" >&2
+}
+
 # Function to suggest priority updates based on recent activity
 suggest_priority_updates() {
   log_action "Analyzing recent development activity for priority updates..."
@@ -300,6 +358,9 @@ echo "" >&2
 if [ "$DETECT_DUPLICATES" = true ]; then
   detect_duplicate_issues
 fi
+
+# Check recent commits for completed work (always run to show what would be closed)
+check_commits_for_completed_work
 
 if [ "$AUTO_CLOSE" = true ]; then
   if [ "$DRY_RUN" = true ]; then
