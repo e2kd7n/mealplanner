@@ -96,9 +96,9 @@ RUN pnpm install --frozen-lockfile --prod
 # then remove the temporary CLI dependency so runtime stays minimal.
 ENV PRISMA_ENGINES_CHECKSUM_IGNORE_MISSING=1
 ENV DATABASE_URL="postgresql://dummy:dummy@localhost:5432/dummy"
-RUN npm install --no-save prisma@6.19.3 && \
+RUN pnpm add -D prisma@6.19.3 --ignore-workspace --no-save && \
     ./node_modules/.bin/prisma generate && \
-    npm uninstall prisma
+    pnpm remove prisma --ignore-workspace --no-save
 
 # Clean up pnpm cache and store to save space
 RUN pnpm store prune && \
