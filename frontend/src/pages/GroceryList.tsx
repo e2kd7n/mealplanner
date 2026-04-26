@@ -117,11 +117,6 @@ const GroceryList: React.FC = () => {
 
   const apiBase = import.meta.env.VITE_API_URL || '/api';
 
-  // Fetch grocery lists on mount
-  useEffect(() => {
-    fetchGroceryLists();
-  }, []);
-
   const fetchGroceryLists = async () => {
     try {
       setLoading(true);
@@ -152,6 +147,35 @@ const GroceryList: React.FC = () => {
       setLoading(false);
     }
   };
+
+  // Fetch grocery lists on mount
+  useEffect(() => {
+    fetchGroceryLists();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Initialize expanded state for categories with items
+  useEffect(() => {
+    if (currentList && Object.keys(expandedCategories).length === 0) {
+      const items = currentList.items || [];
+      const groupedItems = items.reduce((acc, item) => {
+        const storeCategory = mapIngredientCategoryToStore(item.ingredient.category || 'other');
+        if (!acc[storeCategory]) {
+          acc[storeCategory] = [];
+        }
+        acc[storeCategory].push(item);
+        return acc;
+      }, {} as Record<string, GroceryItem[]>);
+      
+      const initialExpanded: Record<string, boolean> = {};
+      CATEGORY_CONFIG.forEach(cat => {
+        if (groupedItems[cat.key] && groupedItems[cat.key].length > 0) {
+          initialExpanded[cat.key] = true;
+        }
+      });
+      setExpandedCategories(initialExpanded);
+    }
+  }, [currentList, expandedCategories]);
 
   const toggleCategory = (category: string) => {
     setExpandedCategories(prev => ({
@@ -310,19 +334,6 @@ const GroceryList: React.FC = () => {
   const checkedCount = items.filter(item => item.isChecked).length;
   const totalCount = items.length;
   const progress = totalCount > 0 ? (checkedCount / totalCount) * 100 : 0;
-
-  // Initialize expanded state for categories with items
-  useEffect(() => {
-    if (currentList && Object.keys(expandedCategories).length === 0) {
-      const initialExpanded: Record<string, boolean> = {};
-      CATEGORY_CONFIG.forEach(cat => {
-        if (groupedItems[cat.key] && groupedItems[cat.key].length > 0) {
-          initialExpanded[cat.key] = true;
-        }
-      });
-      setExpandedCategories(initialExpanded);
-    }
-  }, [currentList]);
 
   return (
     <Container maxWidth="lg">
