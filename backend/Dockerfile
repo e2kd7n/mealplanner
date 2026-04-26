@@ -86,18 +86,25 @@ WORKDIR /app
 # Copy package files
 COPY backend/package.json backend/pnpm-lock.yaml ./
 
+# Copy prisma schema before installing dependencies
+COPY --from=backend-builder /app/prisma ./prisma
+
 # Install ONLY production dependencies (excludes devDependencies like TypeScript, @types/*, etc.)
 RUN pnpm install --frozen-lockfile --prod
 
-# Copy prisma schema and generated client from builder
-COPY --from=backend-builder /app/prisma ./prisma
-COPY --from=backend-builder /app/node_modules/.prisma ./node_modules/.prisma
-COPY --from=backend-builder /app/node_modules/@prisma ./node_modules/@prisma
+# Generate Prisma client in the production image using the pinned Prisma CLI,
+# then remove the temporary CLI dependency so runtime stays minimal.
+ENV PRISMA_ENGINES_CHECKSUM_IGNORE_MISSING=1
+ENV DATABASE_URL="postgresql://dummy:dummy@localhost:5432/dummy"
+RUN npm install --no-save prisma@6.19.3 && \
+    ./node_modules/.bin/prisma generate && \
+    npm uninstall prisma
 
 # Clean up pnpm cache and store to save space
 RUN pnpm store prune && \
     rm -rf /root/.local/share/pnpm/store && \
-    rm -rf /tmp/* /var/cache/apk/*
+    rm -rf /tmp/* /var/cache/apk/* && \
+    rm -rf /root/.npm
 
 # Copy built backend from builder
 COPY --from=backend-builder /app/dist ./dist
