@@ -1,611 +1,669 @@
-# Raspberry Pi Deployment Guide - Complete Reference
+# Raspberry Pi Deployment Guide
 
-**Last Updated:** April 25, 2026  
-**Target Platform:** Raspberry Pi 4 (1.8GB+ RAM, ARM64)  
-**Status:** Production Ready with Optimizations
-
----
-
-## Table of Contents
-
-1. [Quick Start](#quick-start)
-2. [Prerequisites](#prerequisites)
-3. [Deployment Workflow](#deployment-workflow)
-4. [Performance Optimizations](#performance-optimizations)
-5. [Monitoring & Maintenance](#monitoring--maintenance)
-6. [Troubleshooting](#troubleshooting)
-7. [Advanced Configuration](#advanced-configuration)
+**Last Updated:** 2026-04-26  
+**Target:** Raspberry Pi 4 (1.8GB RAM minimum, 4GB+ recommended)
 
 ---
 
-## Quick Start
+## 🎯 Quick Start
 
-**For experienced users who have already built images:**
+### Prerequisites Checklist
+- ✅ Raspberry Pi 4 with Raspberry Pi OS (64-bit)
+- ✅ Podman installed on Pi
+- ✅ Development machine with Podman/Docker
+- ✅ Network connectivity between dev machine and Pi
+- ✅ At least 5GB free disk space on Pi
 
+### Fast Track (3 Steps)
 ```bash
-# On Raspberry Pi
+# 1. On Development Machine: Build images
+./scripts/build-for-pi.sh
+
+# 2. Transfer to Pi
+scp pi-images/*.tar.gz pi@pihole.local:~/mealplanner/pi-images/
+
+# 3. On Pi: Deploy
 cd ~/mealplanner
-git pull
-./scripts/load-pi-images.sh    # If images transferred
-./scripts/pi-run.sh             # Start application
-./scripts/pi-health-check.sh    # Verify health
+./scripts/load-pi-images.sh
+./scripts/deploy-podman.sh
 ```
 
-**Access:** http://your-pi-ip:8080
-
 ---
 
-## Prerequisites
+## 📋 Detailed Deployment Steps
 
-### Hardware Requirements
+### Phase 1: Build Images (Development Machine)
 
-- **Minimum:** Raspberry Pi 4 Model B (2GB RAM)
-- **Recommended:** Raspberry Pi 4 Model B (4GB+ RAM)
-- **Storage:** 16GB+ SD card (Class 10 or better)
-- **Network:** Ethernet connection recommended
-
-### Software Requirements
-
-**On Raspberry Pi:**
-```bash
-# Install Podman
-sudo apt-get update
-sudo apt-get install -y podman
-
-# Install podman-compose
-sudo apt-get install -y python3-pip
-pip3 install podman-compose
-
-# Verify installations
-podman --version
-podman-compose --version
-```
-
-**On Development Machine:**
-- Podman or Docker with multi-arch support
-- Git
-- SSH access to Raspberry Pi
-
----
-
-## Deployment Workflow
-
-### Understanding the Architecture
-
-**Why We Don't Build on Pi:**
-- Raspberry Pi's Podman has strict seccomp restrictions
-- Building triggers "container exited on bad system call" errors
-- Solution: Build on capable machine, transfer pre-built images
-
-### Step 1: Build Images (Development Machine)
+**Why build on dev machine?** Building on the Pi is slow and can cause out-of-memory errors. Build on a more powerful machine and transfer the images.
 
 ```bash
-cd ~/mealplanner
+# Navigate to project directory
+cd ~/dev/mealplanner
+
+# Build ARM64 images for Raspberry Pi
 ./scripts/build-for-pi.sh
 ```
 
-**Output:**
+**Expected Output:**
 - `pi-images/meals-backend.tar.gz` (~416MB compressed)
 - `pi-images/meals-frontend.tar.gz` (~24MB compressed)
+- Total transfer size: ~440MB
 
-**Build time:** 10-15 minutes depending on machine
+**Troubleshooting:**
+- If build fails, ensure Podman/Docker is running
+- On macOS: `podman machine start`
+- Check disk space: `df -h`
 
-### Step 2: Transfer Images to Pi
+---
+
+### Phase 2: Transfer Images to Pi
 
 **Option A: SCP (Simple)**
 ```bash
+# From development machine
 scp pi-images/*.tar.gz pi@pihole.local:~/mealplanner/pi-images/
+
+# Or using IP address
+scp pi-images/*.tar.gz pi@192.168.1.x:~/mealplanner/pi-images/
 ```
 
-**Option B: Rsync (Resumable, faster)**
+**Option B: Rsync (Resumable, Recommended for slow connections)**
 ```bash
 rsync -avz --progress pi-images/*.tar.gz pi@pihole.local:~/mealplanner/pi-images/
 ```
 
-**Transfer time:** 5-10 minutes on local network
+**Transfer Time Estimates:**
+- Gigabit Ethernet: ~30 seconds
+- WiFi (good signal): 1-2 minutes
+- WiFi (poor signal): 3-5 minutes
 
-### Step 3: Load Images on Pi
+---
 
+### Phase 3: Prepare Raspberry Pi
+
+**SSH into your Pi:**
 ```bash
 ssh pi@pihole.local
+# or
+ssh pi@192.168.1.x
+```
+
+**Check System Health:**
+```bash
+cd ~/mealplanner
+./scripts/pi-diagnostics.sh
+```
+
+**Review Key Metrics:**
+- Disk usage should be <70%
+- Memory usage should be <80%
+- CPU temperature should be <65°C
+
+**If disk space is low (>70%):**
+```bash
+./scripts/cleanup-pi.sh
+```
+
+**Verify Podman Installation:**
+```bash
+podman --version
+# Should show: podman version 3.x or higher
+
+podman-compose --version
+# Should show: podman-compose version 1.x or higher
+```
+
+**If Podman is not installed:**
+```bash
+sudo apt-get update
+sudo apt-get install -y podman
+pip3 install podman-compose
+```
+
+**Generate Secrets (first time only):**
+```bash
+./scripts/generate-secrets.sh
+```
+
+---
+
+### Phase 4: Load Images on Pi
+
+```bash
 cd ~/mealplanner
 ./scripts/load-pi-images.sh
 ```
 
 **What this does:**
-- Decompresses images on-the-fly
-- Loads into Podman
-- Verifies successful load
-- Cleans up tar files to save space
+1. Decompresses tar.gz files
+2. Loads images into Podman
+3. Verifies images are loaded correctly
+4. Cleans up tar files to save space
 
-**Load time:** 3-5 minutes
+**Expected Duration:** 3-5 minutes
 
-### Step 4: Deploy Application
+**Verify Images Loaded:**
+```bash
+podman images | grep meals
+```
+
+**Expected Output:**
+```
+localhost/meals-backend   latest   xxx   xxx ago   xxx MB
+localhost/meals-frontend  latest   xxx   xxx ago   xxx MB
+```
+
+---
+
+### Phase 5: Deploy Application
 
 ```bash
-./scripts/pi-run.sh
+cd ~/mealplanner
+./scripts/deploy-podman.sh
 ```
 
 **What this does:**
-- Creates meals-network if needed
-- Starts all containers with health checks
-- Waits for services to be ready
-- Displays access URLs
+1. Checks disk space
+2. Stops any existing containers
+3. Starts all services using podman-compose
+4. Runs database migrations
+5. Verifies containers are healthy
 
-**Startup time:** 30-60 seconds
+**Expected Duration:** 2-3 minutes
 
-### Step 5: Verify Deployment
-
+**Verify Deployment:**
 ```bash
-./scripts/pi-health-check.sh
-```
+# Check container status
+podman ps
 
-**Access the application:**
-- Web UI: http://your-pi-ip:8080
-- Health endpoint: http://your-pi-ip:8080/health
+# Should show 4 containers running:
+# - meals-postgres
+# - meals-backend
+# - meals-frontend
+# - meals-nginx
+```
 
 ---
 
-## Performance Optimizations
+### Phase 6: Verify Application
 
-### Memory Management
+**Check Health Endpoints:**
+```bash
+# Backend health
+curl http://localhost:3000/health
 
-**Implemented in `podman-compose.pi.yml`:**
+# Frontend (via nginx)
+curl http://localhost:8080/health
 
-| Service | Limit | Reservation | Purpose |
-|---------|-------|-------------|---------|
-| PostgreSQL | 256MB | 128MB | Database |
-| Backend | 384MB | 256MB | Node.js API |
-| Frontend | 128MB | 64MB | Nginx static |
-| Nginx Proxy | 64MB | 32MB | Reverse proxy |
-| **Total** | **832MB** | **480MB** | **All services** |
-
-**Memory headroom:** ~1GB available for OS and other services
-
-### PostgreSQL Tuning
-
-Optimized for 1.8GB RAM Pi (configured in `podman-compose.pi.yml`):
-
-```yaml
-POSTGRES_SHARED_BUFFERS: 128MB
-POSTGRES_EFFECTIVE_CACHE_SIZE: 384MB
-POSTGRES_WORK_MEM: 4MB
-POSTGRES_MAX_CONNECTIONS: 20
+# Full application
+curl -I http://localhost:8080
 ```
 
-### Node.js Optimization
+**Access Application:**
+- Local: http://localhost:8080
+- Network: http://pihole.local:8080
+- IP: http://192.168.1.x:8080
 
-```yaml
-NODE_OPTIONS: --max-old-space-size=256
-```
-
-Limits Node.js heap to 256MB, preventing OOM issues.
-
-### Container Image Sizes
-
-- Backend: ~300MB (includes frontend assets)
-- Frontend: ~50MB (nginx + static files)
-- PostgreSQL: ~230MB (official alpine image)
-- Nginx: ~40MB (official alpine image)
-
-**Total:** ~620MB disk space for images
+**Test Login:**
+- Email: `test@example.com`
+- Password: `TestPass123!`
 
 ---
 
-## Monitoring & Maintenance
+## 🔧 Management Commands
 
-### Health Checks
-
-**Manual check:**
-```bash
-./scripts/pi-health-check.sh
-```
-
-**Automated monitoring (recommended):**
-```bash
-# Add to crontab for 5-minute checks
-crontab -e
-# Add this line:
-*/5 * * * * /home/pi/mealplanner/scripts/pi-health-check.sh >> /var/log/pi-health.log 2>&1
-```
-
-**Health check monitors:**
-- Temperature (Warning: >65°C, Critical: >70°C)
-- Memory usage (Warning: >70%, Critical: >85%)
-- Swap usage (Warning: >30%, Critical: >60%)
-- Disk usage (Warning: >75%, Critical: >85%)
-- CPU load (Warning: >2.0, Critical: >3.5)
-- Container status (all 4 containers running)
-
-### Auto-Start on Boot
-
-The setup script can configure the application to start automatically when the Pi boots:
+### Start/Stop/Restart
 
 ```bash
-./scripts/pi-setup.sh
-# Answer 'yes' when prompted for auto-start
-```
-
-**Systemd service commands:**
-```bash
-# Check status
-sudo systemctl status mealplanner
-
-# Start manually
-sudo systemctl start mealplanner
-
-# Stop
-sudo systemctl stop mealplanner
-
-# Restart
-sudo systemctl restart mealplanner
-
-# Disable auto-start
-sudo systemctl disable mealplanner
-
-# Re-enable auto-start
-sudo systemctl enable mealplanner
-```
-
-### Management Commands
-
-```bash
-# View logs
-podman-compose -f podman-compose.pi.yml logs -f
-
-# View specific service logs
-podman-compose -f podman-compose.pi.yml logs -f backend
-
-# Restart application
-./scripts/pi-bounce.sh
+# Start application
+./scripts/pi-run.sh
 
 # Stop application
 ./scripts/pi-stop.sh
 
-# Check container status
-podman ps
-
-# Check resource usage
-podman stats
+# Restart application
+./scripts/pi-bounce.sh
 ```
 
-### Regular Maintenance
+### View Logs
 
-**Weekly:**
 ```bash
-# Check health
+# All services
+podman-compose -f podman-compose.pi.yml logs -f
+
+# Specific service
+podman-compose -f podman-compose.pi.yml logs -f backend
+podman-compose -f podman-compose.pi.yml logs -f postgres
+podman-compose -f podman-compose.pi.yml logs -f frontend
+```
+
+### Monitor Resources
+
+```bash
+# Container stats (live)
+podman stats
+
+# System health check
 ./scripts/pi-health-check.sh
 
-# Review logs for errors
-podman-compose -f podman-compose.pi.yml logs --tail=100 backend
-
-# Clean up stopped containers
-podman system prune
-```
-
-**Monthly:**
-```bash
-# Database maintenance
-podman exec meals-postgres psql -U mealplanner -d meal_planner -c "VACUUM ANALYZE;"
-
-# More aggressive cleanup
-podman system prune -a
-
-# Check disk usage
-df -h
-du -sh /var/lib/containers/storage/
-```
-
-### Backup Strategy
-
-**Database backup:**
-```bash
-# Manual backup
-podman exec meals-postgres pg_dump -U mealplanner meal_planner > backup-$(date +%Y%m%d).sql
-
-# Automated daily backup (add to crontab)
-0 2 * * * podman exec meals-postgres pg_dump -U mealplanner meal_planner | gzip > /home/pi/backups/meal_planner-$(date +\%Y\%m\%d).sql.gz
-```
-
-**Full system backup:**
-```bash
-# Backup volumes
-podman volume export postgres_data > postgres_data-$(date +%Y%m%d).tar
-
-# Backup configuration
-tar -czf config-backup-$(date +%Y%m%d).tar.gz \
-    secrets/ \
-    nginx/ \
-    podman-compose.pi.yml
+# Full diagnostics
+./scripts/pi-diagnostics.sh
 ```
 
 ---
 
-## Troubleshooting
+## 🚨 Troubleshooting
 
-### Common Issues
+### Issue: Containers Won't Start
 
-#### 1. "Container exited on bad system call"
+**Symptoms:** `podman ps` shows no containers or containers keep restarting
 
-**Cause:** Trying to build images on Pi  
-**Solution:** Always build on development machine and transfer
-
+**Solutions:**
 ```bash
-# WRONG - Don't do this on Pi
-./scripts/pi-build-manual.sh
+# 1. Check logs for errors
+podman-compose -f podman-compose.pi.yml logs
 
-# RIGHT - Do this workflow
-# 1. Build on dev machine: ./scripts/build-for-pi.sh
-# 2. Transfer: scp pi-images/*.tar.gz pi@pihole:~/mealplanner/pi-images/
-# 3. Load on Pi: ./scripts/load-pi-images.sh
-# 4. Run on Pi: ./scripts/pi-run.sh
-```
-
-#### 2. "Pre-built images not found"
-
-**Cause:** Images not loaded before deployment  
-**Solution:**
-
-```bash
-# Check if images exist
+# 2. Verify images exist
 podman images | grep meals
 
-# If not, load them
-./scripts/load-pi-images.sh
+# 3. Check disk space
+df -h /
 
-# Then deploy
-./scripts/pi-run.sh
+# 4. If disk is full, cleanup
+./scripts/cleanup-pi.sh
+
+# 5. Try redeploying
+./scripts/deploy-podman.sh
 ```
 
-#### 3. High Memory Usage
+---
 
-**Symptoms:** Swap usage >60%, system slow  
-**Solution:**
+### Issue: Out of Memory
 
+**Symptoms:** Containers crash, system becomes unresponsive
+
+**Solutions:**
 ```bash
-# Check current usage
+# 1. Check memory usage
 free -h
 podman stats
 
-# Restart services to clear memory
+# 2. Restart containers to clear memory
 ./scripts/pi-bounce.sh
 
-# If persistent, increase swap
+# 3. Increase swap (if needed)
 sudo dphys-swapfile swapoff
 sudo sed -i 's/CONF_SWAPSIZE=.*/CONF_SWAPSIZE=2048/' /etc/dphys-swapfile
 sudo dphys-swapfile setup
 sudo dphys-swapfile swapon
-```
 
-#### 4. Disk Space Full
-
-**Symptoms:** Deployment fails, containers won't start  
-**Solution:**
-
-```bash
-# Check usage
-df -h
-podman system df
-
-# Clean up
-sudo journalctl --vacuum-size=50M
-podman system prune -a --volumes
-
-# Remove old images
-podman image prune -a
-```
-
-#### 5. Containers Won't Start
-
-**Check logs:**
-```bash
-podman-compose -f podman-compose.pi.yml logs backend
-podman-compose -f podman-compose.pi.yml logs postgres
-```
-
-**Common fixes:**
-```bash
-# Restart everything
-./scripts/pi-stop.sh
-./scripts/pi-run.sh
-
-# Check network
-podman network ls
-podman network inspect meals-network
-
-# Recreate network if needed
-podman network rm meals-network
-podman network create meals-network
-```
-
-### Performance Issues
-
-#### Slow Response Times
-
-**Check:**
-```bash
-# CPU load
-uptime
-
-# Memory pressure
+# 4. Verify swap
 free -h
-
-# Container stats
-podman stats
-```
-
-**Solutions:**
-```bash
-# Reduce concurrent connections in backend
-# Edit backend environment in podman-compose.pi.yml
-# Add: MAX_CONCURRENT_REQUESTS=5
-
-# Restart to apply
-./scripts/pi-bounce.sh
-```
-
-#### High CPU Usage
-
-**Identify culprit:**
-```bash
-top
-podman stats
-```
-
-**Solutions:**
-```bash
-# If Podman daemon high:
-podman system prune
-
-# If specific container high:
-podman restart <container-name>
-
-# Check for runaway processes
-podman exec meals-backend ps aux
 ```
 
 ---
 
-## Advanced Configuration
+### Issue: High CPU Load
 
-### Running Headless (Recommended)
+**Symptoms:** System is slow, CPU temperature high
 
-Save ~150MB RAM and 10% CPU:
+**Solutions:**
+```bash
+# 1. Check CPU usage
+top
+htop  # if installed
+
+# 2. Check temperature
+vcgencmd measure_temp
+
+# 3. Identify CPU-heavy processes
+ps aux --sort=-%cpu | head -10
+
+# 4. If temperature >70°C, improve cooling
+# - Add heatsink
+# - Add fan
+# - Improve ventilation
+```
+
+---
+
+### Issue: Database Connection Errors
+
+**Symptoms:** Backend logs show "Cannot connect to database"
+
+**Solutions:**
+```bash
+# 1. Check if postgres container is running
+podman ps | grep postgres
+
+# 2. Check postgres logs
+podman logs meals-postgres
+
+# 3. Verify database is healthy
+podman exec meals-postgres pg_isready -U mealplanner
+
+# 4. If not healthy, restart postgres
+podman restart meals-postgres
+
+# 5. Wait 10 seconds, then restart backend
+sleep 10
+podman restart meals-backend
+```
+
+---
+
+### Issue: Port Already in Use
+
+**Symptoms:** "Port 8080 already in use" error
+
+**Solutions:**
+```bash
+# 1. Check what's using port 8080
+sudo lsof -i :8080
+# or
+sudo netstat -tulpn | grep 8080
+
+# 2. Option A: Stop the conflicting service
+sudo systemctl stop <service-name>
+
+# 3. Option B: Change port in podman-compose.pi.yml
+# Edit the nginx ports section:
+# ports:
+#   - "8081:80"  # Change 8080 to 8081
+```
+
+---
+
+## 🔄 Updating the Application
+
+### Update Process
 
 ```bash
-# Disable desktop environment
-sudo systemctl set-default multi-user.target
+# 1. On development machine: Pull latest code
+cd ~/dev/mealplanner
+git pull
+
+# 2. Rebuild images
+./scripts/build-for-pi.sh
+
+# 3. Transfer to Pi
+scp pi-images/*.tar.gz pi@pihole.local:~/mealplanner/pi-images/
+
+# 4. On Pi: Stop application
+cd ~/mealplanner
+./scripts/pi-stop.sh
+
+# 5. Remove old images
+podman rmi meals-backend:latest meals-frontend:latest
+
+# 6. Load new images
+./scripts/load-pi-images.sh
+
+# 7. Deploy
+./scripts/deploy-podman.sh
+```
+
+---
+
+## 🔐 Security Best Practices
+
+### 1. Change Default Secrets
+
+```bash
+# Regenerate all secrets
+cd ~/mealplanner
+rm -rf secrets/*
+./scripts/generate-secrets.sh
+
+# Redeploy with new secrets
+./scripts/pi-bounce.sh
+```
+
+### 2. Configure Firewall
+
+```bash
+# Install UFW
+sudo apt-get install ufw
+
+# Allow SSH (important!)
+sudo ufw allow 22/tcp
+
+# Allow application port
+sudo ufw allow 8080/tcp
+
+# Enable firewall
+sudo ufw enable
+
+# Check status
+sudo ufw status
+```
+
+### 3. Regular Updates
+
+```bash
+# Update system packages
+sudo apt-get update
+sudo apt-get upgrade -y
+
+# Update Podman
+sudo apt-get install --only-upgrade podman
+
+# Reboot if kernel updated
 sudo reboot
 ```
 
-### Custom Memory Limits
+---
 
-Edit `podman-compose.pi.yml`:
+## 📊 Performance Optimization
 
-```yaml
-services:
-  backend:
-    mem_limit: 512m  # Increase if you have 4GB+ RAM
-    mem_reservation: 384m
-```
+### Memory Limits (Already Configured)
 
-### Network Optimization
+The `podman-compose.pi.yml` includes optimized memory limits:
+- PostgreSQL: 256MB
+- Backend: 384MB (with Node.js heap limit: 256MB)
+- Frontend: 128MB
+- Nginx: 64MB
 
-```bash
-# Add to /etc/sysctl.conf
-sudo tee -a /etc/sysctl.conf << 'EOF'
-net.core.rmem_max = 134217728
-net.core.wmem_max = 134217728
-net.ipv4.tcp_rmem = 4096 87380 67108864
-net.ipv4.tcp_wmem = 4096 65536 67108864
-net.ipv4.tcp_congestion_control = bbr
-net.core.default_qdisc = fq
-EOF
+### Database Optimization
 
-sudo sysctl -p
-```
+PostgreSQL is pre-configured for low-memory environments. See `podman-compose.pi.yml` for details.
 
-### Log Rotation
+### Monitoring
 
 ```bash
-# Create log rotation config
-sudo tee /etc/logrotate.d/mealplanner << 'EOF'
-/var/log/mealplanner/*.log {
-    daily
-    rotate 3
-    compress
-    delaycompress
-    missingok
-    notifempty
-    maxsize 50M
-}
-EOF
-```
+# Set up health check cron job
+crontab -e
 
-### SSL/HTTPS Setup
-
-```bash
-# Generate self-signed certificate
-mkdir -p certs
-openssl req -x509 -nodes -days 365 -newkey rsa:2048 \
-    -keyout certs/key.pem \
-    -out certs/cert.pem
-
-# Update nginx configuration
-# Edit nginx/default.conf to add SSL server block
+# Add this line to run health check every 5 minutes:
+*/5 * * * * /home/pi/mealplanner/scripts/pi-health-check.sh >> /home/pi/mealplanner/health.log 2>&1
 ```
 
 ---
 
-## Performance Targets
+## 🚀 Auto-Start on Boot
 
-| Metric | Target | Warning | Critical |
-|--------|--------|---------|----------|
-| CPU Load (1m) | <2.0 | >2.0 | >3.5 |
-| Memory Usage | <70% | >70% | >85% |
-| Swap Usage | <30% | >30% | >60% |
-| Disk Usage | <75% | >75% | >85% |
-| Temperature | <65°C | >65°C | >70°C |
-| API Response | <200ms | >500ms | >1000ms |
+### Configure Auto-Start
+
+```bash
+cd ~/mealplanner
+./scripts/pi-setup.sh
+# Choose 'yes' when prompted for auto-start
+```
+
+### Manual Auto-Start Configuration
+
+```bash
+# Create systemd service
+sudo nano /etc/systemd/system/mealplanner.service
+```
+
+Paste this content:
+```ini
+[Unit]
+Description=Meal Planner Application
+After=network-online.target
+Wants=network-online.target
+Requires=podman.socket
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+WorkingDirectory=/home/pi/mealplanner
+ExecStart=/home/pi/mealplanner/scripts/pi-run.sh
+ExecStop=/home/pi/mealplanner/scripts/pi-stop.sh
+User=pi
+Group=pi
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target
+```
+
+Enable and start:
+```bash
+sudo systemctl daemon-reload
+sudo systemctl enable mealplanner.service
+sudo systemctl start mealplanner.service
+```
 
 ---
 
-## Quick Reference Commands
+## 💾 Backup and Restore
+
+### Backup Database
 
 ```bash
-# First Time Setup
-./scripts/pi-setup.sh              # Generate quick start guide + auto-start
+# Create backup directory
+mkdir -p ~/mealplanner/backups
 
-# Status & Health
-./scripts/pi-health-check.sh
-podman ps
-podman stats
+# Backup database
+podman exec meals-postgres pg_dump -U mealplanner meal_planner > \
+  ~/mealplanner/backups/backup-$(date +%Y%m%d-%H%M%S).sql
 
-# Start/Stop/Restart
-./scripts/pi-run.sh
+# Compress backup
+gzip ~/mealplanner/backups/backup-*.sql
+```
+
+### Restore Database
+
+```bash
+# Stop application
 ./scripts/pi-stop.sh
+
+# Restore from backup
+gunzip -c ~/mealplanner/backups/backup-YYYYMMDD-HHMMSS.sql.gz | \
+  podman exec -i meals-postgres psql -U mealplanner -d meal_planner
+
+# Start application
+./scripts/pi-run.sh
+```
+
+### Automated Backups
+
+```bash
+# Add to crontab
+crontab -e
+
+# Daily backup at 2 AM
+0 2 * * * /home/pi/mealplanner/scripts/backup-database.sh
+```
+
+---
+
+## 📞 Support and Resources
+
+### Documentation
+- [Main README](../README.md)
+- [Pi Optimization Proposal](PI_OPTIMIZATION_PROPOSAL.md)
+- [Deployment Guide](DEPLOYMENT.md)
+
+### Useful Commands Reference
+
+```bash
+# Quick status check
+podman ps
+podman stats --no-stream
+df -h /
+free -h
+vcgencmd measure_temp
+
+# View all logs
+podman-compose -f podman-compose.pi.yml logs -f
+
+# Restart everything
 ./scripts/pi-bounce.sh
 
-# Logs
-podman-compose -f podman-compose.pi.yml logs -f
-podman-compose -f podman-compose.pi.yml logs -f backend
+# Full cleanup and redeploy
+./scripts/cleanup-pi.sh
+./scripts/load-pi-images.sh
+./scripts/deploy-podman.sh
 
-# Cleanup
-podman system prune
-podman system prune -a
-sudo journalctl --vacuum-size=50M
+# Health check
+./scripts/pi-health-check.sh
 
-# Backup
-podman exec meals-postgres pg_dump -U mealplanner meal_planner > backup.sql
-
-# Update
-git pull
-# Then rebuild on dev machine and transfer new images
+# Full diagnostics
+./scripts/pi-diagnostics.sh
 ```
 
 ---
 
-## Support & Resources
+## 🎓 Understanding the Architecture
 
-- **Main Documentation:** [README.md](../README.md)
-- **Optimization Details:** [PI_OPTIMIZATION_PROPOSAL.md](PI_OPTIMIZATION_PROPOSAL.md)
-- **Workflow Details:** [RASPBERRY_PI_CORRECT_WORKFLOW.md](RASPBERRY_PI_CORRECT_WORKFLOW.md)
-- **Architecture:** [ARCHITECTURE.md](ARCHITECTURE.md)
+### Container Structure
+
+```
+┌─────────────────────────────────────────┐
+│           Nginx (Port 8080)             │
+│  - Serves frontend static files         │
+│  - Proxies API requests to backend      │
+└─────────────────────────────────────────┘
+                    │
+        ┌───────────┴───────────┐
+        │                       │
+┌───────▼────────┐    ┌────────▼────────┐
+│   Frontend     │    │    Backend      │
+│   (nginx)      │    │   (Node.js)     │
+│   Port 80      │    │   Port 3000     │
+└────────────────┘    └─────────┬───────┘
+                                │
+                      ┌─────────▼────────┐
+                      │   PostgreSQL     │
+                      │   Port 5432      │
+                      └──────────────────┘
+```
+
+### Data Persistence
+
+Volumes are used for persistent data:
+- `postgres_data`: Database files
+- `./data/uploads`: User-uploaded files
+- `./data/images`: Recipe images
+- `./data/backups`: Database backups
 
 ---
 
-## Changelog
+## ✅ Deployment Checklist
 
-**2026-04-25:**
-- Added memory limits and PostgreSQL optimizations
-- Created health check script
-- Consolidated all Pi documentation
-- Fixed build workflow (no building on Pi)
+Use this checklist for each deployment:
 
-**2026-04-24:**
-- Initial Pi deployment support
-- Created build and transfer scripts
+- [ ] Build images on dev machine
+- [ ] Verify image sizes are reasonable
+- [ ] Transfer images to Pi
+- [ ] SSH into Pi
+- [ ] Check disk space (should be <70%)
+- [ ] Run cleanup if needed
+- [ ] Verify Podman is installed
+- [ ] Generate secrets (first time only)
+- [ ] Load images
+- [ ] Deploy application
+- [ ] Verify all containers are running
+- [ ] Test health endpoints
+- [ ] Access application in browser
+- [ ] Test login functionality
+- [ ] Configure auto-start (optional)
+- [ ] Set up monitoring (optional)
 
 ---
 
-*Made with Bob*
+**Made with Bob** 🤖
