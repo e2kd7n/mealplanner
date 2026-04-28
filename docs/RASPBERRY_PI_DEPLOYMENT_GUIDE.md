@@ -1,6 +1,6 @@
 # Raspberry Pi Deployment Guide
 
-**Last Updated:** 2026-04-26  
+**Last Updated:** 2026-04-28
 **Target:** Raspberry Pi 4 (1.8GB RAM minimum, 4GB+ recommended)
 
 ---
@@ -8,11 +8,14 @@
 ## 🎯 Quick Start
 
 ### Prerequisites Checklist
-- ✅ Raspberry Pi 4 with Raspberry Pi OS (64-bit)
+- ✅ Raspberry Pi 4 with Raspberry Pi OS (32-bit or 64-bit)
 - ✅ Podman installed on Pi
 - ✅ Development machine with Podman/Docker
 - ✅ Network connectivity between dev machine and Pi
 - ✅ At least 5GB free disk space on Pi
+
+### Important: 32-bit vs 64-bit
+Most Raspberry Pi systems run in **32-bit mode** even with 64-bit capable hardware. The build script defaults to 32-bit ARM (armv7) for maximum compatibility. Use `./scripts/check-platform.sh` on your Pi to verify your architecture.
 
 ### Fast Track (3 Steps)
 ```bash
@@ -40,8 +43,11 @@ cd ~/mealplanner
 # Navigate to project directory
 cd ~/dev/mealplanner
 
-# Build ARM64 images for Raspberry Pi
+# Build ARM images for Raspberry Pi (defaults to 32-bit)
 ./scripts/build-for-pi.sh
+
+# Or explicitly build for 64-bit if your Pi runs 64-bit OS
+./scripts/build-for-pi.sh --arm64
 ```
 
 **Expected Output:**
@@ -49,10 +55,18 @@ cd ~/dev/mealplanner
 - `pi-images/meals-frontend.tar.gz` (~24MB compressed)
 - Total transfer size: ~440MB
 
+**Architecture Detection:**
+The build script defaults to `linux/arm/v7` (32-bit ARM) for maximum compatibility. Most Raspberry Pi systems run in 32-bit mode even with 64-bit hardware. To verify your Pi's architecture:
+```bash
+# On your Pi
+./scripts/check-platform.sh
+```
+
 **Troubleshooting:**
 - If build fails, ensure Podman/Docker is running
 - On macOS: `podman machine start`
 - Check disk space: `df -h`
+- If you see platform mismatch warnings during deployment, rebuild with the correct architecture flag
 
 ---
 
@@ -165,11 +179,15 @@ cd ~/mealplanner
 **What this does:**
 1. Checks disk space
 2. Stops any existing containers
-3. Starts all services using podman-compose
-4. Runs database migrations
-5. Verifies containers are healthy
+3. Creates network if needed
+4. Starts services incrementally (postgres → backend → frontend/nginx)
+5. Waits for each service to be ready before starting the next
+6. Runs database migrations
+7. Verifies all containers are healthy
 
 **Expected Duration:** 2-3 minutes
+
+**New in v2:** The deployment script now starts services one at a time to avoid blocking issues with podman-compose. This provides better error reporting and prevents infinite hangs.
 
 **Verify Deployment:**
 ```bash
@@ -254,6 +272,62 @@ podman stats
 
 ## 🚨 Troubleshooting
 
+### Issue: Platform Mismatch Warnings
+
+**Symptoms:** Warnings like `image platform ({arm64 linux [] v8}) does not match the expected platform ({arm linux [] })`
+
+**Cause:** Images were built for wrong architecture (64-bit vs 32-bit)
+
+**Solutions:**
+```bash
+# 1. Check your Pi's architecture
+./scripts/check-platform.sh
+
+# 2. On dev machine, rebuild for correct architecture
+# For 32-bit (most common):
+./scripts/build-for-pi.sh
+
+# For 64-bit:
+./scripts/build-for-pi.sh --arm64
+
+# 3. Transfer and reload images
+scp pi-images/*.tar.gz pi@pihole.local:~/mealplanner/pi-images/
+ssh pi@pihole.local
+cd ~/mealplanner
+./scripts/load-pi-images.sh
+./scripts/deploy-podman.sh
+```
+
+---
+
+### Issue: Deployment Hangs or Times Out
+
+**Symptoms:** `deploy-podman.sh` hangs for 2 minutes then times out
+
+**Cause:** Usually platform mismatch or podman-compose blocking on health checks
+
+**Solutions:**
+```bash
+# 1. Check if containers were created but not started
+podman ps -a
+
+# 2. Try starting containers manually
+podman start meals-postgres
+sleep 5
+podman logs meals-postgres
+
+# 3. If platform mismatch, rebuild images for correct architecture
+./scripts/check-platform.sh  # Check your architecture
+# Then rebuild on dev machine with correct flag
+
+# 4. Clean up and redeploy
+podman-compose -f podman-compose.pi.yml down
+podman rm -f meals-postgres meals-backend meals-frontend meals-nginx
+./scripts/deploy-podman.sh
+```
+
+---
+
 ### Issue: Containers Won't Start
 
 **Symptoms:** `podman ps` shows no containers or containers keep restarting
@@ -263,8 +337,9 @@ podman stats
 # 1. Check logs for errors
 podman-compose -f podman-compose.pi.yml logs
 
-# 2. Verify images exist
+# 2. Verify images exist and check architecture
 podman images | grep meals
+./scripts/check-platform.sh
 
 # 3. Check disk space
 df -h /
@@ -383,7 +458,7 @@ sudo systemctl stop <service-name>
 cd ~/dev/mealplanner
 git pull
 
-# 2. Rebuild images
+# 2. Rebuild images (use --arm64 if your Pi runs 64-bit OS)
 ./scripts/build-for-pi.sh
 
 # 3. Transfer to Pi
