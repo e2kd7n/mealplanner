@@ -94,28 +94,28 @@ else
     echo -e "${BLUE}ℹ️  Using pre-loaded images${NC}"
 fi
 
-# Start services with timeout protection
+# Start services manually to avoid podman-compose blocking issues
 echo -e "${GREEN}🚀 Starting services...${NC}"
 
-# Start with a timeout to prevent infinite hangs
-timeout 120 podman-compose -f podman-compose.pi.yml up -d || {
-    EXIT_CODE=$?
-    if [ $EXIT_CODE -eq 124 ]; then
-        echo -e "${RED}❌ Deployment timed out after 2 minutes${NC}"
-        echo -e "${YELLOW}Checking container status...${NC}"
-        podman ps -a
-        echo -e "${YELLOW}Checking logs...${NC}"
-        podman-compose -f podman-compose.pi.yml logs --tail=50
-        exit 1
-    else
-        echo -e "${RED}❌ Deployment failed with exit code $EXIT_CODE${NC}"
-        exit $EXIT_CODE
-    fi
-}
+# Create network if it doesn't exist
+if ! podman network exists mealplanner_meals-network 2>/dev/null; then
+    echo -e "${BLUE}Creating network...${NC}"
+    podman network create mealplanner_meals-network
+fi
 
-# Check service status immediately
-echo -e "${GREEN}📊 Initial service status:${NC}"
-podman-compose -f podman-compose.pi.yml ps
+# Start postgres first
+echo -e "${BLUE}Starting PostgreSQL...${NC}"
+podman-compose -f podman-compose.pi.yml up -d postgres
+
+# Wait a moment for postgres to create
+sleep 3
+
+# Start postgres container
+echo -e "${BLUE}Starting PostgreSQL container...${NC}"
+if ! podman start meals-postgres 2>/dev/null; then
+    echo -e "${YELLOW}Container doesn't exist yet, waiting for podman-compose...${NC}"
+    sleep 5
+fi
 
 # Wait for postgres to be ready (critical dependency)
 echo -e "${YELLOW}⏳ Waiting for PostgreSQL to be ready...${NC}"
@@ -135,8 +135,19 @@ echo ""
 if [ $WAITED -ge $MAX_WAIT ]; then
     echo -e "${RED}❌ PostgreSQL failed to start within ${MAX_WAIT}s${NC}"
     echo -e "${YELLOW}PostgreSQL logs:${NC}"
-    podman logs meals-postgres --tail=50
+    podman logs meals-postgres
     exit 1
+fi
+
+# Start backend
+echo -e "${BLUE}Starting backend...${NC}"
+podman-compose -f podman-compose.pi.yml up -d backend
+sleep 5
+
+# Start backend container if needed
+if ! podman start meals-backend 2>/dev/null; then
+    echo -e "${YELLOW}Waiting for backend container...${NC}"
+    sleep 5
 fi
 
 # Wait for backend to be ready
@@ -157,20 +168,31 @@ echo ""
 if [ $WAITED -ge $MAX_WAIT ]; then
     echo -e "${RED}❌ Backend failed to start within ${MAX_WAIT}s${NC}"
     echo -e "${YELLOW}Backend logs:${NC}"
-    podman logs meals-backend --tail=100
+    podman logs meals-backend
     exit 1
 fi
 
-# Verify all containers are running
-echo -e "${GREEN}📊 Final service status:${NC}"
-podman-compose -f podman-compose.pi.yml ps
+# Start frontend and nginx
+echo -e "${BLUE}Starting frontend and nginx...${NC}"
+podman-compose -f podman-compose.pi.yml up -d frontend nginx
+sleep 5
 
+# Verify all containers are running
+echo -e "${GREEN}📊 Service status:${NC}"
+podman ps --filter "name=meals-"
+
+# Check for any failed containers
 FAILED_CONTAINERS=$(podman ps -a --filter "name=meals-" --format "{{.Names}} {{.Status}}" | grep -v "Up" || true)
 if [ -n "$FAILED_CONTAINERS" ]; then
     echo -e "${RED}❌ Some containers failed to start:${NC}"
     echo "$FAILED_CONTAINERS"
-    echo -e "${YELLOW}Showing logs for failed containers...${NC}"
-    podman-compose -f podman-compose.pi.yml logs --tail=50
+    echo -e "${YELLOW}Checking logs...${NC}"
+    for container in meals-postgres meals-backend meals-frontend meals-nginx; do
+        if podman ps -a --format "{{.Names}}" | grep -q "^${container}$"; then
+            echo -e "${YELLOW}=== ${container} logs ===${NC}"
+            podman logs $container 2>&1 | tail -30
+        fi
+    done
     exit 1
 fi
 
