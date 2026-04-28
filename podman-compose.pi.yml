@@ -43,7 +43,8 @@ services:
     container_name: meals-backend
     restart: unless-stopped
     depends_on:
-      - postgres
+      postgres:
+        condition: service_started
     environment:
       NODE_ENV: production
       PORT: 3000
@@ -83,7 +84,8 @@ services:
     container_name: meals-frontend
     restart: unless-stopped
     depends_on:
-      - backend
+      backend:
+        condition: service_started
     networks:
       meals-network:
         aliases:
@@ -99,8 +101,10 @@ services:
     container_name: meals-nginx
     restart: unless-stopped
     depends_on:
-      - backend
-      - frontend
+      backend:
+        condition: service_started
+      frontend:
+        condition: service_started
     ports:
       - "8080:80"
     volumes:
