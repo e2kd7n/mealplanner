@@ -77,15 +77,10 @@ mkdir -p "$OUTPUT_DIR"
 
 # Build backend image (includes frontend in multi-stage build)
 echo -e "${YELLOW}🔨 Building backend image for ${TARGET_ARCH} (includes frontend)...${NC}"
+echo -e "${BLUE}ℹ️  Building without cache to ensure correct architecture${NC}"
 $CONTAINER_CMD build \
     --platform "$TARGET_ARCH" \
-    -t meals-backend:latest \
-    -f backend/Dockerfile \
-    --build-arg VITE_API_URL=/api \
-    --compress \
-    --squash 2>/dev/null || \
-$CONTAINER_CMD build \
-    --platform "$TARGET_ARCH" \
+    --no-cache \
     -t meals-backend:latest \
     -f backend/Dockerfile \
     --build-arg VITE_API_URL=/api \
@@ -93,15 +88,10 @@ $CONTAINER_CMD build \
 
 # Build frontend image (standalone for nginx)
 echo -e "${YELLOW}🔨 Building frontend image for ${TARGET_ARCH}...${NC}"
+echo -e "${BLUE}ℹ️  Building without cache to ensure correct architecture${NC}"
 $CONTAINER_CMD build \
     --platform "$TARGET_ARCH" \
-    -t meals-frontend:latest \
-    -f frontend/Dockerfile \
-    --build-arg VITE_API_URL=/api \
-    --compress \
-    --squash 2>/dev/null || \
-$CONTAINER_CMD build \
-    --platform "$TARGET_ARCH" \
+    --no-cache \
     -t meals-frontend:latest \
     -f frontend/Dockerfile \
     --build-arg VITE_API_URL=/api \
