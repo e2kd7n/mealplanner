@@ -60,15 +60,16 @@ HOST_ARCH=$(uname -m)
 echo -e "${BLUE}ℹ️  Host architecture: ${HOST_ARCH}${NC}"
 
 # Target architecture for Raspberry Pi
-# Default to 32-bit ARM (armv7) for maximum compatibility
-# Use ARM64 only if explicitly requested
-if [ "$1" = "--arm64" ]; then
-    TARGET_ARCH="linux/arm64/v8"
-    echo -e "${BLUE}ℹ️  Target architecture: ${TARGET_ARCH} (64-bit ARM)${NC}"
-else
+# Default to ARM64 for Raspberry Pi 4 with 64-bit kernel
+# Most modern Pi setups use 64-bit kernel even if running 32-bit userspace
+if [ "$1" = "--arm32" ]; then
     TARGET_ARCH="linux/arm/v7"
-    echo -e "${BLUE}ℹ️  Target architecture: ${TARGET_ARCH} (32-bit ARM - default)${NC}"
-    echo -e "${YELLOW}💡 Tip: Use --arm64 flag if your Pi is running 64-bit OS${NC}"
+    echo -e "${BLUE}ℹ️  Target architecture: ${TARGET_ARCH} (32-bit ARM)${NC}"
+    echo -e "${YELLOW}⚠️  Note: Building 32-bit ARM requires QEMU emulation on ARM64 hosts${NC}"
+else
+    TARGET_ARCH="linux/arm64/v8"
+    echo -e "${BLUE}ℹ️  Target architecture: ${TARGET_ARCH} (64-bit ARM - default)${NC}"
+    echo -e "${YELLOW}💡 Tip: Use --arm32 flag only if your Pi kernel is 32-bit (rare)${NC}"
 fi
 
 # Create output directory for image tars
