@@ -61,7 +61,15 @@ echo -e "${BLUE}ℹ️  Host architecture: ${HOST_ARCH}${NC}"
 
 # Parse command line arguments
 COMPRESS=false
-TARGET_ARCH="linux/arm/v7"  # Default to 32-bit for maximum Pi compatibility
+
+# Auto-detect target architecture based on host
+# If running on ARM64 Mac, default to ARM64 target (no emulation needed)
+if [ "$HOST_ARCH" = "arm64" ]; then
+    TARGET_ARCH="linux/arm64/v8"
+    echo -e "${BLUE}ℹ️  Auto-detected ARM64 host - defaulting to ARM64 target${NC}"
+else
+    TARGET_ARCH="linux/arm/v7"  # Default to 32-bit for maximum Pi compatibility
+fi
 
 for arg in "$@"; do
     case $arg in
@@ -82,10 +90,13 @@ for arg in "$@"; do
 done
 
 if [ "$TARGET_ARCH" = "linux/arm/v7" ]; then
-    echo -e "${BLUE}ℹ️  Target architecture: ${TARGET_ARCH} (32-bit ARM - default for maximum compatibility)${NC}"
-    echo -e "${YELLOW}💡 Tip: Use --arm64 flag if your Pi runs 64-bit OS${NC}"
-else
+    echo -e "${BLUE}ℹ️  Target architecture: ${TARGET_ARCH} (32-bit ARM)${NC}"
+    echo -e "${YELLOW}💡 Note: Building 32-bit ARM on non-ARM host requires emulation${NC}"
+elif [ "$TARGET_ARCH" = "linux/arm64/v8" ]; then
     echo -e "${BLUE}ℹ️  Target architecture: ${TARGET_ARCH} (64-bit ARM)${NC}"
+    if [ "$HOST_ARCH" = "arm64" ]; then
+        echo -e "${GREEN}✓ Native build - no emulation needed${NC}"
+    fi
 fi
 
 # Create output directory for image tars
