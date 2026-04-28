@@ -59,17 +59,33 @@ fi
 HOST_ARCH=$(uname -m)
 echo -e "${BLUE}ℹ️  Host architecture: ${HOST_ARCH}${NC}"
 
-# Target architecture for Raspberry Pi
-# Default to ARM64 for Raspberry Pi 4 with 64-bit kernel
-# Most modern Pi setups use 64-bit kernel even if running 32-bit userspace
-if [ "$1" = "--arm32" ]; then
-    TARGET_ARCH="linux/arm/v7"
-    echo -e "${BLUE}ℹ️  Target architecture: ${TARGET_ARCH} (32-bit ARM)${NC}"
-    echo -e "${YELLOW}⚠️  Note: Building 32-bit ARM requires QEMU emulation on ARM64 hosts${NC}"
+# Parse command line arguments
+COMPRESS=false
+TARGET_ARCH="linux/arm/v7"  # Default to 32-bit for maximum Pi compatibility
+
+for arg in "$@"; do
+    case $arg in
+        --arm64)
+            TARGET_ARCH="linux/arm64/v8"
+            echo -e "${BLUE}ℹ️  Target architecture: ${TARGET_ARCH} (64-bit ARM)${NC}"
+            ;;
+        --compress)
+            COMPRESS=true
+            echo -e "${BLUE}ℹ️  Compression enabled (--compress flag)${NC}"
+            ;;
+        *)
+            echo -e "${RED}Unknown option: $arg${NC}"
+            echo "Usage: $0 [--arm64] [--compress]"
+            exit 1
+            ;;
+    esac
+done
+
+if [ "$TARGET_ARCH" = "linux/arm/v7" ]; then
+    echo -e "${BLUE}ℹ️  Target architecture: ${TARGET_ARCH} (32-bit ARM - default for maximum compatibility)${NC}"
+    echo -e "${YELLOW}💡 Tip: Use --arm64 flag if your Pi runs 64-bit OS${NC}"
 else
-    TARGET_ARCH="linux/arm64/v8"
-    echo -e "${BLUE}ℹ️  Target architecture: ${TARGET_ARCH} (64-bit ARM - default)${NC}"
-    echo -e "${YELLOW}💡 Tip: Use --arm32 flag only if your Pi kernel is 32-bit (rare)${NC}"
+    echo -e "${BLUE}ℹ️  Target architecture: ${TARGET_ARCH} (64-bit ARM)${NC}"
 fi
 
 # Create output directory for image tars
@@ -98,35 +114,60 @@ $CONTAINER_CMD build \
     --build-arg VITE_API_URL=/api \
     frontend/
 
-# Save images as tar files (compressed)
+# Save images as tar files
 echo -e "${YELLOW}💾 Saving images to tar files...${NC}"
-$CONTAINER_CMD save meals-backend:latest | gzip > "$OUTPUT_DIR/meals-backend.tar.gz"
-$CONTAINER_CMD save meals-frontend:latest | gzip > "$OUTPUT_DIR/meals-frontend.tar.gz"
 
-# Also save uncompressed for compatibility
-$CONTAINER_CMD save -o "$OUTPUT_DIR/meals-backend.tar" meals-backend:latest
-$CONTAINER_CMD save -o "$OUTPUT_DIR/meals-frontend.tar" meals-frontend:latest
-
-# Get file sizes
-BACKEND_SIZE=$(du -h "$OUTPUT_DIR/meals-backend.tar" | cut -f1)
-FRONTEND_SIZE=$(du -h "$OUTPUT_DIR/meals-frontend.tar" | cut -f1)
-BACKEND_GZ_SIZE=$(du -h "$OUTPUT_DIR/meals-backend.tar.gz" | cut -f1)
-FRONTEND_GZ_SIZE=$(du -h "$OUTPUT_DIR/meals-frontend.tar.gz" | cut -f1)
-
-echo -e "${GREEN}✅ Images built and saved successfully!${NC}"
-echo ""
-echo -e "${BLUE}📦 Image files (uncompressed):${NC}"
-echo -e "   Backend:   $OUTPUT_DIR/meals-backend.tar   (${BACKEND_SIZE})"
-echo -e "   Frontend:  $OUTPUT_DIR/meals-frontend.tar  (${FRONTEND_SIZE})"
-echo ""
-echo -e "${BLUE}📦 Image files (compressed - recommended for transfer):${NC}"
-echo -e "   Backend:   $OUTPUT_DIR/meals-backend.tar.gz   (${BACKEND_GZ_SIZE})"
-echo -e "   Frontend:  $OUTPUT_DIR/meals-frontend.tar.gz  (${FRONTEND_GZ_SIZE})"
-echo ""
-echo -e "${YELLOW}📤 Next steps:${NC}"
-echo -e "   1. Transfer images to your Raspberry Pi (use compressed files for faster transfer):"
-echo -e "      ${GREEN}scp pi-images/*.tar.gz pi@pihole.local:~/mealplanner/pi-images/${NC}"
-echo -e "      ${BLUE}Or uncompressed:${NC} scp pi-images/*.tar pi@pihole.local:~/mealplanner/pi-images/"
+if [ "$COMPRESS" = true ]; then
+    echo -e "${BLUE}ℹ️  Compressing tar files (smaller transfer size)${NC}"
+    $CONTAINER_CMD save meals-backend:latest | gzip > "$OUTPUT_DIR/meals-backend.tar.gz"
+    $CONTAINER_CMD save meals-frontend:latest | gzip > "$OUTPUT_DIR/meals-frontend.tar.gz"
+    
+    # Also save uncompressed for compatibility
+    $CONTAINER_CMD save -o "$OUTPUT_DIR/meals-backend.tar" meals-backend:latest
+    $CONTAINER_CMD save -o "$OUTPUT_DIR/meals-frontend.tar" meals-frontend:latest
+    
+    # Get file sizes
+    BACKEND_SIZE=$(du -h "$OUTPUT_DIR/meals-backend.tar" | cut -f1)
+    FRONTEND_SIZE=$(du -h "$OUTPUT_DIR/meals-frontend.tar" | cut -f1)
+    BACKEND_GZ_SIZE=$(du -h "$OUTPUT_DIR/meals-backend.tar.gz" | cut -f1)
+    FRONTEND_GZ_SIZE=$(du -h "$OUTPUT_DIR/meals-frontend.tar.gz" | cut -f1)
+    
+    echo -e "${GREEN}✅ Images built and saved successfully!${NC}"
+    echo ""
+    echo -e "${BLUE}📦 Image files (uncompressed):${NC}"
+    echo -e "   Backend:   $OUTPUT_DIR/meals-backend.tar   (${BACKEND_SIZE})"
+    echo -e "   Frontend:  $OUTPUT_DIR/meals-frontend.tar  (${FRONTEND_SIZE})"
+    echo ""
+    echo -e "${BLUE}📦 Image files (compressed - recommended for slow networks):${NC}"
+    echo -e "   Backend:   $OUTPUT_DIR/meals-backend.tar.gz   (${BACKEND_GZ_SIZE})"
+    echo -e "   Frontend:  $OUTPUT_DIR/meals-frontend.tar.gz  (${FRONTEND_GZ_SIZE})"
+    echo ""
+    echo -e "${YELLOW}📤 Next steps:${NC}"
+    echo -e "   1. Transfer images to your Raspberry Pi:"
+    echo -e "      ${GREEN}# For fast networks (3+ MB/s): Use uncompressed${NC}"
+    echo -e "      ${GREEN}scp pi-images/*.tar pi@pihole.local:~/mealplanner/pi-images/${NC}"
+    echo -e "      ${BLUE}# For slow networks (<1 MB/s): Use compressed${NC}"
+    echo -e "      scp pi-images/*.tar.gz pi@pihole.local:~/mealplanner/pi-images/"
+else
+    echo -e "${BLUE}ℹ️  Saving uncompressed tar files (faster loading on Pi - default)${NC}"
+    $CONTAINER_CMD save -o "$OUTPUT_DIR/meals-backend.tar" meals-backend:latest
+    $CONTAINER_CMD save -o "$OUTPUT_DIR/meals-frontend.tar" meals-frontend:latest
+    
+    # Get file sizes
+    BACKEND_SIZE=$(du -h "$OUTPUT_DIR/meals-backend.tar" | cut -f1)
+    FRONTEND_SIZE=$(du -h "$OUTPUT_DIR/meals-frontend.tar" | cut -f1)
+    
+    echo -e "${GREEN}✅ Images built and saved successfully!${NC}"
+    echo ""
+    echo -e "${BLUE}📦 Image files (uncompressed):${NC}"
+    echo -e "   Backend:   $OUTPUT_DIR/meals-backend.tar   (${BACKEND_SIZE})"
+    echo -e "   Frontend:  $OUTPUT_DIR/meals-frontend.tar  (${FRONTEND_SIZE})"
+    echo ""
+    echo -e "${YELLOW}📤 Next steps:${NC}"
+    echo -e "   1. Transfer images to your Raspberry Pi:"
+    echo -e "      ${GREEN}scp pi-images/*.tar pi@pihole.local:~/mealplanner/pi-images/${NC}"
+    echo -e "      ${BLUE}💡 Tip: Use --compress flag for slower networks${NC}"
+fi
 echo ""
 echo -e "   2. On the Raspberry Pi, load the images:"
 echo -e "      ${GREEN}cd ~/mealplanner${NC}"
