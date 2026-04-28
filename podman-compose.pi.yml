@@ -41,7 +41,7 @@ services:
   backend:
     image: meals-backend:latest
     container_name: meals-backend
-    platform: linux/arm64
+    platform: linux/arm64/v8
     restart: unless-stopped
     depends_on:
       postgres:
@@ -83,7 +83,7 @@ services:
   frontend:
     image: meals-frontend:latest
     container_name: meals-frontend
-    platform: linux/arm64
+    platform: linux/arm64/v8
     restart: unless-stopped
     depends_on:
       backend:
