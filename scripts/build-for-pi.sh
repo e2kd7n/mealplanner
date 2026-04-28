@@ -60,15 +60,23 @@ HOST_ARCH=$(uname -m)
 echo -e "${BLUE}ℹ️  Host architecture: ${HOST_ARCH}${NC}"
 
 # Target architecture for Raspberry Pi
-TARGET_ARCH="linux/arm64"
-echo -e "${BLUE}ℹ️  Target architecture: ${TARGET_ARCH}${NC}"
+# Default to 32-bit ARM (armv7) for maximum compatibility
+# Use ARM64 only if explicitly requested
+if [ "$1" = "--arm64" ]; then
+    TARGET_ARCH="linux/arm64/v8"
+    echo -e "${BLUE}ℹ️  Target architecture: ${TARGET_ARCH} (64-bit ARM)${NC}"
+else
+    TARGET_ARCH="linux/arm/v7"
+    echo -e "${BLUE}ℹ️  Target architecture: ${TARGET_ARCH} (32-bit ARM - default)${NC}"
+    echo -e "${YELLOW}💡 Tip: Use --arm64 flag if your Pi is running 64-bit OS${NC}"
+fi
 
 # Create output directory for image tars
 OUTPUT_DIR="./pi-images"
 mkdir -p "$OUTPUT_DIR"
 
 # Build backend image (includes frontend in multi-stage build)
-echo -e "${YELLOW}🔨 Building backend image for ARM64 (includes frontend)...${NC}"
+echo -e "${YELLOW}🔨 Building backend image for ${TARGET_ARCH} (includes frontend)...${NC}"
 $CONTAINER_CMD build \
     --platform "$TARGET_ARCH" \
     -t meals-backend:latest \
@@ -84,7 +92,7 @@ $CONTAINER_CMD build \
     .
 
 # Build frontend image (standalone for nginx)
-echo -e "${YELLOW}🔨 Building frontend image for ARM64...${NC}"
+echo -e "${YELLOW}🔨 Building frontend image for ${TARGET_ARCH}...${NC}"
 $CONTAINER_CMD build \
     --platform "$TARGET_ARCH" \
     -t meals-frontend:latest \
