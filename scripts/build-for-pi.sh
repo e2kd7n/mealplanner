@@ -63,14 +63,13 @@ echo -e "${BLUE}ℹ️  Host architecture: ${HOST_ARCH}${NC}"
 COMPRESS=false
 
 # Default to 32-bit ARM for maximum Raspberry Pi compatibility
-# Many Pis run 32-bit OS even with 64-bit capable hardware
+# Works with Pi 2, 3, 3B+, 4, Zero 2 W (all models)
 TARGET_ARCH="linux/arm/v7"
 
 for arg in "$@"; do
     case $arg in
         --arm64)
             TARGET_ARCH="linux/arm64/v8"
-            echo -e "${BLUE}ℹ️  Target architecture: ${TARGET_ARCH} (64-bit ARM)${NC}"
             ;;
         --compress)
             COMPRESS=true
@@ -84,16 +83,42 @@ for arg in "$@"; do
     esac
 done
 
+# Check for problematic configuration: ARM64 Mac + 32-bit target + Podman
+if [ "$TARGET_ARCH" = "linux/arm/v7" ] && [ "$HOST_ARCH" = "arm64" ] && [ "$CONTAINER_CMD" = "podman" ]; then
+    echo ""
+    echo -e "${RED}❌ ERROR: Cannot build 32-bit ARM images on ARM64 Mac with Podman${NC}"
+    echo ""
+    echo -e "${YELLOW}Podman on ARM64 Mac cannot properly emulate 32-bit ARM containers.${NC}"
+    echo ""
+    echo -e "${BLUE}You have 3 options:${NC}"
+    echo ""
+    echo -e "${GREEN}Option 1 (RECOMMENDED): Build directly on your Raspberry Pi${NC}"
+    echo -e "   1. Transfer code to Pi: ${GREEN}rsync -av --exclude node_modules --exclude .git . pi@pihole.local:~/mealplanner/${NC}"
+    echo -e "   2. SSH to Pi: ${GREEN}ssh pi@pihole.local${NC}"
+    echo -e "   3. Build on Pi: ${GREEN}cd ~/mealplanner && ./scripts/build-on-pi.sh${NC}"
+    echo -e "   4. Deploy: ${GREEN}./scripts/pi-run.sh${NC}"
+    echo ""
+    echo -e "${GREEN}Option 2: Build 64-bit images (if your Pi runs 64-bit OS)${NC}"
+    echo -e "   Run: ${GREEN}./scripts/build-for-pi.sh --arm64${NC}"
+    echo -e "   Note: Only works if your Pi is running 64-bit Raspberry Pi OS"
+    echo ""
+    echo -e "${GREEN}Option 3: Use Docker Desktop instead of Podman${NC}"
+    echo -e "   Docker Desktop has better ARM emulation support"
+    echo ""
+    exit 1
+fi
+
 if [ "$TARGET_ARCH" = "linux/arm/v7" ]; then
-    echo -e "${BLUE}ℹ️  Target architecture: ${TARGET_ARCH} (32-bit ARM - default for maximum Pi compatibility)${NC}"
-    if [ "$HOST_ARCH" = "arm64" ]; then
-        echo -e "${YELLOW}💡 Building 32-bit on ARM64 host - using emulation${NC}"
-        echo -e "${YELLOW}💡 Use --arm64 flag if your Pi runs 64-bit OS${NC}"
+    echo -e "${BLUE}ℹ️  Target architecture: ${TARGET_ARCH} (32-bit ARM - compatible with all Pi models)${NC}"
+    if [ "$HOST_ARCH" = "arm64" ] || [ "$HOST_ARCH" = "aarch64" ]; then
+        echo -e "${GREEN}✓ Building 32-bit ARM on ARM64 host${NC}"
     fi
 elif [ "$TARGET_ARCH" = "linux/arm64/v8" ]; then
-    echo -e "${BLUE}ℹ️  Target architecture: ${TARGET_ARCH} (64-bit ARM)${NC}"
-    if [ "$HOST_ARCH" = "arm64" ]; then
+    echo -e "${BLUE}ℹ️  Target architecture: ${TARGET_ARCH} (64-bit ARM - requires 64-bit Pi OS)${NC}"
+    if [ "$HOST_ARCH" = "arm64" ] || [ "$HOST_ARCH" = "aarch64" ]; then
         echo -e "${GREEN}✓ Native build - no emulation needed${NC}"
+    else
+        echo -e "${YELLOW}💡 Cross-compiling from ${HOST_ARCH} to ARM64${NC}"
     fi
 fi
 

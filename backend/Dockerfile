@@ -18,8 +18,9 @@ WORKDIR /frontend
 # Copy frontend package files
 COPY frontend/package.json frontend/pnpm-lock.yaml ./
 
-# Install pnpm via npm (more reliable for caching)
-RUN npm install -g pnpm@10
+# Install pnpm using standalone script (works better with emulation)
+RUN wget -qO- https://get.pnpm.io/install.sh | ENV="$HOME/.shrc" SHELL="$(which sh)" sh - && \
+    ln -s /root/.local/share/pnpm/pnpm /usr/local/bin/pnpm
 
 # Install frontend dependencies (production only)
 RUN pnpm install --frozen-lockfile --prod=false
@@ -49,8 +50,9 @@ WORKDIR /app
 # Copy package files
 COPY backend/package.json backend/pnpm-lock.yaml ./
 
-# Install pnpm via npm (more reliable for caching)
-RUN npm install -g pnpm@10
+# Install pnpm using standalone script (works better with emulation)
+RUN wget -qO- https://get.pnpm.io/install.sh | ENV="$HOME/.shrc" SHELL="$(which sh)" sh - && \
+    ln -s /root/.local/share/pnpm/pnpm /usr/local/bin/pnpm
 
 # Install dependencies
 RUN pnpm install --frozen-lockfile
@@ -78,10 +80,11 @@ RUN pnpm build
 # Expected size: 400-600MB (vs 1.2GB with dev dependencies)
 FROM docker.io/library/node:20-alpine
 
-# Install pnpm via npm
-RUN npm install -g pnpm@10
-
 WORKDIR /app
+
+# Install pnpm using standalone script (works better with emulation)
+RUN wget -qO- https://get.pnpm.io/install.sh | ENV="$HOME/.shrc" SHELL="$(which sh)" sh - && \
+    ln -s /root/.local/share/pnpm/pnpm /usr/local/bin/pnpm
 
 # Copy package files
 COPY backend/package.json backend/pnpm-lock.yaml ./
@@ -89,22 +92,17 @@ COPY backend/package.json backend/pnpm-lock.yaml ./
 # Copy prisma schema before installing dependencies
 COPY --from=backend-builder /app/prisma ./prisma
 
-# Install ONLY production dependencies (excludes devDependencies like TypeScript, @types/*, etc.)
-RUN pnpm install --frozen-lockfile --prod
-
-# Generate Prisma client in the production image using the pinned Prisma CLI,
-# then remove the temporary CLI dependency so runtime stays minimal.
+# Install ONLY production dependencies and generate Prisma client in one layer
+# This reduces image size by combining operations
 ENV PRISMA_ENGINES_CHECKSUM_IGNORE_MISSING=1
 ENV DATABASE_URL="postgresql://dummy:dummy@localhost:5432/dummy"
-RUN pnpm add -D prisma@6.19.3 --ignore-workspace && \
+RUN pnpm install --frozen-lockfile --prod && \
+    pnpm add -D prisma@6.19.3 --ignore-workspace && \
     ./node_modules/.bin/prisma generate && \
-    pnpm remove prisma --ignore-workspace
-
-# Clean up pnpm cache and store to save space
-RUN pnpm store prune && \
-    rm -rf /root/.local/share/pnpm/store && \
-    rm -rf /tmp/* /var/cache/apk/* && \
-    rm -rf /root/.npm
+    pnpm remove prisma --ignore-workspace && \
+    pnpm store prune && \
+    rm -rf /root/.local/share/pnpm/store /tmp/* /var/cache/apk/* /root/.npm /root/.cache && \
+    npm cache clean --force
 
 # Copy built backend from builder
 COPY --from=backend-builder /app/dist ./dist
@@ -112,18 +110,13 @@ COPY --from=backend-builder /app/dist ./dist
 # Copy built frontend from frontend-builder
 COPY --from=frontend-builder /frontend/dist ./public
 
-# Create directories for uploads and backups
-RUN mkdir -p /app/uploads /app/backups /app/images
-
-# Copy entrypoint script
+# Create directories and copy entrypoint in one layer
 COPY backend/docker-entrypoint.sh /app/docker-entrypoint.sh
-RUN chmod +x /app/docker-entrypoint.sh
+RUN mkdir -p /app/uploads /app/backups /app/images && \
+    chmod +x /app/docker-entrypoint.sh
 
 # Set environment
 ENV NODE_ENV=production
-
-# Remove npm cache to save space
-RUN npm cache clean --force
 
 # Expose port
 EXPOSE 3000
