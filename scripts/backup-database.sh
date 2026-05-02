@@ -1,64 +1,80 @@
 #!/bin/bash
-# Database Backup Script for Meal Planner
-# Automatically backs up the PostgreSQL database
+# Database Backup Script - P1 Issue #164
+# Automated PostgreSQL backup with retention policy
 
 set -e
 
 # Configuration
-BACKUP_DIR="./data/backups"
-TIMESTAMP=$(date +"%Y%m%d_%H%M%S")
-BACKUP_FILE="mealplanner_backup_${TIMESTAMP}.sql"
-CONTAINER_NAME="meals-postgres"
-DB_NAME="meal_planner"
-DB_USER="mealplanner"
-
-# Keep last N backups (default: 7 days of backups if run daily)
-KEEP_BACKUPS=7
+BACKUP_DIR="${BACKUP_DIR:-./data/backups}"
+RETENTION_DAYS="${RETENTION_DAYS:-30}"
+POSTGRES_CONTAINER="${POSTGRES_CONTAINER:-meals-postgres}"
+POSTGRES_DB="${POSTGRES_DB:-meal_planner}"
+POSTGRES_USER="${POSTGRES_USER:-mealplanner}"
+TIMESTAMP=$(date +%Y%m%d_%H%M%S)
+BACKUP_FILE="backup_${POSTGRES_DB}_${TIMESTAMP}.sql.gz"
 
 # Colors for output
+RED='\033[0;31m'
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
-RED='\033[0;31m'
 NC='\033[0m' # No Color
 
-echo -e "${GREEN}=== Meal Planner Database Backup ===${NC}"
+echo -e "${GREEN}=== Database Backup Script ===${NC}"
 echo "Timestamp: $(date)"
-echo "Backup file: ${BACKUP_FILE}"
+echo "Database: ${POSTGRES_DB}"
+echo "Backup Directory: ${BACKUP_DIR}"
+echo ""
 
-# Ensure backup directory exists
+# Create backup directory if it doesn't exist
 mkdir -p "${BACKUP_DIR}"
 
 # Check if container is running
-if ! podman ps | grep -q "${CONTAINER_NAME}"; then
-    echo -e "${RED}Error: Container ${CONTAINER_NAME} is not running${NC}"
+if ! podman ps | grep -q "${POSTGRES_CONTAINER}"; then
+    echo -e "${RED}Error: PostgreSQL container '${POSTGRES_CONTAINER}' is not running${NC}"
     exit 1
 fi
 
 # Perform backup
 echo -e "${YELLOW}Creating backup...${NC}"
-if podman exec "${CONTAINER_NAME}" pg_dump -U "${DB_USER}" "${DB_NAME}" > "${BACKUP_DIR}/${BACKUP_FILE}"; then
-    echo -e "${GREEN}✓ Backup created successfully${NC}"
-    
-    # Compress backup
-    echo -e "${YELLOW}Compressing backup...${NC}"
-    gzip "${BACKUP_DIR}/${BACKUP_FILE}"
-    echo -e "${GREEN}✓ Backup compressed: ${BACKUP_FILE}.gz${NC}"
-    
-    # Get backup size
-    BACKUP_SIZE=$(du -h "${BACKUP_DIR}/${BACKUP_FILE}.gz" | cut -f1)
-    echo -e "${GREEN}Backup size: ${BACKUP_SIZE}${NC}"
+if podman exec "${POSTGRES_CONTAINER}" pg_dump -U "${POSTGRES_USER}" "${POSTGRES_DB}" | gzip > "${BACKUP_DIR}/${BACKUP_FILE}"; then
+    BACKUP_SIZE=$(du -h "${BACKUP_DIR}/${BACKUP_FILE}" | cut -f1)
+    echo -e "${GREEN}✓ Backup created successfully: ${BACKUP_FILE} (${BACKUP_SIZE})${NC}"
 else
     echo -e "${RED}✗ Backup failed${NC}"
     exit 1
 fi
 
-# Clean up old backups
-echo -e "${YELLOW}Cleaning up old backups (keeping last ${KEEP_BACKUPS})...${NC}"
-cd "${BACKUP_DIR}"
-ls -t mealplanner_backup_*.sql.gz 2>/dev/null | tail -n +$((KEEP_BACKUPS + 1)) | xargs -r rm -f
-REMAINING=$(ls -1 mealplanner_backup_*.sql.gz 2>/dev/null | wc -l)
-echo -e "${GREEN}✓ ${REMAINING} backup(s) retained${NC}"
+# Verify backup
+echo -e "${YELLOW}Verifying backup...${NC}"
+if gunzip -t "${BACKUP_DIR}/${BACKUP_FILE}" 2>/dev/null; then
+    echo -e "${GREEN}✓ Backup file is valid${NC}"
+else
+    echo -e "${RED}✗ Backup file is corrupted${NC}"
+    exit 1
+fi
 
+# Clean up old backups (retention policy)
+echo -e "${YELLOW}Applying retention policy (${RETENTION_DAYS} days)...${NC}"
+DELETED_COUNT=$(find "${BACKUP_DIR}" -name "backup_*.sql.gz" -type f -mtime +${RETENTION_DAYS} -delete -print | wc -l)
+if [ "${DELETED_COUNT}" -gt 0 ]; then
+    echo -e "${GREEN}✓ Deleted ${DELETED_COUNT} old backup(s)${NC}"
+else
+    echo -e "${GREEN}✓ No old backups to delete${NC}"
+fi
+
+# List recent backups
+echo ""
+echo -e "${GREEN}Recent backups:${NC}"
+ls -lh "${BACKUP_DIR}" | grep "backup_" | tail -5
+
+# Summary
+echo ""
 echo -e "${GREEN}=== Backup Complete ===${NC}"
+echo "Backup file: ${BACKUP_FILE}"
+echo "Location: ${BACKUP_DIR}/${BACKUP_FILE}"
+echo "Size: ${BACKUP_SIZE}"
+echo "Retention: ${RETENTION_DAYS} days"
+
+exit 0
 
 # Made with Bob
