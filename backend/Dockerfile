@@ -44,7 +44,8 @@ RUN pnpm build
 # Output: Compiled JavaScript in /app/dist and Prisma client
 FROM docker.io/library/node:20-alpine AS backend-builder
 
-# Install build dependencies for native modules
+# Install build dependencies for native modules (bcrypt, canvas, etc.)
+# python3, make, g++, gcc needed for node-gyp to compile native modules
 RUN apk add --no-cache python3 make g++ gcc
 
 WORKDIR /app
@@ -56,12 +57,14 @@ COPY backend/package.json backend/pnpm-lock.yaml ./
 RUN npm install -g pnpm@9
 
 # Install dependencies
+# Note: bcrypt and other native modules will be compiled for ARM during this step
 RUN pnpm install --frozen-lockfile
 
 # Copy source code
 COPY backend .
 
 # Generate Prisma client with ARM workaround
+# PRISMA_ENGINES_CHECKSUM_IGNORE_MISSING=1 allows Prisma to work on ARM without pre-built binaries
 # Use dummy DATABASE_URL for build time (will be replaced at runtime)
 ENV PRISMA_ENGINES_CHECKSUM_IGNORE_MISSING=1
 ENV DATABASE_URL="postgresql://dummy:dummy@localhost:5432/dummy"
@@ -91,6 +94,9 @@ COPY backend/package.json backend/pnpm-lock.yaml ./
 
 # Copy prisma schema before installing dependencies
 COPY --from=backend-builder /app/prisma ./prisma
+
+# Install runtime dependencies for native modules (needed for bcrypt at runtime)
+RUN apk add --no-cache libstdc++ libgcc
 
 # Install ONLY production dependencies and generate Prisma client in one layer
 # This reduces image size by combining operations
