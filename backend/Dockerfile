@@ -31,6 +31,9 @@ COPY frontend ./
 ARG VITE_API_URL=/api
 ENV VITE_API_URL=$VITE_API_URL
 
+# Force Vite to use Rollup instead of Rolldown (Rolldown doesn't support ARM)
+ENV VITE_USE_ROLLUP=true
+
 # Build the frontend application
 RUN pnpm build
 
