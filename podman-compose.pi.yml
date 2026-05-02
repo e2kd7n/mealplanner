@@ -10,19 +10,19 @@ services:
       POSTGRES_USER: mealplanner
       POSTGRES_PASSWORD_FILE: /run/secrets/postgres_password
       PGDATA: /var/lib/postgresql/data/pgdata
-      # PostgreSQL tuning for 1.8GB RAM Pi (from PI_OPTIMIZATION_PROPOSAL.md)
-      POSTGRES_SHARED_BUFFERS: 128MB
-      POSTGRES_EFFECTIVE_CACHE_SIZE: 384MB
-      POSTGRES_MAINTENANCE_WORK_MEM: 64MB
+      # PostgreSQL tuning for 1.8GB RAM Pi (optimized for minimal memory)
+      POSTGRES_SHARED_BUFFERS: 96MB
+      POSTGRES_EFFECTIVE_CACHE_SIZE: 256MB
+      POSTGRES_MAINTENANCE_WORK_MEM: 48MB
       POSTGRES_CHECKPOINT_COMPLETION_TARGET: 0.9
-      POSTGRES_WAL_BUFFERS: 4MB
+      POSTGRES_WAL_BUFFERS: 3MB
       POSTGRES_DEFAULT_STATISTICS_TARGET: 100
       POSTGRES_RANDOM_PAGE_COST: 1.1
       POSTGRES_EFFECTIVE_IO_CONCURRENCY: 200
-      POSTGRES_WORK_MEM: 4MB
-      POSTGRES_MIN_WAL_SIZE: 1GB
-      POSTGRES_MAX_WAL_SIZE: 2GB
-      POSTGRES_MAX_CONNECTIONS: 20
+      POSTGRES_WORK_MEM: 3MB
+      POSTGRES_MIN_WAL_SIZE: 512MB
+      POSTGRES_MAX_WAL_SIZE: 1GB
+      POSTGRES_MAX_CONNECTIONS: 15
     secrets:
       - postgres_password
     volumes:
@@ -32,6 +32,15 @@ services:
       meals-network:
         aliases:
           - postgres
+    # Memory limits for Raspberry Pi
+    deploy:
+      resources:
+        limits:
+          memory: 200M
+          cpus: '1.0'
+        reservations:
+          memory: 100M
+          cpus: '0.5'
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U mealplanner -d meal_planner"]
       interval: 10s
@@ -59,8 +68,8 @@ services:
       POSTGRES_DB: meal_planner
       POSTGRES_USER: mealplanner
       CORS_ORIGIN: http://localhost:8080,http://raspberrypi.local:8080,https://localhost:8443,https://raspberrypi.local:8443
-      # Node.js memory optimization for Pi (from PI_OPTIMIZATION_PROPOSAL.md)
-      NODE_OPTIONS: --max-old-space-size=256
+      # Node.js memory optimization for Pi - aggressive limits
+      NODE_OPTIONS: --max-old-space-size=256 --optimize-for-size --gc-interval=100
     secrets:
       - postgres_password
       - jwt_secret
@@ -74,6 +83,15 @@ services:
       meals-network:
         aliases:
           - backend
+    # Memory limits for Raspberry Pi
+    deploy:
+      resources:
+        limits:
+          memory: 320M
+          cpus: '1.5'
+        reservations:
+          memory: 200M
+          cpus: '0.75'
     healthcheck:
       test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3000/health"]
       interval: 30s
@@ -92,6 +110,15 @@ services:
       meals-network:
         aliases:
           - frontend
+    # Memory limits for Raspberry Pi
+    deploy:
+      resources:
+        limits:
+          memory: 100M
+          cpus: '0.5'
+        reservations:
+          memory: 50M
+          cpus: '0.25'
     healthcheck:
       test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://127.0.0.1:80/"]
       interval: 30s
