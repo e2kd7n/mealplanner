@@ -92,6 +92,25 @@ podman build \
             fi
         fi
         
+        # Detect post-install scripts running (can take several minutes)
+        if echo "$line" | grep -q "postinstall\$"; then
+            package=$(echo "$line" | grep -oP '\.\.\./(.*?)/node_modules' | head -1 | sed 's/\.\.\/\(.*\)\/node_modules/\1/')
+            if [ -n "$package" ]; then
+                echo -e "${BLUE}   🔧 Running post-install script for ${package}...${NC}"
+            fi
+        fi
+        
+        # Detect when pnpm finishes and starts listing dependencies (this phase has no progress)
+        if echo "$line" | grep -q "^dependencies:$"; then
+            echo -e "${BLUE}   📋 Finalizing dependency tree (this may take several minutes)...${NC}"
+        fi
+        
+        # Detect completion of pnpm install
+        if echo "$line" | grep -q "Done in.*using pnpm"; then
+            duration=$(echo "$line" | grep -oP 'Done in \K[0-9]+m [0-9]+\.[0-9]+s')
+            echo -e "${GREEN}   ✅ Dependencies installed successfully in ${duration}${NC}"
+        fi
+        
         # Detect stage completion
         if echo "$line" | grep -q "COMMIT meals-backend:latest"; then
             echo -e "${GREEN}   ✅ Build completed successfully!${NC}"
