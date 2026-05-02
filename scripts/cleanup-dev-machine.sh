@@ -5,22 +5,16 @@
 
 set -e
 
-# Colors for output
-RED='\033[0;31m'
-GREEN='\033[0;32m'
-YELLOW='\033[1;33m'
-BLUE='\033[0;34m'
-NC='\033[0m' # No Color
+# Load common utilities
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+source "$SCRIPT_DIR/lib/common.sh"
 
 echo "🧹 Cleaning up development machine..."
 echo ""
 
 # Check if podman or docker is available
-if command -v podman &> /dev/null; then
-    CONTAINER_CMD="podman"
-elif command -v docker &> /dev/null; then
-    CONTAINER_CMD="docker"
-else
+CONTAINER_CMD=$(detect_container_runtime)
+if [ -z "$CONTAINER_CMD" ]; then
     echo -e "${RED}❌ Neither Podman nor Docker is installed${NC}"
     exit 1
 fi
@@ -29,13 +23,11 @@ echo -e "${BLUE}Using: $CONTAINER_CMD${NC}"
 echo ""
 
 # Capture initial disk usage
-DISK_BEFORE=$(df / | awk 'NR==2 {print $3}')
-DISK_TOTAL=$(df -h / | awk 'NR==2 {print $2}')
+DISK_BEFORE=$(get_disk_usage_kb)
 
 # Show current disk usage
 echo -e "${YELLOW}📊 Current disk usage:${NC}"
-df -h / | grep -v Filesystem
-echo ""
+show_disk_usage
 
 # Capture initial container storage
 CONTAINER_BEFORE=$($CONTAINER_CMD system df --format "{{.Size}}" 2>/dev/null | head -1 || echo "0B")
@@ -95,24 +87,17 @@ if [ -d "./pi-images" ]; then
 fi
 
 # Clean up node_modules caches (optional)
-echo -e "${YELLOW}🗑️  Cleaning npm/pnpm caches...${NC}"
-npm cache clean --force 2>/dev/null || true
-pnpm store prune 2>/dev/null || true
-echo -e "${GREEN}  ✓ Caches cleaned${NC}"
+clean_package_caches
 echo ""
 
 # Calculate space freed
-DISK_AFTER=$(df / | awk 'NR==2 {print $3}')
-DISK_FREED=$((DISK_BEFORE - DISK_AFTER))
-DISK_FREED_MB=$((DISK_FREED / 1024))
-DISK_FREED_GB=$(echo "scale=2; $DISK_FREED_MB / 1024" | bc)
+DISK_AFTER=$(get_disk_usage_kb)
 
 # Show final disk usage
 echo -e "${GREEN}✅ Cleanup complete!${NC}"
 echo ""
 echo -e "${YELLOW}📊 Final disk usage:${NC}"
-df -h / | grep -v Filesystem
-echo ""
+show_disk_usage
 
 echo -e "${YELLOW}📦 Final container storage:${NC}"
 $CONTAINER_CMD system df
@@ -120,11 +105,7 @@ echo ""
 
 # Show summary
 echo -e "${GREEN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
-if [ "$DISK_FREED_MB" -gt 1024 ]; then
-    echo -e "${GREEN}🎉 Freed ${DISK_FREED_GB}GB of disk space!${NC}"
-else
-    echo -e "${GREEN}🎉 Freed ${DISK_FREED_MB}MB of disk space!${NC}"
-fi
+show_space_freed "$DISK_BEFORE" "$DISK_AFTER"
 echo -e "${GREEN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
 echo ""
 

@@ -5,25 +5,15 @@
 
 set -e
 
+# Load common utilities
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+source "$SCRIPT_DIR/lib/common.sh"
+
 echo "🧹 Starting Raspberry Pi cleanup..."
-
-# Colors for output
-RED='\033[0;31m'
-GREEN='\033[0;32m'
-YELLOW='\033[1;33m'
-BLUE='\033[0;34m'
-NC='\033[0m' # No Color
-
-# Function to show disk usage
-show_disk_usage() {
-    echo -e "${BLUE}💾 Current disk usage:${NC}"
-    df -h / | grep -v Filesystem
-    echo ""
-}
 
 # Function to check if cleanup is needed
 check_cleanup_needed() {
-    DISK_USAGE=$(df / | awk 'NR==2 {print $5}' | sed 's/%//')
+    DISK_USAGE=$(get_disk_usage_percent)
     
     if [ "$DISK_USAGE" -lt 60 ]; then
         echo -e "${GREEN}✓ Disk usage is healthy (${DISK_USAGE}%)${NC}"
@@ -31,7 +21,8 @@ check_cleanup_needed() {
         echo ""
         echo -e "${YELLOW}Current status:${NC}"
         show_disk_usage
-        podman system df 2>/dev/null || true
+        CONTAINER_CMD=$(detect_container_runtime)
+        [ -n "$CONTAINER_CMD" ] && $CONTAINER_CMD system df 2>/dev/null || true
         exit 0
     elif [ "$DISK_USAGE" -lt 70 ]; then
         echo -e "${YELLOW}⚠️  Disk usage is moderate (${DISK_USAGE}%)${NC}"
@@ -44,8 +35,8 @@ check_cleanup_needed() {
 }
 
 # Capture initial disk usage for calculation
-DISK_BEFORE=$(df / | awk 'NR==2 {print $3}')
-DISK_USAGE_PERCENT=$(df / | awk 'NR==2 {print $5}' | sed 's/%//')
+DISK_BEFORE=$(get_disk_usage_kb)
+DISK_USAGE_PERCENT=$(get_disk_usage_percent)
 
 # Show initial disk usage
 echo -e "${YELLOW}Before cleanup:${NC}"
@@ -63,32 +54,35 @@ else
     echo -e "${BLUE}ℹ️  No podman-compose.yml found, skipping compose down${NC}"
 fi
 
+# Detect container runtime
+CONTAINER_CMD=$(detect_container_runtime)
+
 # Remove only mealplanner-specific containers by name
-if command -v podman &> /dev/null; then
+if [ -n "$CONTAINER_CMD" ]; then
     echo -e "${YELLOW}🗑️  Removing mealplanner containers...${NC}"
-    podman rm -f meals-backend meals-frontend meals-db 2>/dev/null || true
+    $CONTAINER_CMD rm -f meals-backend meals-frontend meals-db 2>/dev/null || true
     echo -e "${GREEN}✓ Removed mealplanner containers${NC}"
 fi
 
 # Remove only mealplanner images
 echo -e "${YELLOW}🗑️  Removing mealplanner images...${NC}"
-if command -v podman &> /dev/null; then
-    podman rmi -f meals-backend:latest meals-frontend:latest 2>/dev/null || true
-    podman rmi -f postgres:15-alpine 2>/dev/null || true
+if [ -n "$CONTAINER_CMD" ]; then
+    $CONTAINER_CMD rmi -f meals-backend:latest meals-frontend:latest 2>/dev/null || true
+    $CONTAINER_CMD rmi -f postgres:15-alpine 2>/dev/null || true
     echo -e "${GREEN}✓ Removed mealplanner images${NC}"
 fi
 
 # Remove only mealplanner volumes
 echo -e "${YELLOW}🗑️  Removing mealplanner volumes...${NC}"
-if command -v podman &> /dev/null; then
-    podman volume rm -f mealplanner_postgres-data mealplanner_data-uploads mealplanner_data-backups mealplanner_data-images 2>/dev/null || true
+if [ -n "$CONTAINER_CMD" ]; then
+    $CONTAINER_CMD volume rm -f mealplanner_postgres-data mealplanner_data-uploads mealplanner_data-backups mealplanner_data-images 2>/dev/null || true
     echo -e "${GREEN}✓ Removed mealplanner volumes${NC}"
 fi
 
 # Clean up only dangling resources (safe - doesn't remove other apps)
-echo -e "${YELLOW}🧹 Cleaning dangling podman resources...${NC}"
-if command -v podman &> /dev/null; then
-    podman system prune -f 2>/dev/null || true
+echo -e "${YELLOW}🧹 Cleaning dangling resources...${NC}"
+if [ -n "$CONTAINER_CMD" ]; then
+    $CONTAINER_CMD system prune -f 2>/dev/null || true
     echo -e "${GREEN}✓ Cleaned dangling resources${NC}"
 fi
 
@@ -108,8 +102,8 @@ fi
 
 # Clean up build cache
 echo -e "${YELLOW}🧹 Cleaning build cache...${NC}"
-if command -v podman &> /dev/null; then
-    podman builder prune -af 2>/dev/null || true
+if [ -n "$CONTAINER_CMD" ]; then
+    $CONTAINER_CMD builder prune -af 2>/dev/null || true
 fi
 
 # Remove temporary files (only mealplanner-related)
@@ -155,11 +149,8 @@ echo -e "   sudo apt-get clean && sudo apt-get autoremove -y"
 echo -e "   sudo journalctl --vacuum-time=3d"
 
 # Calculate space freed
-DISK_AFTER=$(df / | awk 'NR==2 {print $3}')
-DISK_FINAL_PERCENT=$(df / | awk 'NR==2 {print $5}' | sed 's/%//')
-DISK_FREED=$((DISK_BEFORE - DISK_AFTER))
-DISK_FREED_MB=$((DISK_FREED / 1024))
-DISK_FREED_GB=$(echo "scale=2; $DISK_FREED_MB / 1024" | bc 2>/dev/null || echo "0")
+DISK_AFTER=$(get_disk_usage_kb)
+DISK_FINAL_PERCENT=$(get_disk_usage_percent)
 PERCENT_FREED=$((DISK_USAGE_PERCENT - DISK_FINAL_PERCENT))
 
 # Show final disk usage
@@ -181,11 +172,8 @@ echo ""
 
 # Show space freed summary
 echo -e "${GREEN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
-if [ "$DISK_FREED_MB" -gt 1024 ]; then
-    echo -e "${GREEN}🎉 Freed ${DISK_FREED_GB}GB of disk space! (${PERCENT_FREED}% reduction)${NC}"
-else
-    echo -e "${GREEN}🎉 Freed ${DISK_FREED_MB}MB of disk space! (${PERCENT_FREED}% reduction)${NC}"
-fi
+show_space_freed "$DISK_BEFORE" "$DISK_AFTER"
+echo -e "   (${PERCENT_FREED}% reduction)"
 echo -e "${GREEN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
 echo ""
 
