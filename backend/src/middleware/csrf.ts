@@ -90,7 +90,8 @@ function conditionalCsrfProtection(
   
   // Skip CSRF validation for the token endpoint itself (it generates tokens)
   // The endpoint still needs the middleware to generate tokens, but shouldn't validate them
-  if (req.path === '/csrf-token') {
+  // Note: Endpoint is mounted at /api/csrf-token, so check for that path
+  if (req.path === '/csrf-token' || req.path === '/api/csrf-token') {
     return next();
   }
   
