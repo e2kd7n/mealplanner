@@ -29,14 +29,10 @@ podman build \
     --build-arg VITE_API_URL=/api \
     .
 
-# Build frontend image (standalone for nginx)
-echo -e "${YELLOW}🔨 Building frontend image...${NC}"
-podman build \
-    --no-cache \
-    -t meals-frontend:latest \
-    -f frontend/Dockerfile \
-    --build-arg VITE_API_URL=/api \
-    frontend/
+# Build frontend image using the dedicated frontend build script
+echo ""
+echo -e "${BLUE}📦 Calling frontend build script...${NC}"
+./scripts/build-on-pi-frontend-only.sh
 
 echo -e "${GREEN}✅ Images built successfully!${NC}"
 echo ""
