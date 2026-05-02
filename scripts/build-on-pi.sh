@@ -12,7 +12,24 @@ YELLOW='\033[1;33m'
 BLUE='\033[0;34m'
 NC='\033[0m' # No Color
 
+# Performance logging
+BUILD_LOG="build-performance-$(date +%Y%m%d-%H%M%S).log"
+BUILD_START=$(date +%s)
+
+# Function to log timing
+log_timing() {
+    local stage="$1"
+    local start_time="$2"
+    local end_time=$(date +%s)
+    local duration=$((end_time - start_time))
+    local minutes=$((duration / 60))
+    local seconds=$((duration % 60))
+    echo "[$(date '+%Y-%m-%d %H:%M:%S')] $stage: ${minutes}m ${seconds}s" >> "$BUILD_LOG"
+}
+
 echo -e "${GREEN}🏗️  Building container images on Raspberry Pi...${NC}"
+echo -e "${BLUE}📊 Performance logging enabled: ${BUILD_LOG}${NC}"
+echo "[$(date '+%Y-%m-%d %H:%M:%S')] Build started" >> "$BUILD_LOG"
 
 # Check if podman is installed
 if ! command -v podman &> /dev/null; then
@@ -32,6 +49,10 @@ echo -e "   ${GREEN}resolved X${NC}   = Total packages identified"
 echo -e "   ${GREEN}downloaded X${NC} = Packages fetched from npm (progress %)"
 echo -e "   ${GREEN}added X${NC}      = Packages installed to node_modules"
 echo ""
+# Track stage timings
+STAGE_START=$(date +%s)
+CURRENT_STAGE=""
+
 podman build \
     --no-cache \
     -t meals-backend:latest \
@@ -42,27 +63,48 @@ podman build \
         
         # Detect build stage transitions
         if echo "$line" | grep -q "STEP 1/9.*frontend-builder"; then
+            if [ -n "$CURRENT_STAGE" ]; then
+                log_timing "$CURRENT_STAGE" "$STAGE_START"
+            fi
+            CURRENT_STAGE="Frontend Builder Stage"
+            STAGE_START=$(date +%s)
             echo -e "${YELLOW}▶️  [1/3] Starting Frontend Builder stage...${NC}"
         elif echo "$line" | grep -q "STEP 1/9.*backend-builder"; then
+            if [ -n "$CURRENT_STAGE" ]; then
+                log_timing "$CURRENT_STAGE" "$STAGE_START"
+            fi
+            CURRENT_STAGE="Backend Builder Stage"
+            STAGE_START=$(date +%s)
             echo -e "${YELLOW}▶️  [2/3] Starting Backend Builder stage...${NC}"
         elif echo "$line" | grep -q "STEP 1/"; then
             if echo "$line" | grep -q "FROM.*node:20-alpine$"; then
+                if [ -n "$CURRENT_STAGE" ]; then
+                    log_timing "$CURRENT_STAGE" "$STAGE_START"
+                fi
+                CURRENT_STAGE="Production Stage"
+                STAGE_START=$(date +%s)
                 echo -e "${YELLOW}▶️  [3/3] Starting Production stage...${NC}"
             fi
         fi
         
-        # Detect key operations
+        # Detect key operations and track timing
         if echo "$line" | grep -q "RUN npm install -g pnpm"; then
+            OP_START=$(date +%s)
             echo -e "${BLUE}   📦 Installing pnpm package manager...${NC}"
         elif echo "$line" | grep -q "RUN pnpm install.*frontend"; then
+            OP_START=$(date +%s)
             echo -e "${BLUE}   📥 Installing frontend dependencies (this will take 10-15 minutes)...${NC}"
         elif echo "$line" | grep -q "RUN pnpm build" && echo "$line" | grep -q "frontend"; then
+            OP_START=$(date +%s)
             echo -e "${BLUE}   🔨 Building React application (this will take 2-3 minutes)...${NC}"
         elif echo "$line" | grep -q "RUN pnpm install.*backend"; then
+            OP_START=$(date +%s)
             echo -e "${BLUE}   📥 Installing backend dependencies (this will take 5-7 minutes)...${NC}"
         elif echo "$line" | grep -q "RUN pnpm prisma generate"; then
+            OP_START=$(date +%s)
             echo -e "${BLUE}   🗄️  Generating Prisma database client (this will take 1-2 minutes)...${NC}"
         elif echo "$line" | grep -q "RUN pnpm build" && ! echo "$line" | grep -q "frontend"; then
+            OP_START=$(date +%s)
             echo -e "${BLUE}   🔨 Compiling TypeScript backend (this will take 1-2 minutes)...${NC}"
         elif echo "$line" | grep -q "COPY --from=frontend-builder"; then
             echo -e "${BLUE}   📋 Copying built frontend files...${NC}"
@@ -109,6 +151,10 @@ podman build \
         if echo "$line" | grep -q "Done in.*using pnpm"; then
             duration=$(echo "$line" | grep -oP 'Done in \K[0-9]+m [0-9]+\.[0-9]+s')
             echo -e "${GREEN}   ✅ Dependencies installed successfully in ${duration}${NC}"
+            if [ -n "$OP_START" ]; then
+                log_timing "pnpm install" "$OP_START"
+                OP_START=""
+            fi
         fi
         
         # Detect TypeScript compilation progress
@@ -126,16 +172,27 @@ podman build \
             build_time=$(echo "$line" | grep -oP 'built in \K[0-9]+\.[0-9]+s')
             if [ -n "$build_time" ]; then
                 echo -e "${GREEN}   ✅ Build completed in ${build_time}${NC}"
+                if [ -n "$OP_START" ]; then
+                    log_timing "Vite build" "$OP_START"
+                    OP_START=""
+                fi
             fi
         fi
         
         # Detect Prisma generation completion
         if echo "$line" | grep -q "Generated Prisma Client"; then
             echo -e "${GREEN}   ✅ Prisma Client generated successfully${NC}"
+            if [ -n "$OP_START" ]; then
+                log_timing "Prisma generate" "$OP_START"
+                OP_START=""
+            fi
         fi
         
         # Detect stage completion
         if echo "$line" | grep -q "COMMIT meals-backend:latest"; then
+            if [ -n "$CURRENT_STAGE" ]; then
+                log_timing "$CURRENT_STAGE" "$STAGE_START"
+            fi
             echo -e "${GREEN}   ✅ Backend image build completed successfully!${NC}"
         fi
     done
@@ -145,10 +202,27 @@ echo ""
 echo -e "${BLUE}📦 Calling frontend build script...${NC}"
 ./scripts/build-on-pi-frontend-only.sh
 
+# Log total build time
+BUILD_END=$(date +%s)
+TOTAL_DURATION=$((BUILD_END - BUILD_START))
+TOTAL_MINUTES=$((TOTAL_DURATION / 60))
+TOTAL_SECONDS=$((TOTAL_DURATION % 60))
+
+echo "[$(date '+%Y-%m-%d %H:%M:%S')] Build completed" >> "$BUILD_LOG"
+echo "Total build time: ${TOTAL_MINUTES}m ${TOTAL_SECONDS}s" >> "$BUILD_LOG"
+echo "" >> "$BUILD_LOG"
+
 echo -e "${GREEN}✅ Images built successfully!${NC}"
 echo ""
 echo -e "${BLUE}📦 Built images:${NC}"
 podman images | grep meals
+
+echo ""
+echo -e "${GREEN}📊 Performance Summary:${NC}"
+echo -e "   Total build time: ${TOTAL_MINUTES}m ${TOTAL_SECONDS}s"
+echo -e "   Detailed timing: ${BLUE}${BUILD_LOG}${NC}"
+echo ""
+echo -e "${YELLOW}💡 Tip: Review ${BUILD_LOG} to identify optimization opportunities${NC}"
 
 echo ""
 echo -e "${YELLOW}Next steps:${NC}"
