@@ -5,29 +5,16 @@
 
 set -e
 
-# Colors for output
-RED='\033[0;31m'
-GREEN='\033[0;32m'
-YELLOW='\033[1;33m'
-BLUE='\033[0;34m'
-NC='\033[0m' # No Color
-
-# Thresholds
-TEMP_WARNING=65
-TEMP_CRITICAL=70
-MEM_WARNING=70
-MEM_CRITICAL=85
-DISK_WARNING=75
-DISK_CRITICAL=85
-SWAP_WARNING=30
-SWAP_CRITICAL=60
+# Load common utilities
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+source "$SCRIPT_DIR/lib/common.sh"
 
 # Get metrics
-TEMP=$(vcgencmd measure_temp 2>/dev/null | cut -d= -f2 | cut -d\' -f1 || echo "0")
-MEM_USED=$(free | awk '/Mem:/ {printf "%.0f", $3/$2 * 100}')
-DISK_USED=$(df / | awk 'NR==2 {print $5}' | sed 's/%//')
-SWAP_USED=$(free | awk '/Swap:/ {if ($2 > 0) printf "%.0f", $3/$2 * 100; else print "0"}')
-CPU_LOAD=$(uptime | awk -F'load average:' '{print $2}' | awk '{print $1}' | sed 's/,//')
+TEMP=$(get_cpu_temp)
+MEM_USED=$(get_memory_usage)
+DISK_USED=$(get_disk_usage_percent)
+SWAP_USED=$(get_swap_usage)
+CPU_LOAD=$(get_cpu_load)
 
 # Status tracking
 ALERTS=0
@@ -99,23 +86,14 @@ fi
 
 # Container Health Check
 echo ""
-echo -e "${BLUE}🐳 Container Status:${NC}"
-if command -v podman &> /dev/null; then
-    RUNNING=$(podman ps --filter "name=meals-" --format "{{.Names}}" 2>/dev/null | wc -l)
-    EXPECTED=4  # postgres, backend, frontend, nginx
-    
-    if [ "$RUNNING" -eq "$EXPECTED" ]; then
-        echo -e "${GREEN}   ✓ All $EXPECTED containers running${NC}"
-        podman ps --filter "name=meals-" --format "table {{.Names}}\t{{.Status}}" 2>/dev/null
-    elif [ "$RUNNING" -gt 0 ]; then
-        echo -e "${YELLOW}   ⚠️  Only $RUNNING/$EXPECTED containers running${NC}"
+show_container_status
+CONTAINER_CMD=$(detect_container_runtime)
+if [ -n "$CONTAINER_CMD" ]; then
+    RUNNING=$($CONTAINER_CMD ps --filter "name=meals-" --format "{{.Names}}" 2>/dev/null | wc -l)
+    EXPECTED=4
+    if [ "$RUNNING" -lt "$EXPECTED" ] && [ "$RUNNING" -gt 0 ]; then
         ((WARNINGS++))
-        podman ps -a --filter "name=meals-" --format "table {{.Names}}\t{{.Status}}" 2>/dev/null
-    else
-        echo -e "${YELLOW}   ℹ️  No meal planner containers running${NC}"
     fi
-else
-    echo -e "${YELLOW}   ⚠️  Podman not installed${NC}"
 fi
 
 # Summary
