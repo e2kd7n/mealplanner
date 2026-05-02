@@ -9,19 +9,29 @@ export default defineConfig({
     strictPort: false,
   },
   build: {
-    // Optimize build output
+    // Force esbuild for ARM compatibility (rolldown doesn't support ARM Alpine)
+    rollupOptions: {
+      // This will be ignored, but we keep it for reference
+    },
+    
+    // Optimize build output for Raspberry Pi
     sourcemap: false, // Disable sourcemaps in production for smaller bundle
-    minify: 'esbuild', // Use esbuild for faster minification
+    minify: 'esbuild', // Use esbuild for ARM compatibility (rolldown not supported)
     target: 'es2015', // Better browser compatibility
     cssCodeSplit: true, // Split CSS for better caching
+    cssMinify: 'lightningcss', // Faster CSS minification
     reportCompressedSize: true, // Report compressed sizes
+    
+    // esbuild minification options (simpler than terser but ARM-compatible)
+    // Note: esbuild doesn't support all terser options, but it's faster and works on ARM
+    
     // Code splitting optimization
     rollupOptions: {
       output: {
         manualChunks: (id) => {
           // Vendor chunks for better caching
           if (id.includes('node_modules')) {
-            // Core React libraries
+            // Core React libraries (most frequently used)
             if (id.includes('react') || id.includes('react-dom')) {
               return 'react-core';
             }
@@ -29,11 +39,11 @@ export default defineConfig({
             if (id.includes('react-router')) {
               return 'react-router';
             }
-            // Material-UI core
+            // Material-UI core (large library, separate chunk)
             if (id.includes('@mui/material')) {
               return 'mui-core';
             }
-            // Material-UI icons (separate for lazy loading)
+            // Material-UI icons (lazy load, separate chunk)
             if (id.includes('@mui/icons-material')) {
               return 'mui-icons';
             }
@@ -49,19 +59,33 @@ export default defineConfig({
             if (id.includes('date-fns')) {
               return 'date-utils';
             }
+            // Charting library (heavy, separate for lazy loading)
+            if (id.includes('recharts')) {
+              return 'charts';
+            }
+            // HTML to canvas (heavy, separate for lazy loading)
+            if (id.includes('html2canvas')) {
+              return 'html2canvas';
+            }
+            // Socket.io client
+            if (id.includes('socket.io-client')) {
+              return 'socket';
+            }
             // Other vendors
             return 'vendor';
           }
         },
-        // Optimize chunk names
+        // Optimize chunk names with content hash for better caching
         chunkFileNames: 'assets/[name]-[hash].js',
         entryFileNames: 'assets/[name]-[hash].js',
         assetFileNames: 'assets/[name]-[hash].[ext]',
       },
     },
-    // Chunk size warnings
-    chunkSizeWarningLimit: 1000,
+    
+    // Chunk size warnings (reduced for Pi)
+    chunkSizeWarningLimit: 500,
   },
+  
   // Optimize dependencies
   optimizeDeps: {
     include: [
@@ -69,9 +93,13 @@ export default defineConfig({
       'react-dom',
       'react-router-dom',
       '@mui/material',
-      '@mui/icons-material',
       '@reduxjs/toolkit',
       'react-redux',
+    ],
+    // Exclude heavy libraries from pre-bundling (lazy load instead)
+    exclude: [
+      'html2canvas',
+      'recharts',
     ],
   },
 })
