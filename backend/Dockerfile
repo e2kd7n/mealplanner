@@ -18,8 +18,8 @@ WORKDIR /frontend
 # Copy frontend package files
 COPY frontend/package.json frontend/pnpm-lock.yaml ./
 
-# Enable corepack and install pnpm (works on all architectures including ARM)
-RUN corepack enable && corepack prepare pnpm@latest --activate
+# Install pnpm using npm (more reliable for ARM, no network fetch needed)
+RUN npm install -g pnpm@9
 
 # Install frontend dependencies (production only)
 RUN pnpm install --frozen-lockfile --prod=false
@@ -49,8 +49,8 @@ WORKDIR /app
 # Copy package files
 COPY backend/package.json backend/pnpm-lock.yaml ./
 
-# Enable corepack and install pnpm (works on all architectures including ARM)
-RUN corepack enable && corepack prepare pnpm@latest --activate
+# Install pnpm using npm (more reliable for ARM, no network fetch needed)
+RUN npm install -g pnpm@9
 
 # Install dependencies
 RUN pnpm install --frozen-lockfile
@@ -80,8 +80,8 @@ FROM docker.io/library/node:20-alpine
 
 WORKDIR /app
 
-# Enable corepack and install pnpm (works on all architectures including ARM)
-RUN corepack enable && corepack prepare pnpm@latest --activate
+# Install pnpm using npm (more reliable for ARM, no network fetch needed)
+RUN npm install -g pnpm@9
 
 # Copy package files
 COPY backend/package.json backend/pnpm-lock.yaml ./

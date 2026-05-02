@@ -8,8 +8,8 @@ WORKDIR /app
 # Copy package files
 COPY package.json pnpm-lock.yaml ./
 
-# Enable corepack and install pnpm (works on all architectures including ARM)
-RUN corepack enable && corepack prepare pnpm@latest --activate
+# Install pnpm using npm (more reliable for ARM, no network fetch needed)
+RUN npm install -g pnpm@9
 
 # Install dependencies (build only, no dev dependencies needed in final image)
 RUN pnpm install --frozen-lockfile --prod=false
