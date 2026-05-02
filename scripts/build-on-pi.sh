@@ -55,15 +55,15 @@ podman build \
         if echo "$line" | grep -q "RUN npm install -g pnpm"; then
             echo -e "${BLUE}   📦 Installing pnpm package manager...${NC}"
         elif echo "$line" | grep -q "RUN pnpm install.*frontend"; then
-            echo -e "${BLUE}   📥 Installing frontend dependencies...${NC}"
+            echo -e "${BLUE}   📥 Installing frontend dependencies (this will take 10-15 minutes)...${NC}"
         elif echo "$line" | grep -q "RUN pnpm build" && echo "$line" | grep -q "frontend"; then
-            echo -e "${BLUE}   🔨 Building React application...${NC}"
+            echo -e "${BLUE}   🔨 Building React application (this will take 2-3 minutes)...${NC}"
         elif echo "$line" | grep -q "RUN pnpm install.*backend"; then
-            echo -e "${BLUE}   📥 Installing backend dependencies...${NC}"
+            echo -e "${BLUE}   📥 Installing backend dependencies (this will take 5-7 minutes)...${NC}"
         elif echo "$line" | grep -q "RUN pnpm prisma generate"; then
-            echo -e "${BLUE}   🗄️  Generating Prisma database client...${NC}"
+            echo -e "${BLUE}   🗄️  Generating Prisma database client (this will take 1-2 minutes)...${NC}"
         elif echo "$line" | grep -q "RUN pnpm build" && ! echo "$line" | grep -q "frontend"; then
-            echo -e "${BLUE}   🔨 Compiling TypeScript backend...${NC}"
+            echo -e "${BLUE}   🔨 Compiling TypeScript backend (this will take 1-2 minutes)...${NC}"
         elif echo "$line" | grep -q "COPY --from=frontend-builder"; then
             echo -e "${BLUE}   📋 Copying built frontend files...${NC}"
         elif echo "$line" | grep -q "COPY --from=backend-builder"; then
@@ -111,9 +111,32 @@ podman build \
             echo -e "${GREEN}   ✅ Dependencies installed successfully in ${duration}${NC}"
         fi
         
+        # Detect TypeScript compilation progress
+        if echo "$line" | grep -q "tsc -b"; then
+            echo -e "${BLUE}   ⏳ Compiling TypeScript (checking types and generating JavaScript)...${NC}"
+        fi
+        
+        # Detect Vite build progress
+        if echo "$line" | grep -q "vite.*build"; then
+            echo -e "${BLUE}   ⏳ Running Vite bundler (optimizing and minifying)...${NC}"
+        fi
+        
+        # Detect Vite build completion
+        if echo "$line" | grep -q "✓.*built in"; then
+            build_time=$(echo "$line" | grep -oP 'built in \K[0-9]+\.[0-9]+s')
+            if [ -n "$build_time" ]; then
+                echo -e "${GREEN}   ✅ Build completed in ${build_time}${NC}"
+            fi
+        fi
+        
+        # Detect Prisma generation completion
+        if echo "$line" | grep -q "Generated Prisma Client"; then
+            echo -e "${GREEN}   ✅ Prisma Client generated successfully${NC}"
+        fi
+        
         # Detect stage completion
         if echo "$line" | grep -q "COMMIT meals-backend:latest"; then
-            echo -e "${GREEN}   ✅ Build completed successfully!${NC}"
+            echo -e "${GREEN}   ✅ Backend image build completed successfully!${NC}"
         fi
     done
 
