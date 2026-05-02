@@ -39,6 +39,37 @@ podman build \
     --build-arg VITE_API_URL=/api \
     . 2>&1 | while IFS= read -r line; do
         echo "$line"
+        
+        # Detect build stage transitions
+        if echo "$line" | grep -q "STEP 1/9.*frontend-builder"; then
+            echo -e "${YELLOW}▶️  [1/3] Starting Frontend Builder stage...${NC}"
+        elif echo "$line" | grep -q "STEP 1/9.*backend-builder"; then
+            echo -e "${YELLOW}▶️  [2/3] Starting Backend Builder stage...${NC}"
+        elif echo "$line" | grep -q "STEP 1/"; then
+            if echo "$line" | grep -q "FROM.*node:20-alpine$"; then
+                echo -e "${YELLOW}▶️  [3/3] Starting Production stage...${NC}"
+            fi
+        fi
+        
+        # Detect key operations
+        if echo "$line" | grep -q "RUN npm install -g pnpm"; then
+            echo -e "${BLUE}   📦 Installing pnpm package manager...${NC}"
+        elif echo "$line" | grep -q "RUN pnpm install.*frontend"; then
+            echo -e "${BLUE}   📥 Installing frontend dependencies...${NC}"
+        elif echo "$line" | grep -q "RUN pnpm build" && echo "$line" | grep -q "frontend"; then
+            echo -e "${BLUE}   🔨 Building React application...${NC}"
+        elif echo "$line" | grep -q "RUN pnpm install.*backend"; then
+            echo -e "${BLUE}   📥 Installing backend dependencies...${NC}"
+        elif echo "$line" | grep -q "RUN pnpm prisma generate"; then
+            echo -e "${BLUE}   🗄️  Generating Prisma database client...${NC}"
+        elif echo "$line" | grep -q "RUN pnpm build" && ! echo "$line" | grep -q "frontend"; then
+            echo -e "${BLUE}   🔨 Compiling TypeScript backend...${NC}"
+        elif echo "$line" | grep -q "COPY --from=frontend-builder"; then
+            echo -e "${BLUE}   📋 Copying built frontend files...${NC}"
+        elif echo "$line" | grep -q "COPY --from=backend-builder"; then
+            echo -e "${BLUE}   📋 Copying built backend files...${NC}"
+        fi
+        
         # Extract and display progress percentage for pnpm installs
         if echo "$line" | grep -q "Progress: resolved"; then
             resolved=$(echo "$line" | grep -oP 'resolved \K[0-9]+' || echo "0")
@@ -50,6 +81,11 @@ podman build \
                 remaining=$((resolved - added))
                 echo -e "${GREEN}   📊 Download: ${dl_pct}% | Install: ${add_pct}% | Remaining: ${remaining} packages${NC}"
             fi
+        fi
+        
+        # Detect stage completion
+        if echo "$line" | grep -q "COMMIT meals-backend:latest"; then
+            echo -e "${GREEN}   ✅ Build completed successfully!${NC}"
         fi
     done
 
