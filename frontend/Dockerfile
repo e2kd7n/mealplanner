@@ -21,8 +21,8 @@ COPY . .
 ARG VITE_API_URL=http://localhost:3000/api
 ENV VITE_API_URL=$VITE_API_URL
 
-# Force Vite to use esbuild instead of rolldown for ARM compatibility
-ENV VITE_USE_ESBUILD=true
+# Force Vite to use Rollup instead of Rolldown (Rolldown doesn't support ARM)
+ENV VITE_USE_ROLLUP=true
 
 # Build the application
 RUN pnpm build
