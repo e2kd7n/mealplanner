@@ -9,11 +9,6 @@ export default defineConfig({
     strictPort: false,
   },
   build: {
-    // Force esbuild for ARM compatibility (rolldown doesn't support ARM Alpine)
-    rollupOptions: {
-      // This will be ignored, but we keep it for reference
-    },
-    
     // Optimize build output for Raspberry Pi
     sourcemap: false, // Disable sourcemaps in production for smaller bundle
     minify: 'esbuild', // Use esbuild for ARM compatibility (rolldown not supported)
@@ -21,9 +16,6 @@ export default defineConfig({
     cssCodeSplit: true, // Split CSS for better caching
     cssMinify: 'lightningcss', // Faster CSS minification
     reportCompressedSize: true, // Report compressed sizes
-    
-    // esbuild minification options (simpler than terser but ARM-compatible)
-    // Note: esbuild doesn't support all terser options, but it's faster and works on ARM
     
     // Code splitting optimization
     rollupOptions: {
