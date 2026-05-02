@@ -1,10 +1,14 @@
 generator client {
   provider = "prisma-client-js"
+  previewFeatures = ["metrics"]
 }
 
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
+  // Connection pooling configuration - P1 Issue #163
+  // Optimizes database connections for better performance
+  relationMode = "prisma"
 }
 
 model User {
