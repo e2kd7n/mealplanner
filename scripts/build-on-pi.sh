@@ -70,7 +70,7 @@ podman build \
             echo -e "${BLUE}   📋 Copying built backend files...${NC}"
         fi
         
-        # Extract and display progress percentage for pnpm installs
+        # Extract and display progress percentage for pnpm installs (only show every 10%)
         if echo "$line" | grep -q "Progress: resolved"; then
             resolved=$(echo "$line" | grep -oP 'resolved \K[0-9]+' || echo "0")
             downloaded=$(echo "$line" | grep -oP 'downloaded \K[0-9]+' || echo "0")
@@ -79,7 +79,16 @@ podman build \
                 dl_pct=$((downloaded * 100 / resolved))
                 add_pct=$((added * 100 / resolved))
                 remaining=$((resolved - added))
-                echo -e "${GREEN}   📊 Download: ${dl_pct}% | Install: ${add_pct}% | Remaining: ${remaining} packages${NC}"
+                
+                # Only show progress at 10% intervals or when complete
+                if [ $((add_pct % 10)) -eq 0 ] || [ "$remaining" -eq 0 ]; then
+                    # Use carriage return to update same line, or newline at milestones
+                    if [ $((add_pct % 25)) -eq 0 ] || [ "$remaining" -eq 0 ]; then
+                        echo -e "${GREEN}   📊 Download: ${dl_pct}% | Install: ${add_pct}% | Remaining: ${remaining} packages${NC}"
+                    else
+                        echo -ne "\r${GREEN}   📊 Download: ${dl_pct}% | Install: ${add_pct}% | Remaining: ${remaining} packages${NC}"
+                    fi
+                fi
             fi
         fi
         
