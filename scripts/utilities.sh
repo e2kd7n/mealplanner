@@ -1,6 +1,6 @@
 #!/bin/bash
 # Common utility functions for Pi scripts
-# Source this file in other scripts: source "$(dirname "$0")/lib/common.sh"
+# Source this file in other scripts: source "$(dirname "$0")/utilities.sh"
 
 # Colors for output
 export RED='\033[0;31m'
