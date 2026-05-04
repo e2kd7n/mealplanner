@@ -206,8 +206,21 @@ if ! podman exec meals-backend sh -c "cd /app && npx prisma migrate deploy"; the
 fi
 
 echo -e "${GREEN}✅ Deployment complete!${NC}"
-echo -e "${GREEN}🌐 Application is available at: http://localhost:8080${NC}"
-echo -e "${GREEN}📝 View logs with: podman-compose -f podman-compose.pi.yml logs -f${NC}"
+echo ""
+echo "═══════════════════════════════════════════════════════════════"
+echo ""
+
+# Call check-deployment-mode.sh as the source of truth
+if [ -f "./scripts/check-deployment-mode.sh" ]; then
+    bash ./scripts/check-deployment-mode.sh
+else
+    # Fallback if script doesn't exist
+    echo -e "${GREEN}🌐 Application is available at: http://localhost:8080${NC}"
+    echo -e "${GREEN}📝 View logs with: podman-compose -f podman-compose.pi.yml logs -f${NC}"
+fi
+
+echo ""
+echo "═══════════════════════════════════════════════════════════════"
 
 # Post-deployment cleanup check
 echo ""

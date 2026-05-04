@@ -83,9 +83,9 @@ if [ ! -f "./frontend/.env" ]; then
 fi
 
 # Stop and remove existing database container if it exists
-echo -e "${YELLOW}🛑 Stopping existing database container...${NC}"
-podman stop meals-postgres 2>/dev/null || true
-podman rm meals-postgres 2>/dev/null || true
+echo -e "${YELLOW}🛑 Resetting existing database container...${NC}"
+podman stop meals-postgres >/dev/null 2>&1 || true
+podman rm meals-postgres >/dev/null 2>&1 || true
 
 # Start PostgreSQL database container
 echo -e "${GREEN}🗄️  Starting PostgreSQL database container...${NC}"
@@ -103,7 +103,7 @@ podman run -d \
     --health-interval 10s \
     --health-timeout 5s \
     --health-retries 5 \
-    docker.io/library/postgres:16-alpine
+    docker.io/library/postgres:16-alpine >/dev/null
 
 # Wait for database to be healthy
 echo -e "${YELLOW}⏳ Waiting for database to be healthy...${NC}"
@@ -189,10 +189,45 @@ done
 echo ""
 echo -e "${GREEN}✅ All services are running!${NC}"
 echo ""
-echo -e "${BLUE}📊 Service status:${NC}"
-echo -e "   🗄️  Database:  ${GREEN}Running${NC} (localhost:5432)"
-echo -e "   🔧 Backend:   ${GREEN}Running${NC} (http://localhost:3000)"
-echo -e "   🌐 Frontend:  ${GREEN}Running${NC} (http://localhost:5173)"
+
+# Open Chrome with the application
+echo -e "${BLUE}🌐 Opening application in Chrome...${NC}"
+if [[ "$OSTYPE" == "darwin"* ]]; then
+    # macOS
+    open -a "Google Chrome" http://localhost:5173 2>/dev/null
+elif [[ "$OSTYPE" == "linux-gnu"* ]]; then
+    # Linux
+    if command -v google-chrome &> /dev/null; then
+        google-chrome http://localhost:5173 &>/dev/null &
+    elif command -v chromium-browser &> /dev/null; then
+        chromium-browser http://localhost:5173 &>/dev/null &
+    fi
+fi
+
+echo ""
+echo "═══════════════════════════════════════════════════════════════"
+echo ""
+
+# Call check-deployment-mode.sh as the source of truth
+if [ -f "./scripts/check-deployment-mode.sh" ]; then
+    bash ./scripts/check-deployment-mode.sh
+else
+    # Fallback if script doesn't exist
+    echo -e "${BLUE}📱 Access your application at:${NC}"
+    echo -e "   ${GREEN}👉 http://localhost:5173${NC}"
+    echo ""
+    echo -e "${BLUE}🔧 Backend API:${NC} http://localhost:3000/api"
+    echo -e "${BLUE}❤️  Health Check:${NC} http://localhost:3000/health"
+    echo ""
+    if [ -n "$CALLED_FROM_MENU" ]; then
+        echo -e "${BLUE}🛑 To stop:${NC} Use menu option 3 (Stop all services)"
+    else
+        echo -e "${BLUE}🛑 To stop:${NC} Press Ctrl+C or run ./scripts/local-stop.sh"
+    fi
+fi
+
+echo ""
+echo "═══════════════════════════════════════════════════════════════"
 echo ""
 echo -e "${BLUE}📝 Test Credentials:${NC}"
 echo -e "   Email: ${GREEN}test@example.com${NC}"
@@ -202,33 +237,19 @@ echo -e "${BLUE}📝 Useful commands:${NC}"
 echo -e "   View backend logs:  ${GREEN}tail -f backend.log${NC}"
 echo -e "   View frontend logs: ${GREEN}tail -f frontend.log${NC}"
 echo -e "   View DB logs:       ${GREEN}podman logs -f meals-postgres${NC}"
-echo -e "   Stop all:           ${GREEN}Press Ctrl+C${NC}"
 echo ""
-
-# Open Chrome with the application
-echo -e "${BLUE}🌐 Opening application in Chrome...${NC}"
-if [[ "$OSTYPE" == "darwin"* ]]; then
-    # macOS
-    open -a "Google Chrome" http://localhost:5173
-elif [[ "$OSTYPE" == "linux-gnu"* ]]; then
-    # Linux
-    if command -v google-chrome &> /dev/null; then
-        google-chrome http://localhost:5173 &
-    elif command -v chromium-browser &> /dev/null; then
-        chromium-browser http://localhost:5173 &
-    else
-        echo -e "${YELLOW}⚠️  Chrome not found. Please open http://localhost:5173 manually${NC}"
-    fi
+if [ -n "$CALLED_FROM_MENU" ]; then
+    echo -e "${YELLOW}Use menu option 3 to stop all services${NC}"
+    echo ""
+    trap - EXIT INT TERM
+    echo -e "${GREEN}✅ Services started and detached successfully${NC}"
+    echo -e "${BLUE}Returning to menu...${NC}"
+    sleep 2
 else
-    echo -e "${YELLOW}⚠️  Auto-open not supported on this OS. Please open http://localhost:5173 manually${NC}"
+    echo -e "${YELLOW}Press Ctrl+C to stop all services${NC}"
+    echo ""
+    # Keep script running and show logs when called directly
+    tail -f backend.log frontend.log
 fi
-
-echo ""
-echo -e "${GREEN}✅ Application is ready for UI/UX testing!${NC}"
-echo -e "${YELLOW}Press Ctrl+C to stop all services${NC}"
-echo ""
-
-# Keep script running and show logs
-tail -f backend.log frontend.log
 
 # Made with Bob

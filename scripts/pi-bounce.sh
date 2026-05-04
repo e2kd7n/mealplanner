@@ -57,14 +57,28 @@ if podman ps | grep -q "meals-backend"; then
     echo ""
     echo -e "${GREEN}✅ Application restarted successfully!${NC}"
     echo ""
-    echo -e "${BLUE}Access the application:${NC}"
-    echo -e "   🌐 Web: http://$(hostname -I | awk '{print $1}'):8080"
-    echo -e "   🌐 Local: http://localhost:8080"
+    echo "═══════════════════════════════════════════════════════════════"
+    echo ""
+    
+    # Call check-deployment-mode.sh as the source of truth
+    if [ -f "./scripts/check-deployment-mode.sh" ]; then
+        bash ./scripts/check-deployment-mode.sh
+    else
+        # Fallback if script doesn't exist
+        echo -e "${BLUE}Access the application:${NC}"
+        echo -e "   🌐 Web: http://$(hostname -I | awk '{print $1}'):8080"
+        echo -e "   🌐 Local: http://localhost:8080"
+        echo ""
+    fi
+    
+    echo ""
+    echo "═══════════════════════════════════════════════════════════════"
     echo ""
     echo -e "${BLUE}Useful commands:${NC}"
     echo -e "   📝 View logs: podman-compose -f podman-compose.pi.yml logs -f"
     echo -e "   🛑 Stop: ./scripts/pi-stop.sh"
     echo -e "   📊 Diagnostics: ./scripts/pi-diagnostics.sh"
+    echo ""
 else
     echo ""
     echo -e "${RED}❌ Failed to restart backend container${NC}"
