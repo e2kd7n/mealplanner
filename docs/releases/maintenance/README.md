@@ -93,22 +93,38 @@ Maintenance reports document:
 ## 🔍 Maintenance Checklist
 
 ### Weekly Tasks
+
+**Use the detailed checklist:** [WEEKLY_MAINTENANCE_CHECKLIST.md](WEEKLY_MAINTENANCE_CHECKLIST.md)
+
+**Critical Tasks (Must Complete):**
+- [ ] **Run production database backup** - `./scripts/pre-migration-backup.sh`
+- [ ] **Verify backup integrity** - Check file size and test with `gunzip -t`
+- [ ] **Review backup retention** - Keep at least 4 weekly backups, delete >30 days old
+- [ ] Check for critical security updates
+- [ ] Review error logs for critical issues
+
+**Standard Tasks:**
 - [ ] Review and update documentation
 - [ ] Verify issue priorities are current
 - [ ] Check for dependency security updates
-- [ ] Verify database backups are running
 - [ ] Review test artifacts
 - [ ] Check performance metrics
 - [ ] Update maintenance report
 
 ### Monthly Tasks
-- [ ] Update all dependencies (non-breaking)
-- [ ] Run database optimization
-- [ ] Analyze performance trends
+
+**Critical Tasks (Must Complete):**
+- [ ] **Test backup restoration** - Verify you can restore from backup
+- [ ] **Off-site backup** - Copy latest backup to external/cloud storage
+- [ ] **Database optimization** - Run VACUUM, ANALYZE on production database
 - [ ] Conduct security audit
+- [ ] Update all dependencies (non-breaking)
+
+**Standard Tasks:**
+- [ ] Analyze performance trends
 - [ ] Archive old documentation
-- [ ] Test backup restoration
 - [ ] Review and update monitoring alerts
+- [ ] Clean up old backups (keep monthly backups for 6 months)
 
 ### Quarterly Tasks
 - [ ] Evaluate major version updates

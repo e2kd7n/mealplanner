@@ -1,22 +1,31 @@
-# Family Meal Planner & Grocery Shopping App
+us# Family Meal Planner & Grocery Shopping App
 
 **Version:** 1.0.0 (MVP) - ✅ Production Ready
 **Release Date:** March 16, 2026
 
 A Progressive Web App (PWA) designed for families to simplify meal planning and grocery shopping with smart recommendations, budget optimization, and offline functionality.
 
-## 🔒 SECURITY FIRST - READ THIS BEFORE SETUP
+## 🚀 Quick Start
 
-**⚠️ CRITICAL: You MUST generate secure secrets before running this application.**
+**First time setup? Run this one command:**
 
 ```bash
-# Generate secure secrets (takes 10 seconds)
-./scripts/generate-secrets.sh
+./scripts/first-time-setup.sh
 ```
 
-**Why this matters:** Using default/weak secrets can lead to complete system compromise, data breaches, and legal liability.
+This interactive script will:
+- ✅ Check prerequisites
+- ✅ Generate secure secrets
+- ✅ Configure environment
+- ✅ Set up database
+- ✅ Install dependencies
+- ✅ Run migrations
+- ✅ Create initial backup
 
-📖 **Full Security Guide:** [SECURITY_SETUP.md](./docs/SECURITY_SETUP.md)
+**Estimated time:** 5-10 minutes
+
+📖 **Detailed Setup Guide:** [SETUP.md](./SETUP.md)
+🔒 **Security Guide:** [SECURITY_SETUP.md](./docs/SECURITY_SETUP.md)
 
 ---
 
@@ -186,33 +195,89 @@ pnpm prisma migrate dev
 pnpm prisma db seed
 ```
 
-### 6. Start development servers
+### 6. Choose Your Deployment Mode
 
-**Backend:**
+The application supports two deployment modes. **Use the interactive menu for guided setup:**
+
 ```bash
-cd backend
-pnpm dev
+./scripts/menu.sh
 ```
 
-**Frontend (in a new terminal):**
+The menu will:
+- ✅ Show current deployment status
+- 📊 Display resource usage
+- 🎯 Guide you to the right mode
+- 🔄 Handle mode switching automatically
+
+#### Option A: Local Development Mode (Port 5173)
+
+**Use when:** Actively developing features, need hot reload
+
+**Resources:** ~2GB RAM, Node.js + dependencies required
+
 ```bash
-cd frontend
-pnpm dev
+./scripts/local-run.sh
+# or use menu option 1
 ```
 
-### 7. Access the application
+**Access at:** http://localhost:5173
 
-**Local Development Mode:**
-- Frontend: http://localhost:5173 (Vite dev server)
-- Backend API: http://localhost:3000/api
-- Health Check: http://localhost:3000/health
+**Features:**
+- Hot reload - changes appear instantly
+- Direct access to logs
+- Easier debugging with source maps
+- Fast iteration cycle
 
-**Container Mode (via podman-compose):**
-- Application: http://localhost:8080
-- API: http://localhost:8080/api
-- Health Check: http://localhost:8080/health
+#### Option B: Container Mode (Port 8080)
 
-📖 **Port Configuration Guide:** See [docs/PORT_STANDARDIZATION.md](./docs/PORT_STANDARDIZATION.md) for complete port reference
+**Use when:** Testing production setup, preparing for deployment
+
+**Resources:** ~3GB RAM, Docker/Podman required
+
+```bash
+./scripts/deploy-podman.sh
+# or use menu option 2
+```
+
+**Access at:** http://localhost:8080
+
+**Features:**
+- Production-like environment
+- Isolated from host system
+- Tests full stack including nginx
+- Reproducible across machines
+
+### 7. Verify Deployment
+
+Check which mode is running and get the correct access URL:
+
+```bash
+./scripts/check-deployment-mode.sh
+# or use menu option 8
+```
+
+This will show you:
+- ✅ Which mode is active
+- 📱 The correct URL to access the application
+- 🛑 How to stop the services
+
+### 8. Common Issues
+
+**"Nothing loads at localhost:5173"**
+- You're running container mode. Access at http://localhost:8080 instead.
+- Or switch modes using `./scripts/menu.sh`
+
+**"Nothing loads at localhost:8080"**
+- You're running local dev mode. Access at http://localhost:5173 instead.
+- Or switch modes using `./scripts/menu.sh`
+
+**"I don't know what's running"**
+- Run `./scripts/menu.sh` to see current status and switch modes
+- Or run `./scripts/check-deployment-mode.sh` for quick check
+
+📖 **Complete Guide:** See [docs/QUICK_START.md](./docs/QUICK_START.md) for detailed instructions
+
+📖 **Port Reference:** See [docs/PORT_STANDARDIZATION.md](./docs/PORT_STANDARDIZATION.md) for complete port configuration
 
 ### Production Deployment (Raspberry Pi)
 
