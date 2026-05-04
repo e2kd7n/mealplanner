@@ -31,7 +31,7 @@ import {
   CameraAlt as CameraIcon,
 } from '@mui/icons-material';
 import { useLocation } from 'react-router-dom';
-import html2canvas from 'html2canvas';
+import type { Options as Html2CanvasOptions } from 'html2canvas';
 import api from '../services/api';
 
 interface FeedbackDialogProps {
@@ -65,6 +65,12 @@ const FeedbackDialog: React.FC<FeedbackDialogProps> = ({ open, onClose }) => {
   const captureScreenshot = async () => {
     try {
       setError(null);
+      const html2canvasModule = await import('html2canvas');
+      const html2canvas = (html2canvasModule.default ??
+        (html2canvasModule as unknown as {
+          default?: (element: HTMLElement, options?: Partial<Html2CanvasOptions>) => Promise<HTMLCanvasElement>;
+        })) as (element: HTMLElement, options?: Partial<Html2CanvasOptions>) => Promise<HTMLCanvasElement>;
+
       const canvas = await html2canvas(document.body, {
         allowTaint: true,
         useCORS: true,
