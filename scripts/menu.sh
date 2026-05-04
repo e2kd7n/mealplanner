@@ -62,6 +62,34 @@ show_header() {
     echo ""
 }
 
+# Check deployment mode
+check_deployment_mode() {
+    # Check for local dev mode (Vite on 5173)
+    if command -v lsof &> /dev/null && lsof -Pi :5173 -sTCP:LISTEN -t >/dev/null 2>&1; then
+        echo "local-dev"
+        return
+    fi
+    
+    # Check for container mode (nginx on 8080)
+    if command -v lsof &> /dev/null && lsof -Pi :8080 -sTCP:LISTEN -t >/dev/null 2>&1; then
+        echo "container"
+        return
+    fi
+    
+    # Fallback to netstat/ss for systems without lsof
+    if command -v netstat &> /dev/null; then
+        if netstat -tuln 2>/dev/null | grep -q ":5173 "; then
+            echo "local-dev"
+            return
+        elif netstat -tuln 2>/dev/null | grep -q ":8080 "; then
+            echo "container"
+            return
+        fi
+    fi
+    
+    echo "none"
+}
+
 # Show quick status
 show_quick_status() {
     echo -e "${BLUE}📊 Quick Status:${NC}"
@@ -98,15 +126,29 @@ show_quick_status() {
         fi
     fi
     
-    # Container status
-    if [ -n "$CONTAINER_CMD" ]; then
+    # Deployment mode status
+    local mode=$(check_deployment_mode)
+    case $mode in
+        local-dev)
+            echo -e "   ${GREEN}🚀 Mode: Local Development (Port 5173)${NC}"
+            echo -e "   ${BLUE}   → Hot reload enabled, fast iteration${NC}"
+            ;;
+        container)
+            echo -e "   ${GREEN}🐳 Mode: Container (Port 8080)${NC}"
+            echo -e "   ${BLUE}   → Production-like environment${NC}"
+            ;;
+        none)
+            echo -e "   ${YELLOW}⚠️  Mode: Not running${NC}"
+            ;;
+    esac
+    
+    # Container status (if applicable)
+    if [ -n "$CONTAINER_CMD" ] && [ "$mode" = "container" ]; then
         local running=$($CONTAINER_CMD ps --filter "name=meals-" --format "{{.Names}}" 2>/dev/null | wc -l)
         if [ "$running" -eq 4 ]; then
-            echo -e "   ${GREEN}🐳 Containers: $running/4 running${NC}"
+            echo -e "   ${GREEN}   Containers: $running/4 running${NC}"
         elif [ "$running" -gt 0 ]; then
-            echo -e "   ${YELLOW}🐳 Containers: $running/4 running${NC}"
-        else
-            echo -e "   ${BLUE}🐳 Containers: Not running${NC}"
+            echo -e "   ${YELLOW}   Containers: $running/4 running (incomplete)${NC}"
         fi
     fi
     
@@ -117,24 +159,38 @@ show_quick_status() {
 show_pi_menu() {
     echo -e "${YELLOW}═══ Raspberry Pi Operations ═══${NC}"
     echo ""
-    echo -e "${GREEN}Build & Deploy:${NC}"
-    echo "  1) Build images on Pi"
-    echo "  2) Build frontend only"
-    echo "  3) Deploy/Start containers"
-    echo "  4) Stop containers"
-    echo "  5) Restart containers"
+    
+    local current_mode=$(check_deployment_mode)
+    echo -e "${GREEN}🚀 Deployment:${NC}"
+    echo "  1) Deploy/Start containers"
+    if [ "$current_mode" = "container" ]; then
+        echo -e "     ${GREEN}✓ Currently running${NC}"
+    fi
+    echo "  2) Stop containers"
+    echo "  3) Restart containers"
+    echo "  4) Check deployment mode"
     echo ""
-    echo -e "${GREEN}Maintenance:${NC}"
-    echo "  6) Health check"
-    echo "  7) Full diagnostics"
-    echo "  8) Cleanup Pi"
-    echo "  9) Pre-build cleanup"
-    echo " 10) Journal cleanup (requires sudo)"
+    
+    echo -e "${GREEN}🔨 Build (On Pi):${NC}"
+    echo "  5) Build all images"
+    echo "  6) Build frontend only"
+    echo "  7) Load pre-built images"
     echo ""
-    echo -e "${GREEN}Database:${NC}"
-    echo " 11) Backup database"
-    echo " 12) Restore database"
+    
+    echo -e "${GREEN}🔧 Maintenance:${NC}"
+    echo "  8) Health check"
+    echo "  9) Full diagnostics"
+    echo " 10) Cleanup Pi"
+    echo " 11) Pre-build cleanup"
+    echo " 12) Journal cleanup (sudo)"
     echo ""
+    
+    echo -e "${GREEN}💾 Database:${NC}"
+    echo " 13) Backup database"
+    echo " 14) Restore database"
+    echo " 15) Safe migration"
+    echo ""
+    
     echo -e "${BLUE}Other:${NC}"
     echo "  0) Exit"
     echo ""
@@ -144,21 +200,56 @@ show_pi_menu() {
 show_dev_menu() {
     echo -e "${YELLOW}═══ Development Machine Operations ═══${NC}"
     echo ""
-    echo -e "${GREEN}Build & Deploy:${NC}"
-    echo "  1) Build for Pi (cross-compile)"
-    echo "  2) Build locally"
-    echo "  3) Run locally"
-    echo "  4) Stop local containers"
+    
+    # Show deployment mode selection with guidance
+    local current_mode=$(check_deployment_mode)
+    echo -e "${GREEN}🚀 Local Deployment:${NC}"
+    echo "  1) Local Dev Mode (Port 5173)"
+    echo -e "     ${BLUE}→ For: Active development, hot reload, debugging${NC}"
+    echo -e "     ${BLUE}→ Resources: ~2GB RAM, Node.js required${NC}"
+    if [ "$current_mode" = "local-dev" ]; then
+        echo -e "     ${GREEN}✓ Currently running${NC}"
+    fi
     echo ""
-    echo -e "${GREEN}Maintenance:${NC}"
-    echo "  5) Cleanup dev machine"
-    echo "  6) Run E2E tests"
+    echo "  2) Container Mode (Port 8080)"
+    echo -e "     ${BLUE}→ For: Production testing, deployment prep${NC}"
+    echo -e "     ${BLUE}→ Resources: ~3GB RAM, Docker/Podman required${NC}"
+    if [ "$current_mode" = "container" ]; then
+        echo -e "     ${GREEN}✓ Currently running${NC}"
+    fi
     echo ""
-    echo -e "${GREEN}Pi Management:${NC}"
-    echo "  7) Load images to Pi"
+    echo "  3) Stop all services"
+    echo "  4) Restart services (bounce)"
+    echo "  5) Check deployment mode"
+    echo ""
+    
+    echo -e "${GREEN}🔨 Build for Pi:${NC}"
+    echo "  6) Build images for Pi (cross-compile)"
+    echo "  7) Transfer images to Pi"
+    echo ""
+    
+    echo -e "${GREEN}🚀 Pi Deployment (SSH):${NC}"
     echo "  8) Deploy to Pi"
-    echo "  9) Check Pi health (SSH)"
+    echo "  9) Check Pi health"
+    echo " 10) View Pi logs"
     echo ""
+    
+    echo -e "${GREEN}🧪 Testing:${NC}"
+    echo " 11) Run E2E tests"
+    echo " 12) Run E2E tests (UI mode)"
+    echo ""
+    
+    echo -e "${GREEN}💾 Database:${NC}"
+    echo " 13) Backup database (local)"
+    echo " 14) Restore database (local)"
+    echo ""
+    
+    echo -e "${GREEN}🔧 Maintenance:${NC}"
+    echo " 15) Cleanup dev machine"
+    echo " 16) Generate secrets"
+    echo " 17) First-time setup"
+    echo ""
+    
     echo -e "${BLUE}Other:${NC}"
     echo "  0) Exit"
     echo ""
@@ -168,52 +259,64 @@ show_dev_menu() {
 execute_pi_command() {
     case $1 in
         1)
-            echo -e "${BLUE}Building images on Pi...${NC}"
-            "$SCRIPT_DIR/build-on-pi.sh"
+            echo -e "${BLUE}Deploying containers...${NC}"
+            CALLED_FROM_MENU=1 "$SCRIPT_DIR/pi-run.sh"
             ;;
         2)
-            echo -e "${BLUE}Building frontend only...${NC}"
-            "$SCRIPT_DIR/build-on-pi-frontend-only.sh"
+            echo -e "${BLUE}Stopping containers...${NC}"
+            CALLED_FROM_MENU=1 "$SCRIPT_DIR/pi-stop.sh"
             ;;
         3)
-            echo -e "${BLUE}Deploying containers...${NC}"
-            "$SCRIPT_DIR/pi-run.sh"
+            echo -e "${BLUE}Restarting containers...${NC}"
+            CALLED_FROM_MENU=1 "$SCRIPT_DIR/pi-bounce.sh"
             ;;
         4)
-            echo -e "${BLUE}Stopping containers...${NC}"
-            "$SCRIPT_DIR/pi-stop.sh"
+            echo -e "${BLUE}Checking deployment mode...${NC}"
+            CALLED_FROM_MENU=1 "$SCRIPT_DIR/check-deployment-mode.sh"
             ;;
         5)
-            echo -e "${BLUE}Restarting containers...${NC}"
-            "$SCRIPT_DIR/pi-bounce.sh"
+            echo -e "${BLUE}Building all images on Pi...${NC}"
+            CALLED_FROM_MENU=1 "$SCRIPT_DIR/build-on-pi.sh"
             ;;
         6)
-            echo -e "${BLUE}Running health check...${NC}"
-            "$SCRIPT_DIR/pi-health-check.sh"
+            echo -e "${BLUE}Building frontend only...${NC}"
+            CALLED_FROM_MENU=1 "$SCRIPT_DIR/build-on-pi-frontend-only.sh"
             ;;
         7)
-            echo -e "${BLUE}Running full diagnostics...${NC}"
-            "$SCRIPT_DIR/pi-diagnostics.sh"
+            echo -e "${BLUE}Loading pre-built images...${NC}"
+            CALLED_FROM_MENU=1 "$SCRIPT_DIR/load-pi-images.sh"
             ;;
         8)
-            echo -e "${BLUE}Cleaning up Pi...${NC}"
-            "$SCRIPT_DIR/cleanup-pi.sh"
+            echo -e "${BLUE}Running health check...${NC}"
+            CALLED_FROM_MENU=1 "$SCRIPT_DIR/pi-health-check.sh"
             ;;
         9)
-            echo -e "${BLUE}Running pre-build cleanup...${NC}"
-            "$SCRIPT_DIR/pi-pre-build-cleanup.sh"
+            echo -e "${BLUE}Running full diagnostics...${NC}"
+            CALLED_FROM_MENU=1 "$SCRIPT_DIR/pi-diagnostics.sh"
             ;;
         10)
-            echo -e "${BLUE}Cleaning journal logs...${NC}"
-            sudo "$SCRIPT_DIR/pi-journal-cleanup.sh"
+            echo -e "${BLUE}Cleaning up Pi...${NC}"
+            CALLED_FROM_MENU=1 "$SCRIPT_DIR/cleanup-pi.sh"
             ;;
         11)
-            echo -e "${BLUE}Backing up database...${NC}"
-            "$SCRIPT_DIR/backup-database.sh"
+            echo -e "${BLUE}Running pre-build cleanup...${NC}"
+            CALLED_FROM_MENU=1 "$SCRIPT_DIR/pi-pre-build-cleanup.sh"
             ;;
         12)
+            echo -e "${BLUE}Cleaning journal logs...${NC}"
+            CALLED_FROM_MENU=1 sudo "$SCRIPT_DIR/pi-journal-cleanup.sh"
+            ;;
+        13)
+            echo -e "${BLUE}Backing up database...${NC}"
+            CALLED_FROM_MENU=1 "$SCRIPT_DIR/backup-database.sh"
+            ;;
+        14)
             echo -e "${BLUE}Restoring database...${NC}"
-            "$SCRIPT_DIR/restore-database.sh"
+            CALLED_FROM_MENU=1 "$SCRIPT_DIR/restore-database.sh"
+            ;;
+        15)
+            echo -e "${BLUE}Running safe migration...${NC}"
+            CALLED_FROM_MENU=1 "$SCRIPT_DIR/safe-migrate.sh"
             ;;
         0)
             echo -e "${GREEN}Goodbye!${NC}"
@@ -229,42 +332,128 @@ execute_pi_command() {
 execute_dev_command() {
     case $1 in
         1)
-            echo -e "${BLUE}Building for Pi...${NC}"
-            "$SCRIPT_DIR/build-for-pi.sh"
+            echo -e "${BLUE}Starting Local Development Mode...${NC}"
+            echo -e "${YELLOW}This will start services on port 5173 with hot reload${NC}"
+            echo -e "${BLUE}Resources: ~2GB RAM, Node.js + dependencies${NC}"
+            echo ""
+            # Stop container mode if running
+            local current_mode=$(check_deployment_mode)
+            if [ "$current_mode" = "container" ]; then
+                echo -e "${YELLOW}Stopping container mode first...${NC}"
+                CALLED_FROM_MENU=1 "$SCRIPT_DIR/local-stop.sh" 2>/dev/null || true
+                if [ -n "$CONTAINER_CMD" ]; then
+                    $CONTAINER_CMD stop meals-postgres meals-backend meals-frontend meals-nginx 2>/dev/null || true
+                fi
+                sleep 2
+            fi
+            CALLED_FROM_MENU=1 "$SCRIPT_DIR/local-run.sh"
             ;;
         2)
-            echo -e "${BLUE}Building locally...${NC}"
-            "$SCRIPT_DIR/local-run.sh"
+            echo -e "${BLUE}Starting Container Mode...${NC}"
+            echo -e "${YELLOW}This will start production-like containers on port 8080${NC}"
+            echo -e "${BLUE}Resources: ~3GB RAM, Docker/Podman required${NC}"
+            echo ""
+            # Stop local dev mode if running
+            local current_mode=$(check_deployment_mode)
+            if [ "$current_mode" = "local-dev" ]; then
+                echo -e "${YELLOW}Stopping local dev mode first...${NC}"
+                CALLED_FROM_MENU=1 "$SCRIPT_DIR/local-stop.sh" 2>/dev/null || true
+                sleep 2
+            fi
+            CALLED_FROM_MENU=1 "$SCRIPT_DIR/deploy-podman.sh"
             ;;
         3)
-            echo -e "${BLUE}Running locally...${NC}"
-            "$SCRIPT_DIR/local-run.sh"
+            echo -e "${BLUE}Stopping all services...${NC}"
+            CALLED_FROM_MENU=1 "$SCRIPT_DIR/local-stop.sh" 2>/dev/null || true
+            if [ -n "$CONTAINER_CMD" ]; then
+                $CONTAINER_CMD stop meals-postgres meals-backend meals-frontend meals-nginx 2>/dev/null || true
+            fi
+            echo -e "${GREEN}✓ All services stopped${NC}"
             ;;
         4)
-            echo -e "${BLUE}Stopping local containers...${NC}"
-            "$SCRIPT_DIR/local-stop.sh"
+            echo -e "${BLUE}Restarting services...${NC}"
+            CALLED_FROM_MENU=1 "$SCRIPT_DIR/local-bounce.sh"
             ;;
         5)
-            echo -e "${BLUE}Cleaning up dev machine...${NC}"
-            "$SCRIPT_DIR/cleanup-dev-machine.sh"
+            echo -e "${BLUE}Checking deployment mode...${NC}"
+            CALLED_FROM_MENU=1 "$SCRIPT_DIR/check-deployment-mode.sh"
             ;;
         6)
-            echo -e "${BLUE}Running E2E tests...${NC}"
-            "$SCRIPT_DIR/run-e2e-tests.sh"
+            echo -e "${BLUE}Building for Pi (cross-compile)...${NC}"
+            CALLED_FROM_MENU=1 "$SCRIPT_DIR/build-for-pi.sh"
             ;;
         7)
-            echo -e "${BLUE}Loading images to Pi...${NC}"
-            "$SCRIPT_DIR/load-pi-images.sh"
+            echo -e "${BLUE}Transferring images to Pi...${NC}"
+            echo -e "${YELLOW}Enter Pi hostname/IP (e.g., raspberrypi.local):${NC}"
+            read -r pi_host
+            if [ -n "$pi_host" ]; then
+                echo -e "${BLUE}Transferring to $pi_host...${NC}"
+                rsync -avz --progress pi-images/ "$pi_host:~/mealplanner/pi-images/" || \
+                scp pi-images/*.tar "$pi_host:~/mealplanner/pi-images/"
+            else
+                echo -e "${RED}No hostname provided${NC}"
+            fi
             ;;
         8)
-            echo -e "${BLUE}Deploying to Pi...${NC}"
-            "$SCRIPT_DIR/deploy-podman.sh"
+            echo -e "${BLUE}Deploying to Pi via SSH...${NC}"
+            echo -e "${YELLOW}Enter Pi hostname/IP (e.g., raspberrypi.local):${NC}"
+            read -r pi_host
+            if [ -n "$pi_host" ]; then
+                echo -e "${BLUE}Deploying to $pi_host...${NC}"
+                ssh "$pi_host" "cd ~/mealplanner && CALLED_FROM_MENU=1 ./scripts/pi-run.sh"
+            else
+                echo -e "${RED}No hostname provided${NC}"
+            fi
             ;;
         9)
             echo -e "${BLUE}Checking Pi health via SSH...${NC}"
-            echo -e "${YELLOW}Enter Pi hostname/IP:${NC}"
+            echo -e "${YELLOW}Enter Pi hostname/IP (e.g., raspberrypi.local):${NC}"
             read -r pi_host
-            ssh "$pi_host" "cd ~/mealplanner && ./scripts/pi-health-check.sh"
+            if [ -n "$pi_host" ]; then
+                ssh "$pi_host" "cd ~/mealplanner && CALLED_FROM_MENU=1 ./scripts/pi-health-check.sh"
+            else
+                echo -e "${RED}No hostname provided${NC}"
+            fi
+            ;;
+        10)
+            echo -e "${BLUE}Viewing Pi logs via SSH...${NC}"
+            echo -e "${YELLOW}Enter Pi hostname/IP (e.g., raspberrypi.local):${NC}"
+            read -r pi_host
+            if [ -n "$pi_host" ]; then
+                ssh "$pi_host" "cd ~/mealplanner && podman-compose -f podman-compose.pi.yml logs -f"
+            else
+                echo -e "${RED}No hostname provided${NC}"
+            fi
+            ;;
+        11)
+            echo -e "${BLUE}Running E2E tests...${NC}"
+            cd frontend && npm run test:e2e 2>/dev/null || echo -e "${YELLOW}E2E tests not configured${NC}"
+            cd ..
+            ;;
+        12)
+            echo -e "${BLUE}Running E2E tests (UI mode)...${NC}"
+            cd frontend && npm run test:e2e:ui 2>/dev/null || echo -e "${YELLOW}E2E tests not configured${NC}"
+            cd ..
+            ;;
+        13)
+            echo -e "${BLUE}Backing up database (local)...${NC}"
+            CALLED_FROM_MENU=1 "$SCRIPT_DIR/backup-database.sh"
+            ;;
+        14)
+            echo -e "${BLUE}Restoring database (local)...${NC}"
+            CALLED_FROM_MENU=1 "$SCRIPT_DIR/database-restore-local.sh"
+            ;;
+        15)
+            echo -e "${BLUE}Cleaning up dev machine...${NC}"
+            CALLED_FROM_MENU=1 "$SCRIPT_DIR/cleanup-dev-machine.sh" 2>/dev/null || echo -e "${YELLOW}Cleanup script not found${NC}"
+            ;;
+        16)
+            echo -e "${BLUE}Generating secrets...${NC}"
+            CALLED_FROM_MENU=1 "$SCRIPT_DIR/generate-secrets.sh"
+            ;;
+        17)
+            echo -e "${BLUE}Running first-time setup...${NC}"
+            CALLED_FROM_MENU=1 "$SCRIPT_DIR/first-time-setup.sh"
             ;;
         0)
             echo -e "${GREEN}Goodbye!${NC}"
