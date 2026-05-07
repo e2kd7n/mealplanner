@@ -1,67 +1,32 @@
-
-[08:55:27] 🔍 Running Intelligent Issue Management...
-
-[08:55:27] Checking for duplicate issues...
-[08:55:28] ✅ No duplicate issues detected
-[08:55:28] Checking recent commits for completed work...
-[08:55:28] Issue #135 appears resolved (pattern: resolve.*#135)
-[08:55:28] Auto-closing issue #135 based on commit analysis
-[08:55:30] ✅ Closed issue #135
-[08:55:30] Issue #136 appears resolved (pattern: resolve.*#136)
-[08:55:30] Auto-closing issue #136 based on commit analysis
-[08:55:32] ✅ Closed issue #136
-[08:55:32] Issue #137 appears resolved (pattern: resolve.*#137)
-[08:55:32] Auto-closing issue #137 based on commit analysis
-[08:55:34] ✅ Closed issue #137
-[08:55:35] Issue #138 appears resolved (pattern: resolve.*#138)
-[08:55:35] Auto-closing issue #138 based on commit analysis
-[08:55:36] ✅ Closed issue #138
-[08:55:37] Issue #139 appears resolved (pattern: resolve.*#139)
-[08:55:37] Auto-closing issue #139 based on commit analysis
-[08:55:38] ✅ Closed issue #139
-[08:55:42] ✅ Auto-closed 5 issues based on commits
-
-[08:55:42] Checking for completed issues that should be closed...
-[08:55:53] ✅ No issues needed auto-closing
-
-[08:55:53] Checking for issues that need label updates...
-[08:55:54] ✅ All issue labels are up to date
-
-[08:55:54] Analyzing recent development activity for priority updates...
-[08:55:54] ⚠️  Critical files modified recently - review P0/P1 issues for updates
-
-[08:55:54] Checking for TODO comments that should become issues...
-[08:55:54] ✅ No TODO comments marked for issue creation
-
-
-[08:55:54] 📊 Generating Issue Priority Report...
-
 # Issue Prioritization
 
-**Last Updated:** 2026-04-26 13:55:54 UTC / 2026-04-26 08:55:54 CDT
+**Last Updated:** 2026-05-07 01:31:15 UTC / 2026-05-06 20:31:15 CDT
 
 This file reflects the current state of GitHub issues by priority. Issues are managed via GitHub labels (P0-critical, P1-high, P2-medium, P3-low, P4-future).
 
 ## 🔴 P0 - CRITICAL (Drop Everything)
 Issues that make the application unusable or cause data loss.
 
+- #176 - [P0] Recipe Creation - Ingredient Button Not Working
 - #134 - revisit user authentication workflow - ftue and n-login experiences
 - #132 - E2E Tests: CSRF token endpoint returning 404 in CI environment
 
 ## 🔴 P1 - HIGH (Current Sprint)
 Issues that significantly impact core functionality or user experience.
 
-- #167 - Performance: Add nginx compression and caching
 - #166 - Monitoring: Implement centralized logging and metrics
-- #165 - Infrastructure: Add resource limits to containers
-- #164 - DevOps: Implement automated database backups
-- #163 - Database: Add connection pooling and performance indexes
 - #162 - Docker: Optimize image sizes (400MB → 200MB)
 - #161 - Docker: Implement container registry and multi-arch builds
 
 ## 🟡 P2 - MEDIUM (Next Sprint)
 Important improvements that enhance functionality but don't block core workflows.
 
+- #178 - [P2] Meal Deletion - Missing Confirmation Dialog
+- #177 - [P2] Recipe Creation - Numeric Fields Append Instead of Replace on Input
+- #175 - [Maintenance] Audit and Update Backend Dependencies
+- #174 - [DevOps] Configure Automated Weekly Database Backups
+- #173 - [Maintenance] Evaluate and Plan Major Frontend Dependency Updates
+- #172 - [Maintenance] Update Frontend Dependencies (Minor Versions)
 - #169 - 💡 Improve Recipe Import/Create UX - Keep import button visible
 - #160 - CI/CD: Re-enable E2E tests in GitHub Actions
 - #159 - CI/CD: Implement comprehensive CI/CD pipeline
@@ -81,6 +46,7 @@ Important improvements that enhance functionality but don't block core workflows
 ## 🟢 P3 - LOW (Backlog)
 Nice-to-have improvements and minor UX enhancements.
 
+- #179 - [P3] Search Inconsistency Between Recipe Tabs
 - #170 - ✨ Add photo capture and PDF upload for recipe creation
 - #156 - [P3-Low] Cross-Browser Testing - Firefox, Safari, and Edge Compatibility
 - #155 - [P3-Low] Privacy Notice for Screenshot Feature - Data Capture Warning
@@ -103,6 +69,7 @@ Nice-to-have improvements and minor UX enhancements.
 ## 📋 P4 - FUTURE ENHANCEMENTS
 Feature requests and enhancements for future releases.
 
+- #171 - Upgrade npm to 11.13.0
 - #66 - Publish Meals to ICS Calendar feed
 - #65 - Mobile App Development
 - #64 - Implement Advanced Features (Nutrition Tracking, etc.)
