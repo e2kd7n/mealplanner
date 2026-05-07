@@ -34,6 +34,43 @@ fi
 
 echo "🏗️  Building container images for Raspberry Pi..."
 
+# Detect macOS and block with clear instructions
+if [[ "$OSTYPE" == "darwin"* ]]; then
+    echo ""
+    echo -e "${RED}❌ ERROR: Cannot build ARM images reliably on macOS${NC}"
+    echo ""
+    echo -e "${YELLOW}macOS Docker/Podman has known limitations with ARM64 cross-compilation.${NC}"
+    echo -e "${YELLOW}Images built on macOS may have compatibility issues on Raspberry Pi.${NC}"
+    echo ""
+    echo -e "${BLUE}✅ RECOMMENDED: Build directly on your Raspberry Pi${NC}"
+    echo ""
+    echo -e "${GREEN}Step 1: Transfer code to Pi${NC}"
+    echo -e "   rsync -av --exclude node_modules --exclude .git . pi@pihole.local:~/mealplanner/"
+    echo ""
+    echo -e "${GREEN}Step 2: SSH to Pi and build${NC}"
+    echo -e "   ssh pi@pihole.local"
+    echo -e "   cd ~/mealplanner"
+    echo -e "   ./scripts/build-on-pi.sh  # First build: ~2 hours, subsequent: 5-10 min"
+    echo ""
+    echo -e "${GREEN}Step 3: Deploy${NC}"
+    echo -e "   ./scripts/pi-run.sh"
+    echo ""
+    echo -e "${BLUE}💡 With build cache enabled, incremental builds are fast (5-10 minutes)${NC}"
+    echo ""
+    echo -e "${YELLOW}To override this check (not recommended):${NC}"
+    echo -e "   FORCE_MACOS_BUILD=true ./scripts/build-for-pi.sh"
+    echo ""
+    
+    # Allow override for testing/advanced users
+    if [ "${FORCE_MACOS_BUILD:-false}" != "true" ]; then
+        exit 1
+    fi
+    
+    echo -e "${YELLOW}⚠️  Proceeding with macOS build (FORCE_MACOS_BUILD=true)${NC}"
+    echo -e "${YELLOW}⚠️  Images may have compatibility issues on Raspberry Pi${NC}"
+    echo ""
+fi
+
 # Check if podman or docker is available
 if command -v podman &> /dev/null; then
     CONTAINER_CMD="podman"
