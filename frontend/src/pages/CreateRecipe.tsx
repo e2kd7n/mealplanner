@@ -262,12 +262,23 @@ export default function CreateRecipe() {
   };
 
   const handleAddIngredient = () => {
-    if (!newIngredient.ingredientName || newIngredient.quantity <= 0) {
-      setError('Please enter an ingredient name and a valid quantity');
+    // Clear any previous errors
+    setError('');
+    
+    // Validate ingredient name
+    if (!newIngredient.ingredientName || newIngredient.ingredientName.trim() === '') {
+      setError('Please enter an ingredient name');
       return;
     }
 
-    if (!newIngredient.unit) {
+    // Validate quantity
+    if (!newIngredient.quantity || newIngredient.quantity <= 0) {
+      setError('Please enter a valid quantity greater than 0');
+      return;
+    }
+
+    // Validate unit
+    if (!newIngredient.unit || newIngredient.unit.trim() === '') {
       setError('Please enter a unit (e.g., cups, oz, grams)');
       return;
     }
@@ -283,10 +294,10 @@ export default function CreateRecipe() {
         ...formData.ingredients,
         {
           ingredientId: existingIngredient?.id || '', // Empty if new ingredient
-          ingredientName: newIngredient.ingredientName,
+          ingredientName: newIngredient.ingredientName.trim(),
           quantity: newIngredient.quantity,
-          unit: newIngredient.unit,
-          notes: newIngredient.notes,
+          unit: newIngredient.unit.trim(),
+          notes: newIngredient.notes?.trim() || '',
         },
       ],
     });
@@ -479,7 +490,11 @@ export default function CreateRecipe() {
           type="number"
           label="Prep Time (minutes)"
           value={formData.prepTime}
-          onChange={(e) => setFormData({ ...formData, prepTime: parseInt(e.target.value) || 0 })}
+          onChange={(e) => {
+            const value = e.target.value === '' ? 0 : parseInt(e.target.value, 10);
+            setFormData({ ...formData, prepTime: isNaN(value) ? 0 : value });
+          }}
+          onFocus={(e) => e.target.select()}
           inputProps={{ min: 0 }}
         />
       </Grid>
@@ -491,7 +506,11 @@ export default function CreateRecipe() {
           type="number"
           label="Cook Time (minutes)"
           value={formData.cookTime}
-          onChange={(e) => setFormData({ ...formData, cookTime: parseInt(e.target.value) || 0 })}
+          onChange={(e) => {
+            const value = e.target.value === '' ? 0 : parseInt(e.target.value, 10);
+            setFormData({ ...formData, cookTime: isNaN(value) ? 0 : value });
+          }}
+          onFocus={(e) => e.target.select()}
           inputProps={{ min: 0 }}
         />
       </Grid>
@@ -503,7 +522,11 @@ export default function CreateRecipe() {
           type="number"
           label="Servings"
           value={formData.servings}
-          onChange={(e) => setFormData({ ...formData, servings: parseInt(e.target.value) || 1 })}
+          onChange={(e) => {
+            const value = e.target.value === '' ? 1 : parseInt(e.target.value, 10);
+            setFormData({ ...formData, servings: isNaN(value) ? 1 : value });
+          }}
+          onFocus={(e) => e.target.select()}
           inputProps={{ min: 1 }}
         />
       </Grid>
@@ -691,7 +714,11 @@ export default function CreateRecipe() {
             type="number"
             label="Quantity"
             value={newIngredient.quantity}
-            onChange={(e) => setNewIngredient({ ...newIngredient, quantity: parseFloat(e.target.value) || 0 })}
+            onChange={(e) => {
+              const value = e.target.value === '' ? 0 : parseFloat(e.target.value);
+              setNewIngredient({ ...newIngredient, quantity: isNaN(value) ? 0 : value });
+            }}
+            onFocus={(e) => e.target.select()}
             inputProps={{ min: 0, step: 0.25 }}
             helperText="0.5 = ½, 0.25 = ¼"
           />

@@ -4,7 +4,7 @@
  */
 
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Container,
@@ -133,6 +133,7 @@ const MealPlanner: React.FC = () => {
   const [recipes, setRecipes] = useState<Recipe[]>([]);
   const [recipeSearchLoading, setRecipeSearchLoading] = useState(false);
   const [recipeSearchInput, setRecipeSearchInput] = useState('');
+  const searchTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Meal detail dialog state
   const [openMealDetail, setOpenMealDetail] = useState(false);
@@ -172,8 +173,15 @@ const MealPlanner: React.FC = () => {
   
   // Load recipes and family members on mount (only once)
   useEffect(() => {
-    loadRecipes();
+    loadRecipes('');
     loadFamilyMembers();
+    
+    // Cleanup timeout on unmount
+    return () => {
+      if (searchTimeoutRef.current) {
+        clearTimeout(searchTimeoutRef.current);
+      }
+    };
   }, []); // Empty dependency array - load only once
   
   // Load meals when week changes
@@ -321,10 +329,14 @@ const MealPlanner: React.FC = () => {
     }
   };
 
-  const loadRecipes = async () => {
+  const loadRecipes = async (searchQuery: string = '') => {
     try {
       setRecipeSearchLoading(true);
-      const response = await recipeAPI.getAll({ limit: 100 });
+      const params: { limit: number; search?: string } = { limit: 100 };
+      if (searchQuery.trim()) {
+        params.search = searchQuery.trim();
+      }
+      const response = await recipeAPI.getAll(params);
       const recipesData = response.data.recipes || response.data.data?.recipes || [];
       setRecipes(recipesData);
     } catch (error) {
@@ -333,6 +345,21 @@ const MealPlanner: React.FC = () => {
     } finally {
       setRecipeSearchLoading(false);
     }
+  };
+
+  // Debounced search function
+  const handleRecipeSearch = (searchValue: string) => {
+    setRecipeSearchInput(searchValue);
+    
+    // Clear existing timeout
+    if (searchTimeoutRef.current) {
+      clearTimeout(searchTimeoutRef.current);
+    }
+    
+    // Set new timeout for search
+    searchTimeoutRef.current = setTimeout(() => {
+      loadRecipes(searchValue);
+    }, 300); // 300ms debounce
   };
 
   const loadFamilyMembers = async () => {
@@ -386,6 +413,8 @@ const MealPlanner: React.FC = () => {
     setSelectedMealType(mealType);
     setNewMeal({ recipeId: '', recipeName: '', servings: 4, assignedCookId: '' });
     setRecipeSearchInput('');
+    // Load initial recipes when opening dialog
+    loadRecipes('');
     setOpenDialog(true);
   };
 
@@ -1133,7 +1162,7 @@ const MealPlanner: React.FC = () => {
               getOptionLabel={(option) => typeof option === 'string' ? option : option.title}
               value={recipes.find(r => r.id === newMeal.recipeId) || null}
               inputValue={recipeSearchInput}
-              onInputChange={(_, value) => setRecipeSearchInput(value)}
+              onInputChange={(_, value) => handleRecipeSearch(value)}
               onChange={(_, value) => {
                 if (typeof value === 'string') {
                   // User typed a custom name
