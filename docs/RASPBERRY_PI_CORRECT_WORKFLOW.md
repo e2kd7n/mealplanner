@@ -1,12 +1,64 @@
-# Raspberry Pi Deployment - Correct Workflow
+# Raspberry Pi Deployment - Workflow Options
 
-## Expert Analysis: Why Building on Pi Fails
+**Last Updated:** 2026-05-06
 
-**Root Cause:** Raspberry Pi's Podman has strict seccomp (secure computing mode) restrictions that block syscalls required by Node.js package managers (npm, pnpm, corepack). This causes "container exited on bad system call" errors during image builds.
+## Recommended Approach: Build Directly on Pi
 
-**Solution:** Build images on a development machine with proper multi-arch support, then transfer pre-built images to the Pi.
+**Building directly on the Raspberry Pi is now the recommended approach** because:
 
-## The Correct Deployment Workflow
+1. **macOS cross-compilation to ARM64 has limitations** - Docker/Podman on macOS struggles with proper ARM64 emulation, leading to compatibility issues
+2. **Native ARM builds are more reliable** - Building on Pi ensures perfect ARM64 compatibility
+3. **Build cache makes it fast** - After the initial 2-hour build, incremental builds take only 5-10 minutes
+4. **Simpler workflow** - No image transfer or cross-compilation setup needed
+
+## Two Deployment Approaches
+
+### Option 1: Build Directly on Pi (Recommended - Works from macOS)
+**Pros:** No cross-compilation issues, automatic cache management, works from macOS
+**Cons:** First build is slow (~2 hours), uses Pi resources during build
+
+### Option 2: Build on Linux Dev Machine, Transfer to Pi (Alternative)
+**Pros:** Faster builds on powerful dev machine, Pi only loads images (~3 minutes)
+**Cons:** **Does not work from macOS** (ARM64 cross-compilation issues), requires Linux dev machine, more complex workflow
+
+**Important**: If you're developing on macOS, you must use Option 1 (build on Pi). Option 2 only works reliably from Linux development machines with proper multi-arch support.
+
+## Workflow Option 1: Build Directly on Pi
+
+### Step 1: Clone/Update Code on Pi
+
+```bash
+ssh pi@pihole.local
+cd ~/mealplanner
+git pull  # or git clone if first time
+```
+
+### Step 2: Build Images on Pi
+
+```bash
+# Build with cache (5-10 minutes for incremental changes)
+./scripts/build-on-pi.sh
+
+# Or force clean build if needed (120+ minutes)
+NO_CACHE=true ./scripts/build-on-pi.sh
+```
+
+**Build Time Expectations:**
+- First build (no cache): ~120-130 minutes
+- Incremental builds (with cache): 5-10 minutes
+- Code-only changes: 2-5 minutes
+
+### Step 3: Deploy Application
+
+```bash
+./scripts/pi-run.sh
+```
+
+**See [PI_BUILD_OPTIMIZATION.md](./PI_BUILD_OPTIMIZATION.md) for detailed build optimization guide.**
+
+---
+
+## Workflow Option 2: Build on Dev Machine, Transfer to Pi
 
 ### Step 1: Build Images on Development Machine
 
@@ -60,42 +112,57 @@ Or use the simpler run script:
 ./scripts/pi-run.sh
 ```
 
+## Choosing the Right Workflow
+
+### Use Option 1 (Build on Pi) When:
+- You're actively developing and testing on Pi
+- You want simpler workflow with fewer steps
+- You have time for initial 2-hour build
+- You're making frequent small changes (cache makes rebuilds fast)
+
+### Use Option 2 (Build on Dev Machine) When:
+- You're deploying to production
+- You want fastest possible deployment on Pi
+- You have a powerful dev machine for building
+- You're deploying to multiple Pis
+
 ## Key Files
 
 ### podman-compose.pi.yml
 **Purpose:** Pi-specific compose file that uses pre-built images only (no build directives)
 
-**Why it exists:** The standard `podman-compose.yml` has `build:` sections that trigger image building. On Pi, we must use pre-built images, so this file removes all build directives.
+**Why it exists:** The standard `podman-compose.yml` has `build:` sections that trigger image building. On Pi, we can now build locally OR use pre-built images.
 
 ### podman-compose.yml
 **Purpose:** Development/build compose file with build directives
 
-**When to use:** Only on development machines where you can build images
+**When to use:** On development machines where you can build images
 
 ## Common Mistakes to Avoid
 
-### ❌ DON'T: Run build scripts on Raspberry Pi
+### ❌ DON'T: Use `--no-cache` unnecessarily
 ```bash
-# WRONG - This will fail with syscall errors
-./scripts/pi-build-manual.sh
+# WRONG - Forces slow rebuild every time (120+ minutes)
+NO_CACHE=true ./scripts/build-on-pi.sh  # Only use when troubleshooting
 ```
 
 ### ❌ DON'T: Use podman-compose.yml on Pi
 ```bash
-# WRONG - This tries to build images
+# WRONG - This tries to build images with wrong compose file
 podman-compose -f podman-compose.yml up -d
 ```
 
-### ✅ DO: Use the correct workflow
+### ✅ DO: Use build cache for development
 ```bash
-# On dev machine
-./scripts/build-for-pi.sh
+# CORRECT - Fast incremental builds (5-10 minutes)
+./scripts/build-on-pi.sh
+```
 
-# Transfer images
-scp pi-images/*.tar.gz pi@pihole.local:~/mealplanner/pi-images/
-
-# On Pi
-./scripts/load-pi-images.sh
+### ✅ DO: Use the right compose file
+```bash
+# CORRECT - Uses pre-built images
+podman-compose -f podman-compose.pi.yml up -d
+# Or simply use:
 ./scripts/pi-run.sh
 ```
 

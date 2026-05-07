@@ -1,6 +1,40 @@
 # Deployment Guide - Raspberry Pi with Podman
 
-This guide will help you deploy the Meal Planner application on your Raspberry Pi using Podman.
+**Last Updated:** 2026-05-06
+
+This guide covers deploying the Meal Planner application on Raspberry Pi using Podman.
+
+## Quick Start (Recommended for macOS Users)
+
+**Build directly on Pi** - This is the recommended approach because macOS has limitations with ARM64 cross-compilation:
+
+```bash
+# On Pi
+cd ~/mealplanner
+git pull
+./scripts/build-on-pi.sh  # First build: ~2 hours, subsequent: 5-10 min
+./scripts/pi-run.sh
+```
+
+## Alternative (Linux Dev Machines Only)
+
+If you have a Linux development machine with proper multi-arch support:
+
+```bash
+# On Linux dev machine (NOT macOS)
+./scripts/build-for-pi.sh
+scp pi-images/*.tar.gz pi@pihole.local:~/mealplanner/pi-images/
+
+# On Pi
+./scripts/load-pi-images.sh
+./scripts/pi-run.sh
+```
+
+**Important**: Cross-compilation from macOS to ARM64 has known compatibility issues. macOS users must build directly on Pi.
+
+**See [docs/PI_BUILD_OPTIMIZATION.md](docs/PI_BUILD_OPTIMIZATION.md) for detailed build optimization guide.**
+
+---
 
 ## Prerequisites
 

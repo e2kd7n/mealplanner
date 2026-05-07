@@ -20,9 +20,20 @@ if ! command -v podman &> /dev/null; then
     exit 1
 fi
 
+# Use cache by default, but allow --no-cache via environment variable
+CACHE_FLAG=""
+if [ "${NO_CACHE:-false}" = "true" ]; then
+    echo -e "${YELLOW}⚠️  Building without cache (NO_CACHE=true)${NC}"
+    CACHE_FLAG="--no-cache"
+else
+    echo -e "${GREEN}✓ Using build cache for faster builds${NC}"
+    echo -e "${BLUE}💡 To force clean build: NO_CACHE=true ./scripts/build-on-pi-frontend-only.sh${NC}"
+fi
+
 # Build frontend image (standalone for nginx)
 echo -e "${YELLOW}🔨 Building frontend image...${NC}"
 podman build \
+    $CACHE_FLAG \
     -t meals-frontend:latest \
     -f frontend/Dockerfile \
     --build-arg VITE_API_URL=/api \
