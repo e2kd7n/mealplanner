@@ -93,16 +93,16 @@ export function verifyThemeContrast() {
   const results = {
     primary: {
       main: meetsWCAG_AA('#2E7D32', '#FFFFFF'),
+      light: meetsWCAG_AA('#2E7D32', '#FFFFFF'),
       dark: meetsWCAG_AA('#1B5E20', '#FFFFFF'),
-      light: meetsWCAG_AA('#4CAF50', '#FFFFFF'),
     },
     secondary: {
-      main: meetsWCAG_AA('#E65100', '#FFFFFF'),
+      main: meetsWCAG_AA('#C62828', '#FFFFFF'),
+      light: meetsWCAG_AA('#D32F2F', '#FFFFFF'),
       dark: meetsWCAG_AA('#BF360C', '#FFFFFF'),
-      light: meetsWCAG_AA('#FF6F00', '#FFFFFF'),
     },
     error: meetsWCAG_AA('#D32F2F', '#FFFFFF'),
-    warning: meetsWCAG_AA('#E65100', '#FFFFFF'),
+    warning: meetsWCAG_AA('#C62828', '#FFFFFF'),
     info: meetsWCAG_AA('#0277BD', '#FFFFFF'),
     success: meetsWCAG_AA('#2E7D32', '#FFFFFF'),
     text: {

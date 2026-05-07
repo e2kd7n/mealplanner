@@ -31,12 +31,24 @@ if podman ps | grep -q "meals-backend"; then
     exit 0
 fi
 
-# Check if images exist
+# Check if images exist (either locally built or loaded from tar)
 if ! podman images | grep -q "meals-backend"; then
     echo -e "${RED}❌ Container images not found${NC}"
-    echo -e "${YELLOW}Please load images first:${NC}"
-    echo -e "   1. Transfer: scp pi-images/*.tar.gz pi@pihole.local:~/mealplanner/pi-images/"
-    echo -e "   2. Load: ./scripts/load-pi-images.sh"
+    echo -e "${YELLOW}Please build or load images first:${NC}"
+    echo -e "   Option 1 - Build directly on Pi: ${GREEN}./scripts/build-on-pi.sh${NC}"
+    echo -e "   Option 2 - Load pre-built images:"
+    echo -e "      a. Transfer: scp pi-images/*.tar.gz pi@pihole.local:~/mealplanner/pi-images/"
+    echo -e "      b. Load: ./scripts/load-pi-images.sh"
+    exit 1
+fi
+
+if ! podman images | grep -q "meals-frontend"; then
+    echo -e "${RED}❌ Frontend image not found${NC}"
+    echo -e "${YELLOW}Please build or load images first:${NC}"
+    echo -e "   Option 1 - Build directly on Pi: ${GREEN}./scripts/build-on-pi.sh${NC}"
+    echo -e "   Option 2 - Load pre-built images:"
+    echo -e "      a. Transfer: scp pi-images/*.tar.gz pi@pihole.local:~/mealplanner/pi-images/"
+    echo -e "      b. Load: ./scripts/load-pi-images.sh"
     exit 1
 fi
 
