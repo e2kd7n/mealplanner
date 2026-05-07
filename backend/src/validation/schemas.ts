@@ -47,9 +47,12 @@ export const createRecipeSchema = z.object({
   cuisineType: z.string().optional(),
   kidFriendly: z.boolean().default(false),
   ingredients: z.array(z.object({
-    ingredientId: z.string().uuid('Invalid ingredient ID'),
+    ingredientId: z.string().optional(), // Optional for new ingredients
+    ingredientName: z.string().min(1, 'Ingredient name is required'),
     quantity: z.number().positive('Quantity must be positive'),
     unit: z.string().min(1, 'Unit is required'),
+    notes: z.string().optional(),
+    isOptional: z.boolean().optional(),
   })).min(1, 'At least one ingredient is required'),
   instructions: z.any(), // JSON field, validated by Prisma
   nutritionInfo: z.any().optional(), // JSON field
