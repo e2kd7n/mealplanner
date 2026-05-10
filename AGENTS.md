@@ -151,11 +151,30 @@ This file provides guidance to agents when working with code in this repository.
 
 ## Weekly Maintenance Tasks
 
+### Quick Start (Parallel Execution)
+**⚡ Speed up maintenance by 40% using background tasks:**
+```bash
+# Start long-running issue check in background
+./scripts/maintenance-issue-check.sh --background
+
+# Continue with other maintenance tasks
+# Check status anytime: ./scripts/maintenance-check-status.sh
+```
+
 ### Database (Critical)
 - Run backup: `./scripts/pre-migration-backup.sh`
 - Verify backup integrity
 - Delete backups older than 30 days (keep at least 4)
 - Check database health and sizes
+
+### Issue Management (Can Run in Background)
+- **Background mode:** `./scripts/maintenance-issue-check.sh --background`
+- **Check status:** `./scripts/maintenance-check-status.sh`
+- **View results:** `./scripts/maintenance-check-status.sh --summary`
+- Manual mode: `./scripts/update-issue-priorities.sh`
+- Review and close completed issues
+- Triage unprioritized issues
+- Update ISSUE_PRIORITIES.md
 
 ### Dependencies
 - Check for updates: `npm outdated` in frontend and backend
@@ -167,6 +186,7 @@ This file provides guidance to agents when working with code in this repository.
 - Archive logs older than 30 days
 - Prune client logs if >10,000 entries
 - Clean Docker/Podman images
+- Clean maintenance logs: `find data/maintenance-logs -name "*.log" -mtime +30 -delete`
 
 ### Monitoring
 - Review error logs
