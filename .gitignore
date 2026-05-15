@@ -13,6 +13,7 @@ build/
 dist/
 
 # Environment variables
+.env.backup.*
 .env
 .env.local
 .env.development.local
