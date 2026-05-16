@@ -24,6 +24,7 @@ import {
   CircularProgress,
   Paper,
   Divider,
+  useMediaQuery,
 } from '@mui/material';
 import {
   Close as CloseIcon,
@@ -41,6 +42,8 @@ interface FeedbackDialogProps {
 
 const FeedbackDialog: React.FC<FeedbackDialogProps> = ({ open, onClose }) => {
   const location = useLocation();
+  const isLandscape = useMediaQuery('(orientation: landscape) and (max-height: 500px)');
+  const isIOS = /iPhone|iPad|iPod/i.test(navigator.userAgent);
   const [feedbackType, setFeedbackType] = useState<string>('improvement');
   const [rating, setRating] = useState<number | null>(null);
   const [message, setMessage] = useState('');
@@ -82,7 +85,11 @@ const FeedbackDialog: React.FC<FeedbackDialogProps> = ({ open, onClose }) => {
       setScreenshot(dataUrl);
     } catch (err) {
       console.error('Screenshot capture failed:', err);
-      setError('Failed to capture screenshot. Please try again.');
+      if (isIOS) {
+        setError('Screenshot capture is not supported on iOS Safari. Please describe your feedback in text.');
+      } else {
+        setError('Failed to capture screenshot. Please try again.');
+      }
     }
   };
 
@@ -122,7 +129,7 @@ const FeedbackDialog: React.FC<FeedbackDialogProps> = ({ open, onClose }) => {
     <Dialog
       open={open}
       onClose={handleClose}
-      maxWidth="sm"
+      maxWidth={isLandscape ? 'md' : 'sm'}
       fullWidth
       aria-labelledby="feedback-dialog-title"
     >
@@ -140,13 +147,20 @@ const FeedbackDialog: React.FC<FeedbackDialogProps> = ({ open, onClose }) => {
         </Box>
       </DialogTitle>
 
-      <DialogContent dividers>
+      <DialogContent
+        dividers
+        sx={{
+          maxHeight: isLandscape ? '52vh' : 'none',
+          overflowY: 'auto',
+          WebkitOverflowScrolling: 'touch',
+        }}
+      >
         {success ? (
           <Alert severity="success" sx={{ mb: 2 }}>
             Thank you for your feedback! It helps us improve the app.
           </Alert>
         ) : (
-          <Stack spacing={3}>
+          <Stack spacing={isLandscape ? 1.5 : 3}>
             {error && (
               <Alert severity="error" onClose={() => setError(null)}>
                 {error}
@@ -219,7 +233,7 @@ const FeedbackDialog: React.FC<FeedbackDialogProps> = ({ open, onClose }) => {
             <TextField
               label="Your Feedback"
               multiline
-              rows={4}
+              rows={isLandscape ? 2 : 4}
               value={message}
               onChange={(e) => setMessage(e.target.value)}
               placeholder="Please describe your feedback in detail..."

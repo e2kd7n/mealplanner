@@ -25,6 +25,7 @@ const FeedbackButton: React.FC = () => {
     <>
       <Tooltip title="Share Feedback" placement="left">
         <Fab
+          size="large"
           color="primary"
           aria-label="Open feedback form"
           onClick={handleOpen}
@@ -34,8 +35,8 @@ const FeedbackButton: React.FC = () => {
             right: isMobile ? 16 : 24,
             zIndex: 1300,
             boxShadow: 3,
-            minWidth: 56,
-            minHeight: 56,
+            width: 56,
+            height: 56,
             '&:hover': {
               boxShadow: 6,
               transform: 'scale(1.05)',
