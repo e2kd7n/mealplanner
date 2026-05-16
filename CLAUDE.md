@@ -283,20 +283,6 @@ compose/systemd unit when created.
 
 ---
 
-## Outstanding TODOs (as of May 2026)
-
-- [ ] Reflash Zero W SD cards with correct 8086.net CBRIDGE images using Pi Imager
-- [ ] Verify Zero W backend port (confirm 3001 vs 3000 in Zero compose/systemd unit)
-- [ ] Create Zero W systemd units (`podman generate systemd --new`) for reliable boot
-- [ ] Move Postgres data volume to USB SSD when available (SD card longevity risk)
-- [ ] Set up automated DB backup cron job on Pi 4B
-- [ ] Run `podman image prune -a` on Pi 4B (43GB of stale images)
-- [ ] Create `./data/frontend-dist/` and populate with built PWA before Pi deployment
-- [ ] Add `secrets/redis_password.txt` to Pi secrets directory
-- [ ] Remove `.env.backup.20260504_151747` from git history (script: `purge-env-backup-from-history.sh`)
-
----
-
 ## Known Issues & Constraints
 
 - **2GB RAM is the hard limit** — don't increase service memory limits without re-checking

@@ -49,7 +49,40 @@ NO_CACHE=true ./scripts/build-on-pi.sh
 
 ## Workflow
 
-### Option 1: Build Directly on Pi (Recommended)
+### Option 1: Pull from GitHub Container Registry (Recommended)
+
+```bash
+# On Pi — one command does everything
+./scripts/pi-deploy-registry.sh
+```
+
+**How it works**: GitHub Actions builds the ARM64 image on a powerful x86_64 runner using
+QEMU emulation, pushes it to GHCR, then the Pi just pulls the finished image (~3–8 min
+depending on internet speed). The script retags the image for the local compose file and
+extracts the compiled React frontend from the image into `./data/frontend-dist/` for Nginx.
+
+**Prerequisites**:
+1. A GitHub Actions run must have completed for the branch you want to deploy.
+   Check the **Actions** tab in the repo. The workflow triggers automatically on push to
+   `main` or `develop`.
+2. If the GitHub package is private, create a token file:
+   ```bash
+   echo 'ghp_yourtoken' > ./secrets/ghcr_token.txt
+   ```
+   The token needs only `read:packages` scope (classic PAT).
+
+**Pros**:
+- **Much faster on Pi** — 3–8 min pull vs 2+ hour first build
+- **No RAM pressure** — Pi 4B has 2GB; building the frontend alone needs ~1.5GB
+- **Reproducible** — exact image that CI tested
+- **Automatic on git push** — push to main, wait for Actions, then pull
+
+**Cons**:
+- Requires a completed CI run (can't deploy uncommitted changes)
+- Needs internet access on the Pi during deploy
+- Private packages require a PAT in `./secrets/`
+
+### Option 2: Build Directly on Pi (Fallback)
 
 ```bash
 # Clone/update code on Pi
@@ -64,18 +97,16 @@ git pull
 ```
 
 **Pros**:
-- **No cross-compilation issues** - Native ARM64 builds are more reliable
-- **Automatic cache management** - Incremental builds are fast (5-10 min)
-- **Simpler workflow** - No image transfer needed
-- **Works from macOS** - macOS cross-compilation to ARM64 has known limitations
+- Works offline and for uncommitted changes
+- No dependency on GitHub Actions
+- Automatic cache management makes incremental builds fast (5-10 min)
 
 **Cons**:
 - First build is slow (~2 hours)
+- Tight on RAM (2GB Pi; frontend build peaks at ~1.5GB)
 - Uses Pi resources during build
 
-**Why this is now recommended**: Previous attempts to cross-compile from macOS to ARM64 had compatibility issues. Building natively on Pi ensures perfect ARM64 compatibility and with build cache, subsequent builds are fast.
-
-### Option 2: Build on Dev Machine, Transfer to Pi (Alternative)
+### Option 3: Build on Dev Machine, Transfer to Pi (Alternative)
 
 ```bash
 # On Linux dev machine (NOT macOS - has ARM64 cross-compilation issues)

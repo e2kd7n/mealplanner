@@ -35,8 +35,9 @@ fi
 if ! podman images | grep -q "meals-backend"; then
     echo -e "${RED}❌ Container images not found${NC}"
     echo -e "${YELLOW}Please build or load images first:${NC}"
-    echo -e "   Option 1 - Build directly on Pi: ${GREEN}./scripts/build-on-pi.sh${NC}"
-    echo -e "   Option 2 - Load pre-built images:"
+    echo -e "   Option 1 - Pull from GitHub Container Registry (fastest): ${GREEN}./scripts/pi-deploy-registry.sh${NC}"
+    echo -e "   Option 2 - Build directly on Pi: ${GREEN}./scripts/build-on-pi.sh${NC}"
+    echo -e "   Option 3 - Load pre-built images from tar:"
     echo -e "      a. Transfer: scp pi-images/*.tar.gz pi@pihole.local:~/mealplanner/pi-images/"
     echo -e "      b. Load: ./scripts/load-pi-images.sh"
     exit 1

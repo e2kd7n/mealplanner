@@ -1,14 +1,13 @@
 # Issue Prioritization
 
-**Last Updated:** 2026-05-16 16:26:10 UTC / 2026-05-16 11:26:10 CDT
+**Last Updated:** 2026-05-16 17:18:42 UTC / 2026-05-16 12:18:42 CDT
 
 This file reflects the current state of GitHub issues by priority. Issues are managed via GitHub labels (P0-critical, P1-high, P2-medium, P3-low, P4-future).
 
 ## 🔴 P0 - CRITICAL (Drop Everything)
 Issues that make the application unusable or cause data loss.
 
-- #134 - revisit user authentication workflow - ftue and n-login experiences
-- #132 - E2E Tests: CSRF token endpoint returning 404 in CI environment
+**No P0 issues currently open** ✅
 
 ## 🔴 P1 - HIGH (Current Sprint)
 Issues that significantly impact core functionality or user experience.
@@ -17,7 +16,6 @@ Issues that significantly impact core functionality or user experience.
 - #196 - ClusterHAT: reflash Zero W SD cards with correct 8086.net CBRIDGE images
 - #194 - Pi deployment pre-flight: add secrets/redis_password.txt
 - #193 - Pi deployment pre-flight: populate ./data/frontend-dist/ with built PWA
-- #191 - [Epic] Visual Refresh & Feature Discovery Overhaul
 - #166 - Monitoring: Implement centralized logging and metrics
 - #162 - Docker: Optimize image sizes (400MB → 200MB)
 - #161 - Docker: Implement container registry and multi-arch builds
@@ -50,6 +48,7 @@ Important improvements that enhance functionality but don't block core workflows
 ## 🟢 P3 - LOW (Backlog)
 Nice-to-have improvements and minor UX enhancements.
 
+- #201 - [UX] Smart Recipe Sorting in Meal Occasion Modal
 - #200 - Pi: move Postgres data volume to USB SSD
 - #179 - [P3] Search Inconsistency Between Recipe Tabs
 - #170 - ✨ Add photo capture and PDF upload for recipe creation
