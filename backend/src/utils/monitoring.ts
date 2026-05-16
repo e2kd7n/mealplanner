@@ -6,6 +6,7 @@
 import os from 'os';
 import prisma from './prisma';
 import { logger } from './logger';
+import { httpRequestsTotal, httpRequestDurationSeconds, dbQueryDurationSeconds } from './prometheus';
 
 /**
  * Application metrics tracking
@@ -50,10 +51,10 @@ setInterval(() => {
 /**
  * Track a request
  */
-export function trackRequest(success: boolean, responseTime: number): void {
+export function trackRequest(success: boolean, responseTime: number, method?: string, statusCode?: number): void {
   metrics.requests.total++;
   metrics.requests.lastMinute++;
-  
+
   if (success) {
     metrics.requests.success++;
   } else {
@@ -73,6 +74,15 @@ export function trackRequest(success: boolean, responseTime: number): void {
     metrics.responseTime.p95 = sorted[Math.floor(sorted.length * 0.95)];
     metrics.responseTime.p99 = sorted[Math.floor(sorted.length * 0.99)];
   }
+
+  // Feed Prometheus metrics
+  const labels = { method: method || 'UNKNOWN', status_code: String(statusCode || 0) };
+  httpRequestsTotal.inc(labels);
+  httpRequestDurationSeconds.observe(labels, responseTime / 1000);
+}
+
+export function trackDbQuery(durationMs: number, success: boolean): void {
+  dbQueryDurationSeconds.observe({ result: success ? 'success' : 'error' }, durationMs / 1000);
 }
 
 /**
@@ -161,16 +171,15 @@ export async function getHealthStatus() {
 /**
  * Middleware to track request metrics
  */
-export function metricsMiddleware(_req: any, res: any, next: any) {
+export function metricsMiddleware(req: any, res: any, next: any) {
   const start = Date.now();
-  
-  // Track response
+
   res.on('finish', () => {
     const duration = Date.now() - start;
     const success = res.statusCode < 400;
-    trackRequest(success, duration);
+    trackRequest(success, duration, req.method, res.statusCode);
   });
-  
+
   next();
 }
 

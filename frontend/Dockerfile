@@ -8,8 +8,8 @@ WORKDIR /app
 # Copy package files
 COPY package.json pnpm-lock.yaml ./
 
-# Install pnpm using npm (more reliable for ARM, no network fetch needed)
-RUN npm install -g pnpm@9
+# pnpm version must match local dev environment (lockfile was generated with pnpm@11)
+RUN npm install -g pnpm@11 --quiet
 
 # Install dependencies (build only, no dev dependencies needed in final image)
 RUN pnpm install --frozen-lockfile --prod=false
