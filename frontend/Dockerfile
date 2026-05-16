@@ -9,7 +9,7 @@ WORKDIR /app
 COPY package.json pnpm-lock.yaml ./
 
 # pnpm version must match local dev environment (lockfile was generated with pnpm@11)
-RUN npm install -g pnpm@11.1.2 --quiet
+RUN npm install -g pnpm@10 --quiet
 
 # Install dependencies (build only, no dev dependencies needed in final image)
 # onlyBuiltDependencies in the lockfile settings allows esbuild to run its
