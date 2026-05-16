@@ -50,6 +50,7 @@ import { conditionalCsrfProtection, csrfProtection, getCsrfToken, csrfErrorHandl
 import { logger } from './utils/logger';
 import { initializeCache } from './utils/cache';
 import { metricsMiddleware } from './utils/monitoring';
+import { promRegistry } from './utils/prometheus';
 import logPruner from './utils/logPruner';
 import { initializeWebSocket } from './services/websocket.service';
 import { appSettingsService } from './services/appSettings.service';
@@ -115,6 +116,17 @@ app.get('/health', async (_req, res) => {
 // Simple health check for load balancers
 app.get('/health/live', (_req, res) => {
   res.json({ status: 'ok' });
+});
+
+// Prometheus metrics — not proxied by Nginx so only reachable from within the
+// Docker network (Prometheus scrapes it directly at backend:3000/metrics)
+app.get('/metrics', async (_req, res) => {
+  try {
+    res.set('Content-Type', promRegistry.contentType);
+    res.end(await promRegistry.metrics());
+  } catch (error) {
+    res.status(500).end();
+  }
 });
 
 // CSRF token endpoint (needs CSRF middleware but doesn't validate token)
