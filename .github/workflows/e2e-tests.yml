@@ -1,21 +1,13 @@
 name: E2E Tests
 
-# DISABLED: E2E tests are currently failing and need to be fixed
-# Tests can still be run manually via workflow_dispatch
-# Re-enable automatic triggers after fixing the tests
-#
-# Previously re-enabled after implementing P1 fixes:
-# - Issue #137: API authentication
-# - Issue #136: Session reuse pattern
-# - Issue #139: Configurable authentication delays
-# - Issue #138: Fixed sort dropdown selector
+# Root cause fixed: VITE_API_URL now includes /api suffix (was http://localhost:3000,
+# causing CSRF fetch to hit /csrf-token instead of /api/csrf-token — Issue #132)
 on:
   workflow_dispatch:
-  # Temporarily disabled until tests are fixed
-  # push:
-  #   branches: [main, develop]
-  # pull_request:
-  #   branches: [main, develop]
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main, develop]
 
 jobs:
   e2e-tests:
@@ -129,7 +121,7 @@ jobs:
       - name: Start frontend server
         working-directory: frontend
         env:
-          VITE_API_URL: http://localhost:3000
+          VITE_API_URL: http://localhost:3000/api
         run: |
           pnpm run dev > frontend.log 2>&1 &
           echo $! > frontend.pid
