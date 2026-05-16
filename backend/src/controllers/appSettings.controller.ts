@@ -28,7 +28,7 @@ export const getSettings = async (_req: Request, res: Response) => {
 
 export const updateSetting = async (req: Request, res: Response) => {
   try {
-    const { key } = req.params;
+    const key = req.params.key as string;
     const { value } = req.body;
 
     if (!ALLOWED_KEYS.has(key)) {
@@ -39,7 +39,7 @@ export const updateSetting = async (req: Request, res: Response) => {
       return res.status(400).json({ success: false, message: 'Value must be a string or null' });
     }
 
-    await appSettingsService.set(key, value || null, req.user?.userId);
+    await appSettingsService.set(key, value || null, req.user?.userId as string | undefined);
     logger.info(`Setting updated: ${key} by user ${req.user?.userId}`);
     return res.json({ success: true });
   } catch (error: any) {

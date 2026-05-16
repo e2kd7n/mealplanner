@@ -4,9 +4,9 @@
 
 This guide covers deploying the Meal Planner application on Raspberry Pi using Podman.
 
-## Quick Start (Recommended for macOS Users)
+## Quick Start (Recommended: Build on Pi)
 
-**Build directly on Pi** - This is the recommended approach because macOS has limitations with ARM64 cross-compilation:
+**Build directly on Pi** - This is the recommended approach. Cross-compilation from macOS has known limitations, and Linux cross-compilation requires proper multi-arch toolchain setup:
 
 ```bash
 # On Pi
@@ -16,12 +16,12 @@ git pull
 ./scripts/pi-run.sh
 ```
 
-## Alternative (Linux Dev Machines Only)
+## Alternative (Linux Dev Machines)
 
 If you have a Linux development machine with proper multi-arch support:
 
 ```bash
-# On Linux dev machine (NOT macOS)
+# On Linux dev machine
 ./scripts/build-for-pi.sh
 scp pi-images/meals-backend.tar pi-images/frontend-dist.tar.gz \
     pi@192.168.4.110:~/mealplanner/pi-images/
@@ -31,7 +31,7 @@ scp pi-images/meals-backend.tar pi-images/frontend-dist.tar.gz \
 ./scripts/pi-run.sh
 ```
 
-**Important**: Cross-compilation from macOS to ARM64 has known compatibility issues. macOS users must build directly on Pi.
+**Important**: Cross-compilation from macOS to ARM64 has known compatibility issues with Vite's toolchain. When in doubt, build directly on the Pi.
 
 **See [docs/PI_BUILD_OPTIMIZATION.md](docs/PI_BUILD_OPTIMIZATION.md) for detailed build optimization guide.**
 
@@ -224,13 +224,13 @@ If you need to reset the database:
 
 ```bash
 # Stop containers
-podman-compose -f podman-compose.yml down
+podman-compose -f podman-compose.pi.yml down
 
 # Remove database volume
 podman volume rm meals_postgres_data
 
 # Restart
-./scripts/deploy-podman.sh
+./scripts/pi-run.sh
 ```
 
 ### Port Already in Use
@@ -290,9 +290,9 @@ After=network.target
 [Service]
 Type=oneshot
 RemainAfterExit=yes
-WorkingDirectory=/home/pi/meal-planner
-ExecStart=/usr/bin/podman-compose -f podman-compose.yml up -d
-ExecStop=/usr/bin/podman-compose -f podman-compose.yml down
+WorkingDirectory=/home/pi/mealplanner
+ExecStart=/usr/bin/podman-compose -f podman-compose.pi.yml up -d
+ExecStop=/usr/bin/podman-compose -f podman-compose.pi.yml down
 User=pi
 
 [Install]
@@ -374,7 +374,7 @@ curl http://localhost:8080/api/health
 ## Support
 
 For issues or questions:
-1. Check the logs: `podman-compose -f podman-compose.yml logs -f`
+1. Check the logs: `podman-compose -f podman-compose.pi.yml logs -f`
 2. Review this documentation
 3. Check the main README.md for application-specific help
 
