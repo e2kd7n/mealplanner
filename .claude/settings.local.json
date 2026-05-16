@@ -40,7 +40,10 @@
       "Bash(bash scripts/update-issue-priorities.sh > ISSUE_PRIORITIES.md)",
       "Bash(npx tsc *)",
       "PowerShell(Get-Command node, npm, pnpm -ErrorAction SilentlyContinue)",
-      "PowerShell($env:PATH; Write-Host \"---\"; Get-ChildItem \"C:\\\\Program Files\\\\nodejs\", \"C:\\\\Program Files \\(x86\\)\\\\nodejs\", \"$env:APPDATA\\\\npm\", \"$env:LOCALAPPDATA\\\\pnpm\" -ErrorAction SilentlyContinue | Select-Object FullName)"
+      "PowerShell($env:PATH; Write-Host \"---\"; Get-ChildItem \"C:\\\\Program Files\\\\nodejs\", \"C:\\\\Program Files \\(x86\\)\\\\nodejs\", \"$env:APPDATA\\\\npm\", \"$env:LOCALAPPDATA\\\\pnpm\" -ErrorAction SilentlyContinue | Select-Object FullName)",
+      "Bash(wsl bash *)",
+      "Bash(powershell.exe -Command \"netstat -ano | findstr ':3000'\")",
+      "Bash(npx prisma *)"
     ],
     "additionalDirectories": [
       "c:\\Users\\admin\\dev\\mealplanner"

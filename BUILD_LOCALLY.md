@@ -2,11 +2,13 @@
 
 This guide explains how to build container images on your local development machine instead of on the Raspberry Pi, which is significantly faster.
 
+> **Note:** Cross-compilation from macOS has known issues with Vite's toolchain. This approach is reliable on Linux. macOS users should build directly on the Pi instead (see [DEPLOYMENT.md](./DEPLOYMENT.md)).
+
 ## 🚀 Quick Start
 
 ### 1. Build Images Locally
 
-On your development machine (Mac, Linux, or Windows with WSL):
+On your Linux development machine (or Windows with WSL2):
 
 ```bash
 # Make the script executable
@@ -113,7 +115,7 @@ echo 'export DOCKER_BUILDKIT=1' >> ~/.bashrc
 
 ### On Raspberry Pi
 
-- Podman installed (see `RASPBERRY_PI_QUICKSTART.md`)
+- Podman installed (see [docs/archive/RASPBERRY_PI_QUICKSTART.md](docs/archive/RASPBERRY_PI_QUICKSTART.md))
 - SSH access enabled
 - Sufficient disk space (~2GB for images)
 
@@ -255,6 +257,3 @@ jobs:
 
 Happy building! 🏗️
 
----
-
-Made with Bob
