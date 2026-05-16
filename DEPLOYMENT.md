@@ -23,7 +23,8 @@ If you have a Linux development machine with proper multi-arch support:
 ```bash
 # On Linux dev machine (NOT macOS)
 ./scripts/build-for-pi.sh
-scp pi-images/*.tar.gz pi@pihole.local:~/mealplanner/pi-images/
+scp pi-images/meals-backend.tar pi-images/frontend-dist.tar.gz \
+    pi@192.168.4.110:~/mealplanner/pi-images/
 
 # On Pi
 ./scripts/load-pi-images.sh
@@ -147,36 +148,37 @@ Once deployed, access the application at:
 
 ```bash
 # View all logs
-podman-compose -f podman-compose.yml logs -f
+podman-compose -f podman-compose.pi.yml logs -f
 
 # View specific service logs
-podman-compose -f podman-compose.yml logs -f backend
-podman-compose -f podman-compose.yml logs -f frontend
-podman-compose -f podman-compose.yml logs -f postgres
+podman-compose -f podman-compose.pi.yml logs -f backend
+podman-compose -f podman-compose.pi.yml logs -f postgres
+podman-compose -f podman-compose.pi.yml logs -f nginx
+# Note: no frontend container — Nginx serves the PWA static files directly
 ```
 
 ### Stop the Application
 
 ```bash
-podman-compose -f podman-compose.yml stop
+./scripts/pi-stop.sh
 ```
 
 ### Start the Application
 
 ```bash
-podman-compose -f podman-compose.yml start
+./scripts/pi-run.sh
 ```
 
 ### Restart the Application
 
 ```bash
-podman-compose -f podman-compose.yml restart
+./scripts/pi-bounce.sh
 ```
 
 ### Stop and Remove Containers
 
 ```bash
-podman-compose -f podman-compose.yml down
+podman-compose -f podman-compose.pi.yml down
 ```
 
 ### Update the Application
@@ -185,8 +187,9 @@ podman-compose -f podman-compose.yml down
 # Pull latest changes
 git pull
 
-# Rebuild and restart
-./scripts/deploy-podman.sh
+# Rebuild on Pi (recommended):
+./scripts/build-on-pi.sh
+./scripts/pi-bounce.sh
 ```
 
 ## Troubleshooting
@@ -194,7 +197,7 @@ git pull
 ### Check Service Status
 
 ```bash
-podman-compose -f podman-compose.yml ps
+podman-compose -f podman-compose.pi.yml ps
 ```
 
 ### Check Container Health
@@ -209,11 +212,10 @@ podman ps --format "table {{.Names}}\t{{.Status}}"
 # Backend
 podman exec -it meals-backend sh
 
-# Frontend
-podman exec -it meals-frontend sh
-
 # Database
 podman exec -it meals-postgres psql -U mealplanner -d meal_planner
+
+# Note: no frontend container — frontend is static files in ./data/frontend-dist/
 ```
 
 ### Database Issues
@@ -254,11 +256,10 @@ sudo dphys-swapfile setup
 sudo dphys-swapfile swapon
 ```
 
-2. Build images one at a time:
+2. Build directly on Pi (avoids cross-compile memory pressure):
 ```bash
-podman-compose -f podman-compose.yml build backend
-podman-compose -f podman-compose.yml build frontend
-podman-compose -f podman-compose.yml up -d
+./scripts/build-on-pi.sh
+./scripts/pi-run.sh
 ```
 
 ## Performance Optimization

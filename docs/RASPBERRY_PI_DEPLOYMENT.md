@@ -4,28 +4,27 @@ Complete guide for building and deploying the Meal Planner application on Raspbe
 
 ## Architecture Overview
 
-The application uses a multi-container architecture:
+The Pi production deployment runs **4 containers** on the Pi 4B (2GB RAM):
 
-1. **Backend Container** (`meals-backend`)
-   - Node.js 20 Alpine
-   - Includes built frontend assets (served as fallback)
-   - Prisma ORM with PostgreSQL
-   - Runs on port 3000
+1. **`meals-postgres`** — PostgreSQL 16 Alpine (160MB)
+   - Persistent volume storage, tuned for SD card (conservative WAL)
+   - Port 5432 (internal only)
 
-2. **Frontend Container** (`meals-frontend`)
-   - Nginx Alpine
-   - Serves React SPA
-   - Runs on port 80 (internal)
+2. **`meals-redis`** — Redis 7 Alpine (32MB)
+   - JWT/session cache, LRU eviction
+   - Port 6379 (internal only)
 
-3. **Database Container** (`meals-postgres`)
-   - PostgreSQL 16 Alpine
-   - Persistent volume storage
-   - Runs on port 5432 (internal)
+3. **`meals-backend`** — Node.js 20 Alpine (320MB)
+   - Express API, Prisma ORM
+   - Acts as fallback when ClusterHAT Zero W nodes are unavailable
+   - Port 3000 (internal)
 
-4. **Reverse Proxy** (`meals-nginx`)
-   - Nginx Alpine
-   - Routes traffic to frontend/backend
-   - Exposed on port 8080 (HTTP)
+4. **`meals-nginx`** — Nginx Alpine (48MB)
+   - Serves the React PWA as **static files** from `./data/frontend-dist/`
+   - Load balances `/api/` requests to ClusterHAT Zero W nodes (ports 3001), with Pi 4B backend as fallback
+   - Exposed on port 8080
+
+**No separate frontend container** — the React PWA is pre-built and served by Nginx directly, saving ~100MB RAM.
 
 ## Prerequisites
 
@@ -35,13 +34,11 @@ The application uses a multi-container architecture:
 - Sufficient disk space (~2GB for images)
 
 ### On Raspberry Pi
-- Raspberry Pi 4 or newer (ARM64)
-- Raspberry Pi OS (64-bit) or Ubuntu Server
+- Raspberry Pi 4B (confirmed 2GB RAM), aarch64, Raspberry Pi OS 64-bit
 - Podman installed: `sudo apt-get install -y podman`
-- Python 3 with pip: `sudo apt-get install -y python3-pip`
-- podman-compose: `pip3 install podman-compose`
-- At least 4GB RAM recommended
-- 16GB+ SD card/storage
+- podman-compose: `sudo apt-get install -y podman-compose` (or `pip3 install podman-compose`)
+- At least 5GB free disk space
+- 16GB+ SD card
 
 ## Deployment Process
 
@@ -55,28 +52,27 @@ Build ARM64 container images for Raspberry Pi:
 
 This script:
 - ✅ Detects Podman or Docker
-- ✅ Builds backend image with integrated frontend (multi-stage)
-- ✅ Builds standalone frontend image for nginx
-- ✅ Targets ARM64 architecture
-- ✅ Saves images as tar files in `./pi-images/`
+- ✅ Builds `meals-backend` ARM64 image (multi-stage: frontend → backend → production)
+- ✅ Builds frontend static files natively and packages them (architecture-independent)
+- ✅ Saves output to `./pi-images/`
 
 **Output:**
-- `pi-images/meals-backend.tar` (~300-400MB)
-- `pi-images/meals-frontend.tar` (~50-100MB)
+- `pi-images/meals-backend.tar` (~400-500MB) — ARM64 backend image
+- `pi-images/frontend-dist.tar.gz` (~5-15MB) — React PWA static files for Nginx
 
 ### Step 2: Transfer Images to Raspberry Pi
 
 Transfer the built images to your Raspberry Pi:
 
 ```bash
-# Using SCP (recommended - transfer compressed files)
-scp pi-images/*.tar.gz pi@pihole.local:~/mealplanner/pi-images/
+# SCP — transfer backend image + frontend static files
+scp pi-images/meals-backend.tar pi-images/frontend-dist.tar.gz \
+    pi@192.168.4.110:~/mealplanner/pi-images/
 
-# Or transfer uncompressed (larger, slower)
-scp pi-images/*.tar pi@pihole.local:~/mealplanner/pi-images/
-
-# Or using rsync (faster, resumable)
-rsync -avz --progress pi-images/*.tar.gz pi@pihole.local:~/mealplanner/pi-images/
+# Rsync (faster, resumable)
+rsync -avz --progress \
+    pi-images/meals-backend.tar pi-images/frontend-dist.tar.gz \
+    pi@192.168.4.110:~/mealplanner/pi-images/
 ```
 
 **Note:**
@@ -103,16 +99,16 @@ cd ~/mealplanner
 
 This script:
 - ✅ Verifies Podman is installed
-- ✅ Checks for required image files
-- ✅ Loads both backend and frontend images
-- ✅ Verifies images are available
+- ✅ Loads `meals-backend.tar` (or `.tar.gz`) into Podman
+- ✅ Extracts `frontend-dist.tar.gz` → `./data/frontend-dist/`
+- ✅ Cleans up transferred files to free disk space
 
 ### Step 4: Deploy Application
 
 Deploy the application using Podman Compose:
 
 ```bash
-./scripts/deploy-podman.sh
+./scripts/pi-run.sh
 ```
 
 This script:
@@ -130,7 +126,7 @@ This script:
 ### Check Service Status
 
 ```bash
-podman-compose -f podman-compose.yml ps
+podman-compose -f podman-compose.pi.yml ps
 ```
 
 All services should show "Up" status with healthy state.
@@ -145,51 +141,35 @@ All services should show "Up" status with healthy state.
 
 ```bash
 # All services
-podman-compose -f podman-compose.yml logs -f
+podman-compose -f podman-compose.pi.yml logs -f
 
 # Specific service
-podman-compose -f podman-compose.yml logs -f backend
-podman-compose -f podman-compose.yml logs -f frontend
-podman-compose -f podman-compose.yml logs -f postgres
+podman-compose -f podman-compose.pi.yml logs -f backend
+podman-compose -f podman-compose.pi.yml logs -f postgres
+podman-compose -f podman-compose.pi.yml logs -f nginx
+# Note: no separate frontend container — Nginx serves the PWA directly
 ```
 
 ## Management Commands
 
-Use the [`scripts/podman-commands.sh`](../scripts/podman-commands.sh) script for common operations:
-
 ```bash
 # Start services
-./scripts/podman-commands.sh start
+./scripts/pi-run.sh
 
 # Stop services
-./scripts/podman-commands.sh stop
+./scripts/pi-stop.sh
 
 # Restart services
-./scripts/podman-commands.sh restart
+./scripts/pi-bounce.sh
 
-# View logs
-./scripts/podman-commands.sh logs
+# Health check
+./scripts/pi-health-check.sh
 
-# Check status
-./scripts/podman-commands.sh status
+# Full diagnostics
+./scripts/pi-diagnostics.sh
 
 # Backup database
-./scripts/podman-commands.sh backup
-
-# Restore database
-./scripts/podman-commands.sh restore
-
-# Update application
-./scripts/podman-commands.sh update
-
-# View resource usage
-./scripts/podman-commands.sh stats
-
-# Clean up (stop + remove containers)
-./scripts/podman-commands.sh clean
-
-# Full cleanup (includes volumes)
-./scripts/podman-commands.sh clean-all
+podman exec meals-postgres pg_dump -U mealplanner meal_planner > backup-$(date +%Y%m%d).sql
 ```
 
 ## Architecture Details
