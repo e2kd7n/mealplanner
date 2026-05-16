@@ -1,196 +1,190 @@
 # Development Environment Setup Guide
 
-## Prerequisites Installation for macOS
+This guide covers setting up a local development environment for the Family Meal Planner application on macOS, Linux, or Windows (WSL2).
 
-This guide will help you set up the development environment for the Family Meal Planner application.
+---
 
-## 1. Install Homebrew (if not already installed)
+## Prerequisites
 
-Homebrew is a package manager for macOS that makes installing development tools easy.
+| Tool | Version | Notes |
+|------|---------|-------|
+| Node.js | 20 LTS | |
+| pnpm | 8+ | `npm install -g pnpm` |
+| Podman + podman-compose | Latest | Runs the local Postgres container |
+| Git | Any recent | |
 
+---
+
+## 1. Install Node.js 20
+
+**macOS (Homebrew):**
 ```bash
-/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+brew install node@20
 ```
 
-After installation, follow the instructions to add Homebrew to your PATH.
-
-## 2. Install Node.js
-
-We'll use Node.js LTS (Long Term Support) version:
-
+**Linux (apt):**
 ```bash
-brew install node
+curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash -
+sudo apt-get install -y nodejs
 ```
 
-Verify installation:
+**Windows (WSL2):** Use the Linux instructions above inside WSL2, or install via [nvm-windows](https://github.com/coreybutler/nvm-windows).
+
+Verify:
 ```bash
-node --version  # Should show v20.x.x or similar
-npm --version   # Should show 10.x.x or similar
+node --version   # v20.x.x
+npm --version    # 10.x.x
 ```
 
-## 3. Install pnpm (Recommended Package Manager)
+---
 
-According to the project plan, we're using pnpm as the package manager:
+## 2. Install pnpm
 
 ```bash
 npm install -g pnpm
+pnpm --version   # 8.x.x
 ```
 
-Verify installation:
+---
+
+## 3. Install Podman and podman-compose
+
+Podman runs the local PostgreSQL container during development. Only Postgres runs in a container; the frontend and backend run as host processes.
+
+**macOS:**
 ```bash
-pnpm --version  # Should show 8.x.x or similar
-```
-
-## 4. Install Podman and Podman Compose
-
-Podman is a daemonless container engine that's compatible with Docker. We'll use it for running PostgreSQL, Redis, and containerizing the application.
-
-### Install Podman
-```bash
-brew install podman
-```
-
-### Install Podman Compose
-```bash
-brew install podman-compose
-```
-
-### Initialize Podman Machine (required on macOS)
-```bash
+brew install podman podman-compose
 podman machine init
 podman machine start
 ```
 
-Verify installation:
+**Linux:**
+```bash
+sudo apt-get install -y podman
+pip3 install podman-compose
+# Add ~/.local/bin to PATH if needed
+echo 'export PATH=$PATH:$HOME/.local/bin' >> ~/.bashrc && source ~/.bashrc
+```
+
+**Windows (WSL2):**
+```bash
+# Inside WSL2
+sudo apt-get install -y podman
+pip3 install podman-compose
+```
+
+Verify:
 ```bash
 podman --version
 podman-compose --version
-podman machine list  # Should show a running machine
 ```
 
-### Set up Podman alias (optional, for Docker compatibility)
-```bash
-# Optional: Create aliases if you prefer docker commands
-echo 'alias docker=podman' >> ~/.zshrc
-echo 'alias docker-compose=podman-compose' >> ~/.zshrc
-source ~/.zshrc
-```
+---
 
-## 5. Install Git (if not already installed)
+## 4. Install Dependencies
 
 ```bash
-brew install git
+# Frontend
+cd frontend && pnpm install
+
+# Backend
+cd ../backend && pnpm install
 ```
 
-Configure Git:
-```bash
-git config --global user.name "Your Name"
-git config --global user.email "your.email@example.com"
-```
+---
 
-## 6. Optional but Recommended Tools
+## 5. Configure Environment
 
-### VS Code Extensions
-If using VS Code, install these extensions:
-- ESLint
-- Prettier - Code formatter
-- TypeScript Vue Plugin (Volar)
-- Prisma
-- Docker
-- GitLens
-
-### PostgreSQL Client (for database management)
-```bash
-brew install postgresql@15
-```
-
-This installs the PostgreSQL client tools (psql) without running a server.
-
-## 7. Verify All Installations
-
-Run this command to verify everything is installed:
-
-```bash
-echo "Node: $(node --version)"
-echo "npm: $(npm --version)"
-echo "pnpm: $(pnpm --version)"
-echo "Podman: $(podman --version)"
-echo "Git: $(git --version)"
-```
-
-## Next Steps
-
-Once all tools are installed, you can proceed with project initialization:
-
-### 1. Initialize Frontend (React + TypeScript + Vite)
-```bash
-cd frontend
-pnpm create vite . --template react-ts
-pnpm install
-```
-
-### 2. Initialize Backend (Node.js + Express + TypeScript)
+**Backend:**
 ```bash
 cd backend
-pnpm init
-pnpm add express cors dotenv
-pnpm add -D typescript @types/node @types/express @types/cors ts-node nodemon
-pnpm add prisma @prisma/client
-pnpm add bcrypt jsonwebtoken
-pnpm add -D @types/bcrypt @types/jsonwebtoken
+cp .env.example .env
+# Edit .env — set DATABASE_URL, JWT secrets, etc.
 ```
 
-### 3. Start Podman Services
+**Frontend:**
 ```bash
-# From project root
-podman-compose up -d
+cd frontend
+cp .env.example .env
+# Typically no changes needed for local dev
 ```
+
+---
+
+## 6. Start the App
+
+```bash
+# From project root — starts Postgres in Podman, then frontend + backend as host processes
+./scripts/local-run.sh
+```
+
+- Frontend: http://localhost:5173
+- Backend: http://localhost:3000
+
+See the main [README.md](./README.md) for full deployment mode options and the interactive `./scripts/menu.sh`.
+
+---
+
+## 7. Database Setup (first run only)
+
+```bash
+cd backend
+pnpm run prisma:migrate   # Apply migrations
+pnpm run prisma:seed      # Optional: seed sample data
+```
+
+---
 
 ## Troubleshooting
 
-### Issue: Command not found after installation
-**Solution**: Restart your terminal or run:
+### Port already in use
+
+**macOS / Linux:**
 ```bash
-source ~/.zshrc  # or ~/.bash_profile for bash
+lsof -i :3000   # Find what's using port 3000
+kill -9 <PID>
 ```
 
-### Issue: Podman machine not running
-**Solution**: Start the Podman machine:
+**Windows (PowerShell):**
+```powershell
+netstat -ano | findstr :3000
+taskkill /PID <PID> /F
+```
+
+### Podman machine not running (macOS only)
+
 ```bash
 podman machine start
 ```
 
-### Issue: Podman socket connection errors
-**Solution**: Restart the Podman machine:
+### Podman socket errors (macOS only)
+
 ```bash
 podman machine stop
 podman machine start
 ```
 
-### Issue: Permission denied errors with npm/pnpm
-**Solution**: Never use sudo with npm/pnpm. If you have permission issues:
+### pnpm permission errors
+
+Never use `sudo` with pnpm. If you hit permission errors, configure a user-local global prefix:
+
 ```bash
-# Fix npm permissions
-mkdir ~/.npm-global
-npm config set prefix '~/.npm-global'
-echo 'export PATH=~/.npm-global/bin:$PATH' >> ~/.zshrc
-source ~/.zshrc
+mkdir -p ~/.pnpm-global
+pnpm config set global-bin-dir ~/.pnpm-global/bin
+# Add ~/.pnpm-global/bin to your PATH
 ```
 
-### Issue: Port already in use
-**Solution**: Check what's using the port and stop it:
-```bash
-lsof -i :3000  # Check port 3000
-lsof -i :5432  # Check PostgreSQL port
-kill -9 <PID>  # Kill the process
-```
+---
 
-## System Requirements
+## Recommended VS Code Extensions
 
-- **macOS**: 10.15 (Catalina) or later
-- **RAM**: 8GB minimum, 16GB recommended
-- **Storage**: 10GB free space minimum
-- **Processor**: Intel or Apple Silicon (M1/M2/M3)
+- ESLint
+- Prettier
+- Prisma
+- TypeScript and JavaScript Language Features (built-in)
+- GitLens
+
+---
 
 ## Additional Resources
 
@@ -199,7 +193,3 @@ kill -9 <PID>  # Kill the process
 - [Podman Documentation](https://docs.podman.io/)
 - [Vite Documentation](https://vitejs.dev/)
 - [Prisma Documentation](https://www.prisma.io/docs/)
-
-## Ready to Build!
-
-Once you've completed this setup, return to the main development workflow and we'll begin building the application! 🚀
