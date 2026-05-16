@@ -15,7 +15,7 @@ import {
   deviceLogout,
 } from '../controllers/visualAuth.controller';
 
-const router = Router();
+const router: Router = Router();
 
 // ── Public endpoints (no auth required — local network convenience) ────────
 router.get('/users', listUsers);
