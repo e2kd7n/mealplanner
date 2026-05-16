@@ -1,7 +1,7 @@
 #!/bin/bash
 # Secrets Generation Script for Meal Planner Application - Enhanced Security Edition
-# This script generates secure random passwords and stores them in Docker secrets files
-# with metadata and integrity checksums
+# This script generates secure random passwords and stores them in Docker/Podman secrets
+# files with metadata and integrity checksums.
 # Usage: ./scripts/generate-secrets.sh
 
 set -e
@@ -12,6 +12,27 @@ GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 BLUE='\033[0;34m'
 NC='\033[0m' # No Color
+
+# Portable sha256 — macOS ships shasum, Linux ships sha256sum
+sha256_file() {
+    if command -v sha256sum &>/dev/null; then
+        sha256sum "$1" | cut -d' ' -f1
+    else
+        shasum -a 256 "$1" | cut -d' ' -f1
+    fi
+}
+
+# Portable future-date — macOS date uses -v, GNU date uses -d
+future_date() {
+    local days=$1
+    if date -v+${days}d &>/dev/null 2>&1; then
+        date -u -v+${days}d +"%Y-%m-%dT%H:%M:%SZ"
+    elif date -u -d "+${days} days" &>/dev/null 2>&1; then
+        date -u -d "+${days} days" +"%Y-%m-%dT%H:%M:%SZ"
+    else
+        echo "null"
+    fi
+}
 
 # Secrets directory
 SECRETS_DIR="./secrets"
@@ -43,17 +64,17 @@ generate_secret_with_metadata() {
     chmod 600 "$SECRETS_DIR/${name}.txt"
     
     # Generate and write checksum
-    echo -n "$secret" | shasum -a 256 | cut -d' ' -f1 > "$SECRETS_DIR/${name}.txt.sha256"
+    sha256_file "$SECRETS_DIR/${name}.txt" > "$SECRETS_DIR/${name}.txt.sha256"
     chmod 600 "$SECRETS_DIR/${name}.txt.sha256"
-    
+
     # Generate and write metadata
     cat > "$SECRETS_DIR/${name}.txt.metadata" << EOF
 {
   "name": "${name}",
   "description": "${description}",
   "createdAt": "$(date -u +"%Y-%m-%dT%H:%M:%SZ")",
-  "expiresAt": "$(date -u -v+90d +"%Y-%m-%dT%H:%M:%SZ" 2>/dev/null || date -u -d '+90 days' +"%Y-%m-%dT%H:%M:%SZ" 2>/dev/null || echo 'null')",
-  "rotationDue": "$(date -u -v+75d +"%Y-%m-%dT%H:%M:%SZ" 2>/dev/null || date -u -d '+75 days' +"%Y-%m-%dT%H:%M:%SZ" 2>/dev/null || echo 'null')",
+  "expiresAt": "$(future_date 90)",
+  "rotationDue": "$(future_date 75)",
   "algorithm": "openssl-rand-base64",
   "length": ${length},
   "version": 1
@@ -102,6 +123,7 @@ if [ -d "$SECRETS_DIR" ]; then
     backup_as_previous "jwt_secret"
     backup_as_previous "jwt_refresh_secret"
     backup_as_previous "session_secret"
+    backup_as_previous "redis_password"
     echo ""
 fi
 
@@ -123,6 +145,9 @@ generate_secret_with_metadata "jwt_refresh_secret" 64 "JWT refresh token signing
 
 # Generate session secret
 generate_secret_with_metadata "session_secret" 48 "Express session secret"
+
+# Generate Redis password (required for Pi production compose)
+generate_secret_with_metadata "redis_password" 32 "Redis authentication password"
 
 echo ""
 echo -e "${GREEN}✓ All secrets generated successfully!${NC}"

@@ -1,254 +1,223 @@
 #!/bin/bash
 
-# Podman deployment script for Raspberry Pi
-# This script deploys the Meal Planner application using Podman
+# Container-mode deployment for local development machines
+# Starts all services via podman-compose using the dev compose file (port 8080)
+# ⚠️  FOR LOCAL DEV MACHINES ONLY - Use pi-run.sh on Raspberry Pi
 
 set -e
-
-echo "🚀 Starting Podman deployment for Meal Planner..."
 
 # Colors for output
 RED='\033[0;31m'
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 BLUE='\033[0;34m'
-NC='\033[0m' # No Color
+NC='\033[0m'
 
-# Check disk space before deployment
-DISK_USAGE=$(df / | awk 'NR==2 {print $5}' | sed 's/%//')
-echo -e "${BLUE}💾 Current disk usage: ${DISK_USAGE}%${NC}"
+# Detect OS / architecture
+detect_os() {
+    case "$(uname -s)" in
+        Darwin*)
+            echo "mac" ;;
+        Linux*)
+            if grep -qi microsoft /proc/version 2>/dev/null; then
+                echo "wsl"
+            elif [ -f /proc/device-tree/model ] && grep -q "Raspberry Pi" /proc/device-tree/model 2>/dev/null; then
+                echo "pi"
+            else
+                echo "linux"
+            fi
+            ;;
+        MINGW*|MSYS*|CYGWIN*)
+            echo "windows" ;;
+        *)
+            echo "unknown" ;;
+    esac
+}
 
-if [ "$DISK_USAGE" -gt 80 ]; then
-    echo -e "${RED}❌ Disk usage is critically high (${DISK_USAGE}%)${NC}"
-    echo -e "${YELLOW}Please run cleanup before deploying:${NC}"
-    echo -e "   ${GREEN}./scripts/cleanup-pi.sh${NC}"
+OS=$(detect_os)
+ARCH=$(uname -m)   # x86_64, aarch64, arm64, etc.
+
+if [ "$OS" = "pi" ]; then
+    echo -e "${RED}❌ This is a LOCAL DEV script. On Raspberry Pi use: ./scripts/pi-run.sh${NC}"
     exit 1
-elif [ "$DISK_USAGE" -gt 70 ]; then
-    echo -e "${YELLOW}⚠️  Disk usage is high (${DISK_USAGE}%) - cleanup recommended${NC}"
-    echo -e "${YELLOW}Run: ./scripts/cleanup-pi.sh${NC}"
-    read -p "Continue anyway? (y/N): " -n 1 -r
-    echo
-    if [[ ! $REPLY =~ ^[Yy]$ ]]; then
-        exit 1
-    fi
 fi
 
-# Check if podman is installed
+echo -e "${BLUE}🖥️  Platform: $OS ($ARCH)${NC}"
+echo "🚀 Starting Meal Planner in container mode (port 8080)..."
+
+# ── Prerequisites ────────────────────────────────────────────────────────────
+
 if ! command -v podman &> /dev/null; then
-    echo -e "${RED}❌ Podman is not installed. Please install it first:${NC}"
-    echo "   sudo apt-get update && sudo apt-get install -y podman"
+    echo -e "${RED}❌ Podman is not installed.${NC}"
+    case "$OS" in
+        mac)     echo "  Install with: brew install podman" ;;
+        linux|wsl) echo "  Install with: sudo apt-get install -y podman" ;;
+        windows) echo "  Install from: https://podman.io/getting-started/installation" ;;
+    esac
     exit 1
 fi
 
-# Check if podman-compose is installed
 if ! command -v podman-compose &> /dev/null; then
     echo -e "${YELLOW}⚠️  podman-compose not found. Installing...${NC}"
     pip3 install podman-compose
 fi
 
-# Generate secrets if they don't exist
+# On macOS/Windows the Podman VM must be running
+if [[ "$OS" == "mac" || "$OS" == "windows" ]]; then
+    if ! podman machine list 2>/dev/null | grep -q "Currently running"; then
+        echo -e "${YELLOW}⚠️  Podman machine not running. Starting...${NC}"
+        podman machine start
+    fi
+fi
+
+# ── Secrets ──────────────────────────────────────────────────────────────────
+
 if [ ! -f "./secrets/postgres_password.txt" ]; then
     echo -e "${YELLOW}⚠️  Secrets not found. Generating...${NC}"
     ./scripts/generate-secrets.sh
 fi
 
-# Stop and remove existing containers
+# ── Disk space check ─────────────────────────────────────────────────────────
+
+DISK_USAGE=$(df / | awk 'NR==2 {print $5}' | sed 's/%//')
+echo -e "${BLUE}💾 Disk usage: ${DISK_USAGE}%${NC}"
+
+if [ "$DISK_USAGE" -gt 90 ]; then
+    echo -e "${RED}❌ Disk usage critically high (${DISK_USAGE}%). Run cleanup first:${NC}"
+    echo -e "   ${GREEN}./scripts/cleanup-dev-machine.sh${NC}"
+    exit 1
+elif [ "$DISK_USAGE" -gt 80 ]; then
+    echo -e "${YELLOW}⚠️  Disk usage high (${DISK_USAGE}%)${NC}"
+    read -p "Continue anyway? (y/N): " -n 1 -r
+    echo
+    [[ $REPLY =~ ^[Yy]$ ]] || exit 1
+fi
+
+# ── Tear down existing containers ─────────────────────────────────────────────
+
 echo -e "${YELLOW}🛑 Stopping existing containers...${NC}"
-podman-compose -f podman-compose.pi.yml down 2>/dev/null || true
-
-# Force remove any stuck containers
-echo -e "${YELLOW}🧹 Cleaning up any stuck containers...${NC}"
+podman-compose -f podman-compose.yml down 2>/dev/null || true
 podman rm -f meals-postgres meals-backend meals-frontend meals-nginx 2>/dev/null || true
-
-# Remove any orphaned containers from previous failed attempts
 podman container prune -f 2>/dev/null || true
 
-# Check if pre-built images exist
-echo -e "${BLUE}🔍 Checking for pre-built images...${NC}"
-# Check for images with or without localhost/ prefix
-BACKEND_EXISTS=$(podman images --format "{{.Repository}}:{{.Tag}}" | grep -c "meals-backend:latest$" || true)
-FRONTEND_EXISTS=$(podman images --format "{{.Repository}}:{{.Tag}}" | grep -c "meals-frontend:latest$" || true)
+# ── Start all services via dev compose ───────────────────────────────────────
 
-if [ "$BACKEND_EXISTS" -gt 0 ] && [ "$FRONTEND_EXISTS" -gt 0 ]; then
-    echo -e "${GREEN}✓ Found pre-built images:${NC}"
-    podman images --format "table {{.Repository}}\t{{.Tag}}\t{{.Size}}" | grep -E "REPOSITORY|meals-"
-    SKIP_BUILD=true
-else
-    echo -e "${YELLOW}⚠️  Pre-built images not found${NC}"
-    echo -e "${BLUE}Current images:${NC}"
-    podman images --format "table {{.Repository}}\t{{.Tag}}\t{{.Size}}" | head -10
-    SKIP_BUILD=false
-fi
+echo -e "${GREEN}🚀 Starting services (podman-compose.yml)...${NC}"
+podman-compose -f podman-compose.yml up -d
 
-# Build images only if needed
-if [ "$SKIP_BUILD" = false ]; then
-    echo -e "${RED}❌ Pre-built images not found!${NC}"
-    echo -e "${YELLOW}On Raspberry Pi, you must use pre-built images.${NC}"
-    echo -e "${YELLOW}Please follow these steps:${NC}"
-    echo -e "   1. On dev machine: ${GREEN}./scripts/build-for-pi.sh${NC}"
-    echo -e "   2. Transfer images: ${GREEN}scp pi-images/*.tar.gz pi@pihole.local:~/mealplanner/pi-images/${NC}"
-    echo -e "   3. On Pi: ${GREEN}./scripts/load-pi-images.sh${NC}"
-    echo -e "   4. Then run: ${GREEN}./scripts/deploy-podman.sh${NC}"
-    exit 1
-else
-    echo -e "${BLUE}ℹ️  Using pre-loaded images${NC}"
-fi
+# ── Wait for postgres ─────────────────────────────────────────────────────────
 
-# Start services manually to avoid podman-compose blocking issues
-echo -e "${GREEN}🚀 Starting services...${NC}"
-
-# Create network if it doesn't exist
-if ! podman network exists mealplanner_meals-network 2>/dev/null; then
-    echo -e "${BLUE}Creating network...${NC}"
-    podman network create mealplanner_meals-network
-fi
-
-# Start postgres first
-echo -e "${BLUE}Starting PostgreSQL...${NC}"
-podman-compose -f podman-compose.pi.yml up -d postgres
-
-# Wait a moment for postgres to create
-sleep 3
-
-# Start postgres container
-echo -e "${BLUE}Starting PostgreSQL container...${NC}"
-if ! podman start meals-postgres 2>/dev/null; then
-    echo -e "${YELLOW}Container doesn't exist yet, waiting for podman-compose...${NC}"
-    sleep 5
-fi
-
-# Wait for postgres to be ready (critical dependency)
-echo -e "${YELLOW}⏳ Waiting for PostgreSQL to be ready...${NC}"
+echo -e "${YELLOW}⏳ Waiting for PostgreSQL...${NC}"
 MAX_WAIT=60
 WAITED=0
 while [ $WAITED -lt $MAX_WAIT ]; do
     if podman exec meals-postgres pg_isready -U mealplanner -d meal_planner &>/dev/null; then
-        echo -e "${GREEN}✓ PostgreSQL is ready${NC}"
+        echo -e "${GREEN}✓ PostgreSQL ready${NC}"
         break
     fi
+    echo -n "."
     sleep 2
     WAITED=$((WAITED + 2))
-    echo -n "."
 done
 echo ""
 
 if [ $WAITED -ge $MAX_WAIT ]; then
     echo -e "${RED}❌ PostgreSQL failed to start within ${MAX_WAIT}s${NC}"
-    echo -e "${YELLOW}PostgreSQL logs:${NC}"
     podman logs meals-postgres
     exit 1
 fi
 
-# Start backend
-echo -e "${BLUE}Starting backend...${NC}"
-podman-compose -f podman-compose.pi.yml up -d backend
-sleep 5
+# ── Wait for backend ──────────────────────────────────────────────────────────
 
-# Start backend container if needed
-if ! podman start meals-backend 2>/dev/null; then
-    echo -e "${YELLOW}Waiting for backend container...${NC}"
-    sleep 5
-fi
-
-# Wait for backend to be ready
-echo -e "${YELLOW}⏳ Waiting for backend to be ready...${NC}"
+echo -e "${YELLOW}⏳ Waiting for backend...${NC}"
 MAX_WAIT=90
 WAITED=0
 while [ $WAITED -lt $MAX_WAIT ]; do
-    if podman exec meals-backend wget --no-verbose --tries=1 --spider http://localhost:3000/health &>/dev/null; then
-        echo -e "${GREEN}✓ Backend is ready${NC}"
+    if curl -sf http://localhost:3000/health &>/dev/null; then
+        echo -e "${GREEN}✓ Backend ready${NC}"
         break
     fi
+    echo -n "."
     sleep 3
     WAITED=$((WAITED + 3))
-    echo -n "."
 done
 echo ""
 
 if [ $WAITED -ge $MAX_WAIT ]; then
     echo -e "${RED}❌ Backend failed to start within ${MAX_WAIT}s${NC}"
-    echo -e "${YELLOW}Backend logs:${NC}"
-    podman logs meals-backend
+    podman logs meals-backend --tail=50
     exit 1
 fi
 
-# Start frontend and nginx
-echo -e "${BLUE}Starting frontend and nginx...${NC}"
-podman-compose -f podman-compose.pi.yml up -d frontend nginx
-sleep 5
+# ── Run migrations ────────────────────────────────────────────────────────────
 
-# Verify all containers are running
-echo -e "${GREEN}📊 Service status:${NC}"
-podman ps --filter "name=meals-"
-
-# Check for any failed containers
-FAILED_CONTAINERS=$(podman ps -a --filter "name=meals-" --format "{{.Names}} {{.Status}}" | grep -v "Up" || true)
-if [ -n "$FAILED_CONTAINERS" ]; then
-    echo -e "${RED}❌ Some containers failed to start:${NC}"
-    echo "$FAILED_CONTAINERS"
-    echo -e "${YELLOW}Checking logs...${NC}"
-    for container in meals-postgres meals-backend meals-frontend meals-nginx; do
-        if podman ps -a --format "{{.Names}}" | grep -q "^${container}$"; then
-            echo -e "${YELLOW}=== ${container} logs ===${NC}"
-            podman logs $container 2>&1 | tail -30
-        fi
-    done
-    exit 1
-fi
-
-# Run database migrations
 echo -e "${GREEN}🔄 Running database migrations...${NC}"
 if ! podman exec meals-backend sh -c "cd /app && npx prisma migrate deploy"; then
-    echo -e "${RED}❌ Database migration failed${NC}"
-    echo -e "${YELLOW}Backend logs:${NC}"
+    echo -e "${RED}❌ Migration failed${NC}"
     podman logs meals-backend --tail=100
     exit 1
 fi
 
-echo -e "${GREEN}✅ Deployment complete!${NC}"
+# ── Status ────────────────────────────────────────────────────────────────────
+
+echo ""
+echo -e "${GREEN}📊 Container status:${NC}"
+podman ps --filter "name=meals-"
+
+FAILED=$(podman ps -a --filter "name=meals-" --format "{{.Names}} {{.Status}}" | grep -v "Up" || true)
+if [ -n "$FAILED" ]; then
+    echo -e "${RED}❌ Some containers failed:${NC}"
+    echo "$FAILED"
+    for c in meals-postgres meals-backend meals-frontend meals-nginx; do
+        podman ps -a --format "{{.Names}}" | grep -q "^${c}$" || continue
+        echo -e "${YELLOW}=== $c ===${NC}"
+        podman logs "$c" 2>&1 | tail -20
+    done
+    exit 1
+fi
+
+# ── Open browser ──────────────────────────────────────────────────────────────
+
+case "$OS" in
+    mac)     open "http://localhost:8080" 2>/dev/null || true ;;
+    linux)
+        if command -v xdg-open &>/dev/null; then
+            xdg-open "http://localhost:8080" &>/dev/null &
+        fi
+        ;;
+    wsl)
+        if command -v wslview &>/dev/null; then
+            wslview "http://localhost:8080" &>/dev/null &
+        elif command -v explorer.exe &>/dev/null; then
+            explorer.exe "http://localhost:8080" &>/dev/null &
+        fi
+        ;;
+    windows)
+        start "http://localhost:8080" 2>/dev/null || true ;;
+esac
+
+# ── Summary ───────────────────────────────────────────────────────────────────
+
 echo ""
 echo "═══════════════════════════════════════════════════════════════"
 echo ""
 
-# Call check-deployment-mode.sh as the source of truth
 if [ -f "./scripts/check-deployment-mode.sh" ]; then
     bash ./scripts/check-deployment-mode.sh
 else
-    # Fallback if script doesn't exist
-    echo -e "${GREEN}🌐 Application is available at: http://localhost:8080${NC}"
-    echo -e "${GREEN}📝 View logs with: podman-compose -f podman-compose.pi.yml logs -f${NC}"
+    echo -e "${GREEN}🌐 Application: http://localhost:8080${NC}"
+    echo -e "${BLUE}🔌 API:         http://localhost:8080/api${NC}"
+    echo -e "${BLUE}❤️  Health:      http://localhost:8080/health${NC}"
 fi
 
 echo ""
-echo "═══════════════════════════════════════════════════════════════"
-
-# Post-deployment cleanup check
+echo -e "${BLUE}📝 Useful commands:${NC}"
+echo -e "   Logs:    ${GREEN}podman-compose -f podman-compose.yml logs -f${NC}"
+echo -e "   Stop:    ${GREEN}./scripts/local-stop.sh${NC}"
+echo -e "   Cleanup: ${GREEN}./scripts/cleanup-dev-machine.sh${NC}"
 echo ""
-echo -e "${YELLOW}🧹 Checking for cleanup opportunities...${NC}"
-DISK_AFTER=$(df / | awk 'NR==2 {print $5}' | sed 's/%//')
-echo -e "${BLUE}💾 Disk usage after deployment: ${DISK_AFTER}${NC}"
 
-# Check for old/unused images
-UNUSED_IMAGES=$(podman images -f "dangling=true" -q | wc -l)
-if [ "$UNUSED_IMAGES" -gt 0 ]; then
-    echo -e "${YELLOW}⚠️  Found ${UNUSED_IMAGES} unused/dangling images${NC}"
-    echo -e "${YELLOW}Run cleanup to remove them: ./scripts/cleanup-pi.sh${NC}"
-fi
-
-# Check for stopped containers
-STOPPED_CONTAINERS=$(podman ps -a -f "status=exited" -q | wc -l)
-if [ "$STOPPED_CONTAINERS" -gt 0 ]; then
-    echo -e "${YELLOW}⚠️  Found ${STOPPED_CONTAINERS} stopped containers${NC}"
-    echo -e "${YELLOW}Run cleanup to remove them: ./scripts/cleanup-pi.sh${NC}"
-fi
-
-if [ "$DISK_AFTER" -gt 70 ]; then
-    echo -e "${YELLOW}⚠️  Disk usage is still high (${DISK_AFTER}%)${NC}"
-    echo -e "${YELLOW}Consider running: ./scripts/cleanup-pi.sh${NC}"
-fi
-
-echo ""
-echo -e "${BLUE}💡 Tip: Run diagnostics to monitor system health:${NC}"
-echo -e "   ${GREEN}./scripts/pi-diagnostics.sh${NC}"
+UNUSED=$(podman images -f "dangling=true" -q | wc -l)
+[ "$UNUSED" -gt 0 ] && echo -e "${YELLOW}⚠️  ${UNUSED} dangling images found — run cleanup-dev-machine.sh${NC}"
 
 # Made with Bob

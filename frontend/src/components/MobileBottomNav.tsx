@@ -9,6 +9,7 @@ import {
   BottomNavigation,
   BottomNavigationAction,
   Paper,
+  Badge,
   useTheme,
   useMediaQuery,
 } from '@mui/material';
@@ -19,6 +20,7 @@ import {
   ShoppingCart as ShoppingCartIcon,
   Kitchen as KitchenIcon,
 } from '@mui/icons-material';
+import { useAppSelector } from '../store/hooks';
 
 /**
  * Mobile-optimized bottom navigation bar
@@ -30,12 +32,15 @@ const MobileBottomNav: React.FC = () => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
 
-  // Don't render on desktop
-  if (!isMobile) {
-    return null;
-  }
+  const { expiringItems, lowStockItems } = useAppSelector((state) => state.pantry);
+  const { groceryLists } = useAppSelector((state) => state.groceryLists);
 
-  // Map paths to navigation values
+  if (!isMobile) return null;
+
+  const hasPantryAlert = expiringItems.length > 0 || lowStockItems.length > 0;
+  const activeGroceryList = groceryLists.find((gl) => gl.status === 'shopping') ?? null;
+  const groceryUnchecked = activeGroceryList?.items.filter((i) => !i.isChecked).length ?? 0;
+
   const getValueFromPath = (path: string): number => {
     if (path.startsWith('/dashboard')) return 0;
     if (path.startsWith('/recipes')) return 1;
@@ -48,13 +53,7 @@ const MobileBottomNav: React.FC = () => {
   const currentValue = getValueFromPath(location.pathname);
 
   const handleChange = (_event: React.SyntheticEvent, newValue: number) => {
-    const paths = [
-      '/dashboard',
-      '/recipes',
-      '/meal-planner',
-      '/grocery-list',
-      '/pantry',
-    ];
+    const paths = ['/dashboard', '/recipes', '/meal-planner', '/grocery-list', '/pantry'];
     navigate(paths[newValue]);
   };
 
@@ -66,7 +65,6 @@ const MobileBottomNav: React.FC = () => {
         left: 0,
         right: 0,
         zIndex: theme.zIndex.appBar,
-        // Add safe area padding for iOS devices
         paddingBottom: 'env(safe-area-inset-bottom)',
       }}
       elevation={8}
@@ -78,7 +76,6 @@ const MobileBottomNav: React.FC = () => {
         sx={{
           height: 'auto',
           minHeight: 56,
-          // Ensure touch targets are at least 44px
           '& .MuiBottomNavigationAction-root': {
             minHeight: 56,
             padding: '6px 12px 8px',
@@ -107,13 +104,21 @@ const MobileBottomNav: React.FC = () => {
         />
         <BottomNavigationAction
           label="Grocery"
-          icon={<ShoppingCartIcon />}
-          aria-label="Navigate to Grocery List"
+          icon={
+            <Badge badgeContent={groceryUnchecked || null} color="secondary" max={99}>
+              <ShoppingCartIcon />
+            </Badge>
+          }
+          aria-label={groceryUnchecked ? `Grocery List — ${groceryUnchecked} items remaining` : 'Navigate to Grocery List'}
         />
         <BottomNavigationAction
           label="Pantry"
-          icon={<KitchenIcon />}
-          aria-label="Navigate to Pantry"
+          icon={
+            <Badge variant="dot" color="error" invisible={!hasPantryAlert}>
+              <KitchenIcon />
+            </Badge>
+          }
+          aria-label={hasPantryAlert ? 'Pantry — items need attention' : 'Navigate to Pantry'}
         />
       </BottomNavigation>
     </Paper>

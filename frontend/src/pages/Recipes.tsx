@@ -29,6 +29,9 @@ import {
   Tabs,
   Tab,
   Skeleton,
+  Collapse,
+  Badge,
+  IconButton,
 } from '@mui/material';
 import {
   Search as SearchIcon,
@@ -37,6 +40,9 @@ import {
   Add as AddIcon,
   Link as LinkIcon,
   Explore as ExploreIcon,
+  Tune as TuneIcon,
+  Info as InfoIcon,
+  CleaningServices as CleaningServicesIcon,
 } from '@mui/icons-material';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAppDispatch, useAppSelector } from '../store/hooks';
@@ -89,21 +95,13 @@ const RecipeCard = memo(({ recipe, onNavigate }: RecipeCardProps) => {
           height="200"
           image={imageSrc}
           alt={recipe.title}
-          sx={{
-            objectFit: 'cover',
-            width: '100%',
-            height: '100%',
-            display: 'block',
-          }}
+          sx={{ objectFit: 'cover', width: '100%', height: '100%', display: 'block' }}
         />
         {imageLoading && (
           <Box
             sx={{
               position: 'absolute',
-              top: 0,
-              left: 0,
-              right: 0,
-              bottom: 0,
+              top: 0, left: 0, right: 0, bottom: 0,
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
@@ -115,9 +113,7 @@ const RecipeCard = memo(({ recipe, onNavigate }: RecipeCardProps) => {
         )}
       </Box>
       <CardContent sx={{ flexGrow: 1 }}>
-        <Typography variant="h6" gutterBottom noWrap>
-          {recipe.title}
-        </Typography>
+        <Typography variant="h6" gutterBottom noWrap>{recipe.title}</Typography>
         <Typography
           variant="body2"
           color="text.secondary"
@@ -134,30 +130,14 @@ const RecipeCard = memo(({ recipe, onNavigate }: RecipeCardProps) => {
         </Typography>
         <Stack direction="row" spacing={1} flexWrap="wrap" gap={1}>
           <Tooltip title={`Difficulty: ${recipe.difficulty}`} arrow>
-            <Chip
-              label={recipe.difficulty}
-              size="small"
-              color={getDifficultyColor(recipe.difficulty)}
-            />
+            <Chip label={recipe.difficulty} size="small" color={getDifficultyColor(recipe.difficulty)} />
           </Tooltip>
-          <Tooltip
-            title={`Prep: ${recipe.prepTime} min | Cook: ${recipe.cookTime} min`}
-            arrow
-          >
-            <Chip
-              icon={<TimeIcon />}
-              label={`${recipe.prepTime + recipe.cookTime} min`}
-              size="small"
-              variant="outlined"
-            />
+          <Tooltip title={`Prep: ${recipe.prepTime} min | Cook: ${recipe.cookTime} min`} arrow>
+            <Chip icon={<TimeIcon />} label={`${recipe.prepTime + recipe.cookTime} min`} size="small" variant="outlined" />
           </Tooltip>
           {recipe.mealTypes?.map((mealType: string) => (
             <Tooltip key={mealType} title={`Meal type: ${mealType}`} arrow>
-              <Chip
-                label={mealType}
-                size="small"
-                variant="outlined"
-              />
+              <Chip label={mealType} size="small" variant="outlined" />
             </Tooltip>
           ))}
         </Stack>
@@ -165,10 +145,7 @@ const RecipeCard = memo(({ recipe, onNavigate }: RecipeCardProps) => {
       <CardActions>
         <Button
           size="small"
-          onClick={(e) => {
-            e.stopPropagation();
-            onNavigate(recipe.id);
-          }}
+          onClick={(e) => { e.stopPropagation(); onNavigate(recipe.id); }}
           aria-label={`View ${recipe.title} recipe`}
         >
           View Recipe
@@ -177,10 +154,8 @@ const RecipeCard = memo(({ recipe, onNavigate }: RecipeCardProps) => {
     </Card>
   );
 });
-
 RecipeCard.displayName = 'RecipeCard';
 
-// D1-1 FIX: Skeleton loader for recipe cards
 const RecipeCardSkeleton = () => (
   <Card sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
     <Skeleton variant="rectangular" height={200} />
@@ -206,10 +181,8 @@ const Recipes: React.FC = () => {
   const { recipes, loading, error, pagination } = useAppSelector((state) => state.recipes);
   const [searchParams, setSearchParams] = useSearchParams();
 
-  // Tab state
   const [activeTab, setActiveTab] = useState(Number(searchParams.get('tab')) || 0);
 
-  // Initialize state from URL query parameters
   const [searchInput, setSearchInput] = useState(searchParams.get('search') || '');
   const [difficulty, setDifficulty] = useState(searchParams.get('difficulty') || '');
   const [mealType, setMealType] = useState(searchParams.get('mealType') || '');
@@ -217,10 +190,13 @@ const Recipes: React.FC = () => {
   const [sortBy, setSortBy] = useState(searchParams.get('sortBy') || 'title');
   const [currentPage, setCurrentPage] = useState(Number(searchParams.get('page')) || 1);
 
-  // Debounce search input to reduce API calls
+  // Filter panel open/closed
+  const [filtersOpen, setFiltersOpen] = useState(false);
+
   const debouncedSearch = useDebounce(searchInput, 500);
 
-  // Update URL query parameters when filters change
+  const activeFilterCount = [difficulty, mealType, cleanupScore].filter(Boolean).length;
+
   useEffect(() => {
     const params = new URLSearchParams();
     if (activeTab > 0) params.set('tab', activeTab.toString());
@@ -230,7 +206,6 @@ const Recipes: React.FC = () => {
     if (cleanupScore) params.set('cleanup', cleanupScore);
     if (sortBy && sortBy !== 'title') params.set('sortBy', sortBy);
     if (currentPage > 1) params.set('page', currentPage.toString());
-    
     setSearchParams(params, { replace: true });
   }, [activeTab, debouncedSearch, difficulty, mealType, cleanupScore, sortBy, currentPage, setSearchParams]);
 
@@ -242,52 +217,50 @@ const Recipes: React.FC = () => {
       if (mealType) params.mealType = mealType;
       if (cleanupScore) params.maxCleanupScore = cleanupScore;
       if (sortBy) params.sortBy = sortBy;
-
       dispatch(fetchRecipes(params));
     }
   }, [dispatch, activeTab, currentPage, debouncedSearch, difficulty, mealType, cleanupScore, sortBy]);
 
-  // Reset to page 1 when search changes
   useEffect(() => {
-    if (debouncedSearch !== searchInput) {
-      setCurrentPage(1);
-    }
+    if (debouncedSearch !== searchInput) setCurrentPage(1);
   }, [debouncedSearch, searchInput]);
 
-  const handleSearchInput = useCallback((value: string) => {
-    setSearchInput(value);
-  }, []);
+  const handleSearchInput = useCallback((value: string) => setSearchInput(value), []);
 
   const handlePageChange = useCallback((_event: React.ChangeEvent<unknown>, value: number) => {
     setCurrentPage(value);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }, []);
 
-  const handleNavigate = useCallback((id: string) => {
-    navigate(`/recipes/${id}`);
-  }, [navigate]);
+  const handleNavigate = useCallback((id: string) => navigate(`/recipes/${id}`), [navigate]);
 
-  const handleTabChange = (_event: React.SyntheticEvent, newValue: number) => {
-    setActiveTab(newValue);
+  const handleTabChange = (_event: React.SyntheticEvent, newValue: number) => setActiveTab(newValue);
+
+  const clearFilter = (filter: 'difficulty' | 'mealType' | 'cleanupScore') => {
+    if (filter === 'difficulty') setDifficulty('');
+    if (filter === 'mealType') setMealType('');
+    if (filter === 'cleanupScore') setCleanupScore('');
+    setCurrentPage(1);
   };
 
   return (
     <Container maxWidth="xl">
       <Box sx={{ mb: 4 }}>
+        {/* Header */}
         <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
-          <Typography variant="h4">
-            Recipes
-          </Typography>
+          <Typography variant="h4">Recipes</Typography>
           {activeTab === 0 && (
             <Box sx={{ display: 'flex', gap: 2 }}>
-              <Button
-                variant="outlined"
-                startIcon={<LinkIcon />}
-                onClick={() => navigate('/recipes/import')}
-                aria-label="Import recipe from URL"
-              >
-                Import from URL
-              </Button>
+              <Tooltip title="Paste any recipe URL — we'll extract the ingredients and steps automatically." arrow>
+                <Button
+                  variant="outlined"
+                  startIcon={<LinkIcon />}
+                  onClick={() => navigate('/recipes/import')}
+                  aria-label="Import recipe from URL"
+                >
+                  Import Recipe
+                </Button>
+              </Tooltip>
               <Button
                 variant="contained"
                 startIcon={<AddIcon />}
@@ -300,30 +273,40 @@ const Recipes: React.FC = () => {
           )}
         </Box>
 
-        {/* Tabs for My Recipes vs Browse Recipes */}
+        {/* Tabs */}
         <Box sx={{ borderBottom: 1, borderColor: 'divider', mb: 3 }}>
           <Tabs value={activeTab} onChange={handleTabChange} aria-label="recipe tabs">
-            <Tab 
-              icon={<RestaurantIcon />} 
-              label="My Recipes" 
+            <Tab
+              icon={<RestaurantIcon />}
+              label="My Recipes"
               iconPosition="start"
               aria-label="View my recipes"
             />
-            <Tab 
-              icon={<ExploreIcon />} 
-              label="Browse Recipes" 
+            <Tab
+              icon={<ExploreIcon />}
+              label={
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                  Discover Recipes
+                  <Chip
+                    label="Thousands of recipes"
+                    size="small"
+                    color="secondary"
+                    sx={{ height: 18, fontSize: '0.65rem' }}
+                  />
+                </Box>
+              }
               iconPosition="start"
-              aria-label="Browse external recipes"
+              aria-label="Discover external recipes from Spoonacular"
             />
           </Tabs>
         </Box>
 
-        {/* Tab Content */}
+        {/* My Recipes Tab */}
         <Box sx={{ display: activeTab === 0 ? 'block' : 'none' }}>
-          {/* My Recipes Tab */}
-          <>
-            {/* Search and Filters */}
-            <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} sx={{ mb: 3 }}>
+          {/* Search + Filters */}
+          <Box sx={{ mb: 2 }}>
+            {/* Row 1: Search + Filters button + Sort */}
+            <Stack direction="row" spacing={1} alignItems="center">
               <TextField
                 fullWidth
                 placeholder="Search recipes..."
@@ -338,66 +321,24 @@ const Recipes: React.FC = () => {
                 }}
                 aria-label="Search my recipes"
               />
-              <FormControl sx={{ minWidth: 150 }}>
-                <InputLabel>Difficulty</InputLabel>
-                <Select
-                  value={difficulty}
-                  label="Difficulty"
-                  onChange={(e) => {
-                    setDifficulty(e.target.value);
-                    setCurrentPage(1);
-                  }}
+              <Badge badgeContent={activeFilterCount || null} color="secondary">
+                <Button
+                  variant="outlined"
+                  startIcon={<TuneIcon />}
+                  onClick={() => setFiltersOpen((o) => !o)}
+                  aria-expanded={filtersOpen}
+                  aria-controls="recipe-filter-panel"
+                  sx={{ whiteSpace: 'nowrap' }}
                 >
-                  <MenuItem value="">All</MenuItem>
-                  <MenuItem value="easy">Easy</MenuItem>
-                  <MenuItem value="medium">Medium</MenuItem>
-                  <MenuItem value="hard">Hard</MenuItem>
-                </Select>
-              </FormControl>
-              <FormControl sx={{ minWidth: 150 }}>
-                <InputLabel>Meal Type</InputLabel>
-                <Select
-                  value={mealType}
-                  label="Meal Type"
-                  onChange={(e) => {
-                    setMealType(e.target.value);
-                    setCurrentPage(1);
-                  }}
-                >
-                  <MenuItem value="">All</MenuItem>
-                  <MenuItem value="breakfast">Breakfast</MenuItem>
-                  <MenuItem value="lunch">Lunch</MenuItem>
-                  <MenuItem value="dinner">Dinner</MenuItem>
-                  <MenuItem value="snack">Snack</MenuItem>
-                  <MenuItem value="dessert">Dessert</MenuItem>
-                </Select>
-              </FormControl>
-              <FormControl sx={{ minWidth: 150 }}>
-                <InputLabel>Cleanup</InputLabel>
-                <Select
-                  value={cleanupScore}
-                  label="Cleanup"
-                  onChange={(e) => {
-                    setCleanupScore(e.target.value);
-                    setCurrentPage(1);
-                  }}
-                >
-                  <MenuItem value="">All</MenuItem>
-                  <MenuItem value="3">Minimal (0-3)</MenuItem>
-                  <MenuItem value="5">Easy (0-5)</MenuItem>
-                  <MenuItem value="7">Moderate (0-7)</MenuItem>
-                  <MenuItem value="10">Any</MenuItem>
-                </Select>
-              </FormControl>
+                  Filters
+                </Button>
+              </Badge>
               <FormControl sx={{ minWidth: 180 }}>
                 <InputLabel>Sort By</InputLabel>
                 <Select
                   value={sortBy}
                   label="Sort By"
-                  onChange={(e) => {
-                    setSortBy(e.target.value);
-                    setCurrentPage(1);
-                  }}
+                  onChange={(e) => { setSortBy(e.target.value); setCurrentPage(1); }}
                 >
                   <MenuItem value="title">Title (A-Z)</MenuItem>
                   <MenuItem value="title_desc">Title (Z-A)</MenuItem>
@@ -413,88 +354,161 @@ const Recipes: React.FC = () => {
               </FormControl>
             </Stack>
 
-            {error && (
-              <Alert severity="error" sx={{ mb: 3 }}>
-                {error}
-              </Alert>
-            )}
+            {/* Collapsible filter panel */}
+            <Collapse in={filtersOpen} id="recipe-filter-panel">
+              <Stack
+                direction={{ xs: 'column', sm: 'row' }}
+                spacing={2}
+                sx={{ mt: 2, p: 2, bgcolor: 'background.default', borderRadius: 1 }}
+              >
+                <FormControl sx={{ minWidth: 150 }}>
+                  <InputLabel>Difficulty</InputLabel>
+                  <Select
+                    value={difficulty}
+                    label="Difficulty"
+                    onChange={(e) => { setDifficulty(e.target.value); setCurrentPage(1); }}
+                  >
+                    <MenuItem value="">All</MenuItem>
+                    <MenuItem value="easy">Easy</MenuItem>
+                    <MenuItem value="medium">Medium</MenuItem>
+                    <MenuItem value="hard">Hard</MenuItem>
+                  </Select>
+                </FormControl>
 
-            {loading ? (
+                <FormControl sx={{ minWidth: 150 }}>
+                  <InputLabel>Meal Type</InputLabel>
+                  <Select
+                    value={mealType}
+                    label="Meal Type"
+                    onChange={(e) => { setMealType(e.target.value); setCurrentPage(1); }}
+                  >
+                    <MenuItem value="">All</MenuItem>
+                    <MenuItem value="breakfast">Breakfast</MenuItem>
+                    <MenuItem value="lunch">Lunch</MenuItem>
+                    <MenuItem value="dinner">Dinner</MenuItem>
+                    <MenuItem value="snack">Snack</MenuItem>
+                    <MenuItem value="dessert">Dessert</MenuItem>
+                  </Select>
+                </FormControl>
+
+                {/* Cleanup Effort filter — with icon and tooltip */}
+                <FormControl sx={{ minWidth: 200 }}>
+                  <InputLabel>
+                    <Box component="span" sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                      <CleaningServicesIcon sx={{ fontSize: 16 }} />
+                      Cleanup Effort
+                      <Tooltip
+                        title="Cleanup score measures how many dishes and pans a recipe uses. Lower = less washing up."
+                        arrow
+                        placement="top"
+                      >
+                        <IconButton size="small" sx={{ p: 0, ml: 0.25 }} tabIndex={-1}>
+                          <InfoIcon sx={{ fontSize: 14 }} />
+                        </IconButton>
+                      </Tooltip>
+                    </Box>
+                  </InputLabel>
+                  <Select
+                    value={cleanupScore}
+                    label="Cleanup Effort"
+                    onChange={(e) => { setCleanupScore(e.target.value); setCurrentPage(1); }}
+                  >
+                    <MenuItem value="">Any</MenuItem>
+                    <MenuItem value="3">Minimal cleanup</MenuItem>
+                    <MenuItem value="5">Easy cleanup</MenuItem>
+                    <MenuItem value="7">Moderate cleanup</MenuItem>
+                    <MenuItem value="10">Any</MenuItem>
+                  </Select>
+                </FormControl>
+              </Stack>
+            </Collapse>
+
+            {/* Active filter chips */}
+            {activeFilterCount > 0 && (
+              <Stack direction="row" spacing={1} sx={{ mt: 1, flexWrap: 'wrap', gap: 1 }}>
+                {difficulty && (
+                  <Chip
+                    label={`Difficulty: ${difficulty.charAt(0).toUpperCase() + difficulty.slice(1)}`}
+                    size="small"
+                    onDelete={() => clearFilter('difficulty')}
+                  />
+                )}
+                {mealType && (
+                  <Chip
+                    label={`Meal Type: ${mealType.charAt(0).toUpperCase() + mealType.slice(1)}`}
+                    size="small"
+                    onDelete={() => clearFilter('mealType')}
+                  />
+                )}
+                {cleanupScore && (
+                  <Chip
+                    label={`Cleanup: ${cleanupScore === '3' ? 'Minimal' : cleanupScore === '5' ? 'Easy' : cleanupScore === '7' ? 'Moderate' : 'Any'}`}
+                    size="small"
+                    onDelete={() => clearFilter('cleanupScore')}
+                  />
+                )}
+              </Stack>
+            )}
+          </Box>
+
+          {error && (
+            <Alert severity="error" sx={{ mb: 3 }}>{error}</Alert>
+          )}
+
+          {loading ? (
+            <Box
+              sx={{
+                display: 'grid',
+                gridTemplateColumns: { xs: '1fr', sm: 'repeat(2, 1fr)', md: 'repeat(3, 1fr)', lg: 'repeat(4, 1fr)' },
+                gap: 3,
+                mb: 4,
+              }}
+            >
+              {[...Array(8)].map((_, index) => <RecipeCardSkeleton key={index} />)}
+            </Box>
+          ) : recipes.length === 0 ? (
+            !searchInput && !difficulty && !mealType && !cleanupScore ? (
+              <RecipeDiscoveryEmptyState />
+            ) : (
+              <Box sx={{ textAlign: 'center', py: 8 }}>
+                <RestaurantIcon sx={{ fontSize: 64, color: 'text.secondary', mb: 2 }} />
+                <Typography variant="h6" color="text.secondary">No recipes found</Typography>
+                <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
+                  Try adjusting your search or filters
+                </Typography>
+              </Box>
+            )
+          ) : (
+            <>
               <Box
                 sx={{
                   display: 'grid',
-                  gridTemplateColumns: {
-                    xs: '1fr',
-                    sm: 'repeat(2, 1fr)',
-                    md: 'repeat(3, 1fr)',
-                    lg: 'repeat(4, 1fr)',
-                  },
+                  gridTemplateColumns: { xs: '1fr', sm: 'repeat(2, 1fr)', md: 'repeat(3, 1fr)', lg: 'repeat(4, 1fr)' },
                   gap: 3,
                   mb: 4,
                 }}
               >
-                {[...Array(8)].map((_, index) => (
-                  <RecipeCardSkeleton key={index} />
+                {recipes.map((recipe) => (
+                  <RecipeCard key={recipe.id} recipe={recipe} onNavigate={handleNavigate} />
                 ))}
               </Box>
-            ) : recipes.length === 0 ? (
-              // Show enhanced discovery empty state only when no filters are applied
-              !searchInput && !difficulty && !mealType && !cleanupScore ? (
-                <RecipeDiscoveryEmptyState />
-              ) : (
-                <Box sx={{ textAlign: 'center', py: 8 }}>
-                  <RestaurantIcon sx={{ fontSize: 64, color: 'text.secondary', mb: 2 }} />
-                  <Typography variant="h6" color="text.secondary">
-                    No recipes found
-                  </Typography>
-                  <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
-                    Try adjusting your search or filters
-                  </Typography>
-                </Box>
-              )
-            ) : (
-              <>
-                {/* Recipe Grid */}
-                <Box
-                  sx={{
-                    display: 'grid',
-                    gridTemplateColumns: {
-                      xs: '1fr',
-                      sm: 'repeat(2, 1fr)',
-                      md: 'repeat(3, 1fr)',
-                      lg: 'repeat(4, 1fr)',
-                    },
-                    gap: 3,
-                    mb: 4,
-                  }}
-                >
-                  {recipes.map((recipe) => (
-                    <RecipeCard
-                      key={recipe.id}
-                      recipe={recipe}
-                      onNavigate={handleNavigate}
-                    />
-                  ))}
-                </Box>
 
-                {/* Pagination */}
-                {pagination.totalPages > 1 && (
-                  <Box sx={{ display: 'flex', justifyContent: 'center', mt: 4 }}>
-                    <Pagination
-                      count={pagination.totalPages}
-                      page={currentPage}
-                      onChange={handlePageChange}
-                      color="primary"
-                      size="large"
-                    />
-                  </Box>
-                )}
-              </>
-            )}
-          </>
+              {pagination.totalPages > 1 && (
+                <Box sx={{ display: 'flex', justifyContent: 'center', mt: 4 }}>
+                  <Pagination
+                    count={pagination.totalPages}
+                    page={currentPage}
+                    onChange={handlePageChange}
+                    color="primary"
+                    size="large"
+                  />
+                </Box>
+              )}
+            </>
+          )}
         </Box>
 
-        {/* Browse Recipes Tab */}
+        {/* Discover Recipes Tab */}
         <Box sx={{ display: activeTab === 1 ? 'block' : 'none' }}>
           <BrowseRecipes />
         </Box>
