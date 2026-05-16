@@ -435,7 +435,7 @@ const Dashboard: React.FC = () => {
       title: 'Pantry',
       description: 'Track your pantry inventory and expiry dates',
       icon: <KitchenIcon sx={{ fontSize: 36 }} />,
-      iconColor: '#7B1FA2',
+      iconColor: theme.palette.custom.pantry,
       ctaLabel: 'Check Pantry',
       path: '/pantry',
     },

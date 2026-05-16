@@ -6,6 +6,20 @@
 
 import { createTheme } from '@mui/material/styles';
 
+// Extend MUI palette to include app-specific tokens
+declare module '@mui/material/styles' {
+  interface Palette {
+    custom: {
+      pantry: string;
+    };
+  }
+  interface PaletteOptions {
+    custom?: {
+      pantry?: string;
+    };
+  }
+}
+
 export const theme = createTheme({
   palette: {
     primary: {
@@ -37,6 +51,9 @@ export const theme = createTheme({
     background: {
       default: '#F5F5F5',
       paper: '#FFFFFF',
+    },
+    custom: {
+      pantry: '#7B1FA2', // Purple — distinct from primary/secondary/error/warning
     },
   },
   typography: {
