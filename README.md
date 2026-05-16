@@ -279,20 +279,31 @@ This will show you:
 
 📖 **Port Reference:** See [docs/PORT_STANDARDIZATION.md](./docs/PORT_STANDARDIZATION.md) for complete port configuration
 
-### Production Deployment (Raspberry Pi)
+### Production Deployment (Raspberry Pi 4B + ClusterHAT)
 
 For deploying to Raspberry Pi with Podman, see:
-- **Quick Start**: [RASPBERRY_PI_QUICKSTART.md](./docs/archive/RASPBERRY_PI_QUICKSTART.md)
 - **Full Guide**: [DEPLOYMENT.md](./DEPLOYMENT.md)
+- **Detailed Steps**: [docs/RASPBERRY_PI_DEPLOYMENT_GUIDE.md](./docs/RASPBERRY_PI_DEPLOYMENT_GUIDE.md)
 
-**TL;DR:**
+**TL;DR (build on Pi — recommended):**
 ```bash
-# On your Raspberry Pi
-git clone <your-repo-url> meal-planner
-cd meal-planner
+# On your Raspberry Pi (192.168.4.110)
+git clone <your-repo-url> mealplanner
+cd mealplanner
 ./scripts/generate-secrets.sh
-./scripts/deploy-podman.sh
-# Access at http://raspberrypi.local:8080
+./scripts/build-on-pi.sh   # First build ~2hrs, subsequent ~5-10min
+./scripts/pi-run.sh
+# Access at http://192.168.4.110:8080
+```
+
+**TL;DR (cross-compile from Linux dev machine):**
+```bash
+# On dev machine
+./scripts/build-for-pi.sh
+scp pi-images/meals-backend.tar pi-images/frontend-dist.tar.gz \
+    pi@192.168.4.110:~/mealplanner/pi-images/
+# On Pi
+./scripts/load-pi-images.sh && ./scripts/pi-run.sh
 ```
 
 ## 📁 Project Structure
