@@ -1,4 +1,4 @@
-us# Family Meal Planner & Grocery Shopping App
+# Family Meal Planner & Grocery Shopping App
 
 **Version:** 1.0.0 (MVP) - ✅ Production Ready
 **Release Date:** March 16, 2026
@@ -40,12 +40,11 @@ This application helps families (like a family of 4 with 2 adults and 2 teenager
 - Assign cooking responsibilities to family members
 - Work offline with full PWA capabilities
 
-**MVP Status:** All core workflows are functional and tested. See [MVP_RELEASE_SUMMARY.md](./docs/releases/MVP_RELEASE_SUMMARY.md) for complete feature list and testing results.
+**MVP Status:** All core workflows are functional and tested. See [MVP_RELEASE_SUMMARY.md](./docs/releases/beta-launch/MVP_RELEASE_SUMMARY.md) for complete feature list and testing results.
 ## 📋 Issue Tracking
 
 All bugs, features, and improvements are tracked in [GitHub Issues](https://github.com/e2kd7n/mealplanner/issues).
 
-- **Workflow Guidelines**: See [/Users/erik/dev/workflow-guidelines.md](/Users/erik/dev/workflow-guidelines.md) for comprehensive issue management practices
 - **Priorities**: See [ISSUE_PRIORITIES.md](./ISSUE_PRIORITIES.md) for current sprint priorities
 - **Current Sprint**: Focus on HIGH priority issues (#1, #6)
 
@@ -107,7 +106,7 @@ All bugs, features, and improvements are tracked in [GitHub Issues](https://gith
 - React 19+ with TypeScript
 - Vite (build tool)
 - Material-UI (MUI) for components
-- Redux Toolkit with RTK Query
+- Redux Toolkit with createAsyncThunk
 - React Router v7
 - Workbox (PWA/Service Workers)
 
@@ -139,14 +138,12 @@ All bugs, features, and improvements are tracked in [GitHub Issues](https://gith
 
 See [SETUP.md](./SETUP.md) for detailed installation instructions.
 
-## 🚀 Quick Start
-
-### Development Mode (Local)
+## 🚀 Development Quick Start
 
 ### 1. Clone the repository (if not already done)
 ```bash
 git clone <repository-url>
-cd meals
+cd mealplanner
 ```
 
 ### 2. Install dependencies
@@ -309,7 +306,7 @@ scp pi-images/meals-backend.tar pi-images/frontend-dist.tar.gz \
 ## 📁 Project Structure
 
 ```
-meals/
+mealplanner/
 ├── frontend/           # React PWA application
 │   ├── src/
 │   │   ├── components/    # Reusable UI components
@@ -362,11 +359,11 @@ meals/
 - ✅ Offline functionality (PWA)
 
 ### Phase 2 (Enhanced Features)
-- 🔄 Pantry inventory management
-- 🔄 Advanced recommendation algorithm
-- 🔄 Multi-store price comparison
-- 🔄 Budget tracking
-- 🔄 Recipe import from URL
+- ✅ Pantry inventory management
+- ✅ Recipe import from URL
+- ⏳ Advanced recommendation algorithm
+- ⏳ Multi-store price comparison
+- ⏳ Budget tracking
 
 ### Phase 3 (Advanced Features)
 - ⏳ Recipe sharing and discovery
@@ -425,7 +422,7 @@ podman-compose build
 ### Raspberry Pi Deployment
 
 1. **Prepare Raspberry Pi:**
-   - Raspberry Pi 4 (4GB+ RAM recommended)
+   - Raspberry Pi 4B (2GB RAM minimum)
    - Raspberry Pi OS (64-bit)
    - Podman installed
 
@@ -509,7 +506,7 @@ See [ATTRIBUTION.md](./docs/archive/ATTRIBUTION.md) for third-party licenses and
 ## 📞 Support
 
 For issues or questions:
-1. Check existing [ISSUES.md](./ISSUES.md)
+1. Check existing [GitHub Issues](https://github.com/e2kd7n/mealplanner/issues)
 2. Create a new issue with detailed description
 3. Contact the development team
 

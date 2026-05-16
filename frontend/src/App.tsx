@@ -15,6 +15,7 @@ import PrivateRoute from './components/PrivateRoute';
 import Layout from './components/Layout';
 import ErrorBoundary from './components/ErrorBoundary';
 import OfflineDetector from './components/OfflineDetector';
+import SetupGuard from './components/SetupGuard';
 
 // Lazy load pages for better performance
 const Login = lazy(() => import('./pages/Login'));
@@ -30,6 +31,7 @@ const GroceryList = lazy(() => import('./pages/GroceryList'));
 const Pantry = lazy(() => import('./pages/Pantry'));
 const Profile = lazy(() => import('./pages/Profile'));
 const AdminDashboard = lazy(() => import('./pages/AdminDashboard'));
+const Setup = lazy(() => import('./pages/Setup'));
 
 // Loading fallback component
 const LoadingFallback = () => (
@@ -61,12 +63,24 @@ function App() {
                 <Route path="/login" element={<Login />} />
                 <Route path="/register" element={<Register />} />
 
+                {/* Setup wizard — requires login, shown once for admins */}
+                <Route
+                  path="/setup"
+                  element={
+                    <PrivateRoute>
+                      <Setup />
+                    </PrivateRoute>
+                  }
+                />
+
                 {/* Protected routes */}
                 <Route
                   path="/"
                   element={
                     <PrivateRoute>
-                      <Layout />
+                      <SetupGuard>
+                        <Layout />
+                      </SetupGuard>
                     </PrivateRoute>
                   }
                 >

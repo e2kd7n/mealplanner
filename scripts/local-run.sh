@@ -126,14 +126,53 @@ if [ ! -f "./frontend/.env" ]; then
     fi
 fi
 
+# Kill any stale backend/frontend processes from a previous run.
+# On WSL with a Windows-side project, node runs as a native Windows process,
+# so use netstat.exe + taskkill.exe to find and stop it.
+kill_port() {
+    local port=$1
+    # Linux/WSL processes
+    local pids
+    pids=$(ss -tlnp 2>/dev/null | awk -v p=":$port" '$4 ~ p {match($NF, /pid=([0-9]+)/, a); if (a[1]) print a[1]}')
+    [ -n "$pids" ] && kill $pids 2>/dev/null || true
+    # Windows native processes (node.exe when project lives on NTFS)
+    local win_pid
+    win_pid=$(netstat.exe -ano 2>/dev/null | tr -d '\r' | awk -v p=":${port}" '$2 ~ p && $4 == "LISTENING" {print $NF; exit}')
+    if [ -n "$win_pid" ] && [[ "$win_pid" =~ ^[0-9]+$ ]]; then
+        taskkill.exe /F /PID "$win_pid" >/dev/null 2>&1 || true
+    fi
+}
+kill_port 3000
+kill_port 5173
+
 # Stop and remove existing database container if it exists
 echo -e "${YELLOW}🛑 Resetting existing database container...${NC}"
 podman stop meals-postgres >/dev/null 2>&1 || true
 podman rm meals-postgres >/dev/null 2>&1 || true
+# Kill any orphaned rootlessport process still holding port 5432
+if ss -tlnp 2>/dev/null | grep -q ':5432'; then
+    pkill -f 'rootlessport' 2>/dev/null || true
+    sleep 1
+fi
 
-# Start PostgreSQL database container using podman-compose
+# Start PostgreSQL database container using podman run directly.
+# No custom network needed — backend runs natively and reaches postgres via localhost:5432.
 echo -e "${GREEN}🗄️  Starting PostgreSQL database container...${NC}"
-podman-compose -f podman-compose.yml up postgres -d >/dev/null 2>&1
+POSTGRES_PASSWORD=$(head -1 ./secrets/postgres_password.txt | tr -d '\r\n')
+if ! podman run -d \
+    --name meals-postgres \
+    -e POSTGRES_DB=meal_planner \
+    -e POSTGRES_USER=mealplanner \
+    -e POSTGRES_PASSWORD="$POSTGRES_PASSWORD" \
+    -e PGDATA=/var/lib/postgresql/data/pgdata \
+    -p 5432:5432 \
+    -v meals-postgres-data:/var/lib/postgresql/data \
+    -v "$(pwd)/database/init:/docker-entrypoint-initdb.d:ro" \
+    docker.io/library/postgres:16-alpine >/dev/null 2>&1; then
+    echo -e "${RED}❌ Failed to start PostgreSQL container${NC}"
+    podman logs meals-postgres 2>/dev/null || true
+    exit 1
+fi
 
 # Wait for database to be healthy
 echo -e "${YELLOW}⏳ Waiting for database to be healthy...${NC}"
@@ -153,18 +192,18 @@ done
 # Check if backend dependencies are installed
 if [ ! -d "./backend/node_modules" ]; then
     echo -e "${YELLOW}📦 Installing backend dependencies...${NC}"
-    cd backend && npm install && cd ..
+    (cd backend && npm install)
 fi
 
 # Check if frontend dependencies are installed
 if [ ! -d "./frontend/node_modules" ]; then
     echo -e "${YELLOW}📦 Installing frontend dependencies...${NC}"
-    cd frontend && npm install && cd ..
+    (cd frontend && npm install)
 fi
 
 # Run database migrations
 echo -e "${GREEN}🔄 Running database migrations...${NC}"
-cd backend && npx prisma migrate deploy && cd ..
+(cd backend && npx prisma migrate deploy)
 
 echo ""
 echo -e "${GREEN}✅ Database container is running!${NC}"
@@ -172,15 +211,25 @@ echo ""
 
 # Start backend in background
 echo -e "${BLUE}🔧 Starting backend server...${NC}"
-cd backend
-npm run dev > ../backend.log 2>&1 &
+(cd backend && npm run dev > ../backend.log 2>&1) &
 BACKEND_PID=$!
-cd ..
+
+# check_port <port> — returns 0 when something is LISTENING on the port.
+# In WSL, node/npm run as Windows processes and aren't visible to WSL's network
+# stack, so we use netstat.exe (always available on Windows) for the check.
+check_port() {
+    local port=$1
+    if [[ "$OS" == "wsl" ]]; then
+        netstat.exe -ano 2>/dev/null | tr -d '\r' | grep -qE ":${port}[[:space:]].*LISTENING"
+    else
+        curl -s --max-time 1 "http://localhost:${port}" > /dev/null 2>&1
+    fi
+}
 
 # Wait for backend to be ready
 echo -e "${YELLOW}⏳ Waiting for backend to be ready...${NC}"
 for i in {1..30}; do
-    if curl -s http://localhost:3000/health > /dev/null 2>&1; then
+    if check_port 3000; then
         echo -e "${GREEN}✓ Backend is healthy${NC}"
         break
     fi
@@ -195,15 +244,13 @@ done
 
 # Start frontend in background
 echo -e "${BLUE}🌐 Starting frontend server...${NC}"
-cd frontend
-npm run dev > ../frontend.log 2>&1 &
+(cd frontend && npm run dev > ../frontend.log 2>&1) &
 FRONTEND_PID=$!
-cd ..
 
 # Wait for frontend to be ready
 echo -e "${YELLOW}⏳ Waiting for frontend to be ready...${NC}"
 for i in {1..30}; do
-    if curl -s http://localhost:5173 > /dev/null 2>&1; then
+    if check_port 5173; then
         echo -e "${GREEN}✓ Frontend is healthy${NC}"
         break
     fi
@@ -285,7 +332,7 @@ open_browser() {
                 done
                 echo -e "${YELLOW}⚠️  Browser '${BROWSER_OVERRIDE}' not found, falling back to xdg-open${NC}"
             fi
-            command -v xdg-open &>/dev/null && xdg-open "$url" &>/dev/null & || true
+            if command -v xdg-open &>/dev/null; then xdg-open "$url" &>/dev/null & fi || true
             ;;
         wsl)
             local win_bin
@@ -297,7 +344,7 @@ open_browser() {
             if command -v wslview &>/dev/null; then
                 wslview "$url" &>/dev/null &
             else
-                explorer.exe "$url" &>/dev/null & || true
+                explorer.exe "$url" &>/dev/null || true
             fi
             ;;
         windows)
@@ -325,7 +372,7 @@ echo ""
 
 # Call check-deployment-mode.sh as the source of truth
 if [ -f "./scripts/check-deployment-mode.sh" ]; then
-    bash ./scripts/check-deployment-mode.sh
+    bash ./scripts/check-deployment-mode.sh || true
 else
     # Fallback if script doesn't exist
     echo -e "${BLUE}📱 Access your application at:${NC}"
@@ -366,5 +413,3 @@ else
     # Keep script running and show logs when called directly
     tail -f backend.log frontend.log
 fi
-
-# Made with Bob

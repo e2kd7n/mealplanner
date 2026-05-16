@@ -23,7 +23,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     // Try to refresh token on mount if we have a refresh token
-    const refreshToken = localStorage.getItem('refreshToken');
+    const refreshToken = sessionStorage.getItem('refreshToken');
     if (refreshToken && !isAuthenticated) {
       dispatch(refreshAccessToken());
     }

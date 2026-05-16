@@ -3,7 +3,7 @@
  * All rights reserved.
  */
 
-import { useEffect, useCallback } from 'react';
+import { useEffect, useCallback, useMemo } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 
 interface KeyboardShortcut {
@@ -70,7 +70,7 @@ export const useKeyboardShortcuts = () => {
   }, [navigate, location.pathname]);
 
   // Define keyboard shortcuts
-  const shortcuts: KeyboardShortcut[] = [
+  const shortcuts: KeyboardShortcut[] = useMemo(() => [
     {
       key: '/',
       action: focusSearch,
@@ -112,7 +112,7 @@ export const useKeyboardShortcuts = () => {
       description: 'Go to Pantry',
       preventDefault: true,
     },
-  ];
+  ], [focusSearch, goToDashboard, goToRecipes, goToMealPlanner, goToGroceryList, goToPantry]);
 
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {

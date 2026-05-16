@@ -37,6 +37,7 @@ import adminRoutes from './routes/admin.routes';
 import imageRoutes from './routes/image.routes';
 import logsRoutes from './routes/logs.routes';
 import feedbackRoutes from './routes/feedback.routes';
+import appSettingsRoutes from './routes/appSettings.routes';
 
 // Import middleware
 import { errorHandler } from './middleware/errorHandler';
@@ -50,6 +51,7 @@ import { initializeCache } from './utils/cache';
 import { metricsMiddleware } from './utils/monitoring';
 import logPruner from './utils/logPruner';
 import { initializeWebSocket } from './services/websocket.service';
+import { appSettingsService } from './services/appSettings.service';
 
 const app: Application = express();
 const PORT = process.env.PORT || 3000;
@@ -130,9 +132,11 @@ app.use('/api/grocery-lists', groceryListRoutes);
 app.use('/api/ingredients', ingredientRoutes);
 app.use('/api/pantry', pantryRoutes);
 app.use('/api/admin', adminRoutes);
+app.use('/api/admin/settings', appSettingsRoutes);
 app.use('/api/images', imageRoutes);
 app.use('/api/logs', logsRoutes);
 app.use('/api/feedback', feedbackRoutes);
+app.use('/api/setup', appSettingsRoutes);
 
 // Serve static files from frontend build (in production)
 if (process.env.NODE_ENV === 'production') {
@@ -194,6 +198,10 @@ async function startServer() {
     // Start log pruner (runs every 24 hours by default)
     logPruner.start();
     logger.info('Log pruner started');
+
+    // Initialize app settings (seeds DB defaults / env-var migration)
+    await appSettingsService.initialize();
+    logger.info('App settings initialized');
 
     // Initialize WebSocket service
     initializeWebSocket(server);
