@@ -1,0 +1,49 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(git pull *)",
+      "Bash(git config *)",
+      "Bash(git commit -m ' *)",
+      "Bash(git push *)",
+      "Bash(bash scripts/maintenance-issue-check.sh --background)",
+      "Bash(gh issue *)",
+      "Bash(npm audit *)",
+      "PowerShell($paths = @\\(\"C:\\\\Program Files\\\\nodejs\",\"C:\\\\Program Files \\(x86\\)\\\\nodejs\",\"$env:APPDATA\\\\nvm\",\"$env:LOCALAPPDATA\\\\nvm\",\"C:\\\\nvm\"\\); foreach \\($p in $paths\\) { if \\(Test-Path $p\\) { \"FOUND: $p\"; Get-ChildItem $p -ErrorAction SilentlyContinue | Select-Object -First 3 Name } })",
+      "PowerShell($base = \"C:\\\\Users\\\\admin\\\\dev\\\\mealplanner\"; $dirs = @\\(\"data\\\\uploads\",\"data\\\\backups\",\"data\\\\images\",\"data\\\\feedback-exports\",\"data\\\\frontend-dist\",\"data\\\\maintenance-logs\"\\); foreach \\($d in $dirs\\) { $full = Join-Path $base $d; if \\(Test-Path $full\\) { $items = Get-ChildItem $full -Recurse -File -ErrorAction SilentlyContinue; $size = \\($items | Measure-Object -Property Length -Sum\\).Sum; $count = $items.Count; \"{0,-35} {1,8:N1} MB   \\({2} files\\)\" -f $d, \\($size/1MB\\), $count } else { \"{0,-35} not found\" -f $d } })",
+      "PowerShell($logDir = \"C:\\\\Users\\\\admin\\\\dev\\\\mealplanner\\\\backend\\\\logs\"; if \\(Test-Path $logDir\\) { Get-ChildItem $logDir -File | ForEach-Object { \"{0,-40} {1,6:N1} KB\" -f $_.Name, \\($_.Length/1KB\\) }; \"---RECENT ERRORS---\"; Get-Content \\(Join-Path $logDir \"error.log\"\\) -ErrorAction SilentlyContinue -Tail 20 } else { \"No backend logs directory found at $logDir\" })",
+      "PowerShell($testResults = \"C:\\\\Users\\\\admin\\\\dev\\\\mealplanner\\\\frontend\\\\test-results\"; if \\(Test-Path $testResults\\) { $old = Get-ChildItem $testResults -Recurse -File -ErrorAction SilentlyContinue | Where-Object { $_.LastWriteTime -lt \\(Get-Date\\).AddDays\\(-7\\) }; \"Old test artifacts \\(>7 days\\): $\\($old.Count\\) files\"; $old | Select-Object -First 10 FullName | ForEach-Object { $_.FullName }; if \\($old.Count -gt 0\\) { $old | Remove-Item -Force -ErrorAction SilentlyContinue; \"Deleted $\\($old.Count\\) old test files\" } } else { \"No test-results directory found\" }; $backupCount = \\(Get-ChildItem \"C:\\\\Users\\\\admin\\\\dev\\\\mealplanner\\\\data\\\\backups\" -File -ErrorAction SilentlyContinue\\).Count; \"Backup count: $backupCount\")",
+      "Bash(bash scripts/maintenance-check-status.sh)",
+      "PowerShell(\\(Get-Item \"C:\\\\Users\\\\admin\\\\dev\\\\mealplanner\\\\ISSUE_PRIORITIES.md\"\\).LastWriteTime)",
+      "PowerShell(Get-Command gh -ErrorAction SilentlyContinue)",
+      "PowerShell(Get-Command jq -ErrorAction SilentlyContinue)",
+      "Bash(git add *)",
+      "Bash(gh --version)",
+      "Bash(jq --version)",
+      "PowerShell(Get-Command gh -ErrorAction SilentlyContinue; where.exe gh 2>$null; \\(Get-ChildItem \"C:\\\\Program Files\\\\GitHub CLI\\\\\" -ErrorAction SilentlyContinue\\))",
+      "PowerShell(Get-ChildItem \"C:\\\\Program Files\\\\\" -Directory | Select-Object Name; Get-ChildItem \"$env:LOCALAPPDATA\\\\Programs\\\\\" -Directory -ErrorAction SilentlyContinue | Select-Object Name)",
+      "PowerShell(git remote get-url origin)",
+      "PowerShell($env:PATH)",
+      "Bash(echo \"exit:$?\")",
+      "PowerShell($token = \\(git credential fill | Select-String \"^password=\"\\).Line -replace \"^password=\", \"\"; $headers = @{ Authorization = \"token $token\"; Accept = \"application/vnd.github.v3+json\" }; $labels = Invoke-RestMethod -Uri \"https://api.github.com/repos/e2kd7n/mealplanner/labels?per_page=100\" -Headers $headers; $labels | Select-Object name, color | Format-Table -AutoSize)",
+      "Bash(ls /c/Users/admin/bin/ 2>/dev/null && echo \"bin dir exists\")",
+      "Read(//c/Users/admin/**)",
+      "Bash(mkdir -p /c/Users/admin/bin)",
+      "Bash(echo '#!/bin/bash *)",
+      "Bash(chmod +x /c/Users/admin/bin/gh)",
+      "Bash(gh auth *)",
+      "Bash(find \"/c/Program Files\" \"/c/Users/admin/AppData\" -name \"jq.exe\" -maxdepth 5 2>/dev/null | head -5; find \"/c/Program Files\" -name \"jq\" -maxdepth 5 2>/dev/null | head -3)",
+      "Read(//c/Program Files/**)",
+      "Bash(curl -sL \"https://github.com/jqlang/jq/releases/download/jq-1.7.1/jq-windows-amd64.exe\" -o /c/Users/admin/bin/jq.exe)",
+      "Bash(chmod +x /c/Users/admin/bin/jq.exe)",
+      "Bash(chmod +x /c/Users/admin/bin/jq)",
+      "Bash(bash scripts/update-issue-priorities.sh)",
+      "Bash(bash scripts/update-issue-priorities.sh > ISSUE_PRIORITIES.md)",
+      "Bash(npx tsc *)",
+      "PowerShell(Get-Command node, npm, pnpm -ErrorAction SilentlyContinue)",
+      "PowerShell($env:PATH; Write-Host \"---\"; Get-ChildItem \"C:\\\\Program Files\\\\nodejs\", \"C:\\\\Program Files \\(x86\\)\\\\nodejs\", \"$env:APPDATA\\\\npm\", \"$env:LOCALAPPDATA\\\\pnpm\" -ErrorAction SilentlyContinue | Select-Object FullName)"
+    ],
+    "additionalDirectories": [
+      "c:\\Users\\admin\\dev\\mealplanner"
+    ]
+  }
+}
