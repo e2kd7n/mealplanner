@@ -3,7 +3,7 @@
  * All rights reserved.
  */
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import {
   Box,
   Container,
@@ -30,6 +30,10 @@ import {
   Alert,
   Pagination,
   CircularProgress,
+  Tabs,
+  Tab,
+  InputAdornment,
+  Tooltip,
 } from '@mui/material';
 import {
   Edit as EditIcon,
@@ -38,9 +42,30 @@ import {
   Delete as DeleteIcon,
   VpnKey as ResetPasswordIcon,
   Refresh as RefreshIcon,
+  Visibility,
+  VisibilityOff,
+  CheckCircle as CheckCircleIcon,
+  Cancel as CancelIcon,
+  Key as KeyIcon,
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import api from '../services/api';
+
+interface AppSetting {
+  key: string;
+  value: string | null;
+  isSecret: boolean;
+  description: string | null;
+  updatedAt: string;
+  isConfigured: boolean;
+}
+
+const SETTING_LABELS: Record<string, string> = {
+  spoonacular_api_key: 'Spoonacular API Key',
+  edamam_app_id: 'Edamam App ID',
+  edamam_app_key: 'Edamam App Key',
+  ftue_completed: 'Setup Wizard Completed',
+};
 
 interface User {
   id: string;
@@ -63,6 +88,9 @@ interface SystemStats {
 
 export default function AdminDashboard() {
   const navigate = useNavigate();
+  const [activeTab, setActiveTab] = useState(0);
+
+  // Users tab state
   const [users, setUsers] = useState<User[]>([]);
   const [stats, setStats] = useState<SystemStats | null>(null);
   const [loading, setLoading] = useState(true);
@@ -72,7 +100,7 @@ export default function AdminDashboard() {
   const [roleFilter, setRoleFilter] = useState('');
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
-  
+
   // Dialog states
   const [editRoleDialog, setEditRoleDialog] = useState(false);
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
@@ -80,9 +108,38 @@ export default function AdminDashboard() {
   const [resetPasswordDialog, setResetPasswordDialog] = useState(false);
   const [newPassword, setNewPassword] = useState('');
 
+  // API Keys tab state
+  const [settings, setSettings] = useState<AppSetting[]>([]);
+  const [settingsLoading, setSettingsLoading] = useState(false);
+  const [editingKey, setEditingKey] = useState<string | null>(null);
+  const [editValue, setEditValue] = useState('');
+  const [showEditValue, setShowEditValue] = useState(false);
+  const [keyTesting, setKeyTesting] = useState(false);
+  const [keyTestResult, setKeyTestResult] = useState<'valid' | 'invalid' | null>(null);
+  const [keyTestMessage, setKeyTestMessage] = useState('');
+  const [keySaving, setKeySaving] = useState(false);
+  const [settingsError, setSettingsError] = useState('');
+  const [settingsSuccess, setSettingsSuccess] = useState('');
+
+  const loadSettings = useCallback(async () => {
+    setSettingsLoading(true);
+    try {
+      const res = await api.get('/admin/settings');
+      setSettings(res.data.data.filter((s: AppSetting) => s.key !== 'ftue_completed'));
+    } catch {
+      setSettingsError('Failed to load settings');
+    } finally {
+      setSettingsLoading(false);
+    }
+  }, []);
+
   useEffect(() => {
     loadData();
   }, [page, search, roleFilter]);
+
+  useEffect(() => {
+    if (activeTab === 1) loadSettings();
+  }, [activeTab, loadSettings]);
 
   const loadData = async () => {
     try {
@@ -175,6 +232,54 @@ export default function AdminDashboard() {
     }
   };
 
+  const startEditKey = (setting: AppSetting) => {
+    setEditingKey(setting.key);
+    setEditValue('');
+    setShowEditValue(false);
+    setKeyTestResult(null);
+    setKeyTestMessage('');
+    setSettingsError('');
+  };
+
+  const cancelEditKey = () => {
+    setEditingKey(null);
+    setEditValue('');
+    setKeyTestResult(null);
+    setKeyTestMessage('');
+  };
+
+  const handleTestApiKey = async () => {
+    if (!editValue.trim() || editingKey !== 'spoonacular_api_key') return;
+    setKeyTesting(true);
+    setKeyTestResult(null);
+    try {
+      await api.post('/admin/settings/test/spoonacular', { key: editValue.trim() });
+      setKeyTestResult('valid');
+      setKeyTestMessage('API key verified.');
+    } catch (err: any) {
+      setKeyTestResult('invalid');
+      setKeyTestMessage(err.response?.data?.message || 'Verification failed.');
+    } finally {
+      setKeyTesting(false);
+    }
+  };
+
+  const handleSaveKey = async () => {
+    if (!editingKey) return;
+    setKeySaving(true);
+    setSettingsError('');
+    try {
+      await api.put(`/admin/settings/${editingKey}`, { value: editValue.trim() || null });
+      setSettingsSuccess('Setting updated.');
+      cancelEditKey();
+      loadSettings();
+    } catch (err: any) {
+      setSettingsError(err.response?.data?.message || 'Failed to save.');
+    } finally {
+      setKeySaving(false);
+    }
+  };
+
   const getRoleColor = (role: string) => {
     switch (role) {
       case 'superadmin':
@@ -196,7 +301,7 @@ export default function AdminDashboard() {
 
   return (
     <Container maxWidth="xl" sx={{ py: 4 }}>
-      <Box mb={4}>
+      <Box mb={3}>
         <Typography variant="h4" gutterBottom>
           Admin Dashboard
         </Typography>
@@ -205,6 +310,18 @@ export default function AdminDashboard() {
         </Typography>
       </Box>
 
+      <Tabs
+        value={activeTab}
+        onChange={(_, v) => setActiveTab(v)}
+        sx={{ mb: 3, borderBottom: 1, borderColor: 'divider' }}
+      >
+        <Tab label="Users" />
+        <Tab label="API Keys" icon={<KeyIcon fontSize="small" />} iconPosition="start" />
+      </Tabs>
+
+      {/* Users Tab */}
+      {activeTab === 0 && (
+        <>
       {error && (
         <Alert severity="error" onClose={() => setError('')} sx={{ mb: 2 }}>
           {error}
@@ -485,6 +602,179 @@ export default function AdminDashboard() {
           </Button>
         </DialogActions>
       </Dialog>
+        </>
+      )}
+
+      {/* API Keys Tab */}
+      {activeTab === 1 && (
+        <Box>
+          {settingsError && (
+            <Alert severity="error" onClose={() => setSettingsError('')} sx={{ mb: 2 }}>
+              {settingsError}
+            </Alert>
+          )}
+          {settingsSuccess && (
+            <Alert severity="success" onClose={() => setSettingsSuccess('')} sx={{ mb: 2 }}>
+              {settingsSuccess}
+            </Alert>
+          )}
+
+          <Paper sx={{ p: 3 }}>
+            <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
+              <Box>
+                <Typography variant="h5" gutterBottom>
+                  API Keys
+                </Typography>
+                <Typography variant="body2" color="text.secondary">
+                  Manage third-party service integrations. Keys are stored securely in the
+                  database and never exposed in full after saving.
+                </Typography>
+              </Box>
+              <IconButton onClick={loadSettings} disabled={settingsLoading}>
+                <RefreshIcon />
+              </IconButton>
+            </Box>
+
+            {settingsLoading ? (
+              <Box display="flex" justifyContent="center" py={4}>
+                <CircularProgress />
+              </Box>
+            ) : (
+              <Table>
+                <TableHead>
+                  <TableRow>
+                    <TableCell>Service</TableCell>
+                    <TableCell>Description</TableCell>
+                    <TableCell>Status</TableCell>
+                    <TableCell align="right">Actions</TableCell>
+                  </TableRow>
+                </TableHead>
+                <TableBody>
+                  {settings.map((setting) => (
+                    <TableRow key={setting.key}>
+                      <TableCell>
+                        <Typography fontWeight={500}>
+                          {SETTING_LABELS[setting.key] ?? setting.key}
+                        </Typography>
+                      </TableCell>
+                      <TableCell>
+                        <Typography variant="body2" color="text.secondary">
+                          {setting.description}
+                        </Typography>
+                      </TableCell>
+                      <TableCell>
+                        {setting.isConfigured ? (
+                          <Chip
+                            label="Configured"
+                            color="success"
+                            size="small"
+                            icon={<CheckCircleIcon />}
+                          />
+                        ) : (
+                          <Chip label="Not set" size="small" variant="outlined" />
+                        )}
+                      </TableCell>
+                      <TableCell align="right">
+                        <Tooltip title="Edit">
+                          <IconButton size="small" onClick={() => startEditKey(setting)}>
+                            <EditIcon fontSize="small" />
+                          </IconButton>
+                        </Tooltip>
+                        {setting.isConfigured && (
+                          <Tooltip title="Clear key">
+                            <IconButton
+                              size="small"
+                              color="warning"
+                              onClick={async () => {
+                                await api.put(`/admin/settings/${setting.key}`, { value: null });
+                                setSettingsSuccess('Key cleared.');
+                                loadSettings();
+                              }}
+                            >
+                              <CancelIcon fontSize="small" />
+                            </IconButton>
+                          </Tooltip>
+                        )}
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            )}
+          </Paper>
+
+          {/* Inline edit dialog */}
+          <Dialog open={!!editingKey} onClose={cancelEditKey} maxWidth="sm" fullWidth>
+            <DialogTitle>
+              Update {editingKey ? (SETTING_LABELS[editingKey] ?? editingKey) : ''}
+            </DialogTitle>
+            <DialogContent>
+              <Typography variant="body2" color="text.secondary" sx={{ mb: 2, mt: 1 }}>
+                {settings.find((s) => s.key === editingKey)?.description}
+              </Typography>
+              <TextField
+                fullWidth
+                label="New value"
+                value={editValue}
+                onChange={(e) => {
+                  setEditValue(e.target.value);
+                  setKeyTestResult(null);
+                }}
+                type={showEditValue ? 'text' : 'password'}
+                placeholder="Paste new key here"
+                InputProps={{
+                  endAdornment: (
+                    <InputAdornment position="end">
+                      <IconButton onClick={() => setShowEditValue((v) => !v)} edge="end">
+                        {showEditValue ? <VisibilityOff /> : <Visibility />}
+                      </IconButton>
+                    </InputAdornment>
+                  ),
+                }}
+              />
+              {editingKey === 'spoonacular_api_key' && (
+                <Box mt={1}>
+                  <Button
+                    size="small"
+                    variant="outlined"
+                    onClick={handleTestApiKey}
+                    disabled={!editValue.trim() || keyTesting || keySaving}
+                    startIcon={keyTesting ? <CircularProgress size={14} /> : undefined}
+                  >
+                    {keyTesting ? 'Testing…' : 'Test Key'}
+                  </Button>
+                  {keyTestResult === 'valid' && (
+                    <Alert severity="success" sx={{ mt: 1 }}>
+                      {keyTestMessage}
+                    </Alert>
+                  )}
+                  {keyTestResult === 'invalid' && (
+                    <Alert severity="error" sx={{ mt: 1 }}>
+                      {keyTestMessage}
+                    </Alert>
+                  )}
+                </Box>
+              )}
+            </DialogContent>
+            <DialogActions>
+              <Button onClick={cancelEditKey}>Cancel</Button>
+              <Button
+                variant="contained"
+                onClick={handleSaveKey}
+                disabled={
+                  keySaving ||
+                  (editingKey === 'spoonacular_api_key' &&
+                    !!editValue.trim() &&
+                    keyTestResult !== 'valid')
+                }
+                startIcon={keySaving ? <CircularProgress size={14} /> : undefined}
+              >
+                {keySaving ? 'Saving…' : 'Save'}
+              </Button>
+            </DialogActions>
+          </Dialog>
+        </Box>
+      )}
     </Container>
   );
 }

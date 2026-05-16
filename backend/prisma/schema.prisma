@@ -266,6 +266,17 @@ model ClientLog {
   @@map("client_logs")
 }
 
+model AppSetting {
+  key         String   @id
+  value       String?
+  isSecret    Boolean  @default(false) @map("is_secret")
+  description String?
+  updatedAt   DateTime @updatedAt @map("updated_at")
+  updatedBy   String?  @map("updated_by")
+
+  @@map("app_settings")
+}
+
 model UserFeedback {
   id           String         @id @default(uuid())
   userId       String         @map("user_id")

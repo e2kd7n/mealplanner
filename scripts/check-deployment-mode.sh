@@ -16,25 +16,31 @@ OS_TYPE=$(uname -s)
 # Function to check if port is in use (cross-platform)
 check_port() {
     local port=$1
-    
+
+    # WSL: node/vite run as Windows native processes; use netstat.exe to check
+    if grep -qi microsoft /proc/version 2>/dev/null; then
+        netstat.exe -ano 2>/dev/null | tr -d '\r' | grep -qE ":${port}[[:space:]].*LISTENING"
+        return $?
+    fi
+
     # Try lsof first (macOS, Linux)
     if command -v lsof &> /dev/null; then
         lsof -Pi :$port -sTCP:LISTEN -t >/dev/null 2>&1
         return $?
     fi
-    
+
     # Fallback to netstat (Linux, Pi)
     if command -v netstat &> /dev/null; then
         netstat -tuln 2>/dev/null | grep -q ":$port "
         return $?
     fi
-    
+
     # Fallback to ss (modern Linux)
     if command -v ss &> /dev/null; then
         ss -tuln 2>/dev/null | grep -q ":$port "
         return $?
     fi
-    
+
     # If no tools available, return false
     return 1
 }
