@@ -14,7 +14,7 @@ import { logger } from '../utils/logger';
  */
 export const searchRecipes = async (req: Request, res: Response) => {
   try {
-    if (!spoonacularService.isConfigured()) {
+    if (!await spoonacularService.isConfigured()) {
       return res.status(503).json({
         success: false,
         message: 'Recipe browse feature is not configured. Please contact the administrator.',
@@ -27,6 +27,7 @@ export const searchRecipes = async (req: Request, res: Response) => {
       diet,
       type,
       maxReadyTime,
+      sort,
       number = 12,
       offset = 0,
     } = req.query;
@@ -37,6 +38,7 @@ export const searchRecipes = async (req: Request, res: Response) => {
       diet: diet as string,
       type: type as string,
       maxReadyTime: maxReadyTime ? parseInt(maxReadyTime as string) : undefined,
+      sort: sort as string,
       number: parseInt(number as string),
       offset: parseInt(offset as string),
     });
@@ -60,7 +62,7 @@ export const searchRecipes = async (req: Request, res: Response) => {
  */
 export const getRecipeDetails = async (req: Request, res: Response) => {
   try {
-    if (!spoonacularService.isConfigured()) {
+    if (!await spoonacularService.isConfigured()) {
       return res.status(503).json({
         success: false,
         message: 'Recipe browse feature is not configured. Please contact the administrator.',
@@ -113,7 +115,7 @@ export const addToRecipeBox = async (req: Request, res: Response) => {
       });
     }
 
-    if (!spoonacularService.isConfigured()) {
+    if (!await spoonacularService.isConfigured()) {
       return res.status(503).json({
         success: false,
         message: 'Recipe browse feature is not configured. Please contact the administrator.',
