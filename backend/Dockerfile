@@ -7,13 +7,10 @@
 #                            and prunes to production-only dependencies
 #   [3/3] production       - Final image — no pnpm, no build tools, no devDeps
 #
-# pnpm@11 blocks build scripts by default (ERR_PNPM_IGNORED_BUILDS).
-# We use --ignore-scripts on every pnpm install and handle each package that
-# actually needs native compilation explicitly:
-#   - bcrypt: native .node binary compiled via pnpm rebuild
-#   - @prisma/client + @prisma/engines: handled by the manual `pnpm prisma generate`
-#   - esbuild: binary arrives as an optional npm dep (@esbuild/linux-x64 / -arm64),
-#              so the install script is redundant and safe to skip
+# pnpm@11 blocks build scripts by default. onlyBuiltDependencies in the lockfile
+# settings section explicitly approves the packages that need native compilation
+# or postinstall hooks (bcrypt, Prisma). This setting is read by every pnpm
+# invocation including subprocess calls from prisma generate.
 
 # ============================================================================
 # STAGE 1/3: Frontend Builder
@@ -26,9 +23,7 @@ COPY frontend/package.json frontend/pnpm-lock.yaml ./
 
 RUN npm install -g pnpm@11.1.2 --quiet
 
-# --ignore-scripts bypasses pnpm@11 build-script approval requirement.
-# esbuild binary is delivered as an optional dep (@esbuild/linux-*), not a script.
-RUN pnpm install --frozen-lockfile --prod=false --ignore-scripts
+RUN pnpm install --frozen-lockfile --prod=false
 
 COPY frontend ./
 
@@ -54,14 +49,9 @@ COPY backend/package.json backend/pnpm-lock.yaml ./
 
 RUN npm install -g pnpm@11.1.2 --quiet
 
-# --ignore-scripts skips all postinstall hooks.
-# bcrypt requires a native compilation step; we trigger it explicitly below.
-# Prisma client generation is handled by the manual `pnpm prisma generate` call.
-RUN pnpm install --frozen-lockfile --ignore-scripts
-
-# Compile bcrypt's native .node binary for the current platform.
-# This replaces the install script that --ignore-scripts suppressed.
-RUN pnpm rebuild bcrypt
+# onlyBuiltDependencies in the lockfile settings allows bcrypt and Prisma
+# packages to run their install scripts; all others remain blocked.
+RUN pnpm install --frozen-lockfile
 
 COPY backend .
 
@@ -71,10 +61,9 @@ ENV PRISMA_ENGINES_CHECKSUM_IGNORE_MISSING=1
 ENV DATABASE_URL="postgresql://dummy:dummy@localhost:5432/dummy"
 
 # Generate Prisma client, compile TypeScript, strip devDeps.
-# --ignore-scripts on prune prevents any preuninstall hooks from running.
 RUN pnpm prisma generate && \
     pnpm build && \
-    pnpm prune --prod --ignore-scripts && \
+    pnpm prune --prod && \
     pnpm store prune && \
     rm -rf /root/.local/share/pnpm/store /tmp/* /root/.cache /root/.npm
 
