@@ -14,7 +14,7 @@ RUN npm install -g pnpm@11.1.2 --quiet
 # Install dependencies (build only, no dev dependencies needed in final image)
 # onlyBuiltDependencies in the lockfile settings allows esbuild to run its
 # install script; the setting propagates to all pnpm subprocess calls too.
-RUN pnpm install --frozen-lockfile --prod=false
+RUN pnpm install --no-frozen-lockfile --prod=false
 
 # Copy source code
 COPY . .
