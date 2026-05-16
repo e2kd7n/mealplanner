@@ -12,7 +12,9 @@ COPY package.json pnpm-lock.yaml ./
 RUN npm install -g pnpm@11.1.2 --quiet
 
 # Install dependencies (build only, no dev dependencies needed in final image)
-RUN pnpm install --frozen-lockfile --prod=false
+# --ignore-scripts bypasses pnpm@11 build-script approval (ERR_PNPM_IGNORED_BUILDS).
+# esbuild binary arrives as an optional dep (@esbuild/linux-x64 / -arm64), not a script.
+RUN pnpm install --frozen-lockfile --prod=false --ignore-scripts
 
 # Copy source code
 COPY . .
