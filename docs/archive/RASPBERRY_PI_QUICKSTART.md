@@ -1,5 +1,10 @@
 # Raspberry Pi Quick Start Guide
 
+> **⚠️ ARCHIVED — superseded by [RASPBERRY_PI_DEPLOYMENT_GUIDE.md](../RASPBERRY_PI_DEPLOYMENT_GUIDE.md)**
+> This document references `podman-commands.sh` (removed) and `deploy-podman.sh` (replaced by `pi-run.sh`). Do not follow these instructions.
+
+---
+
 Get your Meal Planner app running on Raspberry Pi in under 10 minutes!
 
 ## 🚀 Quick Setup

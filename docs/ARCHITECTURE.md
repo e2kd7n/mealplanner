@@ -776,43 +776,38 @@ Request → Middleware Logger → Winston Logger → Console/File
 
 ### Container Architecture
 
+**Local development** (`podman-compose.yml`) runs 5 containers including a hot-reload frontend container. **Pi production** (`podman-compose.pi.yml`) runs 4 containers — no separate frontend container, the React PWA is served as static files by Nginx.
+
+**Pi Production (4 containers):**
 ```
 ┌─────────────────────────────────────────────────────────────┐
-│                     Docker/Podman Host                       │
+│                  Pi 4B (192.168.4.110)                       │
 │                                                              │
 │  ┌────────────────────────────────────────────────────────┐ │
-│  │  Nginx Container (Port 80/443)                         │ │
-│  │  - SSL termination                                     │ │
-│  │  - Static file serving                                 │ │
-│  │  - Reverse proxy                                       │ │
+│  │  meals-nginx  :8080 (48MB)                             │ │
+│  │  - Serves ./data/frontend-dist/ (React PWA, static)    │ │
+│  │  - Proxies /api/ → ClusterHAT Zeros (172.19.180.1-4)   │ │
+│  │  - Fallback /api/ → meals-backend:3000                 │ │
+│  └────────────────────────────────────────────────────────┘ │
+│                                                              │
+│  ┌────────────────────────────────────────────────────────┐ │
+│  │  meals-backend  :3000 (320MB)                          │ │
+│  │  - Node.js Express API (fallback when Zeros offline)   │ │
 │  └────────────────────────────────────────────────────────┘ │
 │                           ↓                                  │
 │  ┌────────────────────────────────────────────────────────┐ │
-│  │  Frontend Container (Port 5173)                        │ │
-│  │  - React app (production build)                        │ │
-│  │  - Served by Nginx                                     │ │
+│  │  meals-postgres  :5432 internal (160MB)                │ │
+│  │  - PostgreSQL 16, persistent volume                    │ │
 │  └────────────────────────────────────────────────────────┘ │
-│                                                              │
 │  ┌────────────────────────────────────────────────────────┐ │
-│  │  Backend Container (Port 3000)                         │ │
-│  │  - Node.js Express API                                 │ │
-│  │  - Health checks                                       │ │
-│  └────────────────────────────────────────────────────────┘ │
-│                           ↓                                  │
-│  ┌────────────────────────────────────────────────────────┐ │
-│  │  PostgreSQL Container (Port 5432)                      │ │
-│  │  - Persistent volume                                   │ │
-│  │  - Automated backups                                   │ │
-│  └────────────────────────────────────────────────────────┘ │
-│                                                              │
-│  ┌────────────────────────────────────────────────────────┐ │
-│  │  Redis Container (Port 6379)                           │ │
-│  │  - Session storage                                     │ │
-│  │  - Cache layer                                         │ │
+│  │  meals-redis  :6379 internal (32MB)                    │ │
+│  │  - JWT/session cache, LRU eviction                     │ │
 │  └────────────────────────────────────────────────────────┘ │
 │                                                              │
 └─────────────────────────────────────────────────────────────┘
 ```
+
+**Local Dev (5 containers)** — adds a `meals-frontend` container with Vite HMR on port 5173.
 
 ### Deployment Environments
 
