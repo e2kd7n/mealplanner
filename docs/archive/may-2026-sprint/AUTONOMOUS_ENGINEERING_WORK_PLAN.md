@@ -13,7 +13,7 @@ This document outlines the work distribution for P0 (Critical) and P1 (High) pri
 ## Team Structure
 
 ### 🔴 Engineering Pair 1: P0 Critical Issues
-- **AI** - Senior Engineer (Backend/Auth)
+- **Ben** - Senior Engineer (Backend/Auth)
 - **Alice** - Senior Engineer (Frontend/UX)
 - **Fiona** - UX Designer (Design consultation for #134)
 - **Focus:** User-facing critical bugs
@@ -48,10 +48,11 @@ This document outlines the work distribution for P0 (Critical) and P1 (High) pri
 
 ## Work Assignments
 
-### 🔴 Engineering Pair 1: P0 Critical Issues (AI, Alice, Fiona)
+### 🔴 Engineering Pair 1: P0 Critical Issues (Ben, Alice, Fiona)
 
 #### Issue #134 - User Authentication Workflow (P0)
 **Priority:** P0-Critical  
+**Team:** Ben (Backend Lead), Alice (Frontend Lead), Fiona (UX Designer)  
 **Estimated Time:** 3-4 hours
 
 **Scope:**
@@ -64,9 +65,9 @@ This document outlines the work distribution for P0 (Critical) and P1 (High) pri
 **Workflow:**
 1. **Fiona (Designer)** - Review current auth flow, identify UX issues
 2. **Fiona** - Create wireframes/mockups for improved flow
-3. **AI & Alice** - Review designs, provide technical feedback
+3. **Ben & Alice** - Review designs, provide technical feedback
 4. **Alice** - Implement frontend changes
-5. **AI** - Implement backend changes
+5. **Ben** - Implement backend changes
 6. **All** - Collaborate on testing and refinement
 
 **Files to Review:**
@@ -85,7 +86,7 @@ This document outlines the work distribution for P0 (Critical) and P1 (High) pri
 - [ ] Loading state designs
 - [ ] Success state designs
 
-**Engineering Deliverables (AI & Alice):**
+**Engineering Deliverables (Ben & Alice):**
 - [ ] Improved FTUE flow with clear onboarding
 - [ ] Fixed returning user login experience
 - [ ] Enhanced error messages (user-friendly)
@@ -99,6 +100,7 @@ This document outlines the work distribution for P0 (Critical) and P1 (High) pri
 
 #### Issue #132 - E2E CSRF Token 404 in CI (P0)
 **Priority:** P0-Critical  
+**Owner:** Ben (Lead), Alice (Support)  
 **Estimated Time:** 1-2 hours
 
 **Scope:**
@@ -479,7 +481,7 @@ This document outlines the work distribution for P0 (Critical) and P1 (High) pri
 
 ## Execution Workflow
 
-### Step 1: Engineering Pair 1 (P0 Issues) - AI, Alice, Fiona
+### Step 1: Engineering Pair 1 (P0 Issues) - Ben, Alice, Fiona
 ```
 Day 1 - Morning (3 hours):
 1. Team kickoff meeting (30 min)
@@ -488,9 +490,9 @@ Day 1 - Morning (3 hours):
 4. Team review of designs (30 min)
 
 Day 1 - Afternoon (4 hours):
-5. AI starts Issue #132 (CSRF fix) - 2 hours
+5. Ben starts Issue #132 (CSRF fix) - 2 hours
 6. Alice starts frontend for Issue #134 - 2 hours
-7. AI helps Alice with backend for #134 - 2 hours
+7. Ben helps Alice with backend for #134 - 2 hours
 8. Testing and refinement - 1 hour
 
 Day 1 - Evening:
@@ -735,7 +737,7 @@ podman-compose up -d --force-recreate
 ## Communication Plan
 
 ### Slack Channels
-- `#p0-critical-fixes` - P0 issue discussion (AI, Alice, Fiona, Eve)
+- `#p0-critical-fixes` - P0 issue discussion (Ben, Alice, Fiona, Eve)
 - `#p1-improvements` - P1 issue discussion (Charlie, Dana, Eve)
 - `#qa-validation` - QA testing updates (Eve, All)
 - `#deployment` - Deployment coordination (All)
@@ -802,7 +804,7 @@ podman-compose up -d --force-recreate
 **Timeline:** 3 days (implementation, QA, deployment)
 
 **Team Composition:**
-- 👨‍💻 AI - Senior Backend Engineer
+- 👨‍💻 Ben - Senior Backend Engineer
 - 👩‍💻 Alice - Senior Frontend Engineer
 - 🎨 Fiona - UX Designer
 - 👨‍💼 Charlie - DevOps Engineer
