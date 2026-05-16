@@ -6,6 +6,14 @@
 #   [2/3] backend-builder  - Builds the Node.js backend, generates Prisma client,
 #                            and prunes to production-only dependencies
 #   [3/3] production       - Final image — no pnpm, no build tools, no devDeps
+#
+# pnpm@11 blocks build scripts by default (ERR_PNPM_IGNORED_BUILDS).
+# We use --ignore-scripts on every pnpm install and handle each package that
+# actually needs native compilation explicitly:
+#   - bcrypt: native .node binary compiled via pnpm rebuild
+#   - @prisma/client + @prisma/engines: handled by the manual `pnpm prisma generate`
+#   - esbuild: binary arrives as an optional npm dep (@esbuild/linux-x64 / -arm64),
+#              so the install script is redundant and safe to skip
 
 # ============================================================================
 # STAGE 1/3: Frontend Builder
@@ -16,17 +24,18 @@ WORKDIR /frontend
 
 COPY frontend/package.json frontend/pnpm-lock.yaml ./
 
-# pnpm version must match local dev environment (lockfile was generated with pnpm@11)
 RUN npm install -g pnpm@11.1.2 --quiet
 
-RUN pnpm install --frozen-lockfile --prod=false
+# --ignore-scripts bypasses pnpm@11 build-script approval requirement.
+# esbuild binary is delivered as an optional dep (@esbuild/linux-*), not a script.
+RUN pnpm install --frozen-lockfile --prod=false --ignore-scripts
 
 COPY frontend ./
 
 ARG VITE_API_URL=/api
 ENV VITE_API_URL=$VITE_API_URL
 
-# Force Vite to use Rollup instead of Rolldown (Rolldown doesn't support ARM)
+# Force Vite to use Rollup instead of Rolldown (Rolldown does not support ARM)
 ENV VITE_USE_ROLLUP=true
 
 RUN pnpm build
@@ -36,7 +45,7 @@ RUN pnpm build
 # ============================================================================
 FROM docker.io/library/node:22-alpine AS backend-builder
 
-# Build tools required for native modules (bcrypt uses node-gyp)
+# Build tools required by bcrypt's native module (node-gyp → python3/make/gcc)
 RUN apk add --no-cache python3 make g++ gcc
 
 WORKDIR /app
@@ -45,23 +54,27 @@ COPY backend/package.json backend/pnpm-lock.yaml ./
 
 RUN npm install -g pnpm@11.1.2 --quiet
 
-# Install all dependencies (dev + prod) — needed for prisma generate and tsc
-RUN pnpm install --frozen-lockfile
+# --ignore-scripts skips all postinstall hooks.
+# bcrypt requires a native compilation step; we trigger it explicitly below.
+# Prisma client generation is handled by the manual `pnpm prisma generate` call.
+RUN pnpm install --frozen-lockfile --ignore-scripts
+
+# Compile bcrypt's native .node binary for the current platform.
+# This replaces the install script that --ignore-scripts suppressed.
+RUN pnpm rebuild bcrypt
 
 COPY backend .
 
-# PRISMA_ENGINES_CHECKSUM_IGNORE_MISSING allows Prisma to run on ARM
-# without pre-built binaries for every variant
+# PRISMA_ENGINES_CHECKSUM_IGNORE_MISSING=1 lets Prisma run on ARM where
+# pre-built engine binaries may not match the checksum exactly.
 ENV PRISMA_ENGINES_CHECKSUM_IGNORE_MISSING=1
 ENV DATABASE_URL="postgresql://dummy:dummy@localhost:5432/dummy"
 
-# Generate Prisma client, compile TypeScript, then prune devDependencies.
-# pnpm prune --prod removes devDeps from node_modules in-place, preserving
-# the generated .prisma/client directory (it is not an npm package, so pnpm
-# does not touch it during pruning).
+# Generate Prisma client, compile TypeScript, strip devDeps.
+# --ignore-scripts on prune prevents any preuninstall hooks from running.
 RUN pnpm prisma generate && \
     pnpm build && \
-    pnpm prune --prod && \
+    pnpm prune --prod --ignore-scripts && \
     pnpm store prune && \
     rm -rf /root/.local/share/pnpm/store /tmp/* /root/.cache /root/.npm
 
@@ -72,26 +85,24 @@ FROM docker.io/library/node:22-alpine
 
 WORKDIR /app
 
-# Runtime libraries only — bcrypt needs libstdc++/libgcc at runtime
+# libstdc++ and libgcc are required by bcrypt's native module at runtime
 RUN apk add --no-cache libstdc++ libgcc && \
     rm -rf /var/cache/apk/*
 
-# Production node_modules (pruned to prod deps by builder, no pnpm needed here)
+# Production node_modules (devDeps pruned, bcrypt binary compiled, no pnpm)
 COPY --from=backend-builder /app/node_modules ./node_modules
 
 # Compiled TypeScript output
 COPY --from=backend-builder /app/dist ./dist
 
-# Prisma schema (needed for migrate deploy at startup)
+# Prisma schema — needed for `prisma migrate deploy` at container startup
 COPY --from=backend-builder /app/prisma ./prisma
 
-# package.json referenced by some runtime tooling
 COPY backend/package.json ./
 
-# Frontend static files (served by backend in non-Pi deployments)
+# Frontend static files (served by the backend in non-Pi deployments)
 COPY --from=frontend-builder /frontend/dist ./public
 
-# Runtime directories and entrypoint
 COPY backend/docker-entrypoint.sh /app/docker-entrypoint.sh
 RUN mkdir -p /app/uploads /app/backups /app/images && \
     chmod +x /app/docker-entrypoint.sh
