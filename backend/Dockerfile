@@ -21,7 +21,7 @@ WORKDIR /frontend
 
 COPY frontend/package.json frontend/pnpm-lock.yaml ./
 
-RUN npm install -g pnpm@11.1.2 --quiet
+RUN npm install -g pnpm@10 --quiet
 
 RUN pnpm install --no-frozen-lockfile --prod=false
 
@@ -47,7 +47,7 @@ WORKDIR /app
 
 COPY backend/package.json backend/pnpm-lock.yaml ./
 
-RUN npm install -g pnpm@11.1.2 --quiet
+RUN npm install -g pnpm@10 --quiet
 
 # onlyBuiltDependencies in the lockfile settings allows bcrypt and Prisma
 # packages to run their install scripts; all others remain blocked.
