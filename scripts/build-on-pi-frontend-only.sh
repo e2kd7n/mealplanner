@@ -1,7 +1,10 @@
 #!/bin/bash
 
-# Build only the frontend image on Raspberry Pi
-# Use this to rebuild just the frontend after fixing the rolldown issue
+# Re-extract frontend static files from the already-built backend image
+# Use this to refresh ./data/frontend-dist/ without a full rebuild.
+# The frontend is embedded in meals-backend:latest at /app/public (built via
+# multi-stage Dockerfile). For a full rebuild including frontend changes,
+# use ./scripts/build-on-pi.sh instead.
 
 set -e
 
@@ -12,7 +15,7 @@ YELLOW='\033[1;33m'
 BLUE='\033[0;34m'
 NC='\033[0m' # No Color
 
-echo -e "${GREEN}🏗️  Building frontend image only on Raspberry Pi...${NC}"
+echo -e "${GREEN}📦 Re-extracting frontend static files from backend image...${NC}"
 
 # Check if podman is installed
 if ! command -v podman &> /dev/null; then
@@ -20,33 +23,30 @@ if ! command -v podman &> /dev/null; then
     exit 1
 fi
 
-# Use cache by default, but allow --no-cache via environment variable
-CACHE_FLAG=""
-if [ "${NO_CACHE:-false}" = "true" ]; then
-    echo -e "${YELLOW}⚠️  Building without cache (NO_CACHE=true)${NC}"
-    CACHE_FLAG="--no-cache"
-else
-    echo -e "${GREEN}✓ Using build cache for faster builds${NC}"
-    echo -e "${BLUE}💡 To force clean build: NO_CACHE=true ./scripts/build-on-pi-frontend-only.sh${NC}"
+# Check backend image exists
+if ! podman images | grep -q "meals-backend"; then
+    echo -e "${RED}❌ meals-backend image not found${NC}"
+    echo -e "${YELLOW}Build the backend first: ${GREEN}./scripts/build-on-pi.sh${NC}"
+    exit 1
 fi
 
-# Build frontend image (standalone for nginx)
-echo -e "${YELLOW}🔨 Building frontend image...${NC}"
-podman build \
-    $CACHE_FLAG \
-    -t meals-frontend:latest \
-    -f frontend/Dockerfile \
-    --build-arg VITE_API_URL=/api \
-    frontend/
+echo -e "${BLUE}ℹ️  Extracting from meals-backend:latest /app/public ...${NC}"
 
-echo -e "${GREEN}✅ Frontend image built successfully!${NC}"
+mkdir -p ./data/frontend-dist
+rm -rf ./data/frontend-dist/*
+
+podman run --rm \
+    -v "$(pwd)/data/frontend-dist:/output:z" \
+    meals-backend:latest \
+    sh -c "cp -rp /app/public/. /output/"
+
+echo -e "${GREEN}✅ Frontend static files extracted to ./data/frontend-dist/${NC}"
 echo ""
-echo -e "${BLUE}📦 Built image:${NC}"
-podman images | grep meals-frontend
-
+echo -e "${BLUE}📁 Extracted files ($(ls ./data/frontend-dist | wc -l) total):${NC}"
+ls ./data/frontend-dist
 echo ""
 echo -e "${YELLOW}Next steps:${NC}"
-echo -e "   1. If backend is already built: ${GREEN}podman-compose -f podman-compose.pi.yml up -d${NC}"
-echo -e "   2. Or build backend too: ${GREEN}./scripts/build-on-pi.sh${NC}"
+echo -e "   If app is running: ${GREEN}./scripts/pi-bounce.sh${NC}"
+echo -e "   To start fresh:    ${GREEN}./scripts/pi-run.sh${NC}"
 
 # Made with Bob

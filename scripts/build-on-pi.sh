@@ -207,10 +207,16 @@ podman build \
         fi
     done
 
-# Build frontend image using the dedicated frontend build script
+# Extract frontend static files from backend image for Nginx to serve
 echo ""
-echo -e "${BLUE}📦 Calling frontend build script...${NC}"
-./scripts/build-on-pi-frontend-only.sh
+echo -e "${BLUE}📦 Extracting frontend static files for Nginx...${NC}"
+mkdir -p ./data/frontend-dist
+rm -rf ./data/frontend-dist/*
+podman run --rm \
+    -v "$(pwd)/data/frontend-dist:/output:z" \
+    meals-backend:latest \
+    sh -c "cp -rp /app/public/. /output/"
+echo -e "${GREEN}✅ Frontend static files extracted to ./data/frontend-dist/${NC}"
 
 # Log total build time
 BUILD_END=$(date +%s)
@@ -222,10 +228,13 @@ echo "[$(date '+%Y-%m-%d %H:%M:%S')] Build completed" >> "$BUILD_LOG"
 echo "Total build time: ${TOTAL_MINUTES}m ${TOTAL_SECONDS}s" >> "$BUILD_LOG"
 echo "" >> "$BUILD_LOG"
 
-echo -e "${GREEN}✅ Images built successfully!${NC}"
+echo -e "${GREEN}✅ Build complete!${NC}"
 echo ""
-echo -e "${BLUE}📦 Built images:${NC}"
-podman images | grep meals
+echo -e "${BLUE}📦 Built image:${NC}"
+podman images | grep meals-backend
+echo ""
+echo -e "${BLUE}📁 Frontend static files ($(ls ./data/frontend-dist | wc -l) files):${NC}"
+ls ./data/frontend-dist | head -10
 
 echo ""
 echo -e "${GREEN}📊 Performance Summary:${NC}"

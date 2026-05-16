@@ -174,69 +174,68 @@ $CONTAINER_CMD build \
     --build-arg VITE_API_URL=/api \
     .
 
-# Build frontend image (standalone for nginx)
-echo -e "${YELLOW}🔨 Building frontend image for ${TARGET_ARCH}...${NC}"
-echo -e "${BLUE}ℹ️  Building without cache to ensure correct architecture${NC}"
+# Build frontend static files using a native (non-cross-compiled) container.
+# React/Vite output is pure HTML/CSS/JS — architecture-independent — so we build
+# natively and extract the dist files rather than building an ARM image.
+echo -e "${YELLOW}🔨 Building frontend static files (native build)...${NC}"
 $CONTAINER_CMD build \
-    --platform "$TARGET_ARCH" \
-    --no-cache \
-    -t meals-frontend:latest \
+    -t meals-frontend-extract:tmp \
     -f frontend/Dockerfile \
     --build-arg VITE_API_URL=/api \
     frontend/
 
-# Save images as tar files
-echo -e "${YELLOW}💾 Saving images to tar files...${NC}"
+echo -e "${YELLOW}📦 Extracting frontend static files...${NC}"
+mkdir -p ./data/frontend-dist
+rm -rf ./data/frontend-dist/*
+$CONTAINER_CMD run --rm \
+    -v "$(pwd)/data/frontend-dist:/output" \
+    meals-frontend-extract:tmp \
+    sh -c "cp -rp /usr/share/nginx/html/. /output/"
+tar -czf "$OUTPUT_DIR/frontend-dist.tar.gz" -C ./data/frontend-dist .
+$CONTAINER_CMD rmi meals-frontend-extract:tmp 2>/dev/null || true
+echo -e "${GREEN}✅ Frontend static files packaged as $OUTPUT_DIR/frontend-dist.tar.gz${NC}"
+
+# Save backend image as tar file
+echo -e "${YELLOW}💾 Saving backend image to tar file...${NC}"
 
 if [ "$COMPRESS" = true ]; then
-    echo -e "${BLUE}ℹ️  Compressing tar files (smaller transfer size)${NC}"
+    echo -e "${BLUE}ℹ️  Compressing backend tar (smaller transfer size)${NC}"
     $CONTAINER_CMD save meals-backend:latest | gzip > "$OUTPUT_DIR/meals-backend.tar.gz"
-    $CONTAINER_CMD save meals-frontend:latest | gzip > "$OUTPUT_DIR/meals-frontend.tar.gz"
-    
     # Also save uncompressed for compatibility
     $CONTAINER_CMD save -o "$OUTPUT_DIR/meals-backend.tar" meals-backend:latest
-    $CONTAINER_CMD save -o "$OUTPUT_DIR/meals-frontend.tar" meals-frontend:latest
-    
-    # Get file sizes
+
     BACKEND_SIZE=$(du -h "$OUTPUT_DIR/meals-backend.tar" | cut -f1)
-    FRONTEND_SIZE=$(du -h "$OUTPUT_DIR/meals-frontend.tar" | cut -f1)
     BACKEND_GZ_SIZE=$(du -h "$OUTPUT_DIR/meals-backend.tar.gz" | cut -f1)
-    FRONTEND_GZ_SIZE=$(du -h "$OUTPUT_DIR/meals-frontend.tar.gz" | cut -f1)
-    
-    echo -e "${GREEN}✅ Images built and saved successfully!${NC}"
+    FRONTEND_DIST_SIZE=$(du -h "$OUTPUT_DIR/frontend-dist.tar.gz" | cut -f1)
+
+    echo -e "${GREEN}✅ Build complete!${NC}"
     echo ""
-    echo -e "${BLUE}📦 Image files (uncompressed):${NC}"
-    echo -e "   Backend:   $OUTPUT_DIR/meals-backend.tar   (${BACKEND_SIZE})"
-    echo -e "   Frontend:  $OUTPUT_DIR/meals-frontend.tar  (${FRONTEND_SIZE})"
-    echo ""
-    echo -e "${BLUE}📦 Image files (compressed - recommended for slow networks):${NC}"
-    echo -e "   Backend:   $OUTPUT_DIR/meals-backend.tar.gz   (${BACKEND_GZ_SIZE})"
-    echo -e "   Frontend:  $OUTPUT_DIR/meals-frontend.tar.gz  (${FRONTEND_GZ_SIZE})"
+    echo -e "${BLUE}📦 Transfer files:${NC}"
+    echo -e "   Backend image (uncompressed): $OUTPUT_DIR/meals-backend.tar   (${BACKEND_SIZE})"
+    echo -e "   Backend image (compressed):   $OUTPUT_DIR/meals-backend.tar.gz (${BACKEND_GZ_SIZE})"
+    echo -e "   Frontend static files:        $OUTPUT_DIR/frontend-dist.tar.gz (${FRONTEND_DIST_SIZE})"
     echo ""
     echo -e "${YELLOW}📤 Next steps:${NC}"
-    echo -e "   1. Transfer images to your Raspberry Pi:"
-    echo -e "      ${GREEN}# For fast networks (3+ MB/s): Use uncompressed${NC}"
-    echo -e "      ${GREEN}scp pi-images/*.tar pi@pihole.local:~/mealplanner/pi-images/${NC}"
-    echo -e "      ${BLUE}# For slow networks (<1 MB/s): Use compressed${NC}"
-    echo -e "      scp pi-images/*.tar.gz pi@pihole.local:~/mealplanner/pi-images/"
+    echo -e "   1. Transfer to Pi (fast network — uncompressed backend):"
+    echo -e "      ${GREEN}scp pi-images/meals-backend.tar pi-images/frontend-dist.tar.gz pi@raspberrypi.local:~/mealplanner/pi-images/${NC}"
+    echo -e "   1. Transfer to Pi (slow network — compressed backend):"
+    echo -e "      ${GREEN}scp pi-images/meals-backend.tar.gz pi-images/frontend-dist.tar.gz pi@raspberrypi.local:~/mealplanner/pi-images/${NC}"
 else
-    echo -e "${BLUE}ℹ️  Saving uncompressed tar files (faster loading on Pi - default)${NC}"
+    echo -e "${BLUE}ℹ️  Saving uncompressed tar (faster loading on Pi — default)${NC}"
     $CONTAINER_CMD save -o "$OUTPUT_DIR/meals-backend.tar" meals-backend:latest
-    $CONTAINER_CMD save -o "$OUTPUT_DIR/meals-frontend.tar" meals-frontend:latest
-    
-    # Get file sizes
+
     BACKEND_SIZE=$(du -h "$OUTPUT_DIR/meals-backend.tar" | cut -f1)
-    FRONTEND_SIZE=$(du -h "$OUTPUT_DIR/meals-frontend.tar" | cut -f1)
-    
-    echo -e "${GREEN}✅ Images built and saved successfully!${NC}"
+    FRONTEND_DIST_SIZE=$(du -h "$OUTPUT_DIR/frontend-dist.tar.gz" | cut -f1)
+
+    echo -e "${GREEN}✅ Build complete!${NC}"
     echo ""
-    echo -e "${BLUE}📦 Image files (uncompressed):${NC}"
-    echo -e "   Backend:   $OUTPUT_DIR/meals-backend.tar   (${BACKEND_SIZE})"
-    echo -e "   Frontend:  $OUTPUT_DIR/meals-frontend.tar  (${FRONTEND_SIZE})"
+    echo -e "${BLUE}📦 Transfer files:${NC}"
+    echo -e "   Backend image:         $OUTPUT_DIR/meals-backend.tar   (${BACKEND_SIZE})"
+    echo -e "   Frontend static files: $OUTPUT_DIR/frontend-dist.tar.gz (${FRONTEND_DIST_SIZE})"
     echo ""
     echo -e "${YELLOW}📤 Next steps:${NC}"
-    echo -e "   1. Transfer images to your Raspberry Pi:"
-    echo -e "      ${GREEN}scp pi-images/*.tar pi@pihole.local:~/mealplanner/pi-images/${NC}"
+    echo -e "   1. Transfer to your Raspberry Pi:"
+    echo -e "      ${GREEN}scp pi-images/meals-backend.tar pi-images/frontend-dist.tar.gz pi@raspberrypi.local:~/mealplanner/pi-images/${NC}"
     echo -e "      ${BLUE}💡 Tip: Use --compress flag for slower networks${NC}"
 fi
 echo ""
@@ -245,9 +244,9 @@ echo -e "      ${GREEN}cd ~/mealplanner${NC}"
 echo -e "      ${GREEN}./scripts/load-pi-images.sh${NC}"
 echo ""
 echo -e "   3. Deploy the application:"
-echo -e "      ${GREEN}./scripts/deploy-podman.sh${NC}"
+echo -e "      ${GREEN}./scripts/pi-run.sh${NC}"
 echo ""
 echo -e "${BLUE}💡 Tip: Use rsync for faster, resumable transfers:${NC}"
-echo -e "   ${GREEN}rsync -avz --progress pi-images/*.tar.gz pi@pihole.local:~/mealplanner/pi-images/${NC}"
+echo -e "   ${GREEN}rsync -avz --progress pi-images/meals-backend.tar pi-images/frontend-dist.tar.gz pi@raspberrypi.local:~/mealplanner/pi-images/${NC}"
 
 # Made with Bob

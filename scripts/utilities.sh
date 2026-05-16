@@ -175,7 +175,7 @@ show_container_status() {
     
     echo -e "${BLUE}🐳 Container Status:${NC}"
     local running=$($container_cmd ps --filter "name=meals-" --format "{{.Names}}" 2>/dev/null | wc -l)
-    local expected=4  # postgres, backend, frontend, nginx
+    local expected=4  # postgres, redis, backend, nginx
     
     if [ "$running" -eq "$expected" ]; then
         echo -e "${GREEN}   ✓ All $expected containers running${NC}"

@@ -42,13 +42,13 @@ if ! podman images | grep -q "meals-backend"; then
     exit 1
 fi
 
-if ! podman images | grep -q "meals-frontend"; then
-    echo -e "${RED}❌ Frontend image not found${NC}"
-    echo -e "${YELLOW}Please build or load images first:${NC}"
+if [ ! -f "./data/frontend-dist/index.html" ]; then
+    echo -e "${RED}❌ Frontend static files not found in ./data/frontend-dist/${NC}"
+    echo -e "${YELLOW}Please build first:${NC}"
     echo -e "   Option 1 - Build directly on Pi: ${GREEN}./scripts/build-on-pi.sh${NC}"
-    echo -e "   Option 2 - Load pre-built images:"
-    echo -e "      a. Transfer: scp pi-images/*.tar.gz pi@pihole.local:~/mealplanner/pi-images/"
-    echo -e "      b. Load: ./scripts/load-pi-images.sh"
+    echo -e "   Option 2 - Load pre-built files:"
+    echo -e "      a. Transfer: scp pi-images/frontend-dist.tar.gz pi@raspberrypi.local:~/mealplanner/pi-images/"
+    echo -e "      b. Load: ${GREEN}./scripts/load-pi-images.sh${NC}"
     exit 1
 fi
 

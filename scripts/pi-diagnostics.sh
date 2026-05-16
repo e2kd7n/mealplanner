@@ -133,10 +133,10 @@ if podman ps | grep -q meals-postgres; then
     {
         echo ""
         echo "Database Size:"
-        podman exec meals-postgres psql -U postgres -d mealplanner -c "SELECT pg_size_pretty(pg_database_size('mealplanner')) as size;" 2>/dev/null || echo "Cannot connect to database"
+        podman exec meals-postgres psql -U mealplanner -d meal_planner -c "SELECT pg_size_pretty(pg_database_size('meal_planner')) as size;" 2>/dev/null || echo "Cannot connect to database"
         echo ""
         echo "Database Table Sizes:"
-        podman exec meals-postgres psql -U postgres -d mealplanner -c "SELECT schemaname, tablename, pg_size_pretty(pg_total_relation_size(schemaname||'.'||tablename)) AS size FROM pg_tables WHERE schemaname = 'public' ORDER BY pg_total_relation_size(schemaname||'.'||tablename) DESC LIMIT 10;" 2>/dev/null || echo "Cannot query database"
+        podman exec meals-postgres psql -U mealplanner -d meal_planner -c "SELECT schemaname, tablename, pg_size_pretty(pg_total_relation_size(schemaname||'.'||tablename)) AS size FROM pg_tables WHERE schemaname = 'public' ORDER BY pg_total_relation_size(schemaname||'.'||tablename) DESC LIMIT 10;" 2>/dev/null || echo "Cannot query database"
     } | tee -a "$OUTPUT_FILE"
 else
     echo "Database container not running" | tee -a "$OUTPUT_FILE"
@@ -165,8 +165,13 @@ if command -v podman &> /dev/null; then
         echo "Backend Image Layers:"
         podman history meals-backend:latest --format "table {{.CreatedBy}}\t{{.Size}}" | head -20
         echo ""
-        echo "Frontend Image Layers:"
-        podman history meals-frontend:latest --format "table {{.CreatedBy}}\t{{.Size}}" | head -20
+        echo "Frontend Static Files (./data/frontend-dist):"
+        if [ -d "./data/frontend-dist" ]; then
+            ls -lh ./data/frontend-dist | head -20
+            echo "Total: $(du -sh ./data/frontend-dist 2>/dev/null | cut -f1)"
+        else
+            echo "  ./data/frontend-dist not found"
+        fi
     } | tee -a "$OUTPUT_FILE"
 fi
 
