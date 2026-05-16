@@ -274,18 +274,42 @@ api.interceptors.response.use(
 export const authAPI = {
   register: (data: { email: string; password: string; familyName: string }) =>
     api.post('/auth/register', data),
-  
+
   login: (data: { email: string; password: string }) =>
     api.post('/auth/login', data),
-  
+
   logout: () =>
     api.post('/auth/logout'),
-  
+
   refreshToken: (refreshToken: string) =>
     api.post('/auth/refresh', { refreshToken }),
-  
+
   getCurrentUser: () =>
     api.get('/auth/me'),
+};
+
+// Visual / Local Auth API (home-network convenience login)
+export const visualAuthAPI = {
+  listUsers: () =>
+    api.get('/auth/users'),
+
+  getVisualChallenge: (userId: string) =>
+    api.get(`/auth/visual-challenge/${userId}`),
+
+  visualLogin: (data: { userId: string; recipeId: string }) =>
+    api.post('/auth/login/visual', data),
+
+  deviceLogin: () =>
+    api.post('/auth/login/device'),
+
+  deviceLogout: () =>
+    api.post('/auth/logout/device'),
+
+  getVisualPasswordStatus: () =>
+    api.get('/auth/visual-password/status'),
+
+  setupVisualPassword: (recipeId: string) =>
+    api.post('/auth/visual-password/setup', { recipeId }),
 };
 
 // Recipe API
