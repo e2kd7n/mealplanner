@@ -15,6 +15,7 @@
     "test:e2e:report": "playwright show-report"
   },
   "pnpm": {
+    "onlyBuiltDependencies": ["esbuild"],
     "overrides": {
       "flatted": ">=3.4.2",
       "brace-expansion": ">=1.1.13",

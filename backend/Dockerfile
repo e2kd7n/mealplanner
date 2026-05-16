@@ -17,7 +17,7 @@ WORKDIR /frontend
 COPY frontend/package.json frontend/pnpm-lock.yaml ./
 
 # pnpm version must match local dev environment (lockfile was generated with pnpm@11)
-RUN npm install -g pnpm@11 --quiet
+RUN npm install -g pnpm@11.1.2 --quiet
 
 RUN pnpm install --frozen-lockfile --prod=false
 
@@ -43,7 +43,7 @@ WORKDIR /app
 
 COPY backend/package.json backend/pnpm-lock.yaml ./
 
-RUN npm install -g pnpm@11 --quiet
+RUN npm install -g pnpm@11.1.2 --quiet
 
 # Install all dependencies (dev + prod) — needed for prisma generate and tsc
 RUN pnpm install --frozen-lockfile
