@@ -175,11 +175,11 @@ podman exec meals-postgres pg_dump -U mealplanner meal_planner > backup-\$(date 
 ## System Resources
 
 **Memory Allocation:**
-- PostgreSQL: 256MB limit
-- Backend: 384MB limit
-- Frontend: 128MB limit
-- Nginx: 64MB limit
-- **Total:** 832MB (leaves ~${TOTAL_RAM} for OS)
+- PostgreSQL: 160MB limit
+- Redis: 32MB limit
+- Backend: 320MB limit
+- Nginx: 48MB limit
+- **Total:** 560MB (leaves ~1.44GB for OS + buffers on a 2GB Pi)
 
 **Performance Targets:**
 - CPU Load: <2.0 (warning >2.0, critical >3.5)

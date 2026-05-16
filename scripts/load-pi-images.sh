@@ -30,27 +30,29 @@ if [ ! -d "$IMAGE_DIR" ]; then
     exit 1
 fi
 
-# Check if compressed or uncompressed tar files exist
+# Check which backend image file exists (compressed or uncompressed)
 BACKEND_COMPRESSED="$IMAGE_DIR/meals-backend.tar.gz"
-FRONTEND_COMPRESSED="$IMAGE_DIR/meals-frontend.tar.gz"
 BACKEND_UNCOMPRESSED="$IMAGE_DIR/meals-backend.tar"
-FRONTEND_UNCOMPRESSED="$IMAGE_DIR/meals-frontend.tar"
+FRONTEND_DIST_TAR="$IMAGE_DIR/frontend-dist.tar.gz"
 
-# Determine which files to use
-if [ -f "$BACKEND_COMPRESSED" ] && [ -f "$FRONTEND_COMPRESSED" ]; then
-    echo -e "${GREEN}✓ Found compressed image files${NC}"
+if [ -f "$BACKEND_COMPRESSED" ]; then
+    echo -e "${GREEN}✓ Found compressed backend image${NC}"
     USE_COMPRESSED=true
-elif [ -f "$BACKEND_UNCOMPRESSED" ] && [ -f "$FRONTEND_UNCOMPRESSED" ]; then
-    echo -e "${GREEN}✓ Found uncompressed image files${NC}"
+elif [ -f "$BACKEND_UNCOMPRESSED" ]; then
+    echo -e "${GREEN}✓ Found uncompressed backend image${NC}"
     USE_COMPRESSED=false
 else
-    echo -e "${RED}❌ Image files not found in $IMAGE_DIR${NC}"
-    echo -e "${YELLOW}Expected files (compressed):${NC}"
-    echo -e "   - meals-backend.tar.gz"
-    echo -e "   - meals-frontend.tar.gz"
-    echo -e "${YELLOW}Or (uncompressed):${NC}"
-    echo -e "   - meals-backend.tar"
-    echo -e "   - meals-frontend.tar"
+    echo -e "${RED}❌ Backend image not found in $IMAGE_DIR${NC}"
+    echo -e "${YELLOW}Expected one of:${NC}"
+    echo -e "   - meals-backend.tar.gz  (compressed)"
+    echo -e "   - meals-backend.tar     (uncompressed)"
+    exit 1
+fi
+
+if [ ! -f "$FRONTEND_DIST_TAR" ]; then
+    echo -e "${RED}❌ Frontend static files archive not found: $FRONTEND_DIST_TAR${NC}"
+    echo -e "${YELLOW}Transfer it from your dev machine:${NC}"
+    echo -e "   scp pi-images/frontend-dist.tar.gz pi@raspberrypi.local:~/mealplanner/pi-images/"
     exit 1
 fi
 
@@ -68,9 +70,8 @@ fi
 
 # Load backend image
 echo -e "${YELLOW}📥 Loading backend image (1/2)...${NC}"
-echo -e "${BLUE}   This may take 2-3 minutes for the backend image...${NC}"
+echo -e "${BLUE}   This may take 2-3 minutes...${NC}"
 if [ "$USE_COMPRESSED" = true ]; then
-    echo -e "${BLUE}   Decompressing and loading 416MB compressed file...${NC}"
     LOAD_OUTPUT=$(gunzip -c "$BACKEND_COMPRESSED" | podman load 2>&1)
     echo "$LOAD_OUTPUT"
     if echo "$LOAD_OUTPUT" | grep -q "Loaded image"; then
@@ -92,50 +93,33 @@ else
 fi
 echo ""
 
-# Load frontend image
-echo -e "${YELLOW}📥 Loading frontend image (2/2)...${NC}"
-echo -e "${BLUE}   This should be quick (~30 seconds)...${NC}"
-if [ "$USE_COMPRESSED" = true ]; then
-    echo -e "${BLUE}   Decompressing and loading 24MB compressed file...${NC}"
-    LOAD_OUTPUT=$(gunzip -c "$FRONTEND_COMPRESSED" | podman load 2>&1)
-    echo "$LOAD_OUTPUT"
-    if echo "$LOAD_OUTPUT" | grep -q "Loaded image"; then
-        echo -e "${GREEN}✓ Frontend image loaded successfully${NC}"
-    else
-        echo -e "${RED}❌ Failed to load frontend image${NC}"
-        echo "$LOAD_OUTPUT"
-        exit 1
-    fi
-else
-    LOAD_OUTPUT=$(podman load -i "$FRONTEND_UNCOMPRESSED" 2>&1)
-    echo "$LOAD_OUTPUT"
-    if echo "$LOAD_OUTPUT" | grep -q "Loaded image"; then
-        echo -e "${GREEN}✓ Frontend image loaded successfully${NC}"
-    else
-        echo -e "${RED}❌ Failed to load frontend image${NC}"
-        exit 1
-    fi
-fi
+# Extract frontend static files (Nginx serves these directly — no frontend container on Pi)
+echo -e "${YELLOW}📦 Extracting frontend static files (2/2)...${NC}"
+mkdir -p ./data/frontend-dist
+rm -rf ./data/frontend-dist/*
+tar -xzf "$FRONTEND_DIST_TAR" -C ./data/frontend-dist
+echo -e "${GREEN}✓ Frontend static files extracted to ./data/frontend-dist/ ($(ls ./data/frontend-dist | wc -l) files)${NC}"
+echo ""
 
-# Verify images are loaded
-echo -e "${GREEN}✅ Images loaded successfully!${NC}"
+# Verify
+echo -e "${GREEN}✅ All assets loaded successfully!${NC}"
 echo ""
-echo -e "${BLUE}📋 Loaded images:${NC}"
-podman images | grep -E "meals-backend|meals-frontend"
+echo -e "${BLUE}📋 Backend image:${NC}"
+podman images | grep meals-backend
 echo ""
-echo -e "${BLUE}Verifying image tags:${NC}"
-podman images --format "{{.Repository}}:{{.Tag}}" | grep meals
+echo -e "${BLUE}📁 Frontend dist:${NC}"
+ls ./data/frontend-dist | head -10
 
-# Cleanup tar files after successful load
+# Cleanup transferred files
 echo ""
-echo -e "${YELLOW}🧹 Cleaning up tar files to save space...${NC}"
+echo -e "${YELLOW}🧹 Cleaning up transferred files to save space...${NC}"
 if [ "$USE_COMPRESSED" = true ]; then
-    rm -f "$BACKEND_COMPRESSED" "$FRONTEND_COMPRESSED"
-    echo -e "${GREEN}✓ Removed compressed tar files${NC}"
+    rm -f "$BACKEND_COMPRESSED"
 else
-    rm -f "$BACKEND_UNCOMPRESSED" "$FRONTEND_UNCOMPRESSED"
-    echo -e "${GREEN}✓ Removed uncompressed tar files${NC}"
+    rm -f "$BACKEND_UNCOMPRESSED"
 fi
+rm -f "$FRONTEND_DIST_TAR"
+echo -e "${GREEN}✓ Removed transferred files${NC}"
 
 # Show disk space after cleanup
 DISK_AFTER=$(df / | awk 'NR==2 {print $5}')
@@ -143,6 +127,6 @@ echo -e "${BLUE}💾 Disk usage after cleanup: ${DISK_AFTER}${NC}"
 
 echo ""
 echo -e "${GREEN}🚀 Next step: Deploy the application${NC}"
-echo -e "   ${GREEN}./scripts/deploy-podman.sh${NC}"
+echo -e "   ${GREEN}./scripts/pi-run.sh${NC}"
 
 # Made with Bob

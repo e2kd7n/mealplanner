@@ -55,25 +55,24 @@ else
 fi
 echo ""
 
-# Pull frontend image
-echo -e "${YELLOW}📥 Pulling frontend image...${NC}"
-FRONTEND_IMAGE="$REGISTRY/$REPO_OWNER/mealplanner-frontend:$IMAGE_TAG"
-if podman pull $FRONTEND_IMAGE; then
-    echo -e "${GREEN}✅ Frontend image pulled successfully${NC}"
-    # Tag as latest for local use
-    podman tag $FRONTEND_IMAGE meals-frontend:latest
-else
-    echo -e "${RED}❌ Failed to pull frontend image${NC}"
-    exit 1
-fi
+# Extract frontend static files from the pulled backend image
+# (Pi serves the frontend as static files via Nginx — no frontend container)
+echo -e "${YELLOW}📦 Extracting frontend static files from backend image...${NC}"
+mkdir -p ./data/frontend-dist
+rm -rf ./data/frontend-dist/*
+podman run --rm \
+    -v "$(pwd)/data/frontend-dist:/output:z" \
+    meals-backend:latest \
+    sh -c "cp -rp /app/public/. /output/"
+echo -e "${GREEN}✅ Frontend static files extracted to ./data/frontend-dist/ ($(ls ./data/frontend-dist | wc -l) files)${NC}"
 echo ""
 
-# Verify images
-echo -e "${BLUE}📦 Verifying images...${NC}"
-echo -e "${BLUE}Backend:${NC}"
+# Verify
+echo -e "${BLUE}📦 Verifying assets...${NC}"
+echo -e "${BLUE}Backend image:${NC}"
 podman inspect meals-backend:latest --format '  Architecture: {{.Architecture}}, OS: {{.Os}}, Size: {{.Size}}' 2>/dev/null || echo "  Image info not available"
-echo -e "${BLUE}Frontend:${NC}"
-podman inspect meals-frontend:latest --format '  Architecture: {{.Architecture}}, OS: {{.Os}}, Size: {{.Size}}' 2>/dev/null || echo "  Image info not available"
+echo -e "${BLUE}Frontend dist:${NC}"
+ls ./data/frontend-dist | head -5
 echo ""
 
 # Stop existing containers
@@ -117,7 +116,7 @@ echo -e "   Stop all:     ${GREEN}podman-compose -f podman-compose.pi.yml down${
 echo -e "   Restart:      ${GREEN}podman-compose -f podman-compose.pi.yml restart${NC}"
 echo ""
 echo -e "${GREEN}🎉 Your application is now running!${NC}"
-echo -e "   Backend:  http://localhost:3000"
-echo -e "   Frontend: http://localhost:80"
+echo -e "   App:     http://$(hostname -I | awk '{print $1}'):8080"
+echo -e "   Health:  http://localhost:8080/health"
 
 # Made with Bob
