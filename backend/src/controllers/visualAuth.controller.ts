@@ -48,7 +48,7 @@ function shuffle<T>(arr: T[]): T[] {
  * Returns all non-blocked users as {id, familyName} for the username picker.
  * No auth required — this is a local-network-only convenience endpoint.
  */
-export async function listUsers(req: Request, res: Response, next: NextFunction): Promise<void> {
+export async function listUsers(_req: Request, res: Response, next: NextFunction): Promise<void> {
   try {
     const users = await prisma.user.findMany({
       where: { isBlocked: false },
@@ -75,7 +75,7 @@ export async function listUsers(req: Request, res: Response, next: NextFunction)
  */
 export async function getVisualChallenge(req: Request, res: Response, next: NextFunction): Promise<void> {
   try {
-    const { userId } = req.params;
+    const userId = req.params['userId'] as string;
 
     const user = await prisma.user.findUnique({
       where: { id: userId },
