@@ -5,8 +5,8 @@
 
 import axios from 'axios';
 import { logger } from '../utils/logger';
+import { appSettingsService } from './appSettings.service';
 
-const SPOONACULAR_API_KEY = process.env.SPOONACULAR_API_KEY;
 const SPOONACULAR_BASE_URL = 'https://api.spoonacular.com';
 
 // Cache configuration
@@ -73,27 +73,25 @@ interface SearchRecipesParams {
   diet?: string;
   type?: string;
   maxReadyTime?: number;
+  sort?: string;
   number?: number;
   offset?: number;
 }
 
 export class SpoonacularService {
-  private apiKey: string;
   private searchCache: Map<string, CacheEntry<any>> = new Map();
   private detailsCache: Map<number, CacheEntry<SpoonacularRecipeDetail>> = new Map();
   private pendingSearches: Map<string, PendingRequest<any>> = new Map();
   private pendingDetails: Map<number, PendingRequest<SpoonacularRecipeDetail>> = new Map();
 
   constructor() {
-    if (!SPOONACULAR_API_KEY) {
-      logger.warn('SPOONACULAR_API_KEY not configured. Recipe browse feature will not work.');
-      this.apiKey = '';
-    } else {
-      this.apiKey = SPOONACULAR_API_KEY;
-    }
-
-    // Clean up expired cache entries every 5 minutes
     setInterval(() => this.cleanupCache(), 5 * 60 * 1000);
+  }
+
+  private async resolveApiKey(): Promise<string> {
+    const key = await appSettingsService.get('spoonacular_api_key');
+    if (!key) throw new Error('Spoonacular API key not configured');
+    return key;
   }
 
   /**
@@ -140,16 +138,14 @@ export class SpoonacularService {
       diet: params.diet || '',
       type: params.type || '',
       maxReadyTime: params.maxReadyTime || 0,
+      sort: params.sort || '',
       number: params.number || 12,
       offset: params.offset || 0,
     });
   }
 
-  /**
-   * Check if Spoonacular API is configured
-   */
-  isConfigured(): boolean {
-    return !!this.apiKey;
+  async isConfigured(): Promise<boolean> {
+    return appSettingsService.isConfigured('spoonacular_api_key');
   }
 
   /**
@@ -161,37 +157,33 @@ export class SpoonacularService {
     number: number;
     totalResults: number;
   }> {
-    if (!this.isConfigured()) {
-      throw new Error('Spoonacular API key not configured');
-    }
+    const apiKey = await this.resolveApiKey();
 
     const cacheKey = this.generateSearchCacheKey(params);
 
-    // Check cache first
     const cached = this.searchCache.get(cacheKey);
     if (cached && Date.now() - cached.timestamp < CACHE_TTL) {
       logger.info(`[SPOONACULAR_SEARCH_CACHE_HIT] Query: ${params.query}`);
       return cached.data;
     }
 
-    // Check if there's already a pending request for this search
     const pending = this.pendingSearches.get(cacheKey);
     if (pending) {
       logger.info(`[SPOONACULAR_SEARCH_DEDUP] Query: ${params.query} - Reusing pending request`);
       return pending.promise;
     }
 
-    // Create new request
     const requestPromise = (async () => {
       try {
         const response = await axios.get(`${SPOONACULAR_BASE_URL}/recipes/complexSearch`, {
           params: {
-            apiKey: this.apiKey,
+            apiKey,
             query: params.query || '',
             cuisine: params.cuisine,
             diet: params.diet,
             type: params.type,
             maxReadyTime: params.maxReadyTime,
+            sort: params.sort,
             number: params.number || 12,
             offset: params.offset || 0,
             addRecipeInformation: true,
@@ -243,32 +235,27 @@ export class SpoonacularService {
    * Get detailed recipe information
    */
   async getRecipeDetails(recipeId: number): Promise<SpoonacularRecipeDetail> {
-    if (!this.isConfigured()) {
-      throw new Error('Spoonacular API key not configured');
-    }
+    const apiKey = await this.resolveApiKey();
 
-    // Check cache first
     const cached = this.detailsCache.get(recipeId);
     if (cached && Date.now() - cached.timestamp < CACHE_TTL) {
       logger.info(`[SPOONACULAR_DETAIL_CACHE_HIT] Recipe ID: ${recipeId}`);
       return cached.data;
     }
 
-    // Check if there's already a pending request for this recipe
     const pending = this.pendingDetails.get(recipeId);
     if (pending) {
       logger.info(`[SPOONACULAR_DETAIL_DEDUP] Recipe ID: ${recipeId} - Reusing pending request`);
       return pending.promise;
     }
 
-    // Create new request
     const requestPromise = (async () => {
       try {
         const response = await axios.get(
           `${SPOONACULAR_BASE_URL}/recipes/${recipeId}/information`,
           {
             params: {
-              apiKey: this.apiKey,
+              apiKey,
               includeNutrition: true,
             },
           }
