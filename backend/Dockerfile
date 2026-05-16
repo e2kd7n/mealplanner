@@ -10,7 +10,7 @@
 # ============================================================================
 # STAGE 1/3: Frontend Builder
 # ============================================================================
-FROM docker.io/library/node:20-alpine AS frontend-builder
+FROM docker.io/library/node:22-alpine AS frontend-builder
 
 WORKDIR /frontend
 
@@ -34,7 +34,7 @@ RUN pnpm build
 # ============================================================================
 # STAGE 2/3: Backend Builder
 # ============================================================================
-FROM docker.io/library/node:20-alpine AS backend-builder
+FROM docker.io/library/node:22-alpine AS backend-builder
 
 # Build tools required for native modules (bcrypt uses node-gyp)
 RUN apk add --no-cache python3 make g++ gcc
@@ -68,7 +68,7 @@ RUN pnpm prisma generate && \
 # ============================================================================
 # STAGE 3/3: Production Image
 # ============================================================================
-FROM docker.io/library/node:20-alpine
+FROM docker.io/library/node:22-alpine
 
 WORKDIR /app
 
