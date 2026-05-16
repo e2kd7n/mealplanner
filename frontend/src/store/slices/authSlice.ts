@@ -161,6 +161,7 @@ const authSlice = createSlice({
           accessToken: null,
           refreshToken: null,
           isAuthenticated: false,
+          loading: false,
         });
       })
       // Centralized pending matcher for all auth thunks

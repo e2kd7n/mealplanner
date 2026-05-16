@@ -177,7 +177,7 @@ const Login: React.FC = () => {
               onClick={handleTestLogin}
               disabled={loading}
             >
-              Quick Test Login (Smith Family)
+              Quick Test Login (Test Family)
             </Button>
             <Box sx={{ textAlign: 'center' }}>
               <Link component={RouterLink} to="/register" variant="body2">
