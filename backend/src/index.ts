@@ -38,6 +38,7 @@ import imageRoutes from './routes/image.routes';
 import logsRoutes from './routes/logs.routes';
 import feedbackRoutes from './routes/feedback.routes';
 import appSettingsRoutes from './routes/appSettings.routes';
+import visualAuthRoutes from './routes/visualAuth.routes';
 
 // Import middleware
 import { errorHandler } from './middleware/errorHandler';
@@ -122,6 +123,7 @@ app.get('/api/csrf-token', csrfProtection, getCsrfToken);
 
 // API routes
 app.use('/api/auth', authRoutes);
+app.use('/api/auth', visualAuthRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/family-members', familyMemberRoutes);
 app.use('/api/recipes/import', recipeImportRoutes);

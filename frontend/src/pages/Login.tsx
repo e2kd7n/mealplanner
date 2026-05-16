@@ -179,9 +179,12 @@ const Login: React.FC = () => {
             >
               Quick Test Login (Test Family)
             </Button>
-            <Box sx={{ textAlign: 'center' }}>
+            <Box sx={{ textAlign: 'center', display: 'flex', flexDirection: 'column', gap: 1 }}>
               <Link component={RouterLink} to="/register" variant="body2">
                 Don't have an account? Sign Up
+              </Link>
+              <Link component={RouterLink} to="/login" variant="body2">
+                Use quick visual login instead
               </Link>
             </Box>
           </Box>

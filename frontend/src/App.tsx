@@ -18,6 +18,7 @@ import OfflineDetector from './components/OfflineDetector';
 import SetupGuard from './components/SetupGuard';
 
 // Lazy load pages for better performance
+const LocalLogin = lazy(() => import('./pages/LocalLogin'));
 const Login = lazy(() => import('./pages/Login'));
 const Register = lazy(() => import('./pages/Register'));
 const Dashboard = lazy(() => import('./pages/Dashboard'));
@@ -60,7 +61,8 @@ function App() {
             <Suspense fallback={<LoadingFallback />}>
               <Routes>
                 {/* Public routes */}
-                <Route path="/login" element={<Login />} />
+                <Route path="/login" element={<LocalLogin />} />
+                <Route path="/login/classic" element={<Login />} />
                 <Route path="/register" element={<Register />} />
 
                 {/* Setup wizard — requires login, shown once for admins */}

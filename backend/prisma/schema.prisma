@@ -12,26 +12,41 @@ datasource db {
 }
 
 model User {
-  id              String            @id @default(uuid())
-  email           String            @unique
-  passwordHash    String            @map("password_hash")
-  familyName      String            @map("family_name")
-  createdAt       DateTime          @default(now()) @map("created_at")
-  updatedAt       DateTime          @updatedAt @map("updated_at")
-  isBlocked       Boolean           @default(false) @map("is_blocked")
-  role            UserRole          @default(user)
-  familyMembers   FamilyMember[]
-  groceryLists    GroceryList[]
-  mealPlans       MealPlan[]
-  pantryInventory PantryInventory[]
-  recipeRatings   RecipeRating[]
-  recipes         Recipe[]
-  feedback        UserFeedback[]
-  userPreferences UserPreferences?
+  id                     String            @id @default(uuid())
+  email                  String            @unique
+  passwordHash           String            @map("password_hash")
+  familyName             String            @map("family_name")
+  createdAt              DateTime          @default(now()) @map("created_at")
+  updatedAt              DateTime          @updatedAt @map("updated_at")
+  isBlocked              Boolean           @default(false) @map("is_blocked")
+  role                   UserRole          @default(user)
+  visualPasswordRecipeId String?           @map("visual_password_recipe_id")
+  familyMembers          FamilyMember[]
+  groceryLists           GroceryList[]
+  mealPlans              MealPlan[]
+  pantryInventory        PantryInventory[]
+  recipeRatings          RecipeRating[]
+  recipes                Recipe[]
+  feedback               UserFeedback[]
+  userPreferences        UserPreferences?
+  deviceTokens           DeviceToken[]
 
   @@index([email])
   @@index([role])
   @@map("users")
+}
+
+model DeviceToken {
+  id        String   @id @default(uuid())
+  userId    String   @map("user_id")
+  tokenHash String   @unique @map("token_hash")
+  expiresAt DateTime @map("expires_at")
+  createdAt DateTime @default(now()) @map("created_at")
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([tokenHash])
+  @@map("device_tokens")
 }
 
 model FamilyMember {
