@@ -1,7 +1,7 @@
 # Multi-stage build for React frontend
 # Optimized for ARM architecture (Raspberry Pi) with minimal size
 
-FROM docker.io/library/node:20-alpine AS builder
+FROM docker.io/library/node:22-alpine AS builder
 
 WORKDIR /app
 
