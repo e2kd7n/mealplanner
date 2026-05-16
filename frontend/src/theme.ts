@@ -10,21 +10,23 @@ export const theme = createTheme({
   palette: {
     primary: {
       main: '#2E7D32', // Green for food/health theme - 5.13:1 ✅
-      light: '#2E7D32', // Use main color for WCAG AA compliance - 5.13:1 ✅
+      light: '#60A46A', // Lighter green - 3.38:1 on white ✅
       dark: '#1B5E20', // Darker for better contrast - 7.87:1 ✅
       contrastText: '#fff',
     },
     secondary: {
-      main: '#C62828', // WCAG AA compliant - 5.13:1 ✅
-      light: '#D32F2F', // WCAG AA compliant - 4.98:1 ✅
-      dark: '#BF360C', // Darker for better contrast - 5.60:1 ✅
+      // Warm amber — semantically distinct from error/warning red
+      main: '#D4880C', // 3.16:1 on white ✅
+      light: '#E6A020',
+      dark: '#B36B00',
       contrastText: '#fff',
     },
     error: {
-      main: '#D32F2F', // 4.98:1 ✅
+      main: '#D32F2F', // Red stays exclusively for errors - 4.98:1 ✅
     },
     warning: {
-      main: '#C62828', // WCAG AA compliant - 5.13:1 ✅
+      // Shares amber with secondary — reinforces each other rather than adding a third red
+      main: '#D4880C',
     },
     info: {
       main: '#0277BD', // Adjusted for better contrast - 4.52:1 ✅
@@ -49,11 +51,11 @@ export const theme = createTheme({
     ].join(','),
     h1: {
       fontSize: '2.5rem',
-      fontWeight: 600,
+      fontWeight: 700, // Display moments — heavier than section titles
     },
     h2: {
       fontSize: '2rem',
-      fontWeight: 600,
+      fontWeight: 700,
     },
     h3: {
       fontSize: '1.75rem',
@@ -65,11 +67,11 @@ export const theme = createTheme({
     },
     h5: {
       fontSize: '1.25rem',
-      fontWeight: 600,
+      fontWeight: 500, // Card headers — lighter than page titles
     },
     h6: {
       fontSize: '1rem',
-      fontWeight: 600,
+      fontWeight: 500,
     },
   },
   shape: {

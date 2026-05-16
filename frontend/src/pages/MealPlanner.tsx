@@ -29,6 +29,7 @@ import {
   Autocomplete,
   CircularProgress,
   Link,
+  Tooltip,
 } from '@mui/material';
 import {
   Add as AddIcon,
@@ -157,6 +158,9 @@ const MealPlanner: React.FC = () => {
   
   // Drag and drop state
   const [activeMeal, setActiveMeal] = useState<Meal | null>(null);
+  const [dragTooltipDismissed, setDragTooltipDismissed] = useState(
+    () => !!localStorage.getItem('dragTooltipDismissed')
+  );
   const sensors = useSensors(
     useSensor(PointerSensor, {
       activationConstraint: {
@@ -682,6 +686,10 @@ const MealPlanner: React.FC = () => {
     if (meal) {
       setActiveMeal(meal);
     }
+    if (!dragTooltipDismissed) {
+      localStorage.setItem('dragTooltipDismissed', 'true');
+      setDragTooltipDismissed(true);
+    }
   };
 
   const handleDragEnd = async (event: DragEndEvent) => {
@@ -809,14 +817,21 @@ const MealPlanner: React.FC = () => {
       >
         <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start' }}>
           <Box sx={{ display: 'flex', alignItems: 'center', flex: 1, minWidth: 0 }}>
-            <DragIndicatorIcon
-              sx={{
-                fontSize: 14,
-                mr: 0.5,
-                color: 'text.secondary',
-                display: { xs: 'none', lg: 'block' }
-              }}
-            />
+            <Tooltip
+              title={!dragTooltipDismissed ? 'Drag meals to reschedule' : ''}
+              open={!dragTooltipDismissed}
+              placement="top"
+              arrow
+            >
+              <DragIndicatorIcon
+                sx={{
+                  fontSize: 14,
+                  mr: 0.5,
+                  color: 'text.secondary',
+                  display: { xs: 'none', md: 'block' },
+                }}
+              />
+            </Tooltip>
             <Box sx={{ flex: 1, minWidth: 0 }}>
               <Typography
                 variant="caption"

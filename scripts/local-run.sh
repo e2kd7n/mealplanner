@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Run the Meal Planner application locally for development
-# This script starts the database container and local dev services, then opens the UI in Chrome
+# Starts only the database in a container; backend and frontend run natively with hot reload.
 # ⚠️  FOR LOCAL DEVELOPMENT ONLY - Use pi-run.sh on Raspberry Pi
 
 set -e
@@ -13,21 +13,62 @@ YELLOW='\033[1;33m'
 BLUE='\033[0;34m'
 NC='\033[0m' # No Color
 
-# Detect if running on Raspberry Pi
-if [ -f /proc/device-tree/model ]; then
-    PI_MODEL=$(cat /proc/device-tree/model 2>/dev/null | tr -d '\0')
-    if [[ "$PI_MODEL" == *"Raspberry Pi"* ]]; then
-        echo -e "${RED}❌ ERROR: This is a LOCAL DEVELOPMENT script!${NC}"
-        echo ""
-        echo -e "${YELLOW}For Raspberry Pi deployment, use:${NC}"
-        echo -e "  ${GREEN}./scripts/pi-run.sh${NC}"
-        echo ""
-        echo -e "${BLUE}This script runs services directly (not in containers)${NC}"
-        echo -e "${BLUE}and is intended for development machines only.${NC}"
-        echo ""
-        exit 1
-    fi
+# Detect OS / architecture
+detect_os() {
+    case "$(uname -s)" in
+        Darwin*)
+            echo "mac" ;;
+        Linux*)
+            if grep -qi microsoft /proc/version 2>/dev/null; then
+                echo "wsl"
+            elif [ -f /proc/device-tree/model ] && grep -q "Raspberry Pi" /proc/device-tree/model 2>/dev/null; then
+                echo "pi"
+            else
+                echo "linux"
+            fi
+            ;;
+        MINGW*|MSYS*|CYGWIN*)
+            echo "windows" ;;
+        *)
+            echo "unknown" ;;
+    esac
+}
+
+OS=$(detect_os)
+ARCH=$(uname -m)
+
+# ── Argument parsing ──────────────────────────────────────────────────────────
+# --browser <name|path>  override which browser to open (also reads $BROWSER env var)
+# --no-browser           skip opening a browser entirely
+OPEN_BROWSER=true
+BROWSER_OVERRIDE="${BROWSER:-}"   # seed from env var; CLI flag takes precedence
+
+while [[ $# -gt 0 ]]; do
+    case "$1" in
+        --browser)
+            BROWSER_OVERRIDE="$2"
+            shift 2 ;;
+        --no-browser)
+            OPEN_BROWSER=false
+            shift ;;
+        *)
+            echo -e "${RED}Unknown option: $1${NC}"
+            echo "Usage: $0 [--browser <name|path>] [--no-browser]"
+            echo "  Supported names: chrome, chromium, firefox, brave, edge, safari (mac)"
+            exit 1 ;;
+    esac
+done
+
+if [ "$OS" = "pi" ]; then
+    echo -e "${RED}❌ ERROR: This is a LOCAL DEVELOPMENT script!${NC}"
+    echo ""
+    echo -e "${YELLOW}For Raspberry Pi deployment, use:${NC}"
+    echo -e "  ${GREEN}./scripts/pi-run.sh${NC}"
+    echo ""
+    exit 1
 fi
+
+echo -e "${BLUE}🖥️  Platform: $OS ($ARCH)${NC}"
 
 echo "🚀 Starting Meal Planner in local development mode..."
 
@@ -52,12 +93,11 @@ if ! command -v podman &> /dev/null; then
     exit 1
 fi
 
-# Check if podman machine is running (macOS/Windows)
-if [[ "$OSTYPE" == "darwin"* ]] || [[ "$OSTYPE" == "msys" ]]; then
-    if ! podman machine list | grep -q "Currently running"; then
+# Podman VM is only needed on macOS and Windows (not on Linux/WSL where Podman runs natively)
+if [[ "$OS" == "mac" || "$OS" == "windows" ]]; then
+    if ! podman machine list 2>/dev/null | grep -q "Currently running"; then
         echo -e "${YELLOW}⚠️  Podman machine not running. Starting...${NC}"
         podman machine start
-        sleep 5
     fi
 fi
 
@@ -78,8 +118,12 @@ fi
 if [ ! -f "./frontend/.env" ]; then
     echo -e "${YELLOW}⚠️  Frontend .env not found. Creating from example...${NC}"
     cp frontend/.env.example frontend/.env
-    # Update for local development
-    sed -i '' 's|VITE_API_URL=/api|VITE_API_URL=http://localhost:3000/api|g' frontend/.env
+    # Rewrite API URL for local dev — sed -i syntax differs between macOS and GNU
+    if [[ "$OS" == "mac" ]]; then
+        sed -i '' 's|VITE_API_URL=/api|VITE_API_URL=http://localhost:3000/api|g' frontend/.env
+    else
+        sed -i 's|VITE_API_URL=/api|VITE_API_URL=http://localhost:3000/api|g' frontend/.env
+    fi
 fi
 
 # Stop and remove existing database container if it exists
@@ -87,23 +131,9 @@ echo -e "${YELLOW}🛑 Resetting existing database container...${NC}"
 podman stop meals-postgres >/dev/null 2>&1 || true
 podman rm meals-postgres >/dev/null 2>&1 || true
 
-# Start PostgreSQL database container
+# Start PostgreSQL database container using podman-compose
 echo -e "${GREEN}🗄️  Starting PostgreSQL database container...${NC}"
-POSTGRES_PASSWORD=$(cat secrets/postgres_password.txt)
-podman run -d \
-    --name meals-postgres \
-    --restart unless-stopped \
-    -p 5432:5432 \
-    -e POSTGRES_DB=meal_planner \
-    -e POSTGRES_USER=mealplanner \
-    -e POSTGRES_PASSWORD="$POSTGRES_PASSWORD" \
-    -v postgres_data:/var/lib/postgresql/data \
-    -v ./database/init:/docker-entrypoint-initdb.d:ro \
-    --health-cmd "pg_isready -U mealplanner -d meal_planner" \
-    --health-interval 10s \
-    --health-timeout 5s \
-    --health-retries 5 \
-    docker.io/library/postgres:16-alpine >/dev/null
+podman-compose -f podman-compose.yml up postgres -d >/dev/null 2>&1
 
 # Wait for database to be healthy
 echo -e "${YELLOW}⏳ Waiting for database to be healthy...${NC}"
@@ -190,18 +220,103 @@ echo ""
 echo -e "${GREEN}✅ All services are running!${NC}"
 echo ""
 
-# Open Chrome with the application
-echo -e "${BLUE}🌐 Opening application in Chrome...${NC}"
-if [[ "$OSTYPE" == "darwin"* ]]; then
-    # macOS
-    open -a "Google Chrome" http://localhost:5173 2>/dev/null
-elif [[ "$OSTYPE" == "linux-gnu"* ]]; then
-    # Linux
-    if command -v google-chrome &> /dev/null; then
-        google-chrome http://localhost:5173 &>/dev/null &
-    elif command -v chromium-browser &> /dev/null; then
-        chromium-browser http://localhost:5173 &>/dev/null &
-    fi
+# open_browser <url>
+# Resolves $BROWSER_OVERRIDE (shorthand or full path) against the current OS,
+# then falls back to the OS default opener.
+open_browser() {
+    local url="$1"
+
+    # Map shorthand names to per-OS app names / binaries
+    resolve_browser_mac() {
+        case "${BROWSER_OVERRIDE,,}" in
+            chrome|"google chrome")  echo "Google Chrome" ;;
+            chromium)                echo "Chromium" ;;
+            firefox)                 echo "Firefox" ;;
+            brave|"brave browser")   echo "Brave Browser" ;;
+            edge|"microsoft edge")   echo "Microsoft Edge" ;;
+            safari)                  echo "Safari" ;;
+            "")                      echo "" ;;    # no override → use default open
+            *)                       echo "$BROWSER_OVERRIDE" ;;  # treat as app name
+        esac
+    }
+
+    resolve_browser_linux() {
+        case "${BROWSER_OVERRIDE,,}" in
+            chrome)    echo "google-chrome google-chrome-stable chromium chromium-browser" ;;
+            chromium)  echo "chromium chromium-browser" ;;
+            firefox)   echo "firefox" ;;
+            brave)     echo "brave-browser brave" ;;
+            edge)      echo "microsoft-edge microsoft-edge-stable" ;;
+            "")        echo "" ;;
+            *)         echo "$BROWSER_OVERRIDE" ;;
+        esac
+    }
+
+    resolve_browser_win() {
+        case "${BROWSER_OVERRIDE,,}" in
+            chrome)    echo "chrome.exe" ;;
+            chromium)  echo "chromium.exe" ;;
+            firefox)   echo "firefox.exe" ;;
+            brave)     echo "brave.exe" ;;
+            edge)      echo "msedge.exe" ;;
+            "")        echo "" ;;
+            *)         echo "$BROWSER_OVERRIDE" ;;
+        esac
+    }
+
+    case "$OS" in
+        mac)
+            local app
+            app=$(resolve_browser_mac)
+            if [ -n "$app" ]; then
+                open -a "$app" "$url" 2>/dev/null && return
+                echo -e "${YELLOW}⚠️  Browser '$app' not found, falling back to system default${NC}"
+            fi
+            open "$url" 2>/dev/null || true
+            ;;
+        linux)
+            local candidates
+            candidates=$(resolve_browser_linux)
+            if [ -n "$candidates" ]; then
+                for bin in $candidates; do
+                    if command -v "$bin" &>/dev/null; then
+                        "$bin" "$url" &>/dev/null & return
+                    fi
+                done
+                echo -e "${YELLOW}⚠️  Browser '${BROWSER_OVERRIDE}' not found, falling back to xdg-open${NC}"
+            fi
+            command -v xdg-open &>/dev/null && xdg-open "$url" &>/dev/null & || true
+            ;;
+        wsl)
+            local win_bin
+            win_bin=$(resolve_browser_win)
+            if [ -n "$win_bin" ]; then
+                cmd.exe /c start "$win_bin" "$url" &>/dev/null 2>&1 && return
+                echo -e "${YELLOW}⚠️  Browser '${BROWSER_OVERRIDE}' not found, falling back to wslview${NC}"
+            fi
+            if command -v wslview &>/dev/null; then
+                wslview "$url" &>/dev/null &
+            else
+                explorer.exe "$url" &>/dev/null & || true
+            fi
+            ;;
+        windows)
+            local win_bin
+            win_bin=$(resolve_browser_win)
+            if [ -n "$win_bin" ]; then
+                start "$win_bin" "$url" 2>/dev/null && return
+                echo -e "${YELLOW}⚠️  Browser '${BROWSER_OVERRIDE}' not found, falling back to start${NC}"
+            fi
+            start "$url" 2>/dev/null || true
+            ;;
+    esac
+}
+
+if [ "$OPEN_BROWSER" = true ]; then
+    local_label=""
+    [ -n "$BROWSER_OVERRIDE" ] && local_label=" ($BROWSER_OVERRIDE)"
+    echo -e "${BLUE}🌐 Opening application in browser${local_label}...${NC}"
+    open_browser "http://localhost:5173"
 fi
 
 echo ""

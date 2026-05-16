@@ -1,19 +1,22 @@
 # Issue Prioritization
 
-**Last Updated:** 2026-05-07 01:31:15 UTC / 2026-05-06 20:31:15 CDT
+**Last Updated:** 2026-05-16 03:15:35 UTC / 2026-05-16 03:15:35 GMT
 
 This file reflects the current state of GitHub issues by priority. Issues are managed via GitHub labels (P0-critical, P1-high, P2-medium, P3-low, P4-future).
 
 ## 🔴 P0 - CRITICAL (Drop Everything)
 Issues that make the application unusable or cause data loss.
 
-- #176 - [P0] Recipe Creation - Ingredient Button Not Working
 - #134 - revisit user authentication workflow - ftue and n-login experiences
 - #132 - E2E Tests: CSRF token endpoint returning 404 in CI environment
 
 ## 🔴 P1 - HIGH (Current Sprint)
 Issues that significantly impact core functionality or user experience.
 
+- #191 - [Epic] Visual Refresh & Feature Discovery Overhaul
+- #183 - [Visual Refresh] Child #4: Feature Discovery — Surface Hidden Capabilities
+- #181 - [Visual Refresh] Child #2: Fix Color System — Secondary/Error/Warning Semantic Collision
+- #180 - [Visual Refresh] Child #1: Dashboard Redesign — Live Information Hub
 - #166 - Monitoring: Implement centralized logging and metrics
 - #162 - Docker: Optimize image sizes (400MB → 200MB)
 - #161 - Docker: Implement container registry and multi-arch builds
@@ -21,8 +24,13 @@ Issues that significantly impact core functionality or user experience.
 ## 🟡 P2 - MEDIUM (Next Sprint)
 Important improvements that enhance functionality but don't block core workflows.
 
+- #189 - [Visual Refresh] Child #10: Profile Discoverability and Onboarding Data Persistence
+- #187 - [Visual Refresh] Child #8: Replace Generic 'Go' CTAs with Meaningful Action Labels
+- #186 - [Visual Refresh] Child #7: Cleanup Filter — Explanation, Icon, and Tooltip
+- #185 - [Visual Refresh] Child #6: Recipe Filter Bar — Collapse to Chips Pattern + Smart Sorting
+- #184 - [Visual Refresh] Child #5: Navigation Badges — Ambient State Awareness
+- #182 - [Visual Refresh] Child #3: Typography — Establish Weight Hierarchy in Theme
 - #178 - [P2] Meal Deletion - Missing Confirmation Dialog
-- #177 - [P2] Recipe Creation - Numeric Fields Append Instead of Replace on Input
 - #175 - [Maintenance] Audit and Update Backend Dependencies
 - #174 - [DevOps] Configure Automated Weekly Database Backups
 - #173 - [Maintenance] Evaluate and Plan Major Frontend Dependency Updates
@@ -46,6 +54,8 @@ Important improvements that enhance functionality but don't block core workflows
 ## 🟢 P3 - LOW (Backlog)
 Nice-to-have improvements and minor UX enhancements.
 
+- #190 - [Visual Refresh] Child #11: Dashboard Quick-Action Colours — Migrate to Theme Tokens
+- #188 - [Visual Refresh] Child #9: App Identity — Family Name Personalisation and Brand Mark
 - #179 - [P3] Search Inconsistency Between Recipe Tabs
 - #170 - ✨ Add photo capture and PDF upload for recipe creation
 - #156 - [P3-Low] Cross-Browser Testing - Firefox, Safari, and Edge Compatibility
@@ -59,8 +69,8 @@ Nice-to-have improvements and minor UX enhancements.
 - #43 - Implement Logging Aggregation
 - #42 - Add Monitoring and Alerting
 - #41 - No Automated Testing
-- #13 - Implement Nutrition Dashboard
 - #14 - Implement Nutrition Guideline Warnings
+- #13 - Implement Nutrition Dashboard
 - #12 - Integrate Nutrition Database for Auto-Population
 - #11 - Recipe Card OCR Import
 - #9 - MyFitnessPal Integration
@@ -74,7 +84,6 @@ Feature requests and enhancements for future releases.
 - #65 - Mobile App Development
 - #64 - Implement Advanced Features (Nutrition Tracking, etc.)
 - #63 - Evaluate Scaling Strategy
-- #25 - Implement Dashboard Recent Activity Feed
 - #19 - Implement Grocery List Regeneration and Sync Detection
 - #20 - Implement Pantry Integration with Grocery Lists
 - #18 - Implement Ingredient Normalization and Variant System
