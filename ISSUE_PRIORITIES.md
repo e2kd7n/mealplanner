@@ -1,6 +1,6 @@
 # Issue Prioritization
 
-**Last Updated:** 2026-05-16 03:15:35 UTC / 2026-05-16 03:15:35 GMT
+**Last Updated:** 2026-05-16 16:26:10 UTC / 2026-05-16 11:26:10 CDT
 
 This file reflects the current state of GitHub issues by priority. Issues are managed via GitHub labels (P0-critical, P1-high, P2-medium, P3-low, P4-future).
 
@@ -13,10 +13,11 @@ Issues that make the application unusable or cause data loss.
 ## 🔴 P1 - HIGH (Current Sprint)
 Issues that significantly impact core functionality or user experience.
 
+- #197 - ClusterHAT: verify Zero W backend port and create systemd units
+- #196 - ClusterHAT: reflash Zero W SD cards with correct 8086.net CBRIDGE images
+- #194 - Pi deployment pre-flight: add secrets/redis_password.txt
+- #193 - Pi deployment pre-flight: populate ./data/frontend-dist/ with built PWA
 - #191 - [Epic] Visual Refresh & Feature Discovery Overhaul
-- #183 - [Visual Refresh] Child #4: Feature Discovery — Surface Hidden Capabilities
-- #181 - [Visual Refresh] Child #2: Fix Color System — Secondary/Error/Warning Semantic Collision
-- #180 - [Visual Refresh] Child #1: Dashboard Redesign — Live Information Hub
 - #166 - Monitoring: Implement centralized logging and metrics
 - #162 - Docker: Optimize image sizes (400MB → 200MB)
 - #161 - Docker: Implement container registry and multi-arch builds
@@ -24,12 +25,7 @@ Issues that significantly impact core functionality or user experience.
 ## 🟡 P2 - MEDIUM (Next Sprint)
 Important improvements that enhance functionality but don't block core workflows.
 
-- #189 - [Visual Refresh] Child #10: Profile Discoverability and Onboarding Data Persistence
-- #187 - [Visual Refresh] Child #8: Replace Generic 'Go' CTAs with Meaningful Action Labels
-- #186 - [Visual Refresh] Child #7: Cleanup Filter — Explanation, Icon, and Tooltip
-- #185 - [Visual Refresh] Child #6: Recipe Filter Bar — Collapse to Chips Pattern + Smart Sorting
-- #184 - [Visual Refresh] Child #5: Navigation Badges — Ambient State Awareness
-- #182 - [Visual Refresh] Child #3: Typography — Establish Weight Hierarchy in Theme
+- #198 - Pi: set up automated DB backup cron job
 - #178 - [P2] Meal Deletion - Missing Confirmation Dialog
 - #175 - [Maintenance] Audit and Update Backend Dependencies
 - #174 - [DevOps] Configure Automated Weekly Database Backups
@@ -54,8 +50,7 @@ Important improvements that enhance functionality but don't block core workflows
 ## 🟢 P3 - LOW (Backlog)
 Nice-to-have improvements and minor UX enhancements.
 
-- #190 - [Visual Refresh] Child #11: Dashboard Quick-Action Colours — Migrate to Theme Tokens
-- #188 - [Visual Refresh] Child #9: App Identity — Family Name Personalisation and Brand Mark
+- #200 - Pi: move Postgres data volume to USB SSD
 - #179 - [P3] Search Inconsistency Between Recipe Tabs
 - #170 - ✨ Add photo capture and PDF upload for recipe creation
 - #156 - [P3-Low] Cross-Browser Testing - Firefox, Safari, and Edge Compatibility

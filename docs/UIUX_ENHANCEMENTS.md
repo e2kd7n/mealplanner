@@ -4,9 +4,10 @@
 
 ### Enhancement: Smart Recipe Sorting by Meal Occasion
 
-**Priority:** Medium  
-**Status:** Backlog  
-**Date Logged:** 2026-03-23
+**Priority:** P3-Low  
+**Status:** Converted to GitHub issue #201  
+**Date Logged:** 2026-03-23  
+**Converted:** 2026-05-16 (absorbed into Epic #191 Child #6 as stretch goal; deferred — see #201)
 
 #### Description
 When a user clicks the "+" button next to a specific meal occasion (breakfast, lunch, dinner, snack) in the meal planner, the recipe selection modal should intelligently sort/filter the recipe list to show recipes matching that meal type first.
