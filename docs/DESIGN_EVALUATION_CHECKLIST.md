@@ -1,6 +1,6 @@
 # Design Evaluation Checklist - Beta Launch Review
 
-**Date:** 2026-04-22  
+**Date:** 2026-04-22 (original) | **Re-evaluated:** 2026-05-16 (post Epic #191)
 **Purpose:** Final design evaluation against internal standards and external consultancy recommendations  
 **Target:** Beta launch readiness
 
@@ -9,8 +9,8 @@
 ## Internal Design Standards Evaluation
 
 ### 1. Visual Consistency
-- [ ] Color palette matches brand guidelines
-- [ ] Typography is consistent across all pages
+- [x] Color palette matches brand guidelines *(Epic #191 Child #2 — amber secondary, red error-only)*
+- [x] Typography is consistent across all pages *(Epic #191 Child #3 — h1/h2→700, h5/h6→500)*
 - [ ] Spacing and padding follow design system
 - [ ] Button styles are uniform
 - [ ] Form elements have consistent styling
@@ -19,21 +19,21 @@
 ### 2. Layout & Structure
 - [ ] Grid system is properly implemented
 - [ ] Responsive breakpoints work correctly
-- [ ] Navigation is intuitive and accessible
-- [ ] Content hierarchy is clear
+- [x] Navigation is intuitive and accessible *(Epic #191 Child #5 — nav badges; Child #9 — family identity)*
+- [x] Content hierarchy is clear *(Epic #191 Child #3 — typography; Child #1 — dashboard restructured)*
 - [ ] White space is used effectively
 - [ ] Page layouts follow established patterns
 
 ### 3. User Experience
-- [ ] Loading states are clear and informative
+- [x] Loading states are clear and informative *(Epic #191 Child #1 — dashboard skeleton loaders)*
 - [ ] Error messages are helpful and actionable
-- [ ] Success feedback is immediate and clear
+- [x] Success feedback is immediate and clear *(Epic #191 Child #10 — onboarding success snackbar)*
 - [ ] Forms have proper validation feedback
-- [ ] Interactive elements have hover/focus states
+- [x] Interactive elements have hover/focus states *(Epic #191 Child #5 — nav badge aria-labels; Child #9 — avatar tooltip)*
 - [ ] Transitions and animations are smooth
 
 ### 4. Accessibility (WCAG 2.1 AA)
-- [ ] Color contrast ratios meet standards
+- [~] Color contrast ratios meet standards *(Epic #191 Child #2 — error/primary/info pass AA; secondary amber `#D4880C` is 2.71:1 on white — **below AA**, acceptable for button large-text only. Needs follow-up if used in body text.)*
 - [ ] Keyboard navigation works throughout
 - [ ] Focus indicators are visible
 - [ ] Alt text for images is present
@@ -90,15 +90,15 @@
 - [ ] No console errors
 
 ### Dashboard (`/dashboard`)
-- [ ] Key metrics are immediately visible
-- [ ] Navigation to main features is clear
-- [ ] Recent activity is displayed
-- [ ] Loading states for data
+- [x] Key metrics are immediately visible *(Epic #191 Child #1 — today's meals, week strip, grocery/pantry status)*
+- [x] Navigation to main features is clear *(Epic #191 Child #8 — meaningful CTAs; Child #9 — family identity)*
+- [x] Recent activity replaced with live data *(Epic #191 Child #1 — "Recent Activity" removed; live panels added)*
+- [x] Loading states for data *(Epic #191 Child #1 — skeleton loaders per section)*
 - [ ] No console errors
 
 ### Recipes Page (`/recipes`)
 - [ ] Recipe cards are visually appealing
-- [ ] Search and filter are intuitive
+- [x] Search and filter are intuitive *(Epic #191 Child #6 — collapsed filter bar, chips, Discover tab)*
 - [ ] Image loading is smooth
 - [ ] Actions (edit, delete) are clear
 - [ ] Empty state is helpful
@@ -129,7 +129,7 @@
 
 ### Meal Planner (`/meal-planner`)
 - [ ] Calendar view is clear
-- [ ] Drag-and-drop works smoothly
+- [x] Drag-and-drop works smoothly *(Epic #191 Child #4 — drag handle always visible md+, one-time tooltip)*
 - [ ] Recipe assignment is intuitive
 - [ ] Date navigation is easy
 - [ ] No console errors
@@ -276,3 +276,15 @@ For each issue found, document:
 
 **Notes:**
 [Any additional comments or observations]
+
+---
+
+## Post-Epic #191 Re-evaluation (2026-05-16)
+
+Items marked `[x]` above were addressed by the Visual Refresh & Feature Discovery Overhaul (Epic #191, commits 9867aa9 and 7f3b8a0).
+
+**Open accessibility gap:** Secondary amber `#D4880C` has a contrast ratio of ~2.71:1 on white backgrounds, which is below WCAG 2.1 AA for both normal text (4.5:1) and large text (3:1). Current usage is limited to button contexts where the risk is lower, but this should be resolved before using amber for any body or label text. A darker amber (e.g. `#8A5100`, ~5.5:1) would meet AA but should be evaluated against the brand identity first.
+
+**Deferred items from the epic:**
+- Smart recipe sorting in meal occasion modal (partially addressed in Child #6 — see UIUX_ENHANCEMENTS.md)
+- Batch cooking contextual hint in Meal Planner (Child #4 — deferred, requires ingredient-level analysis)

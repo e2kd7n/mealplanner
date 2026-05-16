@@ -1,8 +1,8 @@
 # Meal Planner Application - Design Principles
 
-**Version:** 1.0  
-**Last Updated:** 2026-04-20  
-**Status:** Under Review
+**Version:** 1.1  
+**Last Updated:** 2026-05-16  
+**Status:** Active
 
 ---
 
@@ -48,7 +48,7 @@ This document establishes the core design principles that guide all user experie
 **Examples:**
 - ✅ Recipe creation starts with basic fields, nutrition is optional
 - ✅ Meal plan view shows summary, details expand on click
-- ❌ Missing: Collapsible filters on browse recipes page
+- ✅ Collapsible filters on My Recipes tab (Child #6, v1.1 — 2026-05-16)
 - ❌ Missing: Quick actions vs. full edit modes
 
 ---
@@ -160,8 +160,8 @@ This document establishes the core design principles that guide all user experie
 **Examples:**
 - ✅ Image caching implemented
 - ✅ Pagination on recipe lists
+- ✅ Skeleton screens on dashboard sections (Child #1, v1.1 — 2026-05-16)
 - ❌ Missing: Service worker for offline support
-- ❌ Missing: Skeleton screens during loading
 
 ---
 
@@ -179,8 +179,8 @@ This document establishes the core design principles that guide all user experie
 **Examples:**
 - ✅ Empty state messages guide users
 - ✅ Form field labels are descriptive
-- ❌ Missing: Tooltips on icon buttons
-- ❌ Missing: First-time user onboarding
+- ✅ Tooltips on avatar button, Import Recipe, Cleanup filter, drag handle (Child #4, #7, #10, v1.1 — 2026-05-16)
+- ✅ First-time user onboarding wizard persists to backend (Child #10, v1.1 — 2026-05-16)
 - ❌ Missing: Help documentation links
 
 ---
@@ -235,9 +235,9 @@ This document establishes the core design principles that guide all user experie
 - Support multiple paths to the same goal
 
 **Current Issues:**
-- ❌ Recipe import is separate from recipe creation
-- ❌ Grocery list generation is buried in meal plan
-- ❌ No quick-add shortcuts for common tasks
+- ✅ Grocery list generation surfaced: Dashboard status panel + prominent Meal Planner CTA (Child #1, #4, v1.1 — 2026-05-16)
+- ✅ Import Recipe button has value-prop tooltip explaining URL extraction (Child #4, v1.1 — 2026-05-16)
+- ❌ Missing: Quick-add shortcuts for common tasks
 
 ---
 
@@ -253,6 +253,10 @@ This document establishes the core design principles that guide all user experie
 - Content hierarchy uses typography effectively
 - White space guides attention
 
+**Resolved gaps (v1.1 — 2026-05-16):**
+- ✅ Typography weight hierarchy established: h1/h2 → 700, h3/h4 → 600, h5/h6 → 500 (Child #3)
+- ✅ Secondary/warning color collision fixed — amber now semantically distinct from error red (Child #2)
+
 ---
 
 ### 14. Aesthetic Integrity
@@ -264,6 +268,11 @@ This document establishes the core design principles that guide all user experie
 - Purposeful use of color
 - Consistent spacing and alignment
 - Professional, polished appearance
+
+**Resolved gaps (v1.1 — 2026-05-16):**
+- ✅ Secondary/error/warning semantic collision resolved — red is now exclusively for errors (Child #2)
+- ✅ Dashboard quick-action card colors use theme tokens instead of hardcoded hex values (Child #11)
+- ⚠️ Known gap: Secondary amber `#D4880C` is 2.71:1 contrast on white — below WCAG AA. Acceptable for button contexts (large text), but should be revisited if used for body text. Tracked separately.
 
 ---
 
@@ -398,10 +407,10 @@ This document establishes the core design principles that guide all user experie
    - No undo for deletions
    - No draft saving for long forms
 
-5. **Contextual Help** - Minimal implementation
-   - No tooltips on icon buttons
-   - No onboarding flow
-   - Limited inline help
+5. **Contextual Help** - ✅ Substantially resolved (v1.1 — 2026-05-16)
+   - ✅ Tooltips added: avatar button, Cleanup filter, Import Recipe, drag handle
+   - ✅ Onboarding wizard now persists preferences to backend
+   - ❌ Help documentation links still missing
 
 ---
 
@@ -463,7 +472,8 @@ Use this checklist when designing new features or evaluating existing ones:
 
 ---
 
-**Document Status:** Draft - Pending Principal UX Designer Review  
-**Next Review:** After UX team evaluation  
+**Document Status:** Active  
+**Next Review:** 2026-08-16 (quarterly)  
 **Version History:**
 - v1.0 (2026-04-20): Initial creation based on current application state and recent fixes
+- v1.1 (2026-05-16): Marked principles 2, 9, 12, 13, 14 gaps resolved via Epic #191 Visual Refresh. Noted WCAG amber contrast gap.
