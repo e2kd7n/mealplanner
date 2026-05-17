@@ -87,6 +87,7 @@ services:
       HTTPS_PORT: 443
       HOST: 0.0.0.0
       USE_HTTPS: "false"
+      COOKIE_SECURE: "false"
       SSL_KEY_PATH: /app/certs/key.pem
       SSL_CERT_PATH: /app/certs/cert.pem
       POSTGRES_HOST: postgres

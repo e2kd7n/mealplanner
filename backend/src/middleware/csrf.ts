@@ -24,7 +24,7 @@ import { logger } from '../utils/logger';
 const csrfProtection: any = csrf({
   cookie: {
     httpOnly: true,
-    secure: process.env.NODE_ENV === 'production',
+    secure: process.env.COOKIE_SECURE === 'true',
     sameSite: 'strict',
     path: '/',
   },
