@@ -5,12 +5,19 @@
 
 
 import { Router } from 'express';
-import { register, login, refreshToken, logout } from '../controllers/auth.controller';
+import { checkStatus, register, login, refreshToken, logout } from '../controllers/auth.controller';
 import { validate } from '../middleware/validate';
 import { registerSchema, loginSchema, refreshTokenSchema } from '../validation/schemas';
 import { authRateLimiter, registerRateLimiter } from '../middleware/rateLimiter';
 
 const router: Router = Router();
+
+/**
+ * @route   GET /api/auth/status
+ * @desc    Check whether any users exist (first-run detection)
+ * @access  Public
+ */
+router.get('/status', checkStatus);
 
 /**
  * @route   POST /api/auth/register

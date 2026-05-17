@@ -74,7 +74,12 @@ const LocalLogin: React.FC = () => {
     try {
       setUsersLoading(true);
       const res = await visualAuthAPI.listUsers();
-      setUsers(res.data.users ?? []);
+      const userList = res.data.users ?? [];
+      if (userList.length === 0) {
+        navigate('/welcome', { replace: true });
+        return;
+      }
+      setUsers(userList);
     } catch {
       setError('Could not load users. Is the server running?');
     } finally {
