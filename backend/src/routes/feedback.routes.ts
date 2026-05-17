@@ -13,6 +13,7 @@ import {
   getFeedbackStats,
 } from '../controllers/feedback.controller';
 import { authenticate } from '../middleware/auth';
+import { requireAdmin } from '../middleware/admin';
 import { feedbackRateLimiter } from '../middleware/rateLimiter';
 import type { Router as ExpressRouter } from 'express';
 
@@ -22,11 +23,11 @@ const router: ExpressRouter = Router();
 router.post('/', authenticate, feedbackRateLimiter, submitFeedback);
 
 // Admin routes
-router.get('/', authenticate, getAllFeedback);
-router.get('/stats', authenticate, getFeedbackStats);
-router.get('/export', authenticate, exportFeedback);
-router.get('/:id', authenticate, getFeedbackById);
-router.patch('/:id', authenticate, updateFeedbackStatus);
+router.get('/', authenticate, requireAdmin, getAllFeedback);
+router.get('/stats', authenticate, requireAdmin, getFeedbackStats);
+router.get('/export', authenticate, requireAdmin, exportFeedback);
+router.get('/:id', authenticate, requireAdmin, getFeedbackById);
+router.patch('/:id', authenticate, requireAdmin, updateFeedbackStatus);
 
 export default router;
 
