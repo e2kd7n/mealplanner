@@ -23,7 +23,7 @@ set -e
 TAG="${1:-latest}"
 
 REGISTRY="ghcr.io"
-IMAGE_OWNER="edidriksen"
+IMAGE_OWNER="e2kd7n"
 REMOTE_IMAGE="${REGISTRY}/${IMAGE_OWNER}/mealplanner-backend:${TAG}"
 LOCAL_IMAGE="meals-backend:latest"
 GHCR_TOKEN_FILE="./secrets/ghcr_token.txt"
