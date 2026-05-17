@@ -33,6 +33,7 @@ const Pantry = lazy(() => import('./pages/Pantry'));
 const Profile = lazy(() => import('./pages/Profile'));
 const AdminDashboard = lazy(() => import('./pages/AdminDashboard'));
 const Setup = lazy(() => import('./pages/Setup'));
+const Welcome = lazy(() => import('./pages/Welcome'));
 
 // Loading fallback component
 const LoadingFallback = () => (
@@ -61,6 +62,7 @@ function App() {
             <Suspense fallback={<LoadingFallback />}>
               <Routes>
                 {/* Public routes */}
+                <Route path="/welcome" element={<Welcome />} />
                 <Route path="/login" element={<LocalLogin />} />
                 <Route path="/login/classic" element={<Login />} />
                 <Route path="/register" element={<Register />} />
