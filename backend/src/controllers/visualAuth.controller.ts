@@ -27,7 +27,7 @@ function setDeviceCookie(res: Response, token: string): void {
   expires.setDate(expires.getDate() + DEVICE_TOKEN_DAYS);
   res.cookie(DEVICE_COOKIE_NAME, token, {
     httpOnly: true,
-    secure: process.env.NODE_ENV === 'production',
+    secure: process.env.COOKIE_SECURE === 'true',
     sameSite: 'lax', // lax (not strict) so it works on first load from a new tab
     expires,
     path: '/',
