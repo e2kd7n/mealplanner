@@ -48,7 +48,10 @@
       "Bash(gh run *)",
       "Bash(git -C c:/Users/admin/dev/mealplanner status)",
       "Bash(git -C c:/Users/admin/dev/mealplanner diff)",
-      "Bash(git -C c:/Users/admin/dev/mealplanner log --oneline -3)"
+      "Bash(git -C c:/Users/admin/dev/mealplanner log --oneline -3)",
+      "Bash(git -C c:/Users/admin/dev/mealplanner add scripts/install-glances.sh)",
+      "Bash(git -C c:/Users/admin/dev/mealplanner commit -m ' *)",
+      "Bash(git -C c:/Users/admin/dev/mealplanner push)"
     ],
     "additionalDirectories": [
       "c:\\Users\\admin\\dev\\mealplanner"
