@@ -20,6 +20,10 @@
 
 set -e
 
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# shellcheck source=utilities.sh
+source "$SCRIPT_DIR/utilities.sh"
+
 TAG="${1:-latest}"
 
 REGISTRY="ghcr.io"
@@ -28,24 +32,21 @@ REMOTE_IMAGE="${REGISTRY}/${IMAGE_OWNER}/mealplanner-backend:${TAG}"
 LOCAL_IMAGE="meals-backend:latest"
 GHCR_TOKEN_FILE="./secrets/ghcr_token.txt"
 
-RED='\033[0;31m'
-GREEN='\033[0;32m'
-YELLOW='\033[1;33m'
-BLUE='\033[0;34m'
-NC='\033[0m'
-
-echo -e "${GREEN}🚀 Deploying Meal Planner from GitHub Container Registry...${NC}"
-echo -e "${BLUE}   Image: ${REMOTE_IMAGE}${NC}"
-echo ""
+section "Deploy from Registry" "🚀"
+echo -e "${BLUE}  Image: ${REMOTE_IMAGE}${NC}"
 
 # ── Check for in-progress GitHub Actions build ──────────────────────────────────
 
 GH_API="https://api.github.com/repos/${IMAGE_OWNER}/mealplanner/actions/workflows/build-and-push.yml/runs?per_page=1&status=in_progress"
 
-echo -e "${BLUE}🔍 Checking GitHub Actions build status...${NC}"
+section "Pre-flight Check" "🔍"
+
 if command -v curl &> /dev/null; then
-    RUNS=$(curl -sf "$GH_API" 2>/dev/null)
-    if [ $? -eq 0 ] && [ -n "$RUNS" ]; then
+    start_spinner "Checking GitHub Actions build status"
+    RUNS=$(curl -sf "$GH_API" 2>/dev/null) || true
+    stop_spinner ok
+
+    if [ -n "$RUNS" ]; then
         IN_PROGRESS=$(echo "$RUNS" | grep -o '"total_count":[0-9]*' | grep -o '[0-9]*')
         if [ "${IN_PROGRESS:-0}" -gt 0 ]; then
             RUN_URL=$(echo "$RUNS" | grep -o '"html_url":"[^"]*"' | head -1 | grep -o 'https://[^"]*')
@@ -56,29 +57,76 @@ if command -v curl &> /dev/null; then
             read -p "Wait for it to finish, or continue anyway? [w=wait/c=continue/N=abort]: " -n 1 -r CHOICE
             echo
             if [[ "$CHOICE" =~ ^[Ww]$ ]]; then
-                echo -e "${BLUE}Waiting for build to complete (checking every 30s)...${NC}"
+                start_spinner "Waiting for build to complete (polling every 30s)"
                 while true; do
                     sleep 30
-                    RUNS=$(curl -sf "$GH_API" 2>/dev/null)
+                    RUNS=$(curl -sf "$GH_API" 2>/dev/null) || true
                     IN_PROGRESS=$(echo "$RUNS" | grep -o '"total_count":[0-9]*' | grep -o '[0-9]*')
                     if [ "${IN_PROGRESS:-0}" -eq 0 ]; then
-                        echo -e "${GREEN}✓ Build finished — proceeding with pull.${NC}"
-                        echo ""
+                        stop_spinner ok
                         break
                     fi
-                    echo -e "${BLUE}   Still building...${NC}"
                 done
             elif [[ ! "$CHOICE" =~ ^[Cc]$ ]]; then
                 echo -e "${RED}Aborted.${NC}"
                 exit 1
             fi
         else
-            echo -e "${GREEN}✓ No build in progress — safe to pull.${NC}"
+            echo -e "  ${GREEN}✓${NC}  No build in progress — safe to pull."
         fi
     else
         echo -e "${YELLOW}⚠️  Could not reach GitHub API — skipping build status check.${NC}"
     fi
-    echo ""
+
+    # ── Last build info + recent commits ────────────────────────────────────────
+    LAST_RUN_FILE=$(mktemp)
+    COMMITS_FILE=$(mktemp)
+    curl -sf "https://api.github.com/repos/${IMAGE_OWNER}/mealplanner/actions/workflows/build-and-push.yml/runs?per_page=1&status=success" > "$LAST_RUN_FILE" 2>/dev/null || true
+    curl -sf "https://api.github.com/repos/${IMAGE_OWNER}/mealplanner/commits?per_page=5" > "$COMMITS_FILE" 2>/dev/null || true
+
+    if command -v python3 &>/dev/null; then
+        python3 - "$LAST_RUN_FILE" "$COMMITS_FILE" <<'PYEOF'
+import json, sys
+
+BLUE = "\033[0;34m"; GREEN = "\033[0;32m"; YELLOW = "\033[1;33m"
+BOLD = "\033[1m"; DIM = "\033[2m"; NC = "\033[0m"
+
+try:
+    with open(sys.argv[1]) as f:
+        data = json.load(f)
+    runs = data.get("workflow_runs", [])
+    if runs:
+        r = runs[0]
+        c = r.get("head_commit", {})
+        sha    = r.get("head_sha", "")[:7]
+        msg    = c.get("message", "").split("\n")[0]
+        ts     = r.get("updated_at", "").replace("T", " ").replace("Z", " UTC")
+        author = c.get("author", {}).get("name", "")
+        print(f"\n{BLUE}  📋 Last successful build:{NC}")
+        print(f"     {BOLD}Built:{NC}  {ts}")
+        print(f"     {BOLD}Commit:{NC} {sha} — {msg}")
+        if author:
+            print(f"     {BOLD}Author:{NC} {author}")
+except Exception:
+    pass
+
+try:
+    with open(sys.argv[2]) as f:
+        commits = json.load(f)
+    print(f"\n{BLUE}  📝 Recent commits:{NC}")
+    for c in commits[:5]:
+        sha  = c["sha"][:7]
+        msg  = c["commit"]["message"].split("\n")[0][:70]
+        date = c["commit"]["committer"]["date"][:10]
+        print(f"     {DIM}{date}{NC}  {sha}  {msg}")
+except Exception:
+    pass
+
+print()
+PYEOF
+    fi
+
+    rm -f "$LAST_RUN_FILE" "$COMMITS_FILE"
 fi
 
 # ── Prerequisites ───────────────────────────────────────────────────────────────
@@ -112,13 +160,16 @@ fi
 
 # ── GHCR authentication ─────────────────────────────────────────────────────────
 
+section "Authentication" "🔐"
+
 if [ -f "$GHCR_TOKEN_FILE" ]; then
-    echo -e "${BLUE}🔐 Logging into GitHub Container Registry...${NC}"
     GHCR_TOKEN=$(cat "$GHCR_TOKEN_FILE")
-    if echo "$GHCR_TOKEN" | podman login "$REGISTRY" -u "$IMAGE_OWNER" --password-stdin; then
-        echo -e "${GREEN}✓ Authenticated with GHCR${NC}"
+    start_spinner "Logging into GitHub Container Registry"
+    if echo "$GHCR_TOKEN" | podman login "$REGISTRY" -u "$IMAGE_OWNER" --password-stdin &>/dev/null; then
+        stop_spinner ok
     else
-        echo -e "${RED}❌ Login failed — check the token in ${GHCR_TOKEN_FILE}${NC}"
+        stop_spinner fail
+        echo -e "${RED}   Login failed — check the token in ${GHCR_TOKEN_FILE}${NC}"
         echo -e "${YELLOW}   Token needs 'read:packages' scope (classic PAT)${NC}"
         exit 1
     fi
@@ -127,15 +178,13 @@ else
     echo -e "${YELLOW}   Proceeding without login — only works for public packages${NC}"
     echo -e "${YELLOW}   To create the token file:${NC}"
     echo -e "      echo 'ghp_yourtoken' > ./secrets/ghcr_token.txt${NC}"
-    echo ""
 fi
 
 # ── Pull image ──────────────────────────────────────────────────────────────────
 
-echo ""
-echo -e "${YELLOW}📥 Pulling backend image (includes compiled frontend)...${NC}"
-echo -e "${BLUE}   This typically takes 3–8 minutes on a home connection.${NC}"
-PULL_START=$(date +%s)
+section "Pulling Image" "📥"
+echo -e "${BLUE}  This typically takes 3–8 minutes on a home connection.${NC}"
+timer_start
 
 if ! podman pull "$REMOTE_IMAGE"; then
     echo ""
@@ -148,57 +197,49 @@ if ! podman pull "$REMOTE_IMAGE"; then
     exit 1
 fi
 
-PULL_END=$(date +%s)
-PULL_DURATION=$((PULL_END - PULL_START))
-echo -e "${GREEN}✓ Pulled in $((PULL_DURATION / 60))m $((PULL_DURATION % 60))s${NC}"
+timer_end
 
-# ── Retag for local compose ─────────────────────────────────────────────────────
+# ── Retag + extract + cleanup ────────────────────────────────────────────────────
 
-echo ""
-echo -e "${BLUE}🏷️  Tagging as ${LOCAL_IMAGE} (required by podman-compose.pi.yml)...${NC}"
+section "Preparing Assets" "📦"
+
+start_spinner "Tagging as ${LOCAL_IMAGE}"
 podman tag "$REMOTE_IMAGE" "$LOCAL_IMAGE"
-echo -e "${GREEN}✓ Tagged${NC}"
+stop_spinner ok
 
-# ── Extract frontend static files ───────────────────────────────────────────────
-#
 # The backend image is a multi-stage build. The compiled React app lives at
 # /app/public/ inside the image. Nginx on Pi serves these files directly from
 # ./data/frontend-dist/ — there is no frontend container on the Pi.
-
-echo ""
-echo -e "${BLUE}📦 Extracting frontend static files from image...${NC}"
+start_spinner "Extracting frontend static files"
 mkdir -p ./data/frontend-dist
 rm -rf ./data/frontend-dist/*
 TEMP_CONTAINER=$(podman create "$LOCAL_IMAGE")
 podman cp "$TEMP_CONTAINER:/app/public/." ./data/frontend-dist/
 podman rm "$TEMP_CONTAINER" >/dev/null
 FILE_COUNT=$(ls ./data/frontend-dist | wc -l)
-echo -e "${GREEN}✓ Extracted ${FILE_COUNT} files to ./data/frontend-dist/${NC}"
+stop_spinner ok
+echo -e "  ${DIM}${FILE_COUNT} files → ./data/frontend-dist/${NC}"
 
-# ── Remove remote-tagged copy (keep only the local tag) ─────────────────────────
-#
-# podman pull leaves two references to the same image layers: the remote tag
-# and the local tag we just created. Removing the remote tag frees the name
-# without touching the underlying layers.
-
-echo ""
-echo -e "${BLUE}🧹 Removing remote tag (layers are kept under ${LOCAL_IMAGE})...${NC}"
+# podman pull leaves two references to the same layers: the remote tag and the
+# local tag we just created. Removing the remote tag frees the name without
+# touching the underlying layers.
+start_spinner "Removing remote tag (layers kept under ${LOCAL_IMAGE})"
 podman rmi "$REMOTE_IMAGE" 2>/dev/null || true
-echo -e "${GREEN}✓ Done${NC}"
+stop_spinner ok
 
-# ── Show what we've got ─────────────────────────────────────────────────────────
+# ── Summary ─────────────────────────────────────────────────────────────────────
 
+section "Summary" "🍽️"
+echo -e "${BLUE}  Local image:${NC}"
+podman images | grep "meals-backend" | sed 's/^/    /'
 echo ""
-echo -e "${BLUE}📋 Local image:${NC}"
-podman images | grep "meals-backend"
-echo ""
-echo -e "${BLUE}📁 Frontend dist (first 10 files):${NC}"
-ls ./data/frontend-dist | head -10
+echo -e "${BLUE}  Frontend dist (first 10):${NC}"
+ls ./data/frontend-dist | head -10 | sed 's/^/    /'
 
 # ── Hand off to pi-run.sh ───────────────────────────────────────────────────────
 
 echo ""
-echo -e "${GREEN}✅ Image ready — starting services...${NC}"
+echo -e "${GREEN}  ✓ Image ready — starting services...${NC}"
 echo ""
 bash ./scripts/pi-run.sh
 
