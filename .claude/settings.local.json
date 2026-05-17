@@ -45,7 +45,10 @@
       "Bash(powershell.exe -Command \"netstat -ano | findstr ':3000'\")",
       "Bash(npx prisma *)",
       "Bash(./scripts/update-issue-priorities.sh)",
-      "Bash(gh run *)"
+      "Bash(gh run *)",
+      "Bash(git -C c:/Users/admin/dev/mealplanner status)",
+      "Bash(git -C c:/Users/admin/dev/mealplanner diff)",
+      "Bash(git -C c:/Users/admin/dev/mealplanner log --oneline -3)"
     ],
     "additionalDirectories": [
       "c:\\Users\\admin\\dev\\mealplanner"
