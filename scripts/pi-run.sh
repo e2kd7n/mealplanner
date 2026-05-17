@@ -207,6 +207,13 @@ if podman ps | grep -q "meals-backend"; then
     exit 0
 fi
 
+# Remove any stopped/failed containers from a previous run so Podman does not
+# inherit stale systemd timer units (symptom: "timer unit already loaded" error).
+if podman ps -a | grep -qE "meals-(postgres|redis|backend|nginx)"; then
+    echo -e "${YELLOW}Removing stopped containers from previous run...${NC}"
+    podman rm -f meals-postgres meals-redis meals-backend meals-nginx 2>/dev/null || true
+fi
+
 # Check if images exist
 if ! podman images | grep -q "meals-backend"; then
     echo -e "${RED}❌ Container images not found${NC}"
@@ -291,6 +298,15 @@ if podman ps | grep -q "meals-backend"; then
         deploy_zeros
     fi
 
+    if command -v glances &>/dev/null; then
+        echo ""
+        echo -e "${BLUE}📊 Starting monitoring...${NC}"
+        GLANCES_ARGS=""
+        [ "$CLUSTERHAT" = true ] && GLANCES_ARGS="--clusterhat"
+        # shellcheck disable=SC2086
+        bash ./scripts/start-glances.sh $GLANCES_ARGS
+    fi
+
     echo ""
     echo -e "${GREEN}✅ Application started successfully!${NC}"
     echo ""
@@ -303,6 +319,11 @@ if podman ps | grep -q "meals-backend"; then
         echo -e "${BLUE}Access the application:${NC}"
         echo -e "   🌐 Web: http://$(hostname -I | awk '{print $1}'):8080"
         echo -e "   🌐 Local: http://localhost:8080"
+        echo ""
+    fi
+
+    if command -v glances &>/dev/null; then
+        echo -e "   📊 Monitoring: http://$(hostname -I | awk '{print $1}'):8080/monitoring"
         echo ""
     fi
 

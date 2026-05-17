@@ -297,3 +297,8 @@ running with `--clusterhat` via `podman-compose.pi.clusterhat.yml`.
   on all Zeros by intercepting USB enumeration.
 - **Prisma `relationMode = "prisma"`** — no DB-level FK constraints. Don't assume cascade
   deletes happen at the DB layer; Prisma handles them.
+- **PSU headroom is tight under simultaneous load** — Pi 4B (~2A) + 4× Zero W (~350mA each)
+  peaks at ~3.4A, which exceeds a standard 3A PSU. Running `apt full-upgrade` on all four
+  Zeros in parallel while the Pi 4B is also upgrading triggered an undervoltage warning.
+  Stagger heavy operations: upgrade Pi 4B first, then Zeros sequentially. A 5V/4A+ PSU
+  is recommended. Undervoltage during SD card writes risks corruption.

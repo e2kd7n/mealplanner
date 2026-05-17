@@ -305,6 +305,28 @@ else
     echo -e "You can run this script again anytime to enable it."
 fi
 
+# Ask about Glances monitoring
+echo ""
+echo -e "${YELLOW}📊 Monitoring (Glances)${NC}"
+echo ""
+echo "Would you like to install Glances cluster monitoring?"
+echo "Once running, it will be accessible at http://${IP_ADDRESS}:8080/monitoring"
+echo ""
+read -p "Install Glances? (y/N): " -n 1 -r
+echo ""
+
+if [[ $REPLY =~ ^[Yy]$ ]]; then
+    GLANCES_FLAGS=""
+    read -p "Also install on Zero W cluster nodes? (y/N): " -n 1 -r
+    echo ""
+    [[ $REPLY =~ ^[Yy]$ ]] && GLANCES_FLAGS="--clusterhat"
+
+    echo -e "${YELLOW}Installing Glances...${NC}"
+    chmod +x ./scripts/install-glances.sh
+    # shellcheck disable=SC2086
+    ./scripts/install-glances.sh $GLANCES_FLAGS
+fi
+
 echo ""
 echo -e "${GREEN}=== Setup Complete ===${NC}"
 echo ""
