@@ -175,7 +175,7 @@ minifier.
   `/proc/meminfo`). Running Raspberry Pi OS 64-bit (aarch64, kernel 6.12).
 - **Cluster:** ClusterHAT v2.6 with 4× Pi Zero W nodes (512MB RAM each).
 - **Storage:** SD card only (no USB SSD yet). SD card is at ~62% capacity.
-- **Network:** Pi 4B at `192.168.4.110` on LAN. ClusterHAT bridge at `172.19.180.254/24`.
+- **Network:** Pi 4B at `192.168.4.110` on LAN. ClusterHAT bridge (`br0`) at `172.19.181.254/24`.
 
 ### Service Layout
 
@@ -194,24 +194,22 @@ a dedicated frontend container.
 
 - Mode: **CBRIDGE** (not CNAT)
 - Bridge interfaces: `brint` (`172.19.180.254/24`) and `br0` (`172.19.181.254/24`)
-- Zero W IP addresses: `172.19.180.1` (p1) through `172.19.180.4` (p4)
+- Zero W IP addresses: `172.19.181.1` (p1) through `172.19.181.4` (p4) — Zeros come up
+  on `br0`, not `brint`. Confirmed via `ip neigh show dev br0` after first boot.
 - Zeros appear as hotplug interfaces: `ethpi1` through `ethpi4` when booted
 - Nginx load balances across Zeros using `least_conn` with Pi 4B local backend as fallback
 
 ### Current Zero W Status (as of May 2026)
 
-**The Zeros are not yet booting.** Known issues found and resolved on Pi 4B side:
+**All four Zeros are booting and reachable.** Resolved issues:
 - `config.txt` had duplicate/conflicting ClusterHAT overlay entries — cleaned up
-- `clusterctrl-rpiboot.service` was running (SD-cardless boot mode) and intercepting
-  USB enumeration — disabled (`systemctl disable clusterctrl-rpiboot.service`)
-- Platform in `podman-compose.pi.yml` was `arm/v7` — corrected to `arm64/v8`
+- `clusterctrl-rpiboot.service` was running and intercepting USB enumeration — disabled
+- SD cards were originally flashed on Windows (incomplete ext4 partition) — reflashed
+  using Raspberry Pi Imager with per-slot 8086.net CBRIDGE armhf images
+- p4 original SD card was faulty; replaced with a higher-speed card (same armhf-p4 image)
 
-**Remaining issue:** Zero W SD cards are not producing any USB signal on boot. Suspected
-cause: SD cards were flashed on Windows which may have only written the FAT32 boot
-partition, leaving the ext4 root partition incomplete. Cards need to be reflashed using
-Raspberry Pi Imager (not Etcher/dd) with the correct 8086.net CBRIDGE image:
-- p1 image → Zero in slot 1, p2 image → slot 2, etc. (per-slot images, not one image)
-- After reflash, confirm with `dmesg -w` on Pi 4B watching for `cdc_ether` enumeration
+**Remaining work:** Backend not yet deployed to Zero W nodes. Use `./scripts/pi-run.sh --clusterhat`
+to deploy. Requires SSH access to each Zero W and `backend/dist/` to be built on the Pi 4B.
 
 ### Pi 4B Config (verified clean state)
 
@@ -244,8 +242,10 @@ toolchain issues. Linux dev machines can cross-compile if needed.
 
 ```bash
 # On Pi 4B
-./scripts/build-on-pi.sh   # First build ~2hrs, subsequent ~5-10min
-./scripts/pi-run.sh
+./scripts/build-on-pi.sh      # First build ~2hrs, subsequent ~5-10min
+./scripts/pi-run.sh           # Standard start (Pi 4B services only)
+./scripts/pi-run.sh --clusterhat              # Also deploy backend to Zero Ws
+./scripts/pi-run.sh --clusterhat --zero-user=admin  # If SSH user isn't 'pi'
 ```
 
 ### Key Config Differences: `podman-compose.pi.yml` vs `podman-compose.yml`
@@ -261,17 +261,18 @@ toolchain issues. Linux dev machines can cross-compile if needed.
 ```nginx
 upstream backend_cluster {
     least_conn;
-    server 172.19.180.1:3001 max_fails=2 fail_timeout=10s;
-    server 172.19.180.2:3001 max_fails=2 fail_timeout=10s;
-    server 172.19.180.3:3001 max_fails=2 fail_timeout=10s;
-    server 172.19.180.4:3001 max_fails=2 fail_timeout=10s;
+    server 172.19.181.1:3001 max_fails=2 fail_timeout=10s;
+    server 172.19.181.2:3001 max_fails=2 fail_timeout=10s;
+    server 172.19.181.3:3001 max_fails=2 fail_timeout=10s;
+    server 172.19.181.4:3001 max_fails=2 fail_timeout=10s;
     server backend:3000 backup;
     keepalive 8;
 }
 ```
 
-Zero W containers expose port **3001** — verify this matches `PORT` in the Zero-specific
-compose/systemd unit when created.
+Zero W backends run as systemd services (not containers) on port **3001**. They connect
+to Postgres and Redis via `172.19.181.254` (Pi 4B bridge IP), which is exposed when
+running with `--clusterhat` via `podman-compose.pi.clusterhat.yml`.
 
 ---
 

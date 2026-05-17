@@ -1,0 +1,19 @@
+version: '3.8'
+
+# Compose overlay for ClusterHAT mode.
+# Apply with: podman-compose -f podman-compose.pi.yml -f podman-compose.pi.clusterhat.yml up -d
+# Exposes Postgres and Redis on the ClusterHAT bridge (172.19.181.254) so Zero W
+# backend processes can reach them from the 172.19.181.0/24 subnet.
+
+services:
+  postgres:
+    ports:
+      - "172.19.181.254:5432:5432"
+
+  redis:
+    ports:
+      - "172.19.181.254:6379:6379"
+
+networks:
+  meals-network:
+    driver: bridge
