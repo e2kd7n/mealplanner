@@ -9,6 +9,8 @@ import path from 'path';
 import fs from 'fs/promises';
 import { logger } from '../utils/logger';
 import { AppError } from '../middleware/errorHandler';
+import { sanitizeUrl } from '../utils/sanitize';
+import prisma from '../utils/prisma';
 
 /**
  * Proxy external images to avoid CORS issues
@@ -37,6 +39,11 @@ export const proxyImage = async (
     // Only allow http and https protocols
     if (!['http:', 'https:'].includes(imageUrl.protocol)) {
       throw new AppError('Only HTTP and HTTPS URLs are allowed', 400);
+    }
+
+    // Block private/internal IPs (SSRF protection)
+    if (!sanitizeUrl(url)) {
+      throw new AppError('URL points to a disallowed host', 400);
     }
 
     logger.info(`Proxying image from: ${url}`);
@@ -236,6 +243,21 @@ export const deleteImage = async (
       await fs.access(filePath);
     } catch {
       throw new AppError('Image not found', 404);
+    }
+
+    // Enforce ownership: only the recipe owner (or an admin) may delete an image
+    const userId = req.user!.userId;
+    const userRole = req.user!.role;
+    const isAdmin = userRole === 'admin' || userRole === 'superadmin';
+
+    if (!isAdmin) {
+      const ownerRecipe = await prisma.recipe.findFirst({
+        where: { imageUrl: `/images/${filenameStr}`, userId },
+        select: { id: true },
+      });
+      if (!ownerRecipe) {
+        throw new AppError('Forbidden', 403);
+      }
     }
 
     // Delete the file
