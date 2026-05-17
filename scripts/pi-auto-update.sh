@@ -59,10 +59,9 @@ log "New image: ${BEFORE_ID:0:12} → ${AFTER_ID:0:12}"
 log "Extracting frontend static files..."
 mkdir -p ./data/frontend-dist
 rm -rf ./data/frontend-dist/*
-podman run --rm \
-    -v "$(pwd)/data/frontend-dist:/output:z" \
-    "$LOCAL_IMAGE" \
-    sh -c "cp -rp /app/public/. /output/"
+TEMP_CONTAINER=$(podman create "$LOCAL_IMAGE")
+podman cp "$TEMP_CONTAINER:/app/public/." ./data/frontend-dist/
+podman rm "$TEMP_CONTAINER" >/dev/null
 log "Extracted $(ls ./data/frontend-dist | wc -l) files to data/frontend-dist/"
 
 log "Restarting containers..."
