@@ -38,6 +38,49 @@ echo -e "${GREEN}🚀 Deploying Meal Planner from GitHub Container Registry...${
 echo -e "${BLUE}   Image: ${REMOTE_IMAGE}${NC}"
 echo ""
 
+# ── Check for in-progress GitHub Actions build ──────────────────────────────────
+
+GH_API="https://api.github.com/repos/${IMAGE_OWNER}/mealplanner/actions/workflows/build-and-push.yml/runs?per_page=1&status=in_progress"
+
+echo -e "${BLUE}🔍 Checking GitHub Actions build status...${NC}"
+if command -v curl &> /dev/null; then
+    RUNS=$(curl -sf "$GH_API" 2>/dev/null)
+    if [ $? -eq 0 ] && [ -n "$RUNS" ]; then
+        IN_PROGRESS=$(echo "$RUNS" | grep -o '"total_count":[0-9]*' | grep -o '[0-9]*')
+        if [ "${IN_PROGRESS:-0}" -gt 0 ]; then
+            RUN_URL=$(echo "$RUNS" | grep -o '"html_url":"[^"]*"' | head -1 | grep -o 'https://[^"]*')
+            echo -e "${YELLOW}⚠️  A build is currently in progress on GitHub Actions.${NC}"
+            echo -e "${YELLOW}   Pulling now will get the PREVIOUS image, not your latest commit.${NC}"
+            [ -n "$RUN_URL" ] && echo -e "${BLUE}   ${RUN_URL}${NC}"
+            echo ""
+            read -p "Wait for it to finish, or continue anyway? [w=wait/c=continue/N=abort]: " -n 1 -r CHOICE
+            echo
+            if [[ "$CHOICE" =~ ^[Ww]$ ]]; then
+                echo -e "${BLUE}Waiting for build to complete (checking every 30s)...${NC}"
+                while true; do
+                    sleep 30
+                    RUNS=$(curl -sf "$GH_API" 2>/dev/null)
+                    IN_PROGRESS=$(echo "$RUNS" | grep -o '"total_count":[0-9]*' | grep -o '[0-9]*')
+                    if [ "${IN_PROGRESS:-0}" -eq 0 ]; then
+                        echo -e "${GREEN}✓ Build finished — proceeding with pull.${NC}"
+                        echo ""
+                        break
+                    fi
+                    echo -e "${BLUE}   Still building...${NC}"
+                done
+            elif [[ ! "$CHOICE" =~ ^[Cc]$ ]]; then
+                echo -e "${RED}Aborted.${NC}"
+                exit 1
+            fi
+        else
+            echo -e "${GREEN}✓ No build in progress — safe to pull.${NC}"
+        fi
+    else
+        echo -e "${YELLOW}⚠️  Could not reach GitHub API — skipping build status check.${NC}"
+    fi
+    echo ""
+fi
+
 # ── Prerequisites ───────────────────────────────────────────────────────────────
 
 if ! command -v podman &> /dev/null; then
