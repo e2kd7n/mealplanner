@@ -1,9 +1,28 @@
 # Family Meal Planner & Grocery Shopping App
 
 **Version:** 1.0.0 (MVP) - ✅ Production Ready
-**Release Date:** March 16, 2026
+**Release Date:** May 17, 2026
 
 A Progressive Web App (PWA) designed for families to simplify meal planning and grocery shopping with smart recommendations, budget optimization, and offline functionality.
+
+---
+
+## Contents
+
+- [Quick Start](#-quick-start) — one command to set up any target
+- [Project Overview](#-project-overview)
+- [Architecture](#️-architecture)
+- [Prerequisites](#-prerequisites)
+- [Local Development](#-development-quick-start) — hot-reload, Postgres in container
+  - [Container Mode](#option-b-container-mode-port-8080) — all services in Podman
+  - [Raspberry Pi Deployment](#production-deployment-raspberry-pi-4b--clusterhat)
+- [Project Structure](#-project-structure)
+- [Testing](#-testing)
+- [Building for Production](#-building-for-production)
+- [Documentation](#-documentation)
+- [Contributing](#-contributing)
+
+---
 
 ## 🚀 Quick Start
 
@@ -13,19 +32,17 @@ A Progressive Web App (PWA) designed for families to simplify meal planning and 
 ./scripts/first-time-setup.sh
 ```
 
-This interactive script will:
-- ✅ Check prerequisites
-- ✅ Generate secure secrets
-- ✅ Configure environment
-- ✅ Set up database
-- ✅ Install dependencies
-- ✅ Run migrations
-- ✅ Create initial backup
+This interactive script guides you to the right setup for your target:
 
-**Estimated time:** 5-10 minutes
+| Option | What it sets up | Time |
+|--------|----------------|------|
+| **1. Local development** | Hot-reload, Postgres in container | ~2 min |
+| **2. Local container mode** | All services in Podman | ~5 min |
+| **3. Raspberry Pi — GHCR registry** | Pull prebuilt ARM64 image (recommended) | ~5 min |
+| **4. Raspberry Pi — build on Pi** | Compile from source on Pi | ~2 hrs first run |
 
-📖 **Detailed Setup Guide:** [SETUP.md](./SETUP.md)
-🔒 **Security Guide:** [SECURITY_SETUP.md](./docs/SECURITY_SETUP.md)
+📖 **Detailed Setup Guide:** [docs/SETUP.md](./docs/SETUP.md)
+🔒 **Security Guide:** [docs/SECURITY_SETUP.md](./docs/SECURITY_SETUP.md)
 
 ---
 
@@ -136,7 +153,7 @@ All bugs, features, and improvements are tracked in [GitHub Issues](https://gith
 - Git
 - Python 3 & pip3
 
-See [SETUP.md](./SETUP.md) for detailed installation instructions.
+See [docs/SETUP.md](./docs/SETUP.md) for detailed installation instructions.
 
 ## 🚀 Development Quick Start
 
@@ -279,28 +296,29 @@ This will show you:
 ### Production Deployment (Raspberry Pi 4B + ClusterHAT)
 
 For deploying to Raspberry Pi with Podman, see:
-- **Full Guide**: [DEPLOYMENT.md](./DEPLOYMENT.md)
+- **Full Guide**: [docs/DEPLOYMENT.md](./docs/DEPLOYMENT.md)
 - **Detailed Steps**: [docs/RASPBERRY_PI_DEPLOYMENT_GUIDE.md](./docs/RASPBERRY_PI_DEPLOYMENT_GUIDE.md)
 
-**TL;DR (build on Pi — recommended):**
+**TL;DR — pull from GHCR registry (recommended, ~5 min):**
 ```bash
 # On your Raspberry Pi (192.168.4.110)
 git clone <your-repo-url> mealplanner
 cd mealplanner
-./scripts/generate-secrets.sh
-./scripts/build-on-pi.sh   # First build ~2hrs, subsequent ~5-10min
-./scripts/pi-run.sh
+./scripts/first-time-setup.sh   # choose option 3 (Pi - registry)
+./scripts/pi-deploy-registry.sh
 # Access at http://192.168.4.110:8080
 ```
 
-**TL;DR (cross-compile from Linux dev machine):**
+GitHub Actions builds and pushes a prebuilt `linux/arm64` image to GHCR on every push to `main`. The deploy script pulls it, extracts the compiled frontend, and starts all services.
+
+**Fallback — build directly on Pi (~2 hrs first run):**
 ```bash
-# On dev machine
-./scripts/build-for-pi.sh
-scp pi-images/meals-backend.tar pi-images/frontend-dist.tar.gz \
-    pi@192.168.4.110:~/mealplanner/pi-images/
-# On Pi
-./scripts/load-pi-images.sh && ./scripts/pi-run.sh
+# On your Raspberry Pi
+git clone <your-repo-url> mealplanner
+cd mealplanner
+./scripts/first-time-setup.sh   # choose option 4 (Pi - build)
+./scripts/build-on-pi.sh        # first build ~2 hrs, subsequent ~5-10 min
+./scripts/pi-run.sh
 ```
 
 ## 📁 Project Structure
@@ -343,8 +361,7 @@ mealplanner/
 ├── .gitignore
 ├── LICENSE
 ├── README.md
-├── SETUP.md            # Development setup guide
-└── meal-planner-app-plan.md  # Detailed technical plan
+└── CLAUDE.md           # AI assistant guidance for this repo
 ```
 
 ## 🎨 Key Features
@@ -474,14 +491,14 @@ git push origin feature/your-feature-name
 - [Issue Priorities](./ISSUE_PRIORITIES.md) - Current issue priorities
 
 ### Setup & Deployment
-- [Setup Guide](./SETUP.md) - Development environment setup
-- [Deployment Guide](./DEPLOYMENT.md) - Production deployment
+- [Setup Guide](./docs/SETUP.md) - Development environment setup
+- [Deployment Guide](./docs/DEPLOYMENT.md) - Production deployment
+- [Raspberry Pi Guide](./docs/RASPBERRY_PI_DEPLOYMENT_GUIDE.md) - Pi-specific deployment
 - [Security Setup](./docs/SECURITY_SETUP.md) - Security configuration
 - [Database Backup](./docs/DATABASE_BACKUP.md) - Backup procedures
 
 ### Architecture & Technical
 - [System Architecture](./docs/ARCHITECTURE.md) - Complete architecture documentation
-- [Technical Plan](./meal-planner-app-plan.md) - Comprehensive technical specification
 - [Database Schema](./backend/prisma/schema.prisma) - Prisma schema
 - [Docling Integration](./docs/DOCLING_INTEGRATION.md) - Document handling and recipe import
 - [API Documentation](http://localhost:3000/api-docs) - Interactive API docs (when running)
@@ -512,7 +529,7 @@ For issues or questions:
 
 ## 🗺️ Roadmap
 
-See the [Technical Plan](./meal-planner-app-plan.md) for the complete development roadmap.
+See [GitHub Issues](https://github.com/e2kd7n/mealplanner/issues) for the current backlog and sprint priorities.
 
 **Current Phase:** Phase 1 - MVP Development (Weeks 1-10)
 
