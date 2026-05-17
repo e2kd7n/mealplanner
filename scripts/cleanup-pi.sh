@@ -47,37 +47,40 @@ check_cleanup_needed
 
 # Stop mealplanner containers only
 echo -e "${YELLOW}🛑 Stopping mealplanner containers...${NC}"
-if command -v podman-compose &> /dev/null && [ -f "podman-compose.yml" ]; then
-    podman-compose -f podman-compose.yml down 2>/dev/null || true
+# Prefer Pi compose file; fall back to dev compose
+if command -v podman-compose &> /dev/null; then
+    if [ -f "podman-compose.pi.yml" ]; then
+        podman-compose -f podman-compose.pi.yml down 2>/dev/null || true
+    elif [ -f "podman-compose.yml" ]; then
+        podman-compose -f podman-compose.yml down 2>/dev/null || true
+    fi
     echo -e "${GREEN}✓ Stopped containers via podman-compose${NC}"
 else
-    echo -e "${BLUE}ℹ️  No podman-compose.yml found, skipping compose down${NC}"
+    echo -e "${BLUE}ℹ️  podman-compose not found, skipping compose down${NC}"
 fi
 
 # Detect container runtime
 CONTAINER_CMD=$(detect_container_runtime)
 
 # Remove only mealplanner-specific containers by name
+# No meals-frontend on Pi — Nginx serves static files directly
 if [ -n "$CONTAINER_CMD" ]; then
     echo -e "${YELLOW}🗑️  Removing mealplanner containers...${NC}"
-    $CONTAINER_CMD rm -f meals-backend meals-frontend meals-db 2>/dev/null || true
+    $CONTAINER_CMD rm -f meals-backend meals-db meals-nginx meals-redis 2>/dev/null || true
     echo -e "${GREEN}✓ Removed mealplanner containers${NC}"
 fi
 
-# Remove only mealplanner images
-echo -e "${YELLOW}🗑️  Removing mealplanner images...${NC}"
+# Prune all unused images — this is what actually reclaims space
+# (removing specific tags misses intermediate layers and old image versions)
+echo -e "${YELLOW}🗑️  Pruning unused images...${NC}"
 if [ -n "$CONTAINER_CMD" ]; then
-    $CONTAINER_CMD rmi -f meals-backend:latest meals-frontend:latest 2>/dev/null || true
-    $CONTAINER_CMD rmi -f postgres:15-alpine 2>/dev/null || true
-    echo -e "${GREEN}✓ Removed mealplanner images${NC}"
+    $CONTAINER_CMD image prune -af 2>/dev/null || true
+    echo -e "${GREEN}✓ Pruned unused images${NC}"
 fi
 
-# Remove only mealplanner volumes
-echo -e "${YELLOW}🗑️  Removing mealplanner volumes...${NC}"
-if [ -n "$CONTAINER_CMD" ]; then
-    $CONTAINER_CMD volume rm -f mealplanner_postgres-data mealplanner_data-uploads mealplanner_data-backups mealplanner_data-images 2>/dev/null || true
-    echo -e "${GREEN}✓ Removed mealplanner volumes${NC}"
-fi
+# NOTE: Volumes are intentionally NOT removed — they contain live database data
+# and user uploads. To wipe volumes you must do so manually after confirming
+# there is a current backup.
 
 # Clean up only dangling resources (safe - doesn't remove other apps)
 echo -e "${YELLOW}🧹 Cleaning dangling resources...${NC}"
@@ -162,11 +165,11 @@ show_disk_usage
 
 # Show what was cleaned
 echo -e "${BLUE}📊 Cleanup summary:${NC}"
-echo -e "   ✓ All mealplanner containers stopped and removed"
-echo -e "   ✓ All mealplanner images removed"
-echo -e "   ✓ All mealplanner volumes removed"
-echo -e "   ✓ Podman system cache cleaned"
+echo -e "   ✓ Mealplanner containers stopped and removed"
+echo -e "   ✓ Unused images pruned"
+echo -e "   ✓ Podman build cache cleaned"
 echo -e "   ✓ Image tar files removed from ./pi-images/"
+echo -e "   ℹ️  Volumes preserved (contain live DB data and uploads)"
 echo -e "   ℹ️  System-wide cleanup skipped (safe for multi-app Pi)"
 echo ""
 
