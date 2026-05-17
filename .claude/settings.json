@@ -14,7 +14,9 @@
       "PowerShell(Get-Command node, npm, pnpm, podman, psql, code -ErrorAction SilentlyContinue)",
       "PowerShell(Get-Command code -ErrorAction SilentlyContinue)",
       "PowerShell(Test-Path \"$env:APPDATA\\\\npm\\\\node_modules\\\\pnpm\"; Get-ChildItem \"$env:USERPROFILE\\\\.nvm\" -ErrorAction SilentlyContinue | Select-Object Name; Get-ChildItem \"$env:USERPROFILE\\\\bin\" -ErrorAction SilentlyContinue | Select-Object Name)",
-      "PowerShell(Get-ChildItem \"$env:USERPROFILE\\\\bin\" -ErrorAction SilentlyContinue | Select-Object Name; Get-ChildItem \"$env:USERPROFILE\\\\.nvm\" -ErrorAction SilentlyContinue | Select-Object Name)"
+      "PowerShell(Get-ChildItem \"$env:USERPROFILE\\\\bin\" -ErrorAction SilentlyContinue | Select-Object Name; Get-ChildItem \"$env:USERPROFILE\\\\.nvm\" -ErrorAction SilentlyContinue | Select-Object Name)",
+      "Bash(git stash *)",
+      "Bash(git update-index *)"
     ]
   }
 }
