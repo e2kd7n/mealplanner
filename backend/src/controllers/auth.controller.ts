@@ -5,6 +5,7 @@
 
 import { Request, Response, NextFunction } from 'express';
 import bcrypt from 'bcrypt';
+import { Prisma, UserRole } from '@prisma/client';
 import prisma from '../utils/prisma';
 import { generateTokenPair, verifyRefreshToken } from '../utils/jwt';
 import { AppError } from '../middleware/errorHandler';
@@ -296,6 +297,22 @@ function validateAndNormalizeLoginInput(email: string, password: string): {
 }
 
 /**
+ * Check whether any users exist — used by the frontend to detect first-run state.
+ */
+export async function checkStatus(
+  _req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void> {
+  try {
+    const count = await prisma.user.count();
+    res.json({ hasUsers: count > 0 });
+  } catch (error) {
+    next(error);
+  }
+}
+
+/**
  * Register a new user
  */
 export async function register(
@@ -313,20 +330,23 @@ export async function register(
     // Validate normalized inputs
     validateRegistrationInput(normalizedEmail, password, normalizedFamilyName);
 
-    // Check if user already exists
     await ensureUserNotExists(normalizedEmail);
 
-    // Hash password
     const passwordHash = await bcrypt.hash(password, 12);
 
-    // Create user
-    const user = await prisma.user.create({
-      data: {
-        email: normalizedEmail,
-        passwordHash,
-        familyName: normalizedFamilyName,
-      },
-    });
+    // Serializable isolation prevents two simultaneous first-time registrations
+    // from both seeing count=0 and both receiving the admin role.
+    const user = await prisma.$transaction(async (tx) => {
+      const role = (await tx.user.count()) === 0 ? UserRole.admin : UserRole.user;
+      return tx.user.create({
+        data: {
+          email: normalizedEmail,
+          passwordHash,
+          familyName: normalizedFamilyName,
+          role,
+        },
+      });
+    }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable });
 
     logger.info('User registered successfully', {
       userId: user.id,
@@ -440,6 +460,7 @@ export async function logout(
 }
 
 export default {
+  checkStatus,
   register,
   login,
   refreshToken,
