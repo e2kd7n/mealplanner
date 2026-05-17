@@ -14,6 +14,7 @@ BLUE='\033[0;34m'
 NC='\033[0m'
 
 CLUSTERHAT=false
+ZERO_USER="pi"
 ZEROS=(p1 p2 p3 p4)
 GLANCES_PORT=61208
 PI4B_IP="192.168.4.110"
@@ -22,6 +23,7 @@ ZERO_IPS=(172.19.181.1 172.19.181.2 172.19.181.3 172.19.181.4)
 for arg in "$@"; do
     case $arg in
         --clusterhat) CLUSTERHAT=true ;;
+        --zero-user=*) ZERO_USER="${arg#*=}" ;;
     esac
 done
 
@@ -88,12 +90,12 @@ for i in "${!ZEROS[@]}"; do
     echo ""
     warn "→ ${zero} (${ip})..."
 
-    if ! ssh -o ConnectTimeout=5 -o BatchMode=yes pi@"$zero" true 2>/dev/null; then
+    if ! ssh -o ConnectTimeout=5 -o BatchMode=yes "${ZERO_USER}@${zero}" true 2>/dev/null; then
         err "  ✗ ${zero}: unreachable — skipping"
         continue
     fi
 
-    if ssh pi@"$zero" bash << 'ENDSSH'
+    if ssh "${ZERO_USER}@${zero}" bash << 'ENDSSH'
 set -e
 if ! command -v glances &>/dev/null; then
     sudo apt install glances -y
