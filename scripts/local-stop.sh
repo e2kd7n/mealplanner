@@ -6,12 +6,9 @@
 
 set -e
 
-# Colors for output
-RED='\033[0;31m'
-GREEN='\033[0;32m'
-YELLOW='\033[1;33m'
-BLUE='\033[0;34m'
-NC='\033[0m'
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# shellcheck source=utilities.sh
+source "$SCRIPT_DIR/utilities.sh"
 
 # Detect OS
 detect_os() {
@@ -61,7 +58,6 @@ pkill -f "ts-node\|tsx" 2>/dev/null && echo -e "${GREEN}   ✓ ts-node/tsx stopp
 
 # Clean up log files written by local-run.sh (project root)
 echo -e "${BLUE}🧹 Cleaning up log files...${NC}"
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ROOT_DIR="$(dirname "$SCRIPT_DIR")"
 rm -f "$ROOT_DIR/backend.log" && echo -e "${GREEN}   ✓ backend.log removed${NC}" || true
 rm -f "$ROOT_DIR/frontend.log" && echo -e "${GREEN}   ✓ frontend.log removed${NC}" || true
