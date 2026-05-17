@@ -126,10 +126,9 @@ echo ""
 echo -e "${BLUE}📦 Extracting frontend static files from image...${NC}"
 mkdir -p ./data/frontend-dist
 rm -rf ./data/frontend-dist/*
-podman run --rm \
-    -v "$(pwd)/data/frontend-dist:/output:z" \
-    "$LOCAL_IMAGE" \
-    sh -c "cp -rp /app/public/. /output/"
+TEMP_CONTAINER=$(podman create "$LOCAL_IMAGE")
+podman cp "$TEMP_CONTAINER:/app/public/." ./data/frontend-dist/
+podman rm "$TEMP_CONTAINER" >/dev/null
 FILE_COUNT=$(ls ./data/frontend-dist | wc -l)
 echo -e "${GREEN}✓ Extracted ${FILE_COUNT} files to ./data/frontend-dist/${NC}"
 
