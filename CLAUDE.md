@@ -235,10 +235,25 @@ podman image prune -a
 podman rm ride-optimizer
 ```
 
-### Building for Pi
+### Deploying to Pi
 
-Build must happen **on the Pi 4B itself** — cross-compiling from macOS has known Vite
-toolchain issues. Linux dev machines can cross-compile if needed.
+**Primary path — pull from GHCR (preferred):**
+GitHub Actions builds `linux/arm64` images on every push to `main` and pushes to
+`ghcr.io/e2kd7n/mealplanner-backend:latest`. On the Pi:
+
+```bash
+./scripts/pi-deploy-registry.sh          # pull latest (= current main)
+./scripts/pi-deploy-registry.sh main-abc1234  # pull a specific SHA tag
+```
+
+This pulls the image, retags it as `meals-backend:latest`, extracts the compiled
+frontend from `/app/public/` into `./data/frontend-dist/`, and calls `pi-run.sh`.
+Check Actions tab to confirm the build finished before pulling.
+
+**Fallback — build on Pi:**
+Only needed if the registry image is unavailable or you're iterating without pushing.
+Cross-compiling from macOS has known Vite toolchain issues; Linux dev machines can
+cross-compile if needed.
 
 ```bash
 # On Pi 4B
