@@ -5,12 +5,9 @@
 
 set -e
 
-# Colors for output
-RED='\033[0;31m'
-GREEN='\033[0;32m'
-YELLOW='\033[1;33m'
-BLUE='\033[0;34m'
-NC='\033[0m' # No Color
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# shellcheck source=utilities.sh
+source "$SCRIPT_DIR/utilities.sh"
 
 # Configuration
 REGISTRY="ghcr.io"
@@ -87,22 +84,11 @@ podman-compose -f podman-compose.pi.yml up -d
 
 # Wait for health checks
 echo ""
-echo -e "${BLUE}⏳ Waiting for services to be healthy...${NC}"
-sleep 5
-
-# Check backend health
-for i in {1..30}; do
-    if curl -f http://localhost:3000/health 2>/dev/null; then
-        echo -e "${GREEN}✅ Backend is healthy${NC}"
-        break
-    fi
-    if [ $i -eq 30 ]; then
-        echo -e "${RED}❌ Backend health check failed${NC}"
-        echo -e "${YELLOW}Check logs: podman logs meals-backend${NC}"
-        exit 1
-    fi
-    sleep 2
-done
+wait_for "Waiting for backend to be healthy" 65 2 curl -f http://localhost:3000/health || {
+    echo -e "${RED}❌ Backend health check failed${NC}"
+    echo -e "${YELLOW}Check logs: podman logs meals-backend${NC}"
+    exit 1
+}
 
 echo ""
 echo -e "${GREEN}✅ Deployment complete!${NC}"

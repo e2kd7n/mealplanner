@@ -4,6 +4,10 @@
 
 set -e
 
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# shellcheck source=utilities.sh
+source "$SCRIPT_DIR/utilities.sh"
+
 # Configuration
 BACKUP_DIR="${BACKUP_DIR:-./data/backups}"
 RETENTION_DAYS="${RETENTION_DAYS:-30}"
@@ -13,13 +17,7 @@ POSTGRES_USER="${POSTGRES_USER:-mealplanner}"
 TIMESTAMP=$(date +%Y%m%d_%H%M%S)
 BACKUP_FILE="backup_${POSTGRES_DB}_${TIMESTAMP}.sql.gz"
 
-# Colors for output
-RED='\033[0;31m'
-GREEN='\033[0;32m'
-YELLOW='\033[1;33m'
-NC='\033[0m' # No Color
-
-echo -e "${GREEN}=== Database Backup Script ===${NC}"
+section "Database Backup Script" "💾"
 echo "Timestamp: $(date)"
 echo "Database: ${POSTGRES_DB}"
 echo "Backup Directory: ${BACKUP_DIR}"
@@ -35,31 +33,35 @@ if ! podman ps | grep -q "${POSTGRES_CONTAINER}"; then
 fi
 
 # Perform backup
-echo -e "${YELLOW}Creating backup...${NC}"
+start_spinner "Creating backup..."
 if podman exec "${POSTGRES_CONTAINER}" pg_dump -U "${POSTGRES_USER}" "${POSTGRES_DB}" | gzip > "${BACKUP_DIR}/${BACKUP_FILE}"; then
+    stop_spinner ok
     BACKUP_SIZE=$(du -h "${BACKUP_DIR}/${BACKUP_FILE}" | cut -f1)
-    echo -e "${GREEN}✓ Backup created successfully: ${BACKUP_FILE} (${BACKUP_SIZE})${NC}"
+    echo -e "  ${GREEN}✓ Backup created: ${BACKUP_FILE} (${BACKUP_SIZE})${NC}"
 else
+    stop_spinner fail
     echo -e "${RED}✗ Backup failed${NC}"
     exit 1
 fi
 
 # Verify backup
-echo -e "${YELLOW}Verifying backup...${NC}"
+start_spinner "Verifying backup integrity..."
 if gunzip -t "${BACKUP_DIR}/${BACKUP_FILE}" 2>/dev/null; then
-    echo -e "${GREEN}✓ Backup file is valid${NC}"
+    stop_spinner ok
 else
+    stop_spinner fail
     echo -e "${RED}✗ Backup file is corrupted${NC}"
     exit 1
 fi
 
 # Clean up old backups (retention policy)
-echo -e "${YELLOW}Applying retention policy (${RETENTION_DAYS} days)...${NC}"
+start_spinner "Applying retention policy (${RETENTION_DAYS} days)..."
 DELETED_COUNT=$(find "${BACKUP_DIR}" -name "backup_*.sql.gz" -type f -mtime +${RETENTION_DAYS} -delete -print | wc -l)
+stop_spinner ok
 if [ "${DELETED_COUNT}" -gt 0 ]; then
-    echo -e "${GREEN}✓ Deleted ${DELETED_COUNT} old backup(s)${NC}"
+    echo -e "  ${GREEN}✓ Deleted ${DELETED_COUNT} old backup(s)${NC}"
 else
-    echo -e "${GREEN}✓ No old backups to delete${NC}"
+    echo -e "  ${GREEN}✓ No old backups to delete${NC}"
 fi
 
 # List recent backups
@@ -68,8 +70,7 @@ echo -e "${GREEN}Recent backups:${NC}"
 ls -lh "${BACKUP_DIR}" | grep "backup_" | tail -5
 
 # Summary
-echo ""
-echo -e "${GREEN}=== Backup Complete ===${NC}"
+section "Backup Complete" "✅"
 echo "Backup file: ${BACKUP_FILE}"
 echo "Location: ${BACKUP_DIR}/${BACKUP_FILE}"
 echo "Size: ${BACKUP_SIZE}"

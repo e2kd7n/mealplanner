@@ -5,14 +5,11 @@
 
 set -e
 
-echo "📦 Loading container images on Raspberry Pi..."
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# shellcheck source=utilities.sh
+source "$SCRIPT_DIR/utilities.sh"
 
-# Colors for output
-RED='\033[0;31m'
-GREEN='\033[0;32m'
-YELLOW='\033[1;33m'
-BLUE='\033[0;34m'
-NC='\033[0m' # No Color
+echo "📦 Loading container images on Raspberry Pi..."
 
 # Check if podman is installed
 if ! command -v podman &> /dev/null; then

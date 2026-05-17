@@ -6,17 +6,13 @@
 
 set -euo pipefail
 
-# Colors for terminal output
-RED='\033[0;31m'
-GREEN='\033[0;32m'
-YELLOW='\033[1;33m'
-BLUE='\033[0;34m'
-CYAN='\033[0;36m'
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# shellcheck source=utilities.sh
+source "$SCRIPT_DIR/utilities.sh"
+
 MAGENTA='\033[0;35m'
-NC='\033[0m' # No Color
 
 # Directories
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 LOG_DIR="$PROJECT_ROOT/data/maintenance-logs"
 STATUS_FILE="$LOG_DIR/issue-check-status.txt"

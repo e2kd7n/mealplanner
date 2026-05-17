@@ -4,17 +4,15 @@
 
 set -e
 
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# shellcheck source=utilities.sh
+source "$SCRIPT_DIR/utilities.sh"
+
 # Configuration
 BACKUP_DIR="${BACKUP_DIR:-./data/backups}"
 POSTGRES_CONTAINER="${POSTGRES_CONTAINER:-meals-postgres}"
 POSTGRES_DB="${POSTGRES_DB:-meal_planner}"
 POSTGRES_USER="${POSTGRES_USER:-mealplanner}"
-
-# Colors for output
-RED='\033[0;31m'
-GREEN='\033[0;32m'
-YELLOW='\033[1;33m'
-NC='\033[0m' # No Color
 
 echo -e "${GREEN}=== Database Restore Script ===${NC}"
 echo "Timestamp: $(date)"

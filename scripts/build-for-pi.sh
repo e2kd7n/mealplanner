@@ -6,12 +6,9 @@
 
 set -e
 
-# Colors for output
-RED='\033[0;31m'
-GREEN='\033[0;32m'
-YELLOW='\033[1;33m'
-BLUE='\033[0;34m'
-NC='\033[0m' # No Color
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# shellcheck source=utilities.sh
+source "$SCRIPT_DIR/utilities.sh"
 
 # Detect if running on Raspberry Pi
 if [ -f /proc/device-tree/model ]; then
@@ -60,12 +57,12 @@ if [[ "$OSTYPE" == "darwin"* ]]; then
     echo -e "${YELLOW}To override this check (not recommended):${NC}"
     echo -e "   FORCE_MACOS_BUILD=true ./scripts/build-for-pi.sh"
     echo ""
-    
+
     # Allow override for testing/advanced users
     if [ "${FORCE_MACOS_BUILD:-false}" != "true" ]; then
         exit 1
     fi
-    
+
     echo -e "${YELLOW}⚠️  Proceeding with macOS build (FORCE_MACOS_BUILD=true)${NC}"
     echo -e "${YELLOW}⚠️  Images may have compatibility issues on Raspberry Pi${NC}"
     echo ""
@@ -75,7 +72,7 @@ fi
 if command -v podman &> /dev/null; then
     CONTAINER_CMD="podman"
     echo -e "${GREEN}✓ Using Podman${NC}"
-    
+
     # Check if podman machine is running (macOS/Windows)
     if podman machine list &> /dev/null; then
         if ! podman machine list | grep -q "Currently running"; then
@@ -164,8 +161,10 @@ OUTPUT_DIR="./pi-images"
 mkdir -p "$OUTPUT_DIR"
 
 # Build backend image (includes frontend in multi-stage build)
-echo -e "${YELLOW}🔨 Building backend image for ${TARGET_ARCH} (includes frontend)...${NC}"
+section "Building backend image for ${TARGET_ARCH}" "🔨"
 echo -e "${BLUE}ℹ️  Building without cache to ensure correct architecture${NC}"
+timer_start
+start_spinner "Building backend image (this may take a while)..."
 $CONTAINER_CMD build \
     --platform "$TARGET_ARCH" \
     --no-cache \
@@ -173,18 +172,24 @@ $CONTAINER_CMD build \
     -f backend/Dockerfile \
     --build-arg VITE_API_URL=/api \
     .
+stop_spinner ok
+timer_end
 
 # Build frontend static files using a native (non-cross-compiled) container.
 # React/Vite output is pure HTML/CSS/JS — architecture-independent — so we build
 # natively and extract the dist files rather than building an ARM image.
-echo -e "${YELLOW}🔨 Building frontend static files (native build)...${NC}"
+section "Building frontend static files (native build)" "🔨"
+timer_start
+start_spinner "Building frontend image..."
 $CONTAINER_CMD build \
     -t meals-frontend-extract:tmp \
     -f frontend/Dockerfile \
     --build-arg VITE_API_URL=/api \
     frontend/
+stop_spinner ok
+timer_end
 
-echo -e "${YELLOW}📦 Extracting frontend static files...${NC}"
+start_spinner "Extracting frontend static files..."
 mkdir -p ./data/frontend-dist
 rm -rf ./data/frontend-dist/*
 $CONTAINER_CMD run --rm \
@@ -193,16 +198,18 @@ $CONTAINER_CMD run --rm \
     sh -c "cp -rp /usr/share/nginx/html/. /output/"
 tar -czf "$OUTPUT_DIR/frontend-dist.tar.gz" -C ./data/frontend-dist .
 $CONTAINER_CMD rmi meals-frontend-extract:tmp 2>/dev/null || true
+stop_spinner ok
 echo -e "${GREEN}✅ Frontend static files packaged as $OUTPUT_DIR/frontend-dist.tar.gz${NC}"
 
 # Save backend image as tar file
-echo -e "${YELLOW}💾 Saving backend image to tar file...${NC}"
-
+section "Saving backend image" "💾"
 if [ "$COMPRESS" = true ]; then
     echo -e "${BLUE}ℹ️  Compressing backend tar (smaller transfer size)${NC}"
+    start_spinner "Saving compressed backend tar..."
     $CONTAINER_CMD save meals-backend:latest | gzip > "$OUTPUT_DIR/meals-backend.tar.gz"
     # Also save uncompressed for compatibility
     $CONTAINER_CMD save -o "$OUTPUT_DIR/meals-backend.tar" meals-backend:latest
+    stop_spinner ok
 
     BACKEND_SIZE=$(du -h "$OUTPUT_DIR/meals-backend.tar" | cut -f1)
     BACKEND_GZ_SIZE=$(du -h "$OUTPUT_DIR/meals-backend.tar.gz" | cut -f1)
@@ -222,7 +229,9 @@ if [ "$COMPRESS" = true ]; then
     echo -e "      ${GREEN}scp pi-images/meals-backend.tar.gz pi-images/frontend-dist.tar.gz pi@raspberrypi.local:~/mealplanner/pi-images/${NC}"
 else
     echo -e "${BLUE}ℹ️  Saving uncompressed tar (faster loading on Pi — default)${NC}"
+    start_spinner "Saving backend tar..."
     $CONTAINER_CMD save -o "$OUTPUT_DIR/meals-backend.tar" meals-backend:latest
+    stop_spinner ok
 
     BACKEND_SIZE=$(du -h "$OUTPUT_DIR/meals-backend.tar" | cut -f1)
     FRONTEND_DIST_SIZE=$(du -h "$OUTPUT_DIR/frontend-dist.tar.gz" | cut -f1)
