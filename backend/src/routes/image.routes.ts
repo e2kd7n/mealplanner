@@ -45,10 +45,10 @@ const upload = multer({
 /**
  * @route   GET /api/images/proxy
  * @desc    Proxy external images to avoid CORS issues
- * @access  Public
+ * @access  Private
  * @query   url - The external image URL to proxy
  */
-router.get('/proxy', proxyImage);
+router.get('/proxy', authenticate, proxyImage);
 
 /**
  * @route   POST /api/images/upload

@@ -12,7 +12,8 @@ import {
   getLogFileStats,
   triggerLogPruning,
 } from '../controllers/logs.controller';
-import { authenticate, requireAdmin } from '../middleware/auth';
+import { authenticate } from '../middleware/auth';
+import { requireAdmin } from '../middleware/admin';
 import { clientLogsRateLimiter } from '../middleware/rateLimiter';
 
 const router: Router = Router();

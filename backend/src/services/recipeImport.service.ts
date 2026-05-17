@@ -7,6 +7,7 @@ import scrapeRecipe from '@rethora/url-recipe-scraper';
 import { logger } from '../utils/logger';
 import prismaClient from '../utils/prisma';
 import { decode } from 'html-entities';
+import { sanitizeUrl } from '../utils/sanitize';
 
 interface ParsedRecipe {
   title: string;
@@ -49,10 +50,16 @@ export class RecipeImportService {
       if (!['http:', 'https:'].includes(urlObj.protocol)) {
         throw new Error('Invalid protocol. Only HTTP and HTTPS are supported.');
       }
-      return urlObj.href;
     } catch (error) {
       throw new Error('Invalid URL format');
     }
+
+    // Block private/internal IPs (SSRF protection)
+    const safe = sanitizeUrl(url);
+    if (!safe) {
+      throw new Error('URL points to a disallowed host');
+    }
+    return safe;
   }
 
   /**
