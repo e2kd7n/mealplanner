@@ -210,6 +210,30 @@ case "$DEPLOY_CHOICE" in
     ;;
 esac
 
+# ── Pi only: offer nightly auto-updates ──────────────────────────────────────
+if [[ "$DEPLOY_CHOICE" == "3" || "$DEPLOY_CHOICE" == "4" ]]; then
+    echo ""
+    echo -e "${BOLD}${YELLOW}Enable nightly auto-updates?${NC}"
+    echo -e "  Installs a systemd timer that pulls the latest image from GHCR"
+    echo -e "  each night at 01:30 and redeploys if the image has changed."
+    echo ""
+    read -p "Set up auto-updates now? [y/N]: " AUTO_UPDATE_CHOICE
+    AUTO_UPDATE_CHOICE=${AUTO_UPDATE_CHOICE:-N}
+    echo ""
+    if [[ "$AUTO_UPDATE_CHOICE" =~ ^[Yy]$ ]]; then
+        echo -e "${CYAN}Running pi-update-setup.sh...${NC}"
+        echo ""
+        "$SCRIPT_DIR/pi-update-setup.sh"
+        echo ""
+        echo -e "${GREEN}✓ Auto-updates enabled — next check tonight at 01:30${NC}"
+        echo -e "  Manual update anytime: ${GREEN}./scripts/pi-auto-update.sh${NC}"
+        echo -e "  Force redeploy:        ${GREEN}./scripts/pi-auto-update.sh --force${NC}"
+    else
+        echo -e "${YELLOW}Skipped. You can enable auto-updates later:${NC}"
+        echo -e "   ${GREEN}./scripts/pi-update-setup.sh${NC}"
+    fi
+fi
+
 # ── Common footer ─────────────────────────────────────────────────────────────
 echo ""
 echo -e "${BOLD}${CYAN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
