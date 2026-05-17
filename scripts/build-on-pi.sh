@@ -5,12 +5,9 @@
 
 set -e
 
-# Colors for output
-RED='\033[0;31m'
-GREEN='\033[0;32m'
-YELLOW='\033[1;33m'
-BLUE='\033[0;34m'
-NC='\033[0m' # No Color
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# shellcheck source=utilities.sh
+source "$SCRIPT_DIR/utilities.sh"
 
 # Performance logging
 BUILD_LOG="build-performance-$(date +%Y%m%d-%H%M%S).log"
@@ -27,8 +24,9 @@ log_timing() {
     echo "[$(date '+%Y-%m-%d %H:%M:%S')] $stage: ${minutes}m ${seconds}s" >> "$BUILD_LOG"
 }
 
-echo -e "${GREEN}🏗️  Building container images on Raspberry Pi...${NC}"
-echo -e "${BLUE}📊 Performance logging enabled: ${BUILD_LOG}${NC}"
+section "Build on Pi" "🔥"
+timer_start
+echo -e "${BLUE}  📊 Performance log: ${BUILD_LOG}${NC}"
 echo "[$(date '+%Y-%m-%d %H:%M:%S')] Build started" >> "$BUILD_LOG"
 
 # Check if podman is installed
@@ -207,9 +205,8 @@ podman build \
         fi
     done
 
-# Extract frontend static files from backend image for Nginx to serve
-echo ""
-echo -e "${BLUE}📦 Extracting frontend static files for Nginx...${NC}"
+section "Extracting Frontend Assets" "📦"
+echo -e "${BLUE}  Extracting frontend static files for Nginx...${NC}"
 mkdir -p ./data/frontend-dist
 rm -rf ./data/frontend-dist/*
 podman run --rm \
@@ -228,9 +225,10 @@ echo "[$(date '+%Y-%m-%d %H:%M:%S')] Build completed" >> "$BUILD_LOG"
 echo "Total build time: ${TOTAL_MINUTES}m ${TOTAL_SECONDS}s" >> "$BUILD_LOG"
 echo "" >> "$BUILD_LOG"
 
-echo -e "${GREEN}✅ Build complete!${NC}"
+section "Build Summary" "🍽️"
+timer_end
 echo ""
-echo -e "${BLUE}📦 Built image:${NC}"
+echo -e "${BLUE}  📦 Built image:${NC}"
 podman images | grep meals-backend
 echo ""
 echo -e "${BLUE}📁 Frontend static files ($(ls ./data/frontend-dist | wc -l) files):${NC}"

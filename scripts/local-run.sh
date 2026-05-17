@@ -6,12 +6,9 @@
 
 set -e
 
-# Colors for output
-RED='\033[0;31m'
-GREEN='\033[0;32m'
-YELLOW='\033[1;33m'
-BLUE='\033[0;34m'
-NC='\033[0m' # No Color
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# shellcheck source=utilities.sh
+source "$SCRIPT_DIR/utilities.sh"
 
 # Detect OS / architecture
 detect_os() {
@@ -155,9 +152,9 @@ if ss -tlnp 2>/dev/null | grep -q ':5432'; then
     sleep 1
 fi
 
-# Start PostgreSQL database container using podman run directly.
-# No custom network needed — backend runs natively and reaches postgres via localhost:5432.
-echo -e "${GREEN}🗄️  Starting PostgreSQL database container...${NC}"
+section "Database" "🗄️"
+
+echo -e "${GREEN}  Starting PostgreSQL database container...${NC}"
 POSTGRES_PASSWORD=$(head -1 ./secrets/postgres_password.txt | tr -d '\r\n')
 if ! podman run -d \
     --name meals-postgres \
@@ -174,43 +171,49 @@ if ! podman run -d \
     exit 1
 fi
 
-# Wait for database to be healthy
-echo -e "${YELLOW}⏳ Waiting for database to be healthy...${NC}"
-for i in {1..30}; do
-    if podman exec meals-postgres pg_isready -U mealplanner -d meal_planner &>/dev/null; then
-        echo -e "${GREEN}✓ Database is healthy${NC}"
-        break
-    fi
-    if [ $i -eq 30 ]; then
-        echo -e "${RED}❌ Database failed to become healthy${NC}"
-        podman logs meals-postgres
+if ! wait_for "Waiting for database" 60 2 \
+        podman exec meals-postgres pg_isready -U mealplanner -d meal_planner; then
+    echo -e "${RED}❌ Database failed to become healthy${NC}"
+    podman logs meals-postgres
+    exit 1
+fi
+
+section "Dependencies & Migrations" "📦"
+
+if [ ! -d "./backend/node_modules" ]; then
+    start_spinner "Installing backend dependencies (first run)"
+    if (cd backend && npm install) > /tmp/npm-backend-install.log 2>&1; then
+        stop_spinner ok
+    else
+        stop_spinner fail
+        cat /tmp/npm-backend-install.log
         exit 1
     fi
-    sleep 1
-done
-
-# Check if backend dependencies are installed
-if [ ! -d "./backend/node_modules" ]; then
-    echo -e "${YELLOW}📦 Installing backend dependencies...${NC}"
-    (cd backend && npm install)
 fi
 
-# Check if frontend dependencies are installed
 if [ ! -d "./frontend/node_modules" ]; then
-    echo -e "${YELLOW}📦 Installing frontend dependencies...${NC}"
-    (cd frontend && npm install)
+    start_spinner "Installing frontend dependencies (first run)"
+    if (cd frontend && npm install) > /tmp/npm-frontend-install.log 2>&1; then
+        stop_spinner ok
+    else
+        stop_spinner fail
+        cat /tmp/npm-frontend-install.log
+        exit 1
+    fi
 fi
 
-# Run database migrations
-echo -e "${GREEN}🔄 Running database migrations...${NC}"
-(cd backend && npx prisma migrate deploy)
+start_spinner "Running database migrations"
+if (cd backend && npx prisma migrate deploy) > /tmp/prisma-migrate.log 2>&1; then
+    stop_spinner ok
+else
+    stop_spinner fail
+    cat /tmp/prisma-migrate.log
+    exit 1
+fi
 
-echo ""
-echo -e "${GREEN}✅ Database container is running!${NC}"
-echo ""
+section "Services" "🚀"
 
-# Start backend in background
-echo -e "${BLUE}🔧 Starting backend server...${NC}"
+echo -e "  ${CYAN}▸${NC} Starting backend server..."
 (cd backend && npm run dev > ../backend.log 2>&1) &
 BACKEND_PID=$!
 
@@ -226,41 +229,42 @@ check_port() {
     fi
 }
 
-# Wait for backend to be ready
-echo -e "${YELLOW}⏳ Waiting for backend to be ready...${NC}"
-for i in {1..30}; do
+start_spinner "Waiting for backend"
+waited=0
+while [[ $waited -lt 30 ]]; do
     if check_port 3000; then
-        echo -e "${GREEN}✓ Backend is healthy${NC}"
+        stop_spinner ok
         break
     fi
-    if [ $i -eq 30 ]; then
-        echo -e "${RED}❌ Backend failed to start${NC}"
+    if [[ $waited -ge 28 ]]; then
+        stop_spinner fail
         echo -e "${YELLOW}Backend logs:${NC}"
         tail -20 backend.log
         exit 1
     fi
     sleep 1
+    waited=$(( waited + 1 ))
 done
 
-# Start frontend in background
-echo -e "${BLUE}🌐 Starting frontend server...${NC}"
+echo -e "  ${CYAN}▸${NC} Starting frontend server..."
 (cd frontend && npm run dev > ../frontend.log 2>&1) &
 FRONTEND_PID=$!
 
-# Wait for frontend to be ready
-echo -e "${YELLOW}⏳ Waiting for frontend to be ready...${NC}"
-for i in {1..30}; do
+start_spinner "Waiting for frontend"
+waited=0
+while [[ $waited -lt 30 ]]; do
     if check_port 5173; then
-        echo -e "${GREEN}✓ Frontend is healthy${NC}"
+        stop_spinner ok
         break
     fi
-    if [ $i -eq 30 ]; then
-        echo -e "${RED}❌ Frontend failed to start${NC}"
+    if [[ $waited -ge 28 ]]; then
+        stop_spinner fail
         echo -e "${YELLOW}Frontend logs:${NC}"
         tail -20 frontend.log
         exit 1
     fi
     sleep 1
+    waited=$(( waited + 1 ))
 done
 
 echo ""

@@ -6,12 +6,9 @@
 
 set -e
 
-# Colors for output
-RED='\033[0;31m'
-GREEN='\033[0;32m'
-YELLOW='\033[1;33m'
-BLUE='\033[0;34m'
-NC='\033[0m'
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# shellcheck source=utilities.sh
+source "$SCRIPT_DIR/utilities.sh"
 
 # Detect OS / architecture
 detect_os() {
@@ -105,46 +102,18 @@ podman container prune -f 2>/dev/null || true
 echo -e "${GREEN}🚀 Starting services (podman-compose.yml)...${NC}"
 podman-compose -f podman-compose.yml up -d
 
-# ── Wait for postgres ─────────────────────────────────────────────────────────
+section "Waiting for Services" "⏲️"
 
-echo -e "${YELLOW}⏳ Waiting for PostgreSQL...${NC}"
-MAX_WAIT=60
-WAITED=0
-while [ $WAITED -lt $MAX_WAIT ]; do
-    if podman exec meals-postgres pg_isready -U mealplanner -d meal_planner &>/dev/null; then
-        echo -e "${GREEN}✓ PostgreSQL ready${NC}"
-        break
-    fi
-    echo -n "."
-    sleep 2
-    WAITED=$((WAITED + 2))
-done
-echo ""
-
-if [ $WAITED -ge $MAX_WAIT ]; then
-    echo -e "${RED}❌ PostgreSQL failed to start within ${MAX_WAIT}s${NC}"
+if ! wait_for "PostgreSQL starting up" 60 2 \
+        podman exec meals-postgres pg_isready -U mealplanner -d meal_planner; then
+    echo -e "${RED}❌ PostgreSQL failed to start within 60s${NC}"
     podman logs meals-postgres
     exit 1
 fi
 
-# ── Wait for backend ──────────────────────────────────────────────────────────
-
-echo -e "${YELLOW}⏳ Waiting for backend...${NC}"
-MAX_WAIT=90
-WAITED=0
-while [ $WAITED -lt $MAX_WAIT ]; do
-    if curl -sf http://localhost:3000/health &>/dev/null; then
-        echo -e "${GREEN}✓ Backend ready${NC}"
-        break
-    fi
-    echo -n "."
-    sleep 3
-    WAITED=$((WAITED + 3))
-done
-echo ""
-
-if [ $WAITED -ge $MAX_WAIT ]; then
-    echo -e "${RED}❌ Backend failed to start within ${MAX_WAIT}s${NC}"
+if ! wait_for "Backend starting up" 90 3 \
+        curl -sf http://localhost:3000/health; then
+    echo -e "${RED}❌ Backend failed to start within 90s${NC}"
     podman logs meals-backend --tail=50
     exit 1
 fi
