@@ -211,8 +211,10 @@ fi
 # inherit stale systemd timer units (symptom: "timer unit already loaded" error).
 if podman ps -a | grep -qE "meals-(postgres|redis|backend|nginx)"; then
     echo -e "${YELLOW}Removing stopped containers from previous run...${NC}"
-    podman rm -f meals-postgres meals-redis meals-backend meals-nginx 2>/dev/null || true
+    podman rm -f meals-postgres meals-redis meals-backend meals-nginx >/dev/null 2>&1 || true
 fi
+# Reset any lingering failed systemd units (stale health-check timers).
+systemctl --user reset-failed 2>/dev/null || true
 
 # Check if images exist
 if ! podman images | grep -q "meals-backend"; then
