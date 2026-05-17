@@ -8,13 +8,10 @@
 
 set -euo pipefail
 
-RED='\033[0;31m'
-GREEN='\033[0;32m'
-YELLOW='\033[1;33m'
-BLUE='\033[0;34m'
-NC='\033[0m'
-
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# shellcheck source=utilities.sh
+source "$SCRIPT_DIR/utilities.sh"
+
 APP_DIR="$(dirname "$SCRIPT_DIR")"
 TIMESTAMP=$(date +%Y%m%d_%H%M%S)
 BUNDLE_NAME="mealplanner-full-${TIMESTAMP}"
@@ -31,7 +28,7 @@ log()  { echo -e "${GREEN}[$(date '+%H:%M:%S')] $1${NC}"; }
 warn() { echo -e "${YELLOW}[$(date '+%H:%M:%S')] $1${NC}"; }
 err()  { echo -e "${RED}[$(date '+%H:%M:%S')] ERROR: $1${NC}"; exit 1; }
 
-echo -e "${BLUE}=== Meal Planner Full Backup ===${NC}"
+section "Meal Planner Full Backup" "💾"
 echo "Timestamp: $(date)"
 echo "Bundle:    ${BUNDLE}"
 echo ""
@@ -40,12 +37,12 @@ mkdir -p "${STAGING}" "${OUTPUT_DIR}"
 trap 'rm -rf "${STAGING}"' EXIT
 
 # 1. Database
-log "Backing up PostgreSQL..."
+start_spinner "Backing up PostgreSQL..."
 podman ps | grep -q "${POSTGRES_CONTAINER}" \
-    || err "PostgreSQL container '${POSTGRES_CONTAINER}' is not running"
+    || { stop_spinner fail; err "PostgreSQL container '${POSTGRES_CONTAINER}' is not running"; }
 podman exec "${POSTGRES_CONTAINER}" pg_dump -U "${POSTGRES_USER}" "${POSTGRES_DB}" \
     | gzip > "${STAGING}/database.sql.gz"
-log "✓ Database backed up"
+stop_spinner ok
 
 # 2. Secrets
 log "Backing up secrets/..."
@@ -57,11 +54,11 @@ else
 fi
 
 # 3. User data
-log "Backing up data/images and data/uploads..."
+start_spinner "Backing up data/images and data/uploads..."
 mkdir -p "${STAGING}/data"
 [ -d "${APP_DIR}/data/images" ]  && cp -r "${APP_DIR}/data/images"  "${STAGING}/data/images"
 [ -d "${APP_DIR}/data/uploads" ] && cp -r "${APP_DIR}/data/uploads" "${STAGING}/data/uploads"
-log "✓ Data directories backed up"
+stop_spinner ok
 
 # 4. Nginx config
 log "Backing up nginx config..."
@@ -96,16 +93,16 @@ for zero in "${ZEROS[@]}"; do
 done
 
 # 7. Bundle
-log "Creating archive..."
+start_spinner "Creating archive..."
 tar -czf "${BUNDLE}" -C /tmp "${BUNDLE_NAME}"
 BUNDLE_SIZE=$(du -h "${BUNDLE}" | cut -f1)
+stop_spinner ok
 
 # Also extract a standalone SQL dump for easy access
 SQL_COPY="${OUTPUT_DIR}/database_${TIMESTAMP}.sql.gz"
 tar -xOzf "${BUNDLE}" "${BUNDLE_NAME}/database.sql.gz" > "${SQL_COPY}"
 
-echo ""
-echo -e "${GREEN}=== Backup Complete ===${NC}"
+section "Backup Complete" "✅"
 echo "Bundle:   ${BUNDLE} (${BUNDLE_SIZE})"
 echo "SQL dump: ${SQL_COPY}"
 echo ""

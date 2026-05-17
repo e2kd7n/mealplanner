@@ -4,14 +4,11 @@
 
 set -e
 
-echo "🔄 Restarting Meal Planner on Raspberry Pi..."
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# shellcheck source=utilities.sh
+source "$SCRIPT_DIR/utilities.sh"
 
-# Colors for output
-RED='\033[0;31m'
-GREEN='\033[0;32m'
-YELLOW='\033[1;33m'
-BLUE='\033[0;34m'
-NC='\033[0m' # No Color
+echo "🔄 Restarting Meal Planner on Raspberry Pi..."
 
 # Check if podman-compose is installed
 if ! command -v podman-compose &> /dev/null; then
@@ -44,8 +41,9 @@ echo -e "${YELLOW}🚀 Starting services...${NC}"
 podman-compose -f podman-compose.pi.yml up -d
 
 # Wait for services to be healthy
-echo -e "${YELLOW}⏳ Waiting for services to start...${NC}"
+start_spinner "Waiting for services to start..."
 sleep 10
+stop_spinner ok
 
 # Check service status
 echo ""
