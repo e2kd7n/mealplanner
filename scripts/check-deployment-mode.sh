@@ -67,25 +67,38 @@ fi
 
 # Check for container mode (nginx on 8080)
 if check_port 8080; then
+    # Prefer mDNS hostname (works on all LAN clients without DNS config).
+    # Falls back to primary LAN IP, then localhost.
+    MDNS_HOST="$(hostname 2>/dev/null).local"
+    LAN_IP=$(hostname -I 2>/dev/null | awk '{print $1}')
+    if [ -n "$LAN_IP" ] && [ "$LAN_IP" != "127.0.0.1" ]; then
+        PRIMARY_URL="http://${MDNS_HOST}:8080"
+        ALT_URL="http://${LAN_IP}:8080"
+    else
+        PRIMARY_URL="http://localhost:8080"
+        ALT_URL=""
+    fi
+
     echo -e "${GREEN}✅ CONTAINER MODE is running${NC}"
     echo ""
     echo -e "${BLUE}📱 Access your application at:${NC}"
-    echo -e "   ${GREEN}👉 http://localhost:8080${NC}"
+    echo -e "   ${GREEN}👉 ${PRIMARY_URL}${NC}"
+    [ -n "$ALT_URL" ] && echo -e "   ${GREEN}👉 ${ALT_URL}${NC}  (by IP)"
     echo ""
-    echo -e "${BLUE}🔌 API Endpoint:${NC} http://localhost:8080/api"
-    echo -e "${BLUE}❤️  Health Check:${NC} http://localhost:8080/health"
+    echo -e "${BLUE}🔌 API Endpoint:${NC} ${PRIMARY_URL}/api"
+    echo -e "${BLUE}❤️  Health Check:${NC} ${PRIMARY_URL}/health"
     echo ""
-    
+
     # Check if it's local or remote
     if command -v podman &> /dev/null && podman ps --format "{{.Names}}" 2>/dev/null | grep -q "meals-"; then
-        echo -e "${BLUE}📍 Location:${NC} Local machine (Podman containers)"
+        echo -e "${BLUE}📍 Location:${NC} This machine — ${MDNS_HOST} (Podman containers)"
         if [ -n "$CALLED_FROM_MENU" ]; then
             echo -e "${BLUE}🛑 To stop:${NC} Use menu option 3 (Stop all services)"
         else
             echo -e "${BLUE}🛑 To stop:${NC} ./scripts/local-stop.sh"
         fi
     elif command -v docker &> /dev/null && docker ps --format "{{.Names}}" 2>/dev/null | grep -q "meals-"; then
-        echo -e "${BLUE}📍 Location:${NC} Local machine (Docker containers)"
+        echo -e "${BLUE}📍 Location:${NC} This machine — ${MDNS_HOST} (Docker containers)"
         echo -e "${BLUE}🛑 To stop:${NC} docker-compose down"
     else
         echo -e "${BLUE}📍 Location:${NC} Unknown (possibly remote)"
