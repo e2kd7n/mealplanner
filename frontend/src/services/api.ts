@@ -303,10 +303,10 @@ export const visualAuthAPI = {
   listUsers: () =>
     api.get('/auth/users'),
 
-  getVisualChallenge: (userId: string) =>
-    api.get(`/auth/visual-challenge/${userId}`),
+  getVisualChallenge: (memberId: string) =>
+    api.get(`/auth/visual-challenge/${memberId}`),
 
-  visualLogin: (data: { userId: string; recipeId: string }) =>
+  visualLogin: (data: { memberId: string; recipeId: string }) =>
     api.post('/auth/login/visual', data),
 
   deviceLogin: () =>
@@ -315,11 +315,11 @@ export const visualAuthAPI = {
   deviceLogout: () =>
     api.post('/auth/logout/device'),
 
-  getVisualPasswordStatus: () =>
-    api.get('/auth/visual-password/status'),
+  getVisualPasswordStatus: (familyMemberId?: string) =>
+    api.get('/auth/visual-password/status', { params: familyMemberId ? { familyMemberId } : undefined }),
 
-  setupVisualPassword: (recipeId: string) =>
-    api.post('/auth/visual-password/setup', { recipeId }),
+  setupVisualPassword: (familyMemberId: string, recipeId: string) =>
+    api.post('/auth/visual-password/setup', { familyMemberId, recipeId }),
 };
 
 // Recipe API
