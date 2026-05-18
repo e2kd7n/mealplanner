@@ -10,27 +10,6 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # shellcheck source=utilities.sh
 source "$SCRIPT_DIR/utilities.sh"
 
-# Detect OS / architecture
-detect_os() {
-    case "$(uname -s)" in
-        Darwin*)
-            echo "mac" ;;
-        Linux*)
-            if grep -qi microsoft /proc/version 2>/dev/null; then
-                echo "wsl"
-            elif [ -f /proc/device-tree/model ] && grep -q "Raspberry Pi" /proc/device-tree/model 2>/dev/null; then
-                echo "pi"
-            else
-                echo "linux"
-            fi
-            ;;
-        MINGW*|MSYS*|CYGWIN*)
-            echo "windows" ;;
-        *)
-            echo "unknown" ;;
-    esac
-}
-
 OS=$(detect_os)
 ARCH=$(uname -m)   # x86_64, aarch64, arm64, etc.
 
@@ -76,14 +55,14 @@ fi
 
 # ── Disk space check ─────────────────────────────────────────────────────────
 
-DISK_USAGE=$(df / | awk 'NR==2 {print $5}' | sed 's/%//')
+DISK_USAGE=$(get_disk_usage_percent)
 echo -e "${BLUE}💾 Disk usage: ${DISK_USAGE}%${NC}"
 
-if [ "$DISK_USAGE" -gt 90 ]; then
+if [ "$DISK_USAGE" -gt "$DISK_CRITICAL" ]; then
     echo -e "${RED}❌ Disk usage critically high (${DISK_USAGE}%). Run cleanup first:${NC}"
     echo -e "   ${GREEN}./scripts/cleanup-dev-machine.sh${NC}"
     exit 1
-elif [ "$DISK_USAGE" -gt 80 ]; then
+elif [ "$DISK_USAGE" -gt "$DISK_WARNING" ]; then
     echo -e "${YELLOW}⚠️  Disk usage high (${DISK_USAGE}%)${NC}"
     read -p "Continue anyway? (y/N): " -n 1 -r
     echo

@@ -74,6 +74,39 @@ get_cpu_load() {
     uptime | awk -F'load average:' '{print $2}' | awk '{print $1}' | sed 's/,//'
 }
 
+# Detect the current OS: mac | wsl | pi | linux | windows | unknown
+detect_os() {
+    case "$(uname -s)" in
+        Darwin*)  echo "mac" ;;
+        Linux*)
+            if grep -qi microsoft /proc/version 2>/dev/null; then
+                echo "wsl"
+            elif [ -f /proc/device-tree/model ] && grep -q "Raspberry Pi" /proc/device-tree/model 2>/dev/null; then
+                echo "pi"
+            else
+                echo "linux"
+            fi
+            ;;
+        MINGW*|MSYS*|CYGWIN*) echo "windows" ;;
+        *) echo "unknown" ;;
+    esac
+}
+
+# Extract the compiled React frontend from the backend image into ./data/frontend-dist/.
+# Nginx serves these static files directly on the Pi — there is no frontend container.
+# Uses podman create/cp/rm so the container never runs and no volume mount is needed.
+# Usage: extract_frontend_from_image [image_name]
+extract_frontend_from_image() {
+    local image="${1:-meals-backend:latest}"
+    mkdir -p ./data/frontend-dist
+    rm -rf ./data/frontend-dist/*
+    local cid
+    cid=$(podman create "$image")
+    podman cp "$cid:/app/public/." ./data/frontend-dist/
+    podman rm "$cid" >/dev/null
+    echo -e "${GREEN}✓ Extracted $(ls ./data/frontend-dist | wc -l) files → ./data/frontend-dist/${NC}"
+}
+
 # Check if running as root
 check_root() {
     if [ "$EUID" -ne 0 ]; then 
