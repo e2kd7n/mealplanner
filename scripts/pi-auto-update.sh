@@ -70,13 +70,30 @@ log "Restarting containers..."
 podman-compose -f podman-compose.pi.yml down
 podman-compose -f podman-compose.pi.yml up -d
 
-log "Waiting for health checks (15s)..."
-sleep 15
+log "Waiting for backend to become healthy..."
+for i in $(seq 1 12); do
+    sleep 5
+    if podman healthcheck run meals-backend >/dev/null 2>&1; then
+        log "✓ Backend healthy after $((i * 5))s."
+        break
+    fi
+    if [ "$i" -eq 12 ]; then
+        log "ERROR: meals-backend did not become healthy after 60s. Last 30 log lines:"
+        podman-compose -f podman-compose.pi.yml logs --tail=30 backend >&2
+        exit 1
+    fi
+done
 
-if podman ps | grep -q "meals-backend"; then
-    log "✓ Deployment complete — meals-backend is running."
+log "Running database migrations..."
+PRISMA_BIN=$(podman exec meals-backend find /app/node_modules/.pnpm -name "index.js" -path "*/prisma/build/index.js" 2>/dev/null | head -1)
+if [ -z "$PRISMA_BIN" ]; then
+    log "WARNING: Prisma CLI not found in container — skipping migration step."
 else
-    log "ERROR: meals-backend did not come up. Last 30 log lines:"
-    podman-compose -f podman-compose.pi.yml logs --tail=30 backend >&2
-    exit 1
+    podman exec meals-backend sh -c "
+        POSTGRES_PASSWORD=\$(cat /run/secrets/postgres_password)
+        export DATABASE_URL=\"postgresql://\${POSTGRES_USER}:\${POSTGRES_PASSWORD}@\${POSTGRES_HOST}:\${POSTGRES_PORT}/\${POSTGRES_DB}\"
+        node $PRISMA_BIN migrate deploy
+    " && log "✓ Migrations applied." || log "WARNING: Migration step failed — check logs."
 fi
+
+log "✓ Deployment complete."

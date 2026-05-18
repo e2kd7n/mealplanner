@@ -50,7 +50,12 @@ fi
 echo "All secrets loaded successfully."
 
 echo "Running database migrations..."
-node_modules/.bin/prisma migrate deploy
+PRISMA_BIN=$(find /app/node_modules/.pnpm -name "index.js" -path "*/prisma/build/index.js" 2>/dev/null | head -1)
+if [ -z "$PRISMA_BIN" ]; then
+    echo "ERROR: Prisma CLI not found in pnpm store"
+    exit 1
+fi
+node "$PRISMA_BIN" migrate deploy
 echo "✓ Migrations applied."
 
 echo "Starting application..."
