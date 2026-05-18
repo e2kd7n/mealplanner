@@ -72,14 +72,12 @@ export default defineConfig({
       dependencies: ['setup'],
     },
     
-    // Authenticated tests - use saved session state
+    // Authenticated tests - auth is handled per-test by the authenticatedPage fixture
     {
       name: 'authenticated-tests',
       testMatch: /.*\/(recipes|meal-plan|grocery|pantry)\/.*\.spec\.ts/,
       use: {
         ...devices['Desktop Chrome'],
-        /* Use saved authentication state */
-        storageState: 'e2e/.auth/user.json',
       },
       dependencies: ['setup'],
     },

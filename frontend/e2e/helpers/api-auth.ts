@@ -3,7 +3,7 @@
  * All rights reserved.
  */
 
-import { request } from '@playwright/test';
+import { request, Page } from '@playwright/test';
 
 /**
  * API Authentication Helper
@@ -102,6 +102,18 @@ export async function createAuthStorageState(
       },
     ],
   };
+}
+
+/**
+ * Inject access token into localStorage and refresh token into sessionStorage.
+ * The page must already be on the correct origin before calling this.
+ */
+export async function injectAuthTokens(page: Page, tokens: AuthTokens): Promise<void> {
+  await page.evaluate(({ accessToken, refreshToken, user }) => {
+    localStorage.setItem('accessToken', accessToken);
+    localStorage.setItem('user', JSON.stringify(user));
+    sessionStorage.setItem('refreshToken', refreshToken);
+  }, { accessToken: tokens.accessToken, refreshToken: tokens.refreshToken, user: tokens.user });
 }
 
 // Made with Bob
