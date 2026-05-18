@@ -16,7 +16,8 @@
       "PowerShell(Test-Path \"$env:APPDATA\\\\npm\\\\node_modules\\\\pnpm\"; Get-ChildItem \"$env:USERPROFILE\\\\.nvm\" -ErrorAction SilentlyContinue | Select-Object Name; Get-ChildItem \"$env:USERPROFILE\\\\bin\" -ErrorAction SilentlyContinue | Select-Object Name)",
       "PowerShell(Get-ChildItem \"$env:USERPROFILE\\\\bin\" -ErrorAction SilentlyContinue | Select-Object Name; Get-ChildItem \"$env:USERPROFILE\\\\.nvm\" -ErrorAction SilentlyContinue | Select-Object Name)",
       "Bash(git stash *)",
-      "Bash(git update-index *)"
+      "Bash(git update-index *)",
+      "Bash(npm run *)"
     ]
   }
 }

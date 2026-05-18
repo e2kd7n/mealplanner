@@ -324,7 +324,7 @@ if podman ps | grep -q "meals-backend"; then
     fi
 
     if command -v glances &>/dev/null; then
-        echo -e "   📊 Monitoring: http://$(hostname -I | awk '{print $1}'):8080/monitoring"
+        echo -e "   📊 Monitoring: http://$(hostname 2>/dev/null).local:8080/monitoring"
         echo ""
     fi
 
