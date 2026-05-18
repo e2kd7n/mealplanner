@@ -5,12 +5,7 @@
 
 import { test as base } from '@playwright/test';
 import { LoginPage } from '../page-objects/LoginPage';
-
-/**
- * Custom fixtures for authentication
- * Uses saved session state from global setup for authenticated tests
- * Login page helper available for auth-specific tests
- */
+import { authenticateViaAPI, injectAuthTokens } from '../helpers/api-auth';
 
 type AuthFixtures = {
   authenticatedPage: any;
@@ -22,13 +17,19 @@ export const test = base.extend<AuthFixtures>({
     const loginPage = new LoginPage(page);
     await use(loginPage);
   },
-  
-  authenticatedPage: async ({ page }, use) => {
-    // Session state is loaded automatically from playwright.config.ts
-    // No need to login - just navigate to the app
+
+  authenticatedPage: async ({ page, baseURL }, use) => {
+    const backendURL = (baseURL || 'http://localhost:5173').replace(':5173', ':3000');
+    const tokens = await authenticateViaAPI(backendURL);
+
+    // Navigate to origin first so storage APIs target the correct origin,
+    // then inject accessToken into localStorage and refreshToken into
+    // sessionStorage (api.ts reads refreshToken from sessionStorage — not
+    // localStorage — so it cannot be seeded via Playwright's storageState).
+    await page.goto('/');
+    await injectAuthTokens(page, tokens);
     await page.goto('/dashboard');
-    
-    // Provide authenticated page to test
+
     await use(page);
   },
 });

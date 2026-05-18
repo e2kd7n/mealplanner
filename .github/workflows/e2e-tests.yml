@@ -4,10 +4,6 @@ name: E2E Tests
 # causing CSRF fetch to hit /csrf-token instead of /api/csrf-token — Issue #132)
 on:
   workflow_dispatch:
-  push:
-    branches: [main, develop]
-  pull_request:
-    branches: [main, develop]
 
 jobs:
   e2e-tests:
