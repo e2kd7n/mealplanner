@@ -18,7 +18,9 @@
       "Bash(git stash *)",
       "Bash(git update-index *)",
       "Bash(npm run *)",
-      "Bash(gh pr comment 202 --body ' *)"
+      "Bash(gh pr comment 202 --body ' *)",
+      "Bash(gh api *)",
+      "Bash(pnpm audit *)"
     ]
   }
 }
