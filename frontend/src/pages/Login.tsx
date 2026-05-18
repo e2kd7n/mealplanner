@@ -169,16 +169,6 @@ const Login: React.FC = () => {
             >
               {loading ? 'Signing In...' : 'Sign In'}
             </Button>
-            <Button
-              fullWidth
-              variant="outlined"
-              color="secondary"
-              sx={{ mb: 2 }}
-              onClick={handleTestLogin}
-              disabled={loading}
-            >
-              Quick Test Login (Test Family)
-            </Button>
             <Box sx={{ textAlign: 'center', display: 'flex', flexDirection: 'column', gap: 1 }}>
               <Link component={RouterLink} to="/register" variant="body2">
                 Don't have an account? Sign Up
