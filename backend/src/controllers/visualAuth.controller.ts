@@ -45,21 +45,20 @@ function shuffle<T>(arr: T[]): T[] {
 
 /**
  * GET /api/auth/users
- * Returns all non-blocked users as {id, familyName} for the username picker.
+ * Returns all family members as {id, name} for the visual login picker.
  * No auth required — this is a local-network-only convenience endpoint.
  */
 export async function listUsers(_req: Request, res: Response, next: NextFunction): Promise<void> {
   try {
-    const users = await prisma.user.findMany({
-      where: { isBlocked: false },
-      select: { id: true, familyName: true, visualPasswordRecipeId: true },
-      orderBy: { familyName: 'asc' },
+    const members = await prisma.familyMember.findMany({
+      select: { id: true, name: true, visualPasswordRecipeId: true },
+      orderBy: { name: 'asc' },
     });
     res.json({
-      users: users.map((u) => ({
-        id: u.id,
-        familyName: u.familyName,
-        hasVisualPassword: !!u.visualPasswordRecipeId,
+      users: members.map((m) => ({
+        id: m.id,
+        name: m.name,
+        hasVisualPassword: !!m.visualPasswordRecipeId,
       })),
     });
   } catch (err) {
@@ -68,30 +67,30 @@ export async function listUsers(_req: Request, res: Response, next: NextFunction
 }
 
 /**
- * GET /api/auth/visual-challenge/:userId
+ * GET /api/auth/visual-challenge/:memberId
  * Returns a shuffled array of VISUAL_CHALLENGE_SIZE recipe images for the
- * login challenge. One is the user's visual password; the rest are random decoys.
+ * login challenge. One is the family member's visual password; the rest are random decoys.
  * Does NOT reveal which is correct.
  */
 export async function getVisualChallenge(req: Request, res: Response, next: NextFunction): Promise<void> {
   try {
-    const userId = req.params['userId'] as string;
+    const memberId = req.params['userId'] as string;
 
-    const user = await prisma.user.findUnique({
-      where: { id: userId },
-      select: { visualPasswordRecipeId: true, isBlocked: true },
+    const member = await prisma.familyMember.findUnique({
+      where: { id: memberId },
+      select: { visualPasswordRecipeId: true },
     });
 
-    if (!user || user.isBlocked) {
-      throw new AppError('User not found', 404);
+    if (!member) {
+      throw new AppError('Family member not found', 404);
     }
-    if (!user.visualPasswordRecipeId) {
-      throw new AppError('Visual password not set for this user', 400);
+    if (!member.visualPasswordRecipeId) {
+      throw new AppError('Visual password not set for this family member', 400);
     }
 
     // Get the correct recipe
     const correctRecipe = await prisma.recipe.findUnique({
-      where: { id: user.visualPasswordRecipeId },
+      where: { id: member.visualPasswordRecipeId },
       select: { id: true, title: true, imageUrl: true },
     });
     if (!correctRecipe) {
@@ -101,15 +100,14 @@ export async function getVisualChallenge(req: Request, res: Response, next: Next
     // Get random decoy recipes (with images, excluding the correct one)
     const decoys = await prisma.recipe.findMany({
       where: {
-        id: { not: user.visualPasswordRecipeId },
+        id: { not: member.visualPasswordRecipeId },
         imageUrl: { not: null },
       },
       select: { id: true, title: true, imageUrl: true },
       take: VISUAL_CHALLENGE_SIZE - 1,
-      orderBy: { createdAt: 'desc' }, // deterministic enough; real shuffle below
+      orderBy: { createdAt: 'desc' },
     });
 
-    // If not enough recipes with images, pad with placeholder
     const images = [correctRecipe, ...decoys].slice(0, VISUAL_CHALLENGE_SIZE);
     shuffle(images);
 
@@ -121,34 +119,43 @@ export async function getVisualChallenge(req: Request, res: Response, next: Next
 
 /**
  * POST /api/auth/login/visual
- * Body: { userId, recipeId }
- * Validates visual password and issues JWT + 14-day device cookie on success.
+ * Body: { memberId, recipeId }
+ * Validates the family member's visual password and issues JWT + 14-day device cookie on success.
  */
 export async function visualLogin(req: Request, res: Response, next: NextFunction): Promise<void> {
   try {
-    const { userId, recipeId } = req.body as { userId: string; recipeId: string };
+    const { memberId, recipeId } = req.body as { memberId: string; recipeId: string };
 
-    if (!userId || !recipeId) {
-      throw new AppError('userId and recipeId are required', 400);
+    if (!memberId || !recipeId) {
+      throw new AppError('memberId and recipeId are required', 400);
     }
 
+    const member = await prisma.familyMember.findUnique({
+      where: { id: memberId },
+      select: { id: true, name: true, userId: true, visualPasswordRecipeId: true },
+    });
+
+    if (!member) {
+      throw new AppError('Invalid credentials', 401);
+    }
+    if (!member.visualPasswordRecipeId) {
+      throw new AppError('Visual password not configured', 400);
+    }
+    if (member.visualPasswordRecipeId !== recipeId) {
+      logger.warn('Visual password mismatch', { memberId });
+      throw new AppError('Invalid credentials', 401);
+    }
+
+    // Issue JWT for the parent user account
     const user = await prisma.user.findUnique({
-      where: { id: userId },
-      select: { id: true, email: true, familyName: true, role: true, isBlocked: true, visualPasswordRecipeId: true },
+      where: { id: member.userId },
+      select: { id: true, email: true, familyName: true, role: true, isBlocked: true },
     });
 
     if (!user || user.isBlocked) {
-      throw new AppError('Invalid credentials', 401);
-    }
-    if (!user.visualPasswordRecipeId) {
-      throw new AppError('Visual password not configured', 400);
-    }
-    if (user.visualPasswordRecipeId !== recipeId) {
-      logger.warn('Visual password mismatch', { userId });
-      throw new AppError('Invalid credentials', 401);
+      throw new AppError('Account is blocked', 403);
     }
 
-    // Issue JWT tokens
     const { accessToken, refreshToken } = generateTokenPair({
       userId: user.id,
       email: user.email,
@@ -168,12 +175,12 @@ export async function visualLogin(req: Request, res: Response, next: NextFunctio
 
     setDeviceCookie(res, rawToken);
 
-    logger.info('Visual login successful', { userId: user.id });
+    logger.info('Visual login successful', { memberId, userId: user.id });
 
     res.json({
       accessToken,
       refreshToken,
-      user: { id: user.id, email: user.email, name: user.familyName, role: user.role },
+      user: { id: user.id, email: user.email, name: member.name, role: user.role },
     });
   } catch (err) {
     next(err);
@@ -252,16 +259,24 @@ export async function deviceLogin(req: Request, res: Response, next: NextFunctio
 
 /**
  * POST /api/auth/visual-password/setup
- * Body: { recipeId }
- * Sets or updates the authenticated user's visual password recipe.
+ * Body: { familyMemberId, recipeId }
+ * Sets or updates a family member's visual password recipe.
+ * The family member must belong to the authenticated user.
  */
 export async function setupVisualPassword(req: Request, res: Response, next: NextFunction): Promise<void> {
   try {
     const userId = (req as any).user?.userId;
-    const { recipeId } = req.body as { recipeId: string };
+    const { familyMemberId, recipeId } = req.body as { familyMemberId: string; recipeId: string };
 
-    if (!recipeId) {
-      throw new AppError('recipeId is required', 400);
+    if (!familyMemberId || !recipeId) {
+      throw new AppError('familyMemberId and recipeId are required', 400);
+    }
+
+    const member = await prisma.familyMember.findFirst({
+      where: { id: familyMemberId, userId },
+    });
+    if (!member) {
+      throw new AppError('Family member not found', 404);
     }
 
     const recipe = await prisma.recipe.findUnique({
@@ -272,12 +287,12 @@ export async function setupVisualPassword(req: Request, res: Response, next: Nex
       throw new AppError('Recipe not found or has no image', 400);
     }
 
-    await prisma.user.update({
-      where: { id: userId },
+    await prisma.familyMember.update({
+      where: { id: familyMemberId },
       data: { visualPasswordRecipeId: recipeId },
     });
 
-    logger.info('Visual password updated', { userId });
+    logger.info('Visual password updated', { familyMemberId, userId });
     res.json({ message: 'Visual password set', recipe: { id: recipe.id, title: recipe.title, imageUrl: recipe.imageUrl } });
   } catch (err) {
     next(err);
@@ -286,16 +301,34 @@ export async function setupVisualPassword(req: Request, res: Response, next: Nex
 
 /**
  * GET /api/auth/visual-password/status
- * Returns whether the authenticated user has set a visual password.
+ * Returns visual password status for the authenticated user's family members.
+ * Pass ?familyMemberId=<id> to check a specific member; omit for all members.
  */
 export async function getVisualPasswordStatus(req: Request, res: Response, next: NextFunction): Promise<void> {
   try {
     const userId = (req as any).user?.userId;
-    const user = await prisma.user.findUnique({
-      where: { id: userId },
-      select: { visualPasswordRecipeId: true },
-    });
-    res.json({ hasVisualPassword: !!user?.visualPasswordRecipeId });
+    const { familyMemberId } = req.query as { familyMemberId?: string };
+
+    if (familyMemberId) {
+      const member = await prisma.familyMember.findFirst({
+        where: { id: familyMemberId, userId },
+        select: { visualPasswordRecipeId: true },
+      });
+      res.json({ hasVisualPassword: !!member?.visualPasswordRecipeId });
+    } else {
+      const members = await prisma.familyMember.findMany({
+        where: { userId },
+        select: { id: true, name: true, visualPasswordRecipeId: true },
+        orderBy: { name: 'asc' },
+      });
+      res.json({
+        members: members.map((m) => ({
+          id: m.id,
+          name: m.name,
+          hasVisualPassword: !!m.visualPasswordRecipeId,
+        })),
+      });
+    }
   } catch (err) {
     next(err);
   }

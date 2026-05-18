@@ -50,16 +50,17 @@ model DeviceToken {
 }
 
 model FamilyMember {
-  id                  String         @id @default(uuid())
-  userId              String         @map("user_id")
-  name                String
-  ageGroup            AgeGroup       @map("age_group")
-  canCook             Boolean        @default(false) @map("can_cook")
-  dietaryRestrictions Json           @map("dietary_restrictions")
-  createdAt           DateTime       @default(now()) @map("created_at")
-  user                User           @relation(fields: [userId], references: [id], onDelete: Cascade)
-  plannedMeals        PlannedMeal[]
-  recipeRatings       RecipeRating[]
+  id                     String         @id @default(uuid())
+  userId                 String         @map("user_id")
+  name                   String
+  ageGroup               AgeGroup       @map("age_group")
+  canCook                Boolean        @default(false) @map("can_cook")
+  dietaryRestrictions    Json           @map("dietary_restrictions")
+  createdAt              DateTime       @default(now()) @map("created_at")
+  visualPasswordRecipeId String?        @map("visual_password_recipe_id")
+  user                   User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  plannedMeals           PlannedMeal[]
+  recipeRatings          RecipeRating[]
 
   @@map("family_members")
 }

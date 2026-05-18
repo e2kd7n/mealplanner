@@ -29,7 +29,7 @@ import api, { visualAuthAPI } from '../services/api';
 
 interface UserEntry {
   id: string;
-  familyName: string;
+  name: string;
   hasVisualPassword: boolean;
 }
 
@@ -100,7 +100,7 @@ const LocalLogin: React.FC = () => {
 
   const handleSelectUser = useCallback(async (user: UserEntry) => {
     if (!user.hasVisualPassword) {
-      setError(`${user.familyName} hasn't set a visual password yet — use the classic login instead.`);
+      setError(`${user.name} hasn't set a visual password yet — use the classic login instead.`);
       return;
     }
     setSelectedUser(user);
@@ -123,7 +123,7 @@ const LocalLogin: React.FC = () => {
     setVerifying(true);
     setError(null);
     try {
-      const res = await visualAuthAPI.visualLogin({ userId: selectedUser.id, recipeId });
+      const res = await visualAuthAPI.visualLogin({ memberId: selectedUser.id, recipeId });
       const { accessToken, refreshToken, user } = res.data;
       localStorage.setItem('accessToken', accessToken);
       sessionStorage.setItem('refreshToken', refreshToken);
@@ -199,10 +199,10 @@ const LocalLogin: React.FC = () => {
                         fontSize: '1.5rem',
                       }}
                     >
-                      {user.familyName.charAt(0).toUpperCase()}
+                      {user.name.charAt(0).toUpperCase()}
                     </Avatar>
                     <Typography variant="body1" fontWeight={500}>
-                      {user.familyName}
+                      {user.name}
                     </Typography>
                     {!user.hasVisualPassword && (
                       <Typography variant="caption" color="text.secondary">
@@ -228,7 +228,7 @@ const LocalLogin: React.FC = () => {
               Back
             </Button>
             <Typography variant="body1">
-              Hi <strong>{selectedUser?.familyName}</strong> — tap the image you chose
+              Hi <strong>{selectedUser?.name}</strong> — tap the image you chose
             </Typography>
           </Box>
 
