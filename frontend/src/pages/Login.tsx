@@ -71,13 +71,6 @@ const Login: React.FC = () => {
     await dispatch(login({ email, password }));
   };
 
-  const handleTestLogin = async () => {
-    await dispatch(login({
-      email: 'test@example.com',
-      password: 'TestPass123!'
-    }));
-  };
-
   const togglePasswordVisibility = () => {
     setShowPassword(!showPassword);
   };
