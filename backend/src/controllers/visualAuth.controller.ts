@@ -52,13 +52,14 @@ export async function listUsers(_req: Request, res: Response, next: NextFunction
   try {
     const users = await prisma.user.findMany({
       where: { isBlocked: false },
-      select: { id: true, familyName: true },
+      select: { id: true, familyName: true, visualPasswordRecipeId: true },
       orderBy: { familyName: 'asc' },
     });
     res.json({
-      users: users.map((u: { id: string; familyName: string }) => ({
+      users: users.map((u) => ({
         id: u.id,
         familyName: u.familyName,
+        hasVisualPassword: !!u.visualPasswordRecipeId,
       })),
     });
   } catch (err) {

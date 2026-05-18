@@ -47,7 +47,13 @@ else
     exit 1
 fi
 
-echo "All secrets loaded successfully. Starting application..."
+echo "All secrets loaded successfully."
+
+echo "Running database migrations..."
+node_modules/.bin/prisma migrate deploy
+echo "✓ Migrations applied."
+
+echo "Starting application..."
 
 # Start the application
 exec node dist/index.js

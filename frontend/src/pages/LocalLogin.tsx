@@ -25,7 +25,7 @@ import {
 import { ArrowBack as ArrowBackIcon } from '@mui/icons-material';
 import { useAppDispatch } from '../store/hooks';
 import { setCredentials } from '../store/slices/authSlice';
-import { visualAuthAPI } from '../services/api';
+import api, { visualAuthAPI } from '../services/api';
 
 interface UserEntry {
   id: string;
@@ -81,6 +81,17 @@ const LocalLogin: React.FC = () => {
       }
       setUsers(userList);
     } catch {
+      // If the users endpoint fails, check whether this is a fresh install
+      // (no users exist). A server error on a fresh DB should still land on /welcome.
+      try {
+        const statusRes = await api.get('/auth/status');
+        if (!statusRes.data.hasUsers) {
+          navigate('/welcome', { replace: true });
+          return;
+        }
+      } catch {
+        // status check also failed — server is genuinely unreachable
+      }
       setError('Could not load users. Is the server running?');
     } finally {
       setUsersLoading(false);
