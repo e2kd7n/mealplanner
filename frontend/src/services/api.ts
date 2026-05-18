@@ -231,6 +231,16 @@ api.interceptors.response.use(
 
     // If error is 401 and we haven't tried to refresh yet
     if (error.response?.status === 401 && !originalRequest._retry) {
+      // No session to restore — don't attempt refresh, just surface the error.
+      // This prevents a hard-redirect loop when unauthenticated endpoints (e.g.
+      // deviceLogin) return 401 as their normal "no cookie" response.
+      const hasSession =
+        !!localStorage.getItem('accessToken') ||
+        !!sessionStorage.getItem('refreshToken');
+      if (!hasSession) {
+        return Promise.reject(error);
+      }
+
       // If already refreshing, wait for the existing refresh to complete
       if (refreshPromise) {
         try {
