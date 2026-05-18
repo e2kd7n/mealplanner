@@ -169,26 +169,28 @@ show_pi_menu() {
     echo "  2) Stop containers"
     echo "  3) Restart containers"
     echo "  4) Check deployment mode"
+    echo "  5) Deploy from registry (pull latest from GHCR)"
     echo ""
-    
+
     echo -e "${GREEN}🔨 Build (On Pi):${NC}"
-    echo "  5) Build all images"
-    echo "  6) Build frontend only"
-    echo "  7) Load pre-built images"
+    echo "  6) Build all images"
+    echo "  7) Build frontend only"
+    echo "  8) Load pre-built images"
     echo ""
-    
+
     echo -e "${GREEN}🔧 Maintenance:${NC}"
-    echo "  8) Health check"
-    echo "  9) Full diagnostics"
-    echo " 10) Cleanup Pi"
-    echo " 11) Pre-build cleanup"
-    echo " 12) Journal cleanup (sudo)"
+    echo "  9) Health check"
+    echo " 10) Full diagnostics"
+    echo " 11) Cleanup Pi"
+    echo " 12) Pre-build cleanup"
+    echo " 13) Journal cleanup (sudo)"
+    echo " 14) Trigger auto-update check"
     echo ""
-    
+
     echo -e "${GREEN}💾 Database:${NC}"
-    echo " 13) Backup database"
-    echo " 14) Restore database"
-    echo " 15) Safe migration"
+    echo " 15) Backup database"
+    echo " 16) Restore database"
+    echo " 17) Safe migration"
     echo ""
     
     echo -e "${BLUE}Other:${NC}"
@@ -275,46 +277,54 @@ execute_pi_command() {
             CALLED_FROM_MENU=1 "$SCRIPT_DIR/check-deployment-mode.sh"
             ;;
         5)
+            echo -e "${BLUE}Deploying from registry...${NC}"
+            CALLED_FROM_MENU=1 "$SCRIPT_DIR/pi-deploy-registry.sh"
+            ;;
+        6)
             echo -e "${BLUE}Building all images on Pi...${NC}"
             CALLED_FROM_MENU=1 "$SCRIPT_DIR/build-on-pi.sh"
             ;;
-        6)
+        7)
             echo -e "${BLUE}Building frontend only...${NC}"
             CALLED_FROM_MENU=1 "$SCRIPT_DIR/build-on-pi-frontend-only.sh"
             ;;
-        7)
+        8)
             echo -e "${BLUE}Loading pre-built images...${NC}"
             CALLED_FROM_MENU=1 "$SCRIPT_DIR/load-pi-images.sh"
             ;;
-        8)
+        9)
             echo -e "${BLUE}Running health check...${NC}"
             CALLED_FROM_MENU=1 "$SCRIPT_DIR/pi-health-check.sh"
             ;;
-        9)
+        10)
             echo -e "${BLUE}Running full diagnostics...${NC}"
             CALLED_FROM_MENU=1 "$SCRIPT_DIR/pi-diagnostics.sh"
             ;;
-        10)
+        11)
             echo -e "${BLUE}Cleaning up Pi...${NC}"
             CALLED_FROM_MENU=1 "$SCRIPT_DIR/cleanup-pi.sh"
             ;;
-        11)
+        12)
             echo -e "${BLUE}Running pre-build cleanup...${NC}"
             CALLED_FROM_MENU=1 "$SCRIPT_DIR/pi-pre-build-cleanup.sh"
             ;;
-        12)
+        13)
             echo -e "${BLUE}Cleaning journal logs...${NC}"
             CALLED_FROM_MENU=1 sudo "$SCRIPT_DIR/pi-journal-cleanup.sh"
             ;;
-        13)
+        14)
+            echo -e "${BLUE}Triggering auto-update check...${NC}"
+            CALLED_FROM_MENU=1 "$SCRIPT_DIR/pi-auto-update.sh"
+            ;;
+        15)
             echo -e "${BLUE}Backing up database...${NC}"
             CALLED_FROM_MENU=1 "$SCRIPT_DIR/backup-database.sh"
             ;;
-        14)
+        16)
             echo -e "${BLUE}Restoring database...${NC}"
             CALLED_FROM_MENU=1 "$SCRIPT_DIR/restore-database.sh"
             ;;
-        15)
+        17)
             echo -e "${BLUE}Running safe migration...${NC}"
             CALLED_FROM_MENU=1 "$SCRIPT_DIR/safe-migrate.sh"
             ;;

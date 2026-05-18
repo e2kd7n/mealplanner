@@ -10,27 +10,6 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # shellcheck source=utilities.sh
 source "$SCRIPT_DIR/utilities.sh"
 
-# Detect OS / architecture
-detect_os() {
-    case "$(uname -s)" in
-        Darwin*)
-            echo "mac" ;;
-        Linux*)
-            if grep -qi microsoft /proc/version 2>/dev/null; then
-                echo "wsl"
-            elif [ -f /proc/device-tree/model ] && grep -q "Raspberry Pi" /proc/device-tree/model 2>/dev/null; then
-                echo "pi"
-            else
-                echo "linux"
-            fi
-            ;;
-        MINGW*|MSYS*|CYGWIN*)
-            echo "windows" ;;
-        *)
-            echo "unknown" ;;
-    esac
-}
-
 OS=$(detect_os)
 ARCH=$(uname -m)
 
