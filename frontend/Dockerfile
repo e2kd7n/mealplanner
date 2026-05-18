@@ -1,7 +1,9 @@
 # Multi-stage build for React frontend
 # Optimized for ARM architecture (Raspberry Pi) with minimal size
 
-FROM docker.io/library/node:22-alpine AS builder
+# Builder always runs on amd64 — Vite/pnpm output is arch-agnostic JS/CSS/HTML.
+# Running the build under QEMU arm64 emulation takes 60-120min; this cuts it to ~2min.
+FROM --platform=linux/amd64 docker.io/library/node:22-alpine AS builder
 
 WORKDIR /app
 
