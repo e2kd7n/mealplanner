@@ -159,7 +159,7 @@ const Layout: React.FC = () => {
       </Toolbar>
       <List>
         {menuItems.map((item) => {
-          if (item.adminOnly && (user as any)?.role !== 'admin' && (user as any)?.role !== 'superadmin') {
+          if (item.adminOnly && user?.role !== 'admin' && user?.role !== 'superadmin') {
             return null;
           }
 

@@ -193,11 +193,12 @@ function validateRegistrationInput(email: string, password: string, familyName: 
 /**
  * Format user response (removes sensitive data)
  */
-function formatUserResponse(user: { id: string; email: string; familyName: string }) {
+function formatUserResponse(user: { id: string; email: string; familyName: string; role: string }) {
   return {
     id: user.id,
     email: user.email,
     familyName: user.familyName,
+    role: user.role,
   };
 }
 
