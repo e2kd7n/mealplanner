@@ -17,7 +17,8 @@
       "PowerShell(Get-ChildItem \"$env:USERPROFILE\\\\bin\" -ErrorAction SilentlyContinue | Select-Object Name; Get-ChildItem \"$env:USERPROFILE\\\\.nvm\" -ErrorAction SilentlyContinue | Select-Object Name)",
       "Bash(git stash *)",
       "Bash(git update-index *)",
-      "Bash(npm run *)"
+      "Bash(npm run *)",
+      "Bash(gh pr comment 202 --body ' *)"
     ]
   }
 }

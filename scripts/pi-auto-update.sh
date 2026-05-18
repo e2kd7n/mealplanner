@@ -12,6 +12,8 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # shellcheck source=utilities.sh
 source "$SCRIPT_DIR/utilities.sh"
 
+cd "$SCRIPT_DIR/.."
+
 REGISTRY="ghcr.io"
 IMAGE_OWNER="e2kd7n"
 REMOTE_IMAGE="${REGISTRY}/${IMAGE_OWNER}/mealplanner-backend:latest"
