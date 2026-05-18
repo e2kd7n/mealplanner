@@ -211,7 +211,8 @@ pnpm prisma db seed
 
 ### 6. Choose Your Deployment Mode
 
-The application supports two deployment modes. **Use the interactive menu for guided setup:**
+The application supports two deployment modes: Local and Containerized.
+**Use the interactive menu for guided setup:**
 
 ```bash
 ./scripts/menu.sh
