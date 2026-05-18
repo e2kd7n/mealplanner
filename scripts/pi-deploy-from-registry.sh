@@ -55,13 +55,7 @@ echo ""
 # Extract frontend static files from the pulled backend image
 # (Pi serves the frontend as static files via Nginx — no frontend container)
 echo -e "${YELLOW}📦 Extracting frontend static files from backend image...${NC}"
-mkdir -p ./data/frontend-dist
-rm -rf ./data/frontend-dist/*
-podman run --rm \
-    -v "$(pwd)/data/frontend-dist:/output:z" \
-    meals-backend:latest \
-    sh -c "cp -rp /app/public/. /output/"
-echo -e "${GREEN}✅ Frontend static files extracted to ./data/frontend-dist/ ($(ls ./data/frontend-dist | wc -l) files)${NC}"
+extract_frontend_from_image
 echo ""
 
 # Verify

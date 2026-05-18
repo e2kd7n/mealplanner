@@ -211,11 +211,7 @@ stop_spinner ok
 # /app/public/ inside the image. Nginx on Pi serves these files directly from
 # ./data/frontend-dist/ — there is no frontend container on the Pi.
 start_spinner "Extracting frontend static files"
-mkdir -p ./data/frontend-dist
-rm -rf ./data/frontend-dist/*
-TEMP_CONTAINER=$(podman create "$LOCAL_IMAGE")
-podman cp "$TEMP_CONTAINER:/app/public/." ./data/frontend-dist/
-podman rm "$TEMP_CONTAINER" >/dev/null
+extract_frontend_from_image "$LOCAL_IMAGE" >/dev/null
 FILE_COUNT=$(ls ./data/frontend-dist | wc -l)
 stop_spinner ok
 echo -e "  ${DIM}${FILE_COUNT} files → ./data/frontend-dist/${NC}"

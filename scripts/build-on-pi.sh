@@ -207,13 +207,7 @@ podman build \
 
 section "Extracting Frontend Assets" "📦"
 echo -e "${BLUE}  Extracting frontend static files for Nginx...${NC}"
-mkdir -p ./data/frontend-dist
-rm -rf ./data/frontend-dist/*
-podman run --rm \
-    -v "$(pwd)/data/frontend-dist:/output:z" \
-    meals-backend:latest \
-    sh -c "cp -rp /app/public/. /output/"
-echo -e "${GREEN}✅ Frontend static files extracted to ./data/frontend-dist/${NC}"
+extract_frontend_from_image
 
 # Log total build time
 BUILD_END=$(date +%s)

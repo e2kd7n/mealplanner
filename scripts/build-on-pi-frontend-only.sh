@@ -29,17 +29,9 @@ fi
 
 echo -e "${BLUE}ℹ️  Extracting from meals-backend:latest /app/public ...${NC}"
 
-mkdir -p ./data/frontend-dist
-rm -rf ./data/frontend-dist/*
-
-podman run --rm \
-    -v "$(pwd)/data/frontend-dist:/output:z" \
-    meals-backend:latest \
-    sh -c "cp -rp /app/public/. /output/"
-
-echo -e "${GREEN}✅ Frontend static files extracted to ./data/frontend-dist/${NC}"
+extract_frontend_from_image
 echo ""
-echo -e "${BLUE}📁 Extracted files ($(ls ./data/frontend-dist | wc -l) total):${NC}"
+echo -e "${BLUE}📁 Extracted files:${NC}"
 ls ./data/frontend-dist
 echo ""
 echo -e "${YELLOW}Next steps:${NC}"

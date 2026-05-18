@@ -8,6 +8,10 @@
 
 set -euo pipefail
 
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# shellcheck source=utilities.sh
+source "$SCRIPT_DIR/utilities.sh"
+
 REGISTRY="ghcr.io"
 IMAGE_OWNER="e2kd7n"
 REMOTE_IMAGE="${REGISTRY}/${IMAGE_OWNER}/mealplanner-backend:latest"
@@ -57,11 +61,7 @@ log "New image: ${BEFORE_ID:0:12} → ${AFTER_ID:0:12}"
 # Extract the compiled React frontend bundled inside the backend image.
 # Nginx serves static files from ./data/frontend-dist — there is no frontend container on Pi.
 log "Extracting frontend static files..."
-mkdir -p ./data/frontend-dist
-rm -rf ./data/frontend-dist/*
-TEMP_CONTAINER=$(podman create "$LOCAL_IMAGE")
-podman cp "$TEMP_CONTAINER:/app/public/." ./data/frontend-dist/
-podman rm "$TEMP_CONTAINER" >/dev/null
+extract_frontend_from_image "$LOCAL_IMAGE" >/dev/null
 log "Extracted $(ls ./data/frontend-dist | wc -l) files to data/frontend-dist/"
 
 log "Restarting containers..."
