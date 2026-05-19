@@ -15,7 +15,7 @@
 # ============================================================================
 # STAGE 1/3: Frontend Builder
 # ============================================================================
-FROM docker.io/library/node:22-alpine AS frontend-builder
+FROM --platform=linux/amd64 docker.io/library/node:22-alpine AS frontend-builder
 
 WORKDIR /frontend
 
