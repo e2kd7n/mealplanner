@@ -34,7 +34,7 @@ class WebSocketService {
       return;
     }
 
-    const wsUrl = import.meta.env.VITE_WS_URL || 'http://localhost:3000';
+    const wsUrl = import.meta.env.VITE_WS_URL || window.location.origin;
 
     console.log('[WebSocket] Connecting to', wsUrl);
 

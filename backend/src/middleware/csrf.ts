@@ -66,6 +66,7 @@ function csrfErrorHandler(
     });
     
     res.status(403).json({
+      code: 'EBADCSRFTOKEN',
       error: 'Invalid CSRF Token',
       message: 'Your session has expired or the request is invalid. Please refresh the page and try again.',
     });
