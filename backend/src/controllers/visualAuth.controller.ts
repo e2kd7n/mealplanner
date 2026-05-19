@@ -58,16 +58,12 @@ export async function listUsers(_req: Request, res: Response, next: NextFunction
   try {
     const members = await withRetry(() =>
       prisma.familyMember.findMany({
-        select: { id: true, name: true, visualPasswordRecipeId: true },
+        select: { id: true, name: true },
         orderBy: { name: 'asc' },
       })
     );
     res.json({
-      users: members.map((m) => ({
-        id: m.id,
-        name: m.name,
-        hasVisualPassword: !!m.visualPasswordRecipeId,
-      })),
+      users: members.map((m) => ({ id: m.id, name: m.name })),
     });
   } catch (err) {
     next(err);
