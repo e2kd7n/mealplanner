@@ -15,6 +15,7 @@ const accessTokenMaxAgeMs = 10 * 60 * 1000;
 const refreshTokenMaxAgeMs = 24 * 60 * 60 * 1000;
 
 function getCookieSecure(): boolean {
+  if (process.env.COOKIE_SECURE === 'false') return false;
   return process.env.COOKIE_SECURE === 'true' || isProduction;
 }
 
