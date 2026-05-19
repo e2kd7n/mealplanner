@@ -36,7 +36,11 @@ import {
   Kitchen as KitchenIcon,
   AccountCircle as AccountCircleIcon,
   AdminPanelSettings as AdminIcon,
+  LightMode as LightModeIcon,
+  DarkMode as DarkModeIcon,
+  SettingsBrightness as SystemModeIcon,
 } from '@mui/icons-material';
+import { useThemePreference } from '../contexts/ThemeContext';
 import { useAppDispatch, useAppSelector } from '../store/hooks';
 import { logout } from '../store/slices/authSlice';
 import { fetchExpiringItems, fetchLowStockItems } from '../store/slices/pantrySlice';
@@ -92,6 +96,8 @@ const Layout: React.FC = () => {
   const { user } = useAppSelector((state) => state.auth);
   const { expiringItems, lowStockItems } = useAppSelector((state) => state.pantry);
   const { groceryLists } = useAppSelector((state) => state.groceryLists);
+
+  const { preference, togglePreference } = useThemePreference();
 
   const [mobileOpen, setMobileOpen] = useState(false);
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
@@ -256,6 +262,36 @@ const Layout: React.FC = () => {
           <Typography variant="h6" noWrap component="div" sx={{ flexGrow: 1 }}>
             {menuItems.find((item) => item.path === location.pathname)?.text || drawerTitle}
           </Typography>
+          <Tooltip
+            title={
+              preference === 'system'
+                ? 'Following system theme — click for light'
+                : preference === 'light'
+                  ? 'Light theme — click for dark'
+                  : 'Dark theme — click to follow system'
+            }
+          >
+            <IconButton
+              color="inherit"
+              aria-label={
+                preference === 'system'
+                  ? 'Theme: following system — click for light'
+                  : preference === 'light'
+                    ? 'Theme: light — click for dark'
+                    : 'Theme: dark — click to follow system'
+              }
+              onClick={togglePreference}
+              sx={{ mr: 0.5, minWidth: 44, minHeight: 44 }}
+            >
+              {preference === 'system' ? (
+                <SystemModeIcon />
+              ) : preference === 'light' ? (
+                <LightModeIcon />
+              ) : (
+                <DarkModeIcon />
+              )}
+            </IconButton>
+          </Tooltip>
           <Tooltip title="Profile & Family Settings">
             <IconButton
               size="large"

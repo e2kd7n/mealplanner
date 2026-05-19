@@ -6,10 +6,10 @@
 
 import { lazy, Suspense } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
-import { ThemeProvider, CssBaseline, CircularProgress, Box } from '@mui/material';
+import { CssBaseline, CircularProgress, Box } from '@mui/material';
 import { Provider } from 'react-redux';
-import { theme } from './theme';
 import { store } from './store';
+import { ThemeContextProvider } from './contexts/ThemeContext';
 import { AuthProvider } from './contexts/AuthContext';
 import PrivateRoute from './components/PrivateRoute';
 import Layout from './components/Layout';
@@ -53,7 +53,7 @@ function App() {
   return (
     <ErrorBoundary>
       <Provider store={store}>
-        <ThemeProvider theme={theme}>
+        <ThemeContextProvider>
           <CssBaseline />
           {/* D1-2 FIX: Global offline detector for better error messaging */}
           <OfflineDetector />
@@ -109,7 +109,7 @@ function App() {
             </Suspense>
             </Router>
           </AuthProvider>
-        </ThemeProvider>
+        </ThemeContextProvider>
       </Provider>
     </ErrorBoundary>
   );
