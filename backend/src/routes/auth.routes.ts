@@ -5,10 +5,11 @@
 
 
 import { Router } from 'express';
-import { checkStatus, register, login, refreshToken, logout } from '../controllers/auth.controller';
+import { checkStatus, register, login, refreshToken, logout, me } from '../controllers/auth.controller';
 import { validate } from '../middleware/validate';
 import { registerSchema, loginSchema, refreshTokenSchema } from '../validation/schemas';
 import { authRateLimiter, registerRateLimiter } from '../middleware/rateLimiter';
+import { authenticate } from '../middleware/auth';
 
 const router: Router = Router();
 
@@ -35,17 +36,24 @@ router.post('/login', authRateLimiter, validate(loginSchema), login);
 
 /**
  * @route   POST /api/auth/refresh
- * @desc    Refresh access token
+ * @desc    Refresh access token (cookie or body)
  * @access  Public
  */
 router.post('/refresh', validate(refreshTokenSchema), refreshToken);
+
+/**
+ * @route   GET /api/auth/me
+ * @desc    Get current authenticated user profile
+ * @access  Private
+ */
+router.get('/me', authenticate, me);
 
 /**
  * @route   POST /api/auth/logout
  * @desc    Logout user
  * @access  Private
  */
-router.post('/logout', logout);
+router.post('/logout', authenticate, logout);
 
 export default router;
 

@@ -7,6 +7,8 @@
 import { Request, Response, NextFunction } from 'express';
 import { verifyAccessToken, TokenPayload } from '../utils/jwt';
 import { AppError } from './errorHandler';
+import prisma, { withRetry } from '../utils/prisma';
+import { getAccessTokenFromRequest } from '../utils/authCookies';
 
 // Extend Express Request type to include user
 declare global {
@@ -20,73 +22,99 @@ declare global {
 /**
  * Middleware to authenticate requests using JWT
  */
-export function authenticate(
+export async function authenticate(
   req: Request,
   _res: Response,
   next: NextFunction
-): void {
+): Promise<void> {
   try {
-    // Get token from Authorization header
-    const authHeader = req.headers.authorization;
-    
-    if (!authHeader) {
-      throw new AppError('No authorization header provided', 401);
+    const token = getAccessTokenFromRequest(req);
+
+    if (!token) {
+      throw new AppError('Authentication required', 401);
     }
 
-    // Check if it's a Bearer token
-    const parts = authHeader.split(' ');
-    if (parts.length !== 2 || parts[0] !== 'Bearer') {
-      throw new AppError('Invalid authorization header format', 401);
-    }
-
-    const token = parts[1];
-
-    // Verify token
     const payload = verifyAccessToken(token);
 
-    // Attach user to request with both userId and id for compatibility
+    const user = await withRetry(() => prisma.user.findUnique({
+      where: { id: payload.userId },
+      select: {
+        id: true,
+        email: true,
+        familyName: true,
+        role: true,
+        isBlocked: true,
+      },
+    }));
+
+    if (!user) {
+      throw new AppError('User not found', 401);
+    }
+
+    if (user.isBlocked) {
+      throw new AppError('Account is blocked', 403);
+    }
+
     req.user = {
-      ...payload,
-      id: payload.userId, // Add id as an alias for userId
+      userId: user.id,
+      id: user.id,
+      email: user.email,
+      familyName: user.familyName,
+      role: user.role,
     };
 
     next();
   } catch (error) {
     if (error instanceof AppError) {
       next(error);
-    } else {
-      next(new AppError('Authentication failed', 401));
+      return;
     }
+
+    next(new AppError('Authentication failed', 401));
   }
 }
 
 /**
  * Optional authentication - doesn't fail if no token provided
  */
-export function optionalAuthenticate(
+export async function optionalAuthenticate(
   req: Request,
   _res: Response,
   next: NextFunction
-): void {
+): Promise<void> {
   try {
-    const authHeader = req.headers.authorization;
-    
-    if (authHeader) {
-      const parts = authHeader.split(' ');
-      if (parts.length === 2 && parts[0] === 'Bearer') {
-        const token = parts[1];
-        const payload = verifyAccessToken(token);
-        // Attach user to request with both userId and id for compatibility
-        req.user = {
-          ...payload,
-          id: payload.userId, // Add id as an alias for userId
-        };
-      }
+    const token = getAccessTokenFromRequest(req);
+
+    if (!token) {
+      next();
+      return;
     }
-    
+
+    const payload = verifyAccessToken(token);
+
+    const user = await withRetry(() => prisma.user.findUnique({
+      where: { id: payload.userId },
+      select: {
+        id: true,
+        email: true,
+        familyName: true,
+        role: true,
+        isBlocked: true,
+      },
+    }));
+
+    if (user && !user.isBlocked) {
+      req.user = {
+        userId: user.id,
+        id: user.id,
+        email: user.email,
+        familyName: user.familyName,
+        role: user.role,
+      };
+    }
+
     next();
-  } catch (error) {
-    // Silently fail for optional auth
+  } catch (_error) {
     next();
   }
 }
