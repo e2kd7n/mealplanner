@@ -6,7 +6,7 @@
 
 import React, { createContext, useContext, useEffect } from 'react';
 import { useAppDispatch, useAppSelector } from '../store/hooks';
-import { refreshAccessToken } from '../store/slices/authSlice';
+import { bootstrapAuth } from '../store/slices/authSlice';
 
 interface AuthContextType {
   isAuthenticated: boolean;
@@ -22,12 +22,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const { isAuthenticated, loading, user } = useAppSelector((state) => state.auth);
 
   useEffect(() => {
-    // Try to refresh token on mount if we have a refresh token
-    const refreshToken = sessionStorage.getItem('refreshToken');
-    if (refreshToken && !isAuthenticated) {
-      dispatch(refreshAccessToken());
-    }
-  }, [dispatch, isAuthenticated]);
+    // Bootstrap auth state from backend session on mount
+    dispatch(bootstrapAuth());
+  }, [dispatch]);
 
   const value: AuthContextType = {
     isAuthenticated,
