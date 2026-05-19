@@ -191,14 +191,66 @@ This checklist should be completed every week to ensure system health and data p
 - [ ] Link related issues
 - [ ] Update issue descriptions if needed
 
-## 9. Documentation Updates
+## 9. Branch Cleanup & Evaluation
+
+### Branch Analysis
+- [ ] List all branches: `git branch -a`
+- [ ] Count total branches: `_______`
+- [ ] Identify stale branches (no activity in 30+ days)
+- [ ] Identify outdated branches (10+ commits behind main)
+
+### Check for Merged Branches
+- [ ] List local merged branches: `git branch --merged main`
+- [ ] List remote merged branches: `git branch -r --merged main`
+- [ ] Verify merged branches have no unique commits:
+  ```bash
+  # For each branch, check for unique commits
+  git log main..branch-name --oneline
+  ```
+
+### Evaluate Unmerged Branches
+For each unmerged branch, document:
+- [ ] Branch name: `_______________________`
+- [ ] Last activity date: `_______________________`
+- [ ] Commits ahead/behind main: `_______________________`
+- [ ] Purpose/feature: `_______________________`
+- [ ] Decision (merge/delete/keep): `_______________________`
+- [ ] Rationale: `_______________________`
+
+### Branch Cleanup Actions
+- [ ] Delete local merged branches: `git branch -d branch-name`
+- [ ] Delete remote merged branches: `git push origin --delete branch-name`
+- [ ] Prune remote tracking references: `git fetch --prune origin`
+- [ ] Document deleted branches in maintenance report
+
+### Verification
+- [ ] Verify only active branches remain: `git branch -a`
+- [ ] Confirm no important work was lost
+- [ ] Update team on deleted branches if needed
+
+### Branch Health Metrics
+- [ ] Total branches before cleanup: `_______`
+- [ ] Branches deleted: `_______`
+- [ ] Branches remaining: `_______`
+- [ ] Oldest active branch age: `_______`
+
+**💡 TIP:** Create a branch cleanup analysis document for complex decisions:
+```bash
+# Generate branch analysis
+git for-each-ref --sort=-committerdate refs/heads/ refs/remotes/ \
+  --format='%(refname:short)|%(committerdate:relative)|%(authorname)|%(subject)' \
+  > branch-analysis.txt
+```
+
+## 10. Documentation Updates
 
 - [ ] Update this maintenance report
 - [ ] Document any issues found
 - [ ] Update runbooks if procedures changed
 - [ ] Note any configuration changes
+- [ ] Update branch cleanup analysis if significant changes made
 
-## 10. Backup Verification (Monthly)
+## 11. Backup Verification (Monthly)
 
 **Perform on first maintenance of each month:**
 
@@ -207,7 +259,7 @@ This checklist should be completed every week to ensure system health and data p
 - [ ] Document restore procedure
 - [ ] Update disaster recovery plan if needed
 
-## 11. Off-Site Backup (Monthly)
+## 12. Off-Site Backup (Monthly)
 
 **Perform on first maintenance of each month:**
 
@@ -239,6 +291,7 @@ Rate each category (✅ Good, ⚠️ Warning, ❌ Critical):
 - [ ] Performance: `_______`
 - [ ] Errors: `_______`
 - [ ] Issue Management: `_______`
+- [ ] Branch Health: `_______`
 
 **Overall Status:** `_______`
 
