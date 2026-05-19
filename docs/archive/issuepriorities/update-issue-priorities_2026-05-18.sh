@@ -53,10 +53,10 @@ log_error() {
 # Function to detect duplicate issues
 detect_duplicate_issues() {
   log_action "Checking for duplicate issues..."
-  
+
   local temp_file=$(mktemp)
   gh issue list --state open --json number,title,body --limit 200 > "$temp_file"
-  
+
   # Find issues with similar titles (using fuzzy matching)
   local duplicates=$(jq -r '
     group_by(.title | ascii_downcase | gsub("[^a-z0-9 ]"; "")) |
@@ -64,7 +64,7 @@ detect_duplicate_issues() {
     .[] |
     "Potential duplicates: " + (map("#\(.number) - \(.title)") | join(" | "))
   ' "$temp_file")
-  
+
   if [ -n "$duplicates" ]; then
     log_warning "Found potential duplicate issues:"
     echo "$duplicates" >&2
@@ -72,27 +72,27 @@ detect_duplicate_issues() {
   else
     log_success "No duplicate issues detected"
   fi
-  
+
   rm -f "$temp_file"
 }
 
 # Function to auto-close completed issues based on documentation
 auto_close_completed_issues() {
   log_action "Checking for completed issues that should be closed..."
-  
+
   local closed_count=0
-  
+
   # Check P1_ISSUES_COMPLETED.md for completed issues
   if [ -f "P1_ISSUES_COMPLETED.md" ]; then
     local completed_issues=$(grep -oE '#[0-9]+' P1_ISSUES_COMPLETED.md | sort -u | sed 's/#//')
-    
+
     for issue_num in $completed_issues; do
       # Check if issue is still open
       local is_open=$(gh issue view "$issue_num" --json state --jq '.state' 2>/dev/null)
-      
+
       if [ "$is_open" = "OPEN" ]; then
         log_action "Closing completed issue #$issue_num..."
-        gh issue close "$issue_num" --comment "Auto-closed: Marked as completed in P1_ISSUES_COMPLETED.md" >/dev/null 2>&1
+        gh issue close "$issue_num" --comment "Auto-closed: Marked as completed in P1_ISSUES_COMPLETED.md" 2>/dev/null
         if [ $? -eq 0 ]; then
           ((closed_count++))
           log_success "Closed issue #$issue_num"
@@ -100,15 +100,15 @@ auto_close_completed_issues() {
       fi
     done
   fi
-  
+
   # Check for issues mentioned in completion/summary documents
   for doc in *_COMPLETE*.md *_SUMMARY.md *_IMPLEMENTATION_SUMMARY.md P0_*.md; do
     if [ -f "$doc" ]; then
       local doc_issues=$(grep -oE '#[0-9]+' "$doc" | sort -u | sed 's/#//')
-      
+
       for issue_num in $doc_issues; do
         local is_open=$(gh issue view "$issue_num" --json state --jq '.state' 2>/dev/null)
-        
+
         if [ "$is_open" = "OPEN" ]; then
           # Check if document indicates completion
           if grep -qi "complete\|implemented\|fixed\|resolved" "$doc"; then
@@ -119,7 +119,7 @@ auto_close_completed_issues() {
       done
     fi
   done
-  
+
   if [ $closed_count -gt 0 ]; then
     log_success "Auto-closed $closed_count completed issues"
   else
@@ -131,37 +131,37 @@ auto_close_completed_issues() {
 # Enhanced function to check recent commits for completed work
 check_commits_for_completed_work() {
   log_action "Checking recent commits for completed work..."
-  
+
   local closed_count=0
   local temp_file=$(mktemp)
   local commit_details=$(mktemp)
-  
+
   # Get last 50 commits with full messages (increased from 20)
   git log --format="%H|%s|%b" -50 --no-merges 2>/dev/null > "$commit_details"
-  
+
   if [ ! -s "$commit_details" ]; then
     log_warning "No recent git history found"
     rm -f "$temp_file" "$commit_details"
     return
   fi
-  
+
   # Extract all issue numbers from commits (subject + body)
   grep -oE '#[0-9]+' "$commit_details" | sort -u | sed 's/#//' > "$temp_file"
-  
+
   if [ ! -s "$temp_file" ]; then
     log_success "No issue references found in recent commits"
     rm -f "$temp_file" "$commit_details"
     return
   fi
-  
+
   # Check each referenced issue
   while read -r issue_num; do
     local is_open=$(gh issue view "$issue_num" --json state --jq '.state' 2>/dev/null)
-    
+
     if [ "$is_open" = "OPEN" ]; then
       # Get all commits that mention this issue
       local issue_commits=$(grep "#$issue_num" "$commit_details")
-      
+
       # Enhanced completion detection patterns
       local completion_patterns=(
         "fix.*#$issue_num"
@@ -178,10 +178,10 @@ check_commits_for_completed_work() {
         "Fixes #$issue_num"
         "Closes #$issue_num"
       )
-      
+
       local should_close=false
       local matching_pattern=""
-      
+
       # Check if any commit message matches completion patterns
       for pattern in "${completion_patterns[@]}"; do
         if echo "$issue_commits" | grep -qiE "$pattern"; then
@@ -190,21 +190,21 @@ check_commits_for_completed_work() {
           break
         fi
       done
-      
+
       # Additional check: if issue appears in commit with "feat:" or "fix:" prefix
       # and the commit body contains the issue number, it's likely resolved
       if echo "$issue_commits" | grep -qE "^[a-f0-9]+\|(feat|fix):.*#$issue_num"; then
         should_close=true
         matching_pattern="conventional commit with issue reference"
       fi
-      
+
       if [ "$should_close" = true ]; then
         local commit_summary=$(echo "$issue_commits" | head -1 | cut -d'|' -f2 | cut -c1-80)
         log_action "Issue #$issue_num appears resolved (pattern: $matching_pattern)"
-        
+
         if [ "$AUTO_CLOSE" = true ] && [ "$DRY_RUN" = false ]; then
           log_action "Auto-closing issue #$issue_num based on commit analysis"
-          gh issue close "$issue_num" --comment "Auto-closed: Issue appears resolved in recent commits. Last relevant commit: $commit_summary" >/dev/null 2>&1
+          gh issue close "$issue_num" --comment "Auto-closed: Issue appears resolved in recent commits. Last relevant commit: $commit_summary" 2>/dev/null
           if [ $? -eq 0 ]; then
             ((closed_count++))
             log_success "Closed issue #$issue_num"
@@ -221,9 +221,9 @@ check_commits_for_completed_work() {
       fi
     fi
   done < "$temp_file"
-  
+
   rm -f "$temp_file" "$commit_details"
-  
+
   if [ $closed_count -gt 0 ]; then
     log_success "Auto-closed $closed_count issues based on commits"
   fi
@@ -233,45 +233,45 @@ check_commits_for_completed_work() {
 # Function to suggest priority updates based on recent activity
 suggest_priority_updates() {
   log_action "Analyzing recent development activity for priority updates..."
-  
+
   # Get recently modified files
   local recent_files=$(git diff --name-only HEAD~10 HEAD 2>/dev/null | head -20)
-  
+
   if [ -z "$recent_files" ]; then
     log_warning "No recent git history found"
     return
   fi
-  
+
   # Check if critical files were modified
   local critical_modified=false
   echo "$recent_files" | grep -qE "(auth|security|database|migration)" && critical_modified=true
-  
+
   if [ "$critical_modified" = true ]; then
     log_warning "Critical files modified recently - review P0/P1 issues for updates"
   fi
-  
+
   # Check for test files
   local tests_modified=$(echo "$recent_files" | grep -c "test\|spec")
   if [ "$tests_modified" -gt 5 ]; then
     log_success "Significant test activity detected ($tests_modified test files)"
   fi
-  
+
   echo "" >&2
 }
 
 # Function to create issues from TODO comments
 create_issues_from_todos() {
   log_action "Checking for TODO comments that should become issues..."
-  
+
   local created_count=0
   local temp_file=$(mktemp)
-  
+
   # Find TODO comments with issue markers
   grep -rn --include="*.ts" --include="*.tsx" --include="*.js" --include="*.jsx" \
     --exclude-dir=node_modules --exclude-dir=.git --exclude-dir=dist --exclude-dir=build \
     --exclude-dir=coverage --exclude-dir=.next --exclude-dir=test-results \
     -E "TODO.*#issue|FIXME.*#issue|TODO.*\[create-issue\]|FIXME.*\[create-issue\]" . 2>/dev/null > "$temp_file"
-  
+
   if [ -s "$temp_file" ]; then
     log_warning "Found TODO comments marked for issue creation:"
     cat "$temp_file" >&2
@@ -280,7 +280,7 @@ create_issues_from_todos() {
   else
     log_success "No TODO comments marked for issue creation"
   fi
-  
+
   rm -f "$temp_file"
   echo "" >&2
 }
@@ -288,26 +288,26 @@ create_issues_from_todos() {
 # Function to update issue labels based on keywords
 update_issue_labels() {
   log_action "Checking for issues that need label updates..."
-  
+
   local updated_count=0
-  
+
   # Get all open issues
   local issues=$(gh issue list --state open --json number,title,body,labels --limit 100)
-  
+
   # Check for security-related issues without security label
   echo "$issues" | jq -r '.[] | select(.title | test("security|vulnerability|auth|csrf|xss|sql"; "i")) | select(.labels | map(.name) | index("security") | not) | .number' | while read -r issue_num; do
     log_action "Adding 'security' label to issue #$issue_num"
-    gh issue edit "$issue_num" --add-label "security" >/dev/null 2>&1
+    gh issue edit "$issue_num" --add-label "security" 2>/dev/null
     ((updated_count++))
   done
-  
+
   # Check for bug issues without bug label
   echo "$issues" | jq -r '.[] | select(.title | test("bug|error|fail|broken"; "i")) | select(.labels | map(.name) | index("bug") | not) | .number' | while read -r issue_num; do
     log_action "Adding 'bug' label to issue #$issue_num"
-    gh issue edit "$issue_num" --add-label "bug" >/dev/null 2>&1
+    gh issue edit "$issue_num" --add-label "bug" 2>/dev/null
     ((updated_count++))
   done
-  
+
   if [ $updated_count -gt 0 ]; then
     log_success "Updated labels on $updated_count issues"
   else
@@ -321,12 +321,12 @@ scan_workspace_todos() {
   echo "## 📝 Workspace TODOs & Tasks"
   echo "Code comments and inline tasks found in the workspace that may need attention."
   echo ""
-  
+
   # Search for TODO, FIXME, HACK, XXX, NOTE comments in source files
   # Exclude node_modules, .git, dist, build, and other generated directories
   local todo_count=0
   local temp_file=$(mktemp)
-  
+
   # Search patterns
   grep -rn --include="*.ts" --include="*.tsx" --include="*.js" --include="*.jsx" \
     --exclude-dir=node_modules --exclude-dir=.git --exclude-dir=dist --exclude-dir=build \
@@ -340,9 +340,9 @@ scan_workspace_todos() {
       for(i=3; i<=NF; i++) rest = rest " - " $i
       print "- `" file "` - " rest
     }' > "$temp_file"
-  
+
   todo_count=$(wc -l < "$temp_file" | tr -d ' ')
-  
+
   if [ "$todo_count" -gt 0 ]; then
     echo "Found **$todo_count** code comments requiring attention:"
     echo ""
@@ -350,7 +350,7 @@ scan_workspace_todos() {
   else
     echo "**No TODO/FIXME comments found in code** ✅"
   fi
-  
+
   rm -f "$temp_file"
   echo ""
 }
@@ -416,9 +416,6 @@ while [[ $# -gt 0 ]]; do
   esac
 done
 
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-OUTPUT_FILE="${SCRIPT_DIR}/../ISSUE_PRIORITIES.md"
-
 # Run intelligent issue management functions
 echo "" >&2
 log_action "🔍 Running Intelligent Issue Management..."
@@ -456,10 +453,6 @@ create_issues_from_todos
 echo "" >&2
 log_action "📊 Generating Issue Priority Report..."
 echo "" >&2
-
-# Always write the report directly to the output file so bash (not PowerShell) owns the
-# file descriptor. This guarantees UTF-8 encoding regardless of how the script is invoked.
-exec > "$OUTPUT_FILE"
 
 # Main script - Generate markdown report
 echo "# Issue Prioritization"
@@ -578,4 +571,3 @@ echo "- Use \`HACK:\` for temporary solutions that need proper fixes"
 echo "- Use \`NOTE:\` for important information or context"
 
 # Made with Bob
-log_success "Report written to: $OUTPUT_FILE" >&2

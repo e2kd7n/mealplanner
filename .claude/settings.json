@@ -20,7 +20,8 @@
       "Bash(npm run *)",
       "Bash(gh pr comment 202 --body ' *)",
       "Bash(gh api *)",
-      "Bash(pnpm audit *)"
+      "Bash(pnpm audit *)",
+      "Bash(ssh admin@pi4 \"podman exec meals-backend grep -r 'familyMember.findMany' /app/dist/controllers/ 2>&1\")"
     ]
   }
 }
