@@ -6,10 +6,17 @@
 import { Request, Response, NextFunction } from 'express';
 import bcrypt from 'bcrypt';
 import { Prisma, UserRole } from '@prisma/client';
-import prisma from '../utils/prisma';
+import prisma, { withRetry } from '../utils/prisma';
 import { generateTokenPair, verifyRefreshToken } from '../utils/jwt';
 import { AppError } from '../middleware/errorHandler';
 import { logger } from '../utils/logger';
+import {
+  setAuthCookies,
+  clearAuthCookies,
+  getRefreshTokenFromRequest,
+  hashSessionToken,
+  getClientIp,
+} from '../utils/authCookies';
 
 /**
  * Get the start of the current week (Sunday)
@@ -61,9 +68,6 @@ interface LoginRequestBody {
   password: string;
 }
 
-interface RefreshTokenRequestBody {
-  refreshToken: string;
-}
 
 // Validation constants
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -224,32 +228,40 @@ async function ensureUserNotExists(email: string): Promise<void> {
   }
 }
 
+
 /**
- * Find user by email and verify password
- * @throws {AppError} If user not found or password invalid
+ * Create auth session for refresh token
  */
-async function authenticateUser(email: string, password: string) {
-  const user = await prisma.user.findUnique({
-    where: { email },
-  });
+async function createAuthSession(
+  userId: string,
+  refreshToken: string,
+  req: Request
+): Promise<void> {
+  const refreshTokenHash = hashSessionToken(refreshToken);
+  const expiresAt = new Date();
+  expiresAt.setDate(expiresAt.getDate() + 1); // 24 hours
 
-  if (!user) {
-    throw new AppError('Invalid email or password', 401);
-  }
-
-  const isPasswordValid = await bcrypt.compare(password, user.passwordHash);
-
-  if (!isPasswordValid) {
-    throw new AppError('Invalid email or password', 401);
-  }
-
-  return user;
+  await withRetry(() =>
+    prisma.authSession.create({
+      data: {
+        userId,
+        refreshTokenHash,
+        expiresAt,
+        userAgent: req.headers['user-agent'] || null,
+        ipAddress: getClientIp(req) || null,
+      },
+    })
+  );
 }
 
 /**
- * Generate authentication response with tokens
+ * Generate authentication response with cookies
  */
-function generateAuthResponse(user: { id: string; email: string; familyName: string; role: string }) {
+async function generateAuthResponseWithCookies(
+  user: { id: string; email: string; familyName: string; role: string },
+  res: Response,
+  req: Request
+): Promise<void> {
   const tokens = generateTokenPair({
     userId: user.id,
     email: user.email,
@@ -257,27 +269,13 @@ function generateAuthResponse(user: { id: string; email: string; familyName: str
     role: user.role,
   });
 
-  return {
-    user: formatUserResponse(user),
-    ...tokens,
-  };
+  // Create session for refresh token
+  await createAuthSession(user.id, tokens.refreshToken, req);
+
+  // Set auth cookies
+  setAuthCookies(res, tokens.accessToken, tokens.refreshToken);
 }
 
-/**
- * Find user by ID and ensure they exist
- * @throws {AppError} If user not found
- */
-async function findUserById(userId: string) {
-  const user = await prisma.user.findUnique({
-    where: { id: userId },
-  });
-
-  if (!user) {
-    throw new AppError('User not found', 404);
-  }
-
-  return user;
-}
 
 /**
  * Validate and normalize login credentials
@@ -337,17 +335,19 @@ export async function register(
 
     // Serializable isolation prevents two simultaneous first-time registrations
     // from both seeing count=0 and both receiving the admin role.
-    const user = await prisma.$transaction(async (tx) => {
-      const role = (await tx.user.count()) === 0 ? UserRole.admin : UserRole.user;
-      return tx.user.create({
-        data: {
-          email: normalizedEmail,
-          passwordHash,
-          familyName: normalizedFamilyName,
-          role,
-        },
-      });
-    }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable });
+    const user = await withRetry(() =>
+      prisma.$transaction(async (tx) => {
+        const role = (await tx.user.count()) === 0 ? UserRole.admin : UserRole.user;
+        return tx.user.create({
+          data: {
+            email: normalizedEmail,
+            passwordHash,
+            familyName: normalizedFamilyName,
+            role,
+          },
+        });
+      }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable })
+    );
 
     logger.info('User registered successfully', {
       userId: user.id,
@@ -357,9 +357,12 @@ export async function register(
     // Create initial meal plan for the new user
     await createInitialMealPlan(user.id);
 
+    // Generate auth response with cookies
+    await generateAuthResponseWithCookies(user, res, req);
+
     res.status(201).json({
       message: 'User registered successfully',
-      ...generateAuthResponse(user),
+      user: formatUserResponse(user),
     });
   } catch (error) {
     next(error);
@@ -381,16 +384,38 @@ export async function login(
     const { normalizedEmail } = validateAndNormalizeLoginInput(email, password);
 
     // Authenticate user
-    const user = await authenticateUser(normalizedEmail, password);
+    const user = await withRetry(() =>
+      prisma.user.findUnique({
+        where: { email: normalizedEmail },
+      })
+    );
+
+    if (!user) {
+      throw new AppError('Invalid email or password', 401);
+    }
+
+    // Check if user is blocked
+    if (user.isBlocked) {
+      throw new AppError('Account is blocked', 403);
+    }
+
+    const isPasswordValid = await bcrypt.compare(password, user.passwordHash);
+
+    if (!isPasswordValid) {
+      throw new AppError('Invalid email or password', 401);
+    }
 
     logger.info('User logged in successfully', {
       userId: user.id,
       emailDomain: maskEmail(user.email)
     });
 
+    // Generate auth response with cookies
+    await generateAuthResponseWithCookies(user, res, req);
+
     res.json({
       message: 'Login successful',
-      ...generateAuthResponse(user),
+      user: formatUserResponse(user),
     });
   } catch (error) {
     next(error);
@@ -406,29 +431,79 @@ export async function refreshToken(
   next: NextFunction
 ): Promise<void> {
   try {
-    const { refreshToken: token } = req.body as RefreshTokenRequestBody;
+    // Get refresh token from cookie or body
+    const token = getRefreshTokenFromRequest(req);
 
     if (!token || typeof token !== 'string') {
       throw new AppError('Refresh token is required', 400);
     }
 
-    // Verify refresh token
-    const payload = verifyRefreshToken(token);
+    // Verify refresh token JWT (validates signature and expiration)
+    verifyRefreshToken(token);
 
-    // Verify user still exists
-    const user = await findUserById(payload.userId);
+    // Find and verify session
+    const tokenHash = hashSessionToken(token);
+    const session = await withRetry(() =>
+      prisma.authSession.findUnique({
+        where: { refreshTokenHash: tokenHash },
+        include: { user: true },
+      })
+    );
+
+    if (!session) {
+      throw new AppError('Invalid refresh token', 401);
+    }
+
+    if (session.revokedAt) {
+      throw new AppError('Refresh token has been revoked', 401);
+    }
+
+    if (session.expiresAt < new Date()) {
+      // Clean up expired session
+      await withRetry(() =>
+        prisma.authSession.delete({
+          where: { id: session.id },
+        })
+      );
+      throw new AppError('Refresh token expired', 401);
+    }
+
+    if (session.user.isBlocked) {
+      throw new AppError('Account is blocked', 403);
+    }
 
     // Generate new tokens
-    const tokens = generateTokenPair({
-      userId: user.id,
-      email: user.email,
-      familyName: user.familyName,
-      role: user.role,
+    const newTokens = generateTokenPair({
+      userId: session.user.id,
+      email: session.user.email,
+      familyName: session.user.familyName,
+      role: session.user.role,
     });
+
+    // Rotate refresh token - delete old session and create new one
+    await withRetry(() =>
+      prisma.$transaction([
+        prisma.authSession.delete({
+          where: { id: session.id },
+        }),
+        prisma.authSession.create({
+          data: {
+            userId: session.user.id,
+            refreshTokenHash: hashSessionToken(newTokens.refreshToken),
+            expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000), // 24 hours
+            userAgent: req.headers['user-agent'] || null,
+            ipAddress: getClientIp(req) || null,
+          },
+        }),
+      ])
+    );
+
+    // Set new auth cookies
+    setAuthCookies(res, newTokens.accessToken, newTokens.refreshToken);
 
     res.json({
       message: 'Token refreshed successfully',
-      ...tokens,
+      user: formatUserResponse(session.user),
     });
   } catch (error) {
     next(error);
@@ -444,16 +519,86 @@ export async function logout(
   next: NextFunction
 ): Promise<void> {
   try {
-    // In a more complex implementation, you would:
-    // 1. Blacklist the token in Redis
-    // 2. Clear any session data
-    // For now, we'll just return success
-    // The client should delete the tokens
+    const userId = (req as any).user?.userId;
 
-    logger.info('User logged out', { userId: req.user?.userId });
+    // Get refresh token from cookie or body
+    const token = getRefreshTokenFromRequest(req);
+
+    if (token) {
+      const tokenHash = hashSessionToken(token);
+      
+      // Revoke/delete the session
+      await withRetry(() =>
+        prisma.authSession.deleteMany({
+          where: { refreshTokenHash: tokenHash },
+        })
+      ).catch((error) => {
+        // Log but don't fail logout if session deletion fails
+        logger.warn('Failed to delete auth session during logout', {
+          userId,
+          error: error instanceof Error ? error.message : 'Unknown error',
+        });
+      });
+    }
+
+    // Clear auth cookies
+    clearAuthCookies(res);
+
+    logger.info('User logged out', { userId });
 
     res.json({
       message: 'Logout successful',
+    });
+  } catch (error) {
+    next(error);
+  }
+}
+
+/**
+ * Get current authenticated user profile
+ */
+export async function me(
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void> {
+  try {
+    const userId = (req as any).user?.userId;
+
+    if (!userId) {
+      throw new AppError('Not authenticated', 401);
+    }
+
+    const user = await withRetry(() =>
+      prisma.user.findUnique({
+        where: { id: userId },
+        select: {
+          id: true,
+          email: true,
+          familyName: true,
+          role: true,
+          isBlocked: true,
+          createdAt: true,
+        },
+      })
+    );
+
+    if (!user) {
+      throw new AppError('User not found', 404);
+    }
+
+    if (user.isBlocked) {
+      throw new AppError('Account is blocked', 403);
+    }
+
+    res.json({
+      user: {
+        id: user.id,
+        email: user.email,
+        familyName: user.familyName,
+        role: user.role,
+        createdAt: user.createdAt,
+      },
     });
   } catch (error) {
     next(error);
@@ -466,6 +611,7 @@ export default {
   login,
   refreshToken,
   logout,
+  me,
 };
 
 // Made with Bob

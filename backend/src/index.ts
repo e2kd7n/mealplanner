@@ -183,23 +183,40 @@ app.use(errorHandler);
 
 // Create HTTP or HTTPS server based on configuration
 let server: HttpServer | HttpsServer;
-if (USE_HTTPS && existsSync(SSL_KEY_PATH) && existsSync(SSL_CERT_PATH)) {
-  try {
-    const httpsOptions = {
-      key: readFileSync(SSL_KEY_PATH),
-      cert: readFileSync(SSL_CERT_PATH),
-    };
-    server = createHttpsServer(httpsOptions, app);
-    logger.info('HTTPS server configured');
-  } catch (error) {
-    logger.error('Failed to load SSL certificates, falling back to HTTP:', error);
-    server = createServer(app);
+if (USE_HTTPS) {
+  // In production, fail closed if HTTPS is required but certs are missing
+  const isProduction = process.env.NODE_ENV === 'production';
+  
+  if (!existsSync(SSL_KEY_PATH) || !existsSync(SSL_CERT_PATH)) {
+    const errorMsg = `HTTPS enabled but certificates not found at ${SSL_KEY_PATH} or ${SSL_CERT_PATH}`;
+    if (isProduction) {
+      logger.error(`${errorMsg} - refusing to start in production without HTTPS`);
+      throw new Error(errorMsg);
+    } else {
+      logger.warn(`${errorMsg} - falling back to HTTP in development`);
+      server = createServer(app);
+    }
+  } else {
+    try {
+      const httpsOptions = {
+        key: readFileSync(SSL_KEY_PATH),
+        cert: readFileSync(SSL_CERT_PATH),
+      };
+      server = createHttpsServer(httpsOptions, app);
+      logger.info('HTTPS server configured');
+    } catch (error) {
+      const errorMsg = 'Failed to load SSL certificates';
+      if (isProduction) {
+        logger.error(`${errorMsg} - refusing to start in production without HTTPS:`, error);
+        throw error;
+      } else {
+        logger.error(`${errorMsg}, falling back to HTTP in development:`, error);
+        server = createServer(app);
+      }
+    }
   }
 } else {
   server = createServer(app);
-  if (USE_HTTPS) {
-    logger.warn('HTTPS enabled but certificates not found, using HTTP');
-  }
 }
 
 // Initialize services and start server

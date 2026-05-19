@@ -58,10 +58,8 @@ const LocalLogin: React.FC = () => {
   useEffect(() => {
     visualAuthAPI.deviceLogin()
       .then((res) => {
-        const { accessToken, refreshToken, user } = res.data;
-        localStorage.setItem('accessToken', accessToken);
-        sessionStorage.setItem('refreshToken', refreshToken);
-        dispatch(setCredentials({ user: { ...user, name: user.name }, accessToken }));
+        const { user } = res.data;
+        dispatch(setCredentials({ user: { ...user, name: user.name } }));
         navigate('/dashboard', { replace: true });
       })
       .catch(() => {
@@ -124,10 +122,8 @@ const LocalLogin: React.FC = () => {
     setError(null);
     try {
       const res = await visualAuthAPI.visualLogin({ memberId: selectedUser.id, recipeId });
-      const { accessToken, refreshToken, user } = res.data;
-      localStorage.setItem('accessToken', accessToken);
-      sessionStorage.setItem('refreshToken', refreshToken);
-      dispatch(setCredentials({ user: { ...user, name: user.name }, accessToken }));
+      const { user } = res.data;
+      dispatch(setCredentials({ user: { ...user, name: user.name } }));
       navigate('/dashboard', { replace: true });
     } catch {
       setError('Wrong image — tap the one you chose during setup.');

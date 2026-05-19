@@ -26,9 +26,6 @@ const api: AxiosInstance = axios.create({
   withCredentials: true, // Important for cookies
 });
 
-// Shared promise to prevent multiple simultaneous token refresh attempts
-let refreshPromise: Promise<string> | null = null;
-
 // CSRF token management
 let csrfToken: string | null = null;
 
@@ -58,138 +55,9 @@ const getCsrfToken = async (): Promise<string> => {
   return csrfToken as string;
 };
 
-/**
- * Decode JWT token to get expiration time
- */
-const decodeToken = (token: string): { exp: number } | null => {
-  try {
-    const base64Url = token.split('.')[1];
-    const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
-    const jsonPayload = decodeURIComponent(
-      atob(base64)
-        .split('')
-        .map((c) => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2))
-        .join('')
-    );
-    return JSON.parse(jsonPayload);
-  } catch {
-    return null;
-  }
-};
-
-/**
- * Check if token will expire soon (within 2 minutes)
- */
-const isTokenExpiringSoon = (token: string): boolean => {
-  const decoded = decodeToken(token);
-  if (!decoded || !decoded.exp) return false;
-  
-  const now = Math.floor(Date.now() / 1000);
-  const timeUntilExpiry = decoded.exp - now;
-  
-  // Refresh if less than 2 minutes remaining
-  return timeUntilExpiry < 120;
-};
-
-/**
- * Set authorization header on request config
- */
-const setAuthHeader = (config: RetryableAxiosConfig, token: string): void => {
-  if (!config.headers) {
-    config.headers = {} as any;
-  }
-  config.headers.Authorization = `Bearer ${token}`;
-};
-
-// Mark as used to avoid TS6133 error
-void setAuthHeader;
-
-/**
- * Retry a failed request with a new token
- */
-const retryRequestWithToken = (config: RetryableAxiosConfig, token: string) => {
-  // Update the authorization header directly on the config
-  if (!config.headers) {
-    config.headers = {} as any;
-  }
-  config.headers.Authorization = `Bearer ${token}`;
-  
-  // Use raw axios to avoid triggering interceptors again
-  return axios(config);
-};
-
-/**
- * Handle refresh token failure by cleaning up and redirecting to login
- */
-const handleRefreshFailure = (error: unknown): string => {
-  localStorage.removeItem('accessToken');
-  sessionStorage.removeItem('refreshToken');
-  window.location.href = '/login';
-  throw error;
-};
-
-/**
- * Refresh the access token using the refresh token
- */
-const refreshAccessToken = async (): Promise<string> => {
-  const refreshToken = sessionStorage.getItem('refreshToken');
-  if (!refreshToken) {
-    throw new Error('No refresh token available');
-  }
-
-  const response = await axios.post(
-    `${API_BASE_URL}/auth/refresh`,
-    { refreshToken },
-    { withCredentials: true }
-  );
-
-  const { accessToken } = response.data;
-  localStorage.setItem('accessToken', accessToken);
-  
-  // Handle refresh token rotation if backend provides new one
-  if (response.data.refreshToken) {
-    sessionStorage.setItem('refreshToken', response.data.refreshToken);
-  }
-
-  return accessToken;
-};
-
-// Request interceptor to add auth token, CSRF token, and proactively refresh if needed
+// Request interceptor to add CSRF token for state-changing requests
 api.interceptors.request.use(
   async (config) => {
-    const token = localStorage.getItem('accessToken');
-    if (token) {
-      // Check if token is expiring soon and refresh proactively
-      if (isTokenExpiringSoon(token)) {
-        try {
-          // If already refreshing, wait for it
-          if (refreshPromise) {
-            const newToken = await refreshPromise;
-            config.headers.Authorization = `Bearer ${newToken}`;
-          } else {
-            // Start new refresh
-            refreshPromise = refreshAccessToken()
-              .then((newToken) => {
-                refreshPromise = null;
-                return newToken;
-              })
-              .catch((err) => {
-                refreshPromise = null;
-                throw err;
-              });
-            
-            const newToken = await refreshPromise;
-            config.headers.Authorization = `Bearer ${newToken}`;
-          }
-        } catch (error) {
-          // If refresh fails, use existing token and let response interceptor handle it
-          config.headers.Authorization = `Bearer ${token}`;
-        }
-      } else {
-        config.headers.Authorization = `Bearer ${token}`;
-      }
-    }
-    
     // Add CSRF token for state-changing requests
     if (config.method && ['post', 'put', 'patch', 'delete'].includes(config.method.toLowerCase())) {
       try {
@@ -207,7 +75,7 @@ api.interceptors.request.use(
   }
 );
 
-// Response interceptor to handle token refresh and CSRF errors
+// Response interceptor to handle CSRF errors
 api.interceptors.response.use(
   (response) => response,
   async (error: AxiosError) => {
@@ -229,53 +97,6 @@ api.interceptors.response.use(
       }
     }
 
-    // If error is 401 and we haven't tried to refresh yet
-    if (error.response?.status === 401 && !originalRequest._retry) {
-      // No session to restore — don't attempt refresh, just surface the error.
-      // This prevents a hard-redirect loop when unauthenticated endpoints (e.g.
-      // deviceLogin) return 401 as their normal "no cookie" response.
-      const hasSession =
-        !!localStorage.getItem('accessToken') ||
-        !!sessionStorage.getItem('refreshToken');
-      if (!hasSession) {
-        return Promise.reject(error);
-      }
-
-      // If already refreshing, wait for the existing refresh to complete
-      if (refreshPromise) {
-        try {
-          const token = await refreshPromise;
-          return retryRequestWithToken(originalRequest, token);
-        } catch (err) {
-          return Promise.reject(err);
-        }
-      }
-
-      // Mark request as retried and start refresh
-      originalRequest._retry = true;
-      
-      // Create shared refresh promise
-      refreshPromise = refreshAccessToken()
-        .then((token) => {
-          refreshPromise = null;
-          return token;
-        })
-        .catch((err) => {
-          refreshPromise = null;
-          return handleRefreshFailure(err);
-        });
-
-      try {
-        const token = await refreshPromise;
-        if (!token) {
-          throw new Error('Token refresh failed');
-        }
-        return retryRequestWithToken(originalRequest, token);
-      } catch (refreshError) {
-        return Promise.reject(refreshError);
-      }
-    }
-
     return Promise.reject(error);
   }
 );
@@ -290,9 +111,6 @@ export const authAPI = {
 
   logout: () =>
     api.post('/auth/logout'),
-
-  refreshToken: (refreshToken: string) =>
-    api.post('/auth/refresh', { refreshToken }),
 
   getCurrentUser: () =>
     api.get('/auth/me'),

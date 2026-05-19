@@ -5,10 +5,16 @@
 
 import { Request, Response, NextFunction } from 'express';
 import crypto from 'crypto';
-import prisma from '../utils/prisma';
+import prisma, { withRetry } from '../utils/prisma';
 import { generateTokenPair } from '../utils/jwt';
 import { AppError } from '../middleware/errorHandler';
 import { logger } from '../utils/logger';
+import {
+  setAuthCookies,
+  clearAuthCookies,
+  hashSessionToken,
+  getClientIp,
+} from '../utils/authCookies';
 
 const DEVICE_COOKIE_NAME = 'mealplanner_device';
 const DEVICE_TOKEN_DAYS = 14;
@@ -50,10 +56,12 @@ function shuffle<T>(arr: T[]): T[] {
  */
 export async function listUsers(_req: Request, res: Response, next: NextFunction): Promise<void> {
   try {
-    const members = await prisma.familyMember.findMany({
-      select: { id: true, name: true, visualPasswordRecipeId: true },
-      orderBy: { name: 'asc' },
-    });
+    const members = await withRetry(() =>
+      prisma.familyMember.findMany({
+        select: { id: true, name: true, visualPasswordRecipeId: true },
+        orderBy: { name: 'asc' },
+      })
+    );
     res.json({
       users: members.map((m) => ({
         id: m.id,
@@ -76,10 +84,12 @@ export async function getVisualChallenge(req: Request, res: Response, next: Next
   try {
     const memberId = req.params['userId'] as string;
 
-    const member = await prisma.familyMember.findUnique({
-      where: { id: memberId },
-      select: { visualPasswordRecipeId: true },
-    });
+    const member = await withRetry(() =>
+      prisma.familyMember.findUnique({
+        where: { id: memberId },
+        select: { visualPasswordRecipeId: true },
+      })
+    );
 
     if (!member) {
       throw new AppError('Family member not found', 404);
@@ -89,24 +99,28 @@ export async function getVisualChallenge(req: Request, res: Response, next: Next
     }
 
     // Get the correct recipe
-    const correctRecipe = await prisma.recipe.findUnique({
-      where: { id: member.visualPasswordRecipeId },
-      select: { id: true, title: true, imageUrl: true },
-    });
+    const correctRecipe = await withRetry(() =>
+      prisma.recipe.findUnique({
+        where: { id: member.visualPasswordRecipeId! },
+        select: { id: true, title: true, imageUrl: true },
+      })
+    );
     if (!correctRecipe) {
       throw new AppError('Visual password recipe not found', 500);
     }
 
     // Get random decoy recipes (with images, excluding the correct one)
-    const decoys = await prisma.recipe.findMany({
-      where: {
-        id: { not: member.visualPasswordRecipeId },
-        imageUrl: { not: null },
-      },
-      select: { id: true, title: true, imageUrl: true },
-      take: VISUAL_CHALLENGE_SIZE - 1,
-      orderBy: { createdAt: 'desc' },
-    });
+    const decoys = await withRetry(() =>
+      prisma.recipe.findMany({
+        where: {
+          id: { not: member.visualPasswordRecipeId! },
+          imageUrl: { not: null },
+        },
+        select: { id: true, title: true, imageUrl: true },
+        take: VISUAL_CHALLENGE_SIZE - 1,
+        orderBy: { createdAt: 'desc' },
+      })
+    );
 
     const images = [correctRecipe, ...decoys].slice(0, VISUAL_CHALLENGE_SIZE);
     shuffle(images);
@@ -130,10 +144,12 @@ export async function visualLogin(req: Request, res: Response, next: NextFunctio
       throw new AppError('memberId and recipeId are required', 400);
     }
 
-    const member = await prisma.familyMember.findUnique({
-      where: { id: memberId },
-      select: { id: true, name: true, userId: true, visualPasswordRecipeId: true },
-    });
+    const member = await withRetry(() =>
+      prisma.familyMember.findUnique({
+        where: { id: memberId },
+        select: { id: true, name: true, userId: true, visualPasswordRecipeId: true },
+      })
+    );
 
     if (!member) {
       throw new AppError('Invalid credentials', 401);
@@ -147,39 +163,62 @@ export async function visualLogin(req: Request, res: Response, next: NextFunctio
     }
 
     // Issue JWT for the parent user account
-    const user = await prisma.user.findUnique({
-      where: { id: member.userId },
-      select: { id: true, email: true, familyName: true, role: true, isBlocked: true },
-    });
+    const user = await withRetry(() =>
+      prisma.user.findUnique({
+        where: { id: member.userId },
+        select: { id: true, email: true, familyName: true, role: true, isBlocked: true },
+      })
+    );
 
     if (!user || user.isBlocked) {
       throw new AppError('Account is blocked', 403);
     }
 
-    const { accessToken, refreshToken } = generateTokenPair({
+    const tokens = generateTokenPair({
       userId: user.id,
       email: user.email,
       familyName: user.familyName,
       role: user.role,
     });
 
+    // Create auth session for refresh token
+    const refreshTokenHash = hashSessionToken(tokens.refreshToken);
+    const sessionExpiresAt = new Date();
+    sessionExpiresAt.setDate(sessionExpiresAt.getDate() + 1); // 24 hours
+
+    await withRetry(() =>
+      prisma.authSession.create({
+        data: {
+          userId: user.id,
+          refreshTokenHash,
+          expiresAt: sessionExpiresAt,
+          userAgent: req.headers['user-agent'] || null,
+          ipAddress: getClientIp(req) || null,
+        },
+      })
+    );
+
+    // Set auth cookies
+    setAuthCookies(res, tokens.accessToken, tokens.refreshToken);
+
     // Issue 14-day device token
     const rawToken = generateDeviceToken();
     const tokenHash = hashToken(rawToken);
-    const expiresAt = new Date();
-    expiresAt.setDate(expiresAt.getDate() + DEVICE_TOKEN_DAYS);
+    const deviceExpiresAt = new Date();
+    deviceExpiresAt.setDate(deviceExpiresAt.getDate() + DEVICE_TOKEN_DAYS);
 
-    await prisma.deviceToken.create({
-      data: { userId: user.id, tokenHash, expiresAt },
-    });
+    await withRetry(() =>
+      prisma.deviceToken.create({
+        data: { userId: user.id, tokenHash, expiresAt: deviceExpiresAt },
+      })
+    );
 
     setDeviceCookie(res, rawToken);
 
     logger.info('Visual login successful', { memberId, userId: user.id });
 
     res.json({
-      accessToken,
-      refreshToken,
+      message: 'Visual login successful',
       user: { id: user.id, email: user.email, name: member.name, role: user.role },
     });
   } catch (err) {
@@ -200,19 +239,23 @@ export async function deviceLogin(req: Request, res: Response, next: NextFunctio
     }
 
     const tokenHash = hashToken(rawToken);
-    const deviceToken = await prisma.deviceToken.findUnique({
-      where: { tokenHash },
-      include: {
-        user: {
-          select: { id: true, email: true, familyName: true, role: true, isBlocked: true },
+    const deviceToken = await withRetry(() =>
+      prisma.deviceToken.findUnique({
+        where: { tokenHash },
+        include: {
+          user: {
+            select: { id: true, email: true, familyName: true, role: true, isBlocked: true },
+          },
         },
-      },
-    });
+      })
+    );
 
     if (!deviceToken || deviceToken.expiresAt < new Date()) {
       // Clean up expired token if it exists
       if (deviceToken) {
-        await prisma.deviceToken.delete({ where: { tokenHash } });
+        await withRetry(() =>
+          prisma.deviceToken.delete({ where: { tokenHash } })
+        );
       }
       res.clearCookie(DEVICE_COOKIE_NAME);
       throw new AppError('Device token expired or invalid', 401);
@@ -222,29 +265,50 @@ export async function deviceLogin(req: Request, res: Response, next: NextFunctio
       throw new AppError('Account is blocked', 403);
     }
 
-    const { accessToken, refreshToken } = generateTokenPair({
+    const tokens = generateTokenPair({
       userId: deviceToken.user.id,
       email: deviceToken.user.email,
       familyName: deviceToken.user.familyName,
       role: deviceToken.user.role,
     });
 
+    // Create auth session for refresh token
+    const refreshTokenHash = hashSessionToken(tokens.refreshToken);
+    const sessionExpiresAt = new Date();
+    sessionExpiresAt.setDate(sessionExpiresAt.getDate() + 1); // 24 hours
+
+    await withRetry(() =>
+      prisma.authSession.create({
+        data: {
+          userId: deviceToken.user.id,
+          refreshTokenHash,
+          expiresAt: sessionExpiresAt,
+          userAgent: req.headers['user-agent'] || null,
+          ipAddress: getClientIp(req) || null,
+        },
+      })
+    );
+
+    // Set auth cookies
+    setAuthCookies(res, tokens.accessToken, tokens.refreshToken);
+
     // Rotate the device token for security (rolling window)
     const newRawToken = generateDeviceToken();
     const newTokenHash = hashToken(newRawToken);
-    const expiresAt = new Date();
-    expiresAt.setDate(expiresAt.getDate() + DEVICE_TOKEN_DAYS);
+    const deviceExpiresAt = new Date();
+    deviceExpiresAt.setDate(deviceExpiresAt.getDate() + DEVICE_TOKEN_DAYS);
 
-    await prisma.deviceToken.update({
-      where: { tokenHash },
-      data: { tokenHash: newTokenHash, expiresAt },
-    });
+    await withRetry(() =>
+      prisma.deviceToken.update({
+        where: { tokenHash },
+        data: { tokenHash: newTokenHash, expiresAt: deviceExpiresAt },
+      })
+    );
 
     setDeviceCookie(res, newRawToken);
 
     res.json({
-      accessToken,
-      refreshToken,
+      message: 'Device login successful',
       user: {
         id: deviceToken.user.id,
         email: deviceToken.user.email,
@@ -272,25 +336,31 @@ export async function setupVisualPassword(req: Request, res: Response, next: Nex
       throw new AppError('familyMemberId and recipeId are required', 400);
     }
 
-    const member = await prisma.familyMember.findFirst({
-      where: { id: familyMemberId, userId },
-    });
+    const member = await withRetry(() =>
+      prisma.familyMember.findFirst({
+        where: { id: familyMemberId, userId },
+      })
+    );
     if (!member) {
       throw new AppError('Family member not found', 404);
     }
 
-    const recipe = await prisma.recipe.findUnique({
-      where: { id: recipeId },
-      select: { id: true, title: true, imageUrl: true },
-    });
+    const recipe = await withRetry(() =>
+      prisma.recipe.findUnique({
+        where: { id: recipeId },
+        select: { id: true, title: true, imageUrl: true },
+      })
+    );
     if (!recipe || !recipe.imageUrl) {
       throw new AppError('Recipe not found or has no image', 400);
     }
 
-    await prisma.familyMember.update({
-      where: { id: familyMemberId },
-      data: { visualPasswordRecipeId: recipeId },
-    });
+    await withRetry(() =>
+      prisma.familyMember.update({
+        where: { id: familyMemberId },
+        data: { visualPasswordRecipeId: recipeId },
+      })
+    );
 
     logger.info('Visual password updated', { familyMemberId, userId });
     res.json({ message: 'Visual password set', recipe: { id: recipe.id, title: recipe.title, imageUrl: recipe.imageUrl } });
@@ -310,17 +380,21 @@ export async function getVisualPasswordStatus(req: Request, res: Response, next:
     const { familyMemberId } = req.query as { familyMemberId?: string };
 
     if (familyMemberId) {
-      const member = await prisma.familyMember.findFirst({
-        where: { id: familyMemberId, userId },
-        select: { visualPasswordRecipeId: true },
-      });
+      const member = await withRetry(() =>
+        prisma.familyMember.findFirst({
+          where: { id: familyMemberId, userId },
+          select: { visualPasswordRecipeId: true },
+        })
+      );
       res.json({ hasVisualPassword: !!member?.visualPasswordRecipeId });
     } else {
-      const members = await prisma.familyMember.findMany({
-        where: { userId },
-        select: { id: true, name: true, visualPasswordRecipeId: true },
-        orderBy: { name: 'asc' },
-      });
+      const members = await withRetry(() =>
+        prisma.familyMember.findMany({
+          where: { userId },
+          select: { id: true, name: true, visualPasswordRecipeId: true },
+          orderBy: { name: 'asc' },
+        })
+      );
       res.json({
         members: members.map((m) => ({
           id: m.id,
@@ -343,9 +417,15 @@ export async function deviceLogout(req: Request, res: Response, next: NextFuncti
     const rawToken = req.cookies?.[DEVICE_COOKIE_NAME];
     if (rawToken) {
       const tokenHash = hashToken(rawToken);
-      await prisma.deviceToken.deleteMany({ where: { tokenHash } }).catch(() => {});
+      await withRetry(() =>
+        prisma.deviceToken.deleteMany({ where: { tokenHash } })
+      ).catch(() => {});
     }
     res.clearCookie(DEVICE_COOKIE_NAME);
+    
+    // Also clear auth cookies
+    clearAuthCookies(res);
+    
     res.json({ message: 'Device logged out' });
   } catch (err) {
     next(err);
