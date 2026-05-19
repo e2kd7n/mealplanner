@@ -37,7 +37,6 @@
       "Bash(chmod +x /c/Users/admin/bin/jq.exe)",
       "Bash(chmod +x /c/Users/admin/bin/jq)",
       "Bash(bash scripts/update-issue-priorities.sh)",
-      "Bash(bash scripts/update-issue-priorities.sh > ISSUE_PRIORITIES.md)",
       "Bash(npx tsc *)",
       "PowerShell(Get-Command node, npm, pnpm -ErrorAction SilentlyContinue)",
       "PowerShell($env:PATH; Write-Host \"---\"; Get-ChildItem \"C:\\\\Program Files\\\\nodejs\", \"C:\\\\Program Files \\(x86\\)\\\\nodejs\", \"$env:APPDATA\\\\npm\", \"$env:LOCALAPPDATA\\\\pnpm\" -ErrorAction SilentlyContinue | Select-Object FullName)",

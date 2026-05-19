@@ -69,7 +69,7 @@ main() {
     log "${YELLOW}Running update-issue-priorities.sh...${NC}"
     log ""
     
-    if "$SCRIPT_DIR/update-issue-priorities.sh" >> "$LOG_FILE" 2>&1; then
+    if "$SCRIPT_DIR/update-issue-priorities.sh" 2>> "$LOG_FILE"; then
         log ""
         log "${GREEN}✅ Issue management check completed successfully${NC}"
         update_status "COMPLETE" "Issue management check finished successfully"
