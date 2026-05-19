@@ -74,7 +74,12 @@ fi
 # (removing specific tags misses intermediate layers and old image versions)
 echo -e "${YELLOW}🗑️  Pruning unused images...${NC}"
 if [ -n "$CONTAINER_CMD" ]; then
-    $CONTAINER_CMD image prune -af 2>/dev/null || true
+    if pgrep -f "podman pull" > /dev/null 2>&1; then
+        echo -e "${BLUE}ℹ️  Pull in progress — only removing images older than 2h${NC}"
+        $CONTAINER_CMD image prune -af --filter "until=2h" 2>/dev/null || true
+    else
+        $CONTAINER_CMD image prune -af 2>/dev/null || true
+    fi
     echo -e "${GREEN}✓ Pruned unused images${NC}"
 fi
 
@@ -106,7 +111,12 @@ fi
 # Clean up build cache
 echo -e "${YELLOW}🧹 Cleaning build cache...${NC}"
 if [ -n "$CONTAINER_CMD" ]; then
-    $CONTAINER_CMD builder prune -af 2>/dev/null || true
+    if pgrep -f "podman build" > /dev/null 2>&1; then
+        echo -e "${BLUE}ℹ️  Build in progress — skipping builder cache cleanup${NC}"
+    else
+        $CONTAINER_CMD builder prune -af 2>/dev/null || true
+        echo -e "${GREEN}✓ Build cache cleaned${NC}"
+    fi
 fi
 
 # Remove temporary files (only mealplanner-related)
