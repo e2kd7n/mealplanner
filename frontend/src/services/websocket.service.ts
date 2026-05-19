@@ -28,9 +28,8 @@ class WebSocketService {
       return;
     }
 
-    const token = store.getState().auth.accessToken;
-    if (!token) {
-      console.warn('[WebSocket] No auth token available');
+    if (!store.getState().auth.isAuthenticated) {
+      console.warn('[WebSocket] Not authenticated');
       return;
     }
 
@@ -39,7 +38,7 @@ class WebSocketService {
     console.log('[WebSocket] Connecting to', wsUrl);
 
     this.socket = io(wsUrl, {
-      auth: { token },
+      withCredentials: true,
       transports: ['websocket', 'polling'],
       reconnection: true,
       reconnectionDelay: this.reconnectDelay,
