@@ -68,6 +68,15 @@ class AppSettingsService {
           },
           update: {},
         });
+        // If an env var is now present but the DB row still has null, write it in.
+        // This handles the case where the env var was added after the row was first created.
+        // Does not overwrite values that were set through the admin UI.
+        if (envValue) {
+          await prisma.appSetting.updateMany({
+            where: { key: setting.key, value: null },
+            data: { value: envValue },
+          });
+        }
       }
       logger.info('App settings initialized');
     } catch (error) {
@@ -119,14 +128,17 @@ class AppSettingsService {
     }>
   > {
     const settings = await prisma.appSetting.findMany({ orderBy: { key: 'asc' } });
-    return settings.map((s) => ({
-      key: s.key,
-      value: s.isSecret && s.value ? '••••••••' : s.value,
-      isSecret: s.isSecret,
-      description: s.description,
-      updatedAt: s.updatedAt,
-      isConfigured: !!s.value,
-    }));
+    return settings.map((s) => {
+      const effectiveValue = s.value ?? ENV_FALLBACKS[s.key] ?? null;
+      return {
+        key: s.key,
+        value: s.isSecret && effectiveValue ? '••••••••' : effectiveValue,
+        isSecret: s.isSecret,
+        description: s.description,
+        updatedAt: s.updatedAt,
+        isConfigured: !!effectiveValue,
+      };
+    });
   }
 
   async isConfigured(key: string): Promise<boolean> {
