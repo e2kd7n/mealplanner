@@ -30,7 +30,6 @@ import api, { visualAuthAPI } from '../services/api';
 interface UserEntry {
   id: string;
   name: string;
-  hasVisualPassword: boolean;
 }
 
 interface ChallengeImage {
@@ -97,10 +96,6 @@ const LocalLogin: React.FC = () => {
   };
 
   const handleSelectUser = useCallback(async (user: UserEntry) => {
-    if (!user.hasVisualPassword) {
-      setError(`${user.name} hasn't set a visual password yet — use the classic login instead.`);
-      return;
-    }
     setSelectedUser(user);
     setError(null);
     setChallengeLoading(true);
@@ -108,8 +103,12 @@ const LocalLogin: React.FC = () => {
     try {
       const res = await visualAuthAPI.getVisualChallenge(user.id);
       setChallenge(res.data.images ?? []);
-    } catch {
-      setError('Failed to load visual challenge. Please try again.');
+    } catch (err: any) {
+      if (err?.response?.status === 400) {
+        setError(`${user.name} hasn't set a visual password yet — use the classic login instead.`);
+      } else {
+        setError('Failed to load visual challenge. Please try again.');
+      }
       setStep(0);
     } finally {
       setChallengeLoading(false);
@@ -179,10 +178,7 @@ const LocalLogin: React.FC = () => {
             : users.map((user) => (
                 <Card
                   key={user.id}
-                  sx={{
-                    textAlign: 'center',
-                    opacity: user.hasVisualPassword ? 1 : 0.5,
-                  }}
+                  sx={{ textAlign: 'center' }}
                 >
                   <CardActionArea onClick={() => handleSelectUser(user)} sx={{ p: 2 }}>
                     <Avatar
@@ -200,11 +196,6 @@ const LocalLogin: React.FC = () => {
                     <Typography variant="body1" fontWeight={500}>
                       {user.name}
                     </Typography>
-                    {!user.hasVisualPassword && (
-                      <Typography variant="caption" color="text.secondary">
-                        No visual password
-                      </Typography>
-                    )}
                   </CardActionArea>
                 </Card>
               ))}

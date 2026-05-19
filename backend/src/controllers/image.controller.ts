@@ -245,17 +245,20 @@ export const deleteImage = async (
       throw new AppError('Image not found', 404);
     }
 
-    // Enforce ownership: only the recipe owner (or an admin) may delete an image
+    // Enforce ownership: only the recipe owner (or an admin) may delete an image.
+    // If no recipe references the file it is orphaned (recipe was deleted after
+    // upload) — allow any authenticated user to delete it so orphans don't
+    // accumulate indefinitely.
     const userId = req.user!.userId;
     const userRole = req.user!.role;
     const isAdmin = userRole === 'admin' || userRole === 'superadmin';
 
     if (!isAdmin) {
-      const ownerRecipe = await prisma.recipe.findFirst({
-        where: { imageUrl: `/images/${filenameStr}`, userId },
-        select: { id: true },
+      const anyRecipe = await prisma.recipe.findFirst({
+        where: { imageUrl: `/images/${filenameStr}` },
+        select: { id: true, userId: true },
       });
-      if (!ownerRecipe) {
+      if (anyRecipe && anyRecipe.userId !== userId) {
         throw new AppError('Forbidden', 403);
       }
     }

@@ -161,12 +161,15 @@ export function sanitizeUrl(url: string): string | undefined {
     
     // Block localhost and private IPs (SSRF protection)
     const hostname = parsed.hostname.toLowerCase();
-    if (
+
+    // IPv4 private / reserved ranges
+    const blockedIPv4 =
       hostname === 'localhost' ||
       hostname === '127.0.0.1' ||
       hostname === '0.0.0.0' ||
-      hostname.startsWith('192.168.') ||
       hostname.startsWith('10.') ||
+      hostname.startsWith('169.254.') ||   // link-local / APIPA / AWS IMDS
+      hostname.startsWith('192.168.') ||
       hostname.startsWith('172.16.') ||
       hostname.startsWith('172.17.') ||
       hostname.startsWith('172.18.') ||
@@ -182,12 +185,29 @@ export function sanitizeUrl(url: string): string | undefined {
       hostname.startsWith('172.28.') ||
       hostname.startsWith('172.29.') ||
       hostname.startsWith('172.30.') ||
-      hostname.startsWith('172.31.')
-    ) {
+      hostname.startsWith('172.31.');
+
+    if (blockedIPv4) {
       logger.warn('Blocked private/local URL (SSRF protection)', { url: url.substring(0, 100) });
       return undefined;
     }
-    
+
+    // IPv6 loopback and private ranges (colons only appear in IPv6 addresses)
+    const rawHost = hostname.startsWith('[') && hostname.endsWith(']')
+      ? hostname.slice(1, -1)
+      : hostname;
+    if (rawHost.includes(':')) {
+      const blockedIPv6 =
+        rawHost === '::1' ||              // loopback
+        rawHost.startsWith('fe80:') ||   // link-local (fe80::/10)
+        rawHost.startsWith('fc') ||      // unique-local (fc00::/7)
+        rawHost.startsWith('fd');        // unique-local (fd00::/7)
+      if (blockedIPv6) {
+        logger.warn('Blocked private/local URL (SSRF protection)', { url: url.substring(0, 100) });
+        return undefined;
+      }
+    }
+
     return parsed.toString();
   } catch (error) {
     logger.warn('Invalid URL format', { url: url.substring(0, 100) });
