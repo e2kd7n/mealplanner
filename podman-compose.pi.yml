@@ -96,7 +96,6 @@ services:
       POSTGRES_USER: mealplanner
       REDIS_HOST: redis
       REDIS_PORT: 6379
-      SPOONACULAR_API_KEY: ${SPOONACULAR_API_KEY:-}
       CORS_ORIGIN: http://localhost:8080,http://raspberrypi.local:8080,https://localhost:8443,https://raspberrypi.local:8443
       NODE_OPTIONS: --max-old-space-size=256
     secrets:
@@ -105,6 +104,9 @@ services:
       - jwt_refresh_secret
       - session_secret
       - redis_password
+      - spoonacular_api_key
+      - edamam_app_id
+      - edamam_app_key
     volumes:
       - ./data/uploads:/app/uploads
       - ./data/backups:/app/backups
@@ -176,5 +178,11 @@ secrets:
     file: ./secrets/session_secret.txt
   redis_password:
     file: ./secrets/redis_password.txt
+  spoonacular_api_key:
+    file: ./secrets/spoonacular_api_key.txt
+  edamam_app_id:
+    file: ./secrets/edamam_app_id.txt
+  edamam_app_key:
+    file: ./secrets/edamam_app_key.txt
 
 # Made with Bob
