@@ -181,7 +181,7 @@ const ingredientId = await findOrCreateIngredient(
 
 ### Comprehensive Design Principles Established
 
-**Document:** `docs/DESIGN_PRINCIPLES.md`
+**Document:** `../../../design/DESIGN_PRINCIPLES.md`
 
 Created 20 core design principles including:
 1. **User Ownership & Control (CRUD Authority)** - Users have full control over their data
@@ -278,8 +278,8 @@ Automated script to create 23 GitHub issues from evaluation findings:
 - `frontend/src/pages/RecipeDetail.tsx` - Delete functionality
 
 **Documentation:**
-- `docs/DESIGN_PRINCIPLES.md` - Design principles (NEW)
-- `docs/UX_EVALUATION_REPORT.md` - UX evaluation (NEW)
+- `../../../design/DESIGN_PRINCIPLES.md` - Design principles (NEW)
+- `../../../DESIGN_UX_EVALUATION_REPORT.md` - UX evaluation (NEW)
 - `P0_P1_ISSUES_SUMMARY.md` - Technical summary
 - `P1_ISSUES_COMPLETED.md` - P1 fixes documentation
 

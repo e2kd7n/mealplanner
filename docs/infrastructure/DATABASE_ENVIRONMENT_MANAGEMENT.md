@@ -271,7 +271,7 @@ If you experience data loss:
 
 - [Prisma Migration Guide](https://www.prisma.io/docs/concepts/components/prisma-migrate)
 - [PostgreSQL Backup Documentation](https://www.postgresql.org/docs/current/backup.html)
-- [Database Backup Best Practices](../docs/DATABASE_BACKUP.md)
+- [Database Backup Best Practices](./DATABASE_BACKUP.md)
 
 ---
 

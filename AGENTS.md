@@ -198,13 +198,23 @@ This file provides guidance to agents when working with code in this repository.
 
 ### Key Documents
 - `README.md` - Project overview and quick start
-- `SETUP.md` - Development environment setup
-- `DEPLOYMENT.md` - Production deployment guide
+- `docs/development/SETUP.md` - Development environment setup
+- `docs/deployment/DEPLOYMENT.md` - Production deployment guide
 - `ISSUE_PRIORITIES.md` - Current issue priorities
 - `docs/ARCHITECTURE.md` - System architecture
-- `docs/DESIGN_PRINCIPLES.md` - UX/UI design principles
+- `docs/design/DESIGN_PRINCIPLES.md` - UX/UI design principles
 - `/Users/erik/dev/workflow-guidelines.md` - Comprehensive workflow guide
 - `docs/releases/maintenance/WEEKLY_MAINTENANCE_CHECKLIST.md` - Maintenance procedures
+
+### Documentation Structure
+- `docs/development/` - Development setup, workflow, CI/CD
+- `docs/deployment/` - Deployment guides (local, Pi, production)
+- `docs/design/` - Design principles, accessibility, UX guidelines
+- `docs/infrastructure/` - Database, logging, monitoring, performance
+- `docs/security/` - Security setup, secrets management, policies
+- `docs/testing/` - Testing environment and strategies
+- `docs/features/` - Feature-specific documentation
+- `docs/archive/` - Historical documentation and completed work
 
 ### Documentation Standards
 - Keep docs in sync with code changes

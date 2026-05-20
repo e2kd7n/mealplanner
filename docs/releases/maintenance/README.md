@@ -60,15 +60,12 @@ Maintenance reports document:
 
 ## 📚 Reports
 
-### 2026 Reports
+> **Note:** Completed maintenance reports have been archived to `../../archive/maintenance/` to maintain a cleaner documentation structure. Active maintenance procedures remain in this directory.
 
-#### April 2026
-- **[WEEKLY_MAINTENANCE_2026-04-25.md](WEEKLY_MAINTENANCE_2026-04-25.md)** - April 25, 2026
-  - Time tracking documentation updated
-  - Release notes organized by milestone
-  - Dependency audit completed
-  - Database backups verified
-  - All systems healthy
+### Archived Reports
+Historical maintenance reports are available in:
+- **Archive Location:** [`../../archive/maintenance/`](../../archive/maintenance/)
+- **5 archived reports** including weekly maintenance sessions and branch cleanup analysis from April-May 2026
 
 ---
 
