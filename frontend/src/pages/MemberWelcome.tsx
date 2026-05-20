@@ -43,7 +43,7 @@ export default function MemberWelcome() {
     {
       icon: <CalendarMonthIcon sx={{ fontSize: 80 }} />,
       heading: "What's for dinner?",
-      body: 'See the week's meal plan, check who's cooking, and never be surprised at the table.',
+      body: "See the week's meal plan, check who's cooking, and never be surprised at the table.",
       bg: '#2e7d32',
       color: '#fff',
     },
