@@ -251,18 +251,22 @@ const Profile: React.FC = () => {
     setMemberNewIngredient('');
   };
 
+  const refreshFamilyMembers = async () => {
+    const res = await familyMemberAPI.getAll();
+    setFamilyMembers(res.data.data);
+  };
+
   const handleSaveMember = async () => {
     try {
       setSaving(true);
       if (editingMember) {
         await familyMemberAPI.update(editingMember.id, memberForm);
-        setFamilyMembers(familyMembers.map((m) => (m.id === editingMember.id ? { ...m, ...memberForm } : m)));
         showSnackbar('Family member updated successfully', 'success');
       } else {
-        const response = await familyMemberAPI.create(memberForm);
-        setFamilyMembers([...familyMembers, response.data.data]);
+        await familyMemberAPI.create(memberForm);
         showSnackbar('Family member added successfully', 'success');
       }
+      await refreshFamilyMembers();
       handleCloseMemberDialog();
     } catch (error: any) {
       showSnackbar(error.response?.data?.message || 'Failed to save family member', 'error');
@@ -276,7 +280,7 @@ const Profile: React.FC = () => {
 
     try {
       await familyMemberAPI.delete(id);
-      setFamilyMembers(familyMembers.filter((m) => m.id !== id));
+      await refreshFamilyMembers();
       showSnackbar('Family member deleted successfully', 'success');
     } catch (error: any) {
       showSnackbar(error.response?.data?.message || 'Failed to delete family member', 'error');

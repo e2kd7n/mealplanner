@@ -62,8 +62,17 @@ export async function listUsers(_req: Request, res: Response, next: NextFunction
         orderBy: { name: 'asc' },
       })
     );
+    // Deduplicate by normalized name — keeps the first occurrence per name after
+    // alphabetical sort, so stale duplicates from old accounts don't double-up the picker.
+    const seen = new Set<string>();
+    const unique = members.filter((m) => {
+      const key = m.name.trim().toLowerCase();
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
     res.json({
-      users: members.map((m) => ({ id: m.id, name: m.name })),
+      users: unique.map((m) => ({ id: m.id, name: m.name })),
     });
   } catch (err) {
     next(err);
