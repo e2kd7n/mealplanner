@@ -25,7 +25,7 @@ This document outlines regular maintenance tasks to keep the Meal Planner applic
 - [ ] **Update ISSUE_PRIORITIES.md** to reflect current GitHub state
 - [ ] **Verify all local issue documents are migrated to GitHub**
 - [ ] **Remove local issue tracking files** (keep only ISSUE_PRIORITIES.md)
-- [ ] Update time_tracking_report.mda 
+- [ ] Update time tracking report (docs/archive/TIME_TRACKING_REPORT.md)
 
 **Commands:**
 ```bash
