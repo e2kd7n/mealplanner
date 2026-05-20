@@ -143,6 +143,17 @@ if ! podman-compose --version &> /dev/null; then
     exit 1
 fi
 
+# ── Git state check ─────────────────────────────────────────────────────────────
+
+if git fetch origin main --quiet 2>/dev/null; then
+    BEHIND=$(git rev-list --count HEAD..origin/main 2>/dev/null || echo 0)
+    if [ "${BEHIND}" -gt 0 ]; then
+        echo -e "${YELLOW}⚠️  Local repo is ${BEHIND} commit(s) behind origin/main.${NC}"
+        echo -e "${YELLOW}   Config changes (compose, nginx, secrets) won't take effect until you run: git pull${NC}"
+        echo ""
+    fi
+fi
+
 # ── Disk space check ────────────────────────────────────────────────────────────
 
 DISK_USAGE=$(df / | awk 'NR==2 {print $5}' | sed 's/%//')
