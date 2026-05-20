@@ -20,6 +20,9 @@ ZERO_USER="pi"
 ZERO_IPS=("172.19.181.1" "172.19.181.2" "172.19.181.3" "172.19.181.4")
 BRIDGE_IP="172.19.181.254"
 REACHABLE_ZEROS=()
+# Match the Node.js version in the backend container image
+NODE_VERSION="22.22.3"
+NODE_TAR_CACHE="/tmp/node-${NODE_VERSION}-linux-armv6l.tar.xz"
 
 for arg in "$@"; do
     case $arg in
@@ -40,14 +43,17 @@ deploy_to_zero() {
 
     local ssh_opts="-o ConnectTimeout=15 -o StrictHostKeyChecking=accept-new -o BatchMode=yes"
 
-    # Ensure Node.js 20+ is installed
+    # Ensure matching Node.js is installed
+    # Nodesource does not support armhf; use unofficial-builds.nodejs.org instead.
+    # The tarball is downloaded once to the Pi 4B (NODE_TAR_CACHE) and rsynced.
     # shellcheck disable=SC2029
     if ! ssh $ssh_opts "${ZERO_USER}@${ip}" \
-            'node --version 2>/dev/null | grep -qE "^v2[0-9]\."' 2>/dev/null; then
-        echo -e "    ${YELLOW}Installing Node.js 20 on p${slot}...${NC}"
+            "node --version 2>/dev/null | grep -qE '^v${NODE_VERSION//./\\.}'" 2>/dev/null; then
+        echo -e "    ${YELLOW}Installing Node.js ${NODE_VERSION} on p${slot}...${NC}"
+        rsync -az "$NODE_TAR_CACHE" "${ZERO_USER}@${ip}:/tmp/node.tar.xz"
         ssh $ssh_opts "${ZERO_USER}@${ip}" \
-            'curl -fsSL https://deb.nodesource.com/setup_20.x | sudo bash - \
-             && sudo apt-get install -y --no-install-recommends nodejs'
+            'sudo tar -xJf /tmp/node.tar.xz -C /usr/local --strip-components=1 \
+             && rm -f /tmp/node.tar.xz'
     fi
 
     # Create app directory owned by the SSH user
@@ -152,6 +158,15 @@ deploy_zeros() {
     if [ ! -d "backend/dist" ]; then
         echo -e "${RED}❌ backend/dist not found — run 'npm run build' in backend/ first${NC}"
         return 1
+    fi
+
+    # Download Node.js armv6l tarball once to the Pi 4B; rsynced to each Zero.
+    if [ ! -f "$NODE_TAR_CACHE" ]; then
+        echo -e "${BLUE}Downloading Node.js ${NODE_VERSION} armv6l...${NC}"
+        curl -fsSL \
+            "https://unofficial-builds.nodejs.org/download/release/v${NODE_VERSION}/node-v${NODE_VERSION}-linux-armv6l.tar.xz" \
+            -o "$NODE_TAR_CACHE"
+        echo -e "${GREEN}✓ Node.js tarball cached at ${NODE_TAR_CACHE}${NC}"
     fi
 
     local missing_secret=false
