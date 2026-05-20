@@ -127,6 +127,29 @@ detect_container_runtime() {
     fi
 }
 
+# In WSL, systemd doesn't create /run/user/<uid>, so Podman can't write its
+# event socket. Create the dir with sudo (once per WSL session); fall back to
+# a tmp dir if sudo isn't available.
+ensure_podman_runtime() {
+    if [ "$(detect_os)" = "wsl" ]; then
+        local uid
+        uid=$(id -u)
+        local runtime_dir="/run/user/$uid"
+        if [ ! -d "$runtime_dir" ]; then
+            echo -e "${YELLOW}WSL: creating Podman runtime dir (sudo required once per session)...${NC}"
+            if sudo mkdir -p "$runtime_dir" && sudo chown "$uid:$(id -g)" "$runtime_dir" && sudo chmod 700 "$runtime_dir"; then
+                echo -e "${GREEN}✓ Created $runtime_dir${NC}"
+            else
+                runtime_dir="/tmp/xdg-runtime-$uid"
+                mkdir -p "$runtime_dir"
+                chmod 700 "$runtime_dir"
+                echo -e "${YELLOW}sudo unavailable — using $runtime_dir instead${NC}"
+            fi
+        fi
+        export XDG_RUNTIME_DIR="$runtime_dir"
+    fi
+}
+
 # Clean podman/docker system
 clean_container_system() {
     local container_cmd=$1
