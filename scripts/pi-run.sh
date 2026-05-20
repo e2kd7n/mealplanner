@@ -183,12 +183,38 @@ deploy_zeros() {
     done
     [ "$missing_secret" = true ] && return 1
 
+    # Launch all Zero W deployments in parallel; buffer output per node so
+    # lines from different nodes don't interleave in the terminal.
+    declare -A zero_pids
+    declare -A zero_logs
+
     for entry in "${REACHABLE_ZEROS[@]}"; do
         local ip="${entry%:*}"
         local slot="${entry#*:}"
-        deploy_to_zero "$ip" "$slot" \
-            || echo -e "  ${YELLOW}⚠  p${slot} deployment failed — continuing with others${NC}"
+        local log
+        log=$(mktemp)
+        zero_logs[$slot]="$log"
+        deploy_to_zero "$ip" "$slot" >"$log" 2>&1 &
+        zero_pids[$slot]=$!
+        echo -e "  ${BLUE}→ p${slot} (${ip}) — deploying in background (PID ${zero_pids[$slot]})${NC}"
     done
+
+    echo ""
+    local any_failed=false
+    for slot in $(echo "${!zero_pids[@]}" | tr ' ' '\n' | sort -n); do
+        wait "${zero_pids[$slot]}"
+        local exit_code=$?
+        echo -e "${BLUE}─── p${slot} output ─────────────────────────────${NC}"
+        cat "${zero_logs[$slot]}"
+        rm -f "${zero_logs[$slot]}"
+        if [ $exit_code -ne 0 ]; then
+            echo -e "  ${YELLOW}⚠  p${slot} deployment failed${NC}"
+            any_failed=true
+        fi
+        echo ""
+    done
+
+    [ "$any_failed" = true ] && echo -e "${YELLOW}⚠  One or more Zero W deployments failed — check output above${NC}"
 }
 
 # ---------------------------------------------------------------------------
