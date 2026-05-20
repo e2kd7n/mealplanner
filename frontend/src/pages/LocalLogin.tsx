@@ -123,7 +123,8 @@ const LocalLogin: React.FC = () => {
       const res = await visualAuthAPI.visualLogin({ memberId: selectedUser.id, recipeId });
       const { user } = res.data;
       dispatch(setCredentials({ user: { ...user, name: user.name } }));
-      navigate('/dashboard', { replace: true });
+      const ftueDone = localStorage.getItem('mealplanner_member_ftue_done');
+      navigate(ftueDone ? '/dashboard' : '/member-welcome', { replace: true });
     } catch {
       setError('Wrong image — tap the one you chose during setup.');
       setVerifying(false);
@@ -167,7 +168,7 @@ const LocalLogin: React.FC = () => {
         <Box
           sx={{
             display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))',
+            gridTemplateColumns: users.length > 3 ? '1fr 1fr' : 'repeat(auto-fill, minmax(140px, 1fr))',
             gap: 2,
           }}
         >

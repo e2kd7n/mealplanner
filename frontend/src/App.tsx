@@ -34,6 +34,7 @@ const Profile = lazy(() => import('./pages/Profile'));
 const AdminDashboard = lazy(() => import('./pages/AdminDashboard'));
 const Setup = lazy(() => import('./pages/Setup'));
 const Welcome = lazy(() => import('./pages/Welcome'));
+const MemberWelcome = lazy(() => import('./pages/MemberWelcome'));
 
 // Loading fallback component
 const LoadingFallback = () => (
@@ -73,6 +74,16 @@ function App() {
                   element={
                     <PrivateRoute>
                       <Setup />
+                    </PrivateRoute>
+                  }
+                />
+
+                {/* Family member FTUE — shown once after first visual login */}
+                <Route
+                  path="/member-welcome"
+                  element={
+                    <PrivateRoute>
+                      <MemberWelcome />
                     </PrivateRoute>
                   }
                 />
