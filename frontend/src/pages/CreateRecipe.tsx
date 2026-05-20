@@ -369,6 +369,7 @@ export default function CreateRecipe() {
           : null,
         ingredients: formData.ingredients.map((ing) => ({
           ingredientId: ing.ingredientId,
+          ingredientName: ing.ingredientName,
           quantity: ing.quantity,
           unit: ing.unit,
           notes: ing.notes || null,
