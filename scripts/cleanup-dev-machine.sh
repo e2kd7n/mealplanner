@@ -13,6 +13,7 @@ echo "🧹 Cleaning up development machine..."
 echo ""
 
 # Check if podman or docker is available
+ensure_podman_runtime
 CONTAINER_CMD=$(detect_container_runtime)
 if [ -z "$CONTAINER_CMD" ]; then
     echo -e "${RED}❌ Neither Podman nor Docker is installed${NC}"
