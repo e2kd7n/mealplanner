@@ -26,6 +26,12 @@ log() { echo "[$(date '+%Y-%m-%d %H:%M:%S')] $*"; }
 
 log "=== Meal Planner Auto-Update ==="
 
+# Git state check — uses cached fetch state, no network call
+BEHIND=$(git rev-list --count HEAD..origin/main 2>/dev/null || echo 0)
+if [ "${BEHIND}" -gt 0 ]; then
+    log "WARNING: Local repo is ${BEHIND} commit(s) behind origin/main — config changes won't take effect until 'git pull' is run"
+fi
+
 # Disk check — warn but do not block unattended runs
 DISK_USAGE=$(df / | awk 'NR==2 {print $5}' | tr -d '%')
 if [ "$DISK_USAGE" -gt 80 ]; then
