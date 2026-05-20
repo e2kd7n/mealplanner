@@ -103,7 +103,7 @@ Currently, database backups are manual. Set up automated weekly backups to ensur
 - [ ] Test automated backup execution
 - [ ] Verify backup rotation works correctly
 - [ ] Set up backup monitoring/alerting
-- [ ] Document automated backup setup in `docs/DATABASE_BACKUP.md`
+- [ ] Document automated backup setup in `../../infrastructure/DATABASE_BACKUP.md`
 
 **Acceptance Criteria:**
 - [ ] Backups run automatically every week
@@ -114,7 +114,7 @@ Currently, database backups are manual. Set up automated weekly backups to ensur
 
 **Estimated Effort:** 2-3 hours
 
-**Reference:** `docs/releases/maintenance/WEEKLY_MAINTENANCE_2026-05-01.md`, `docs/DATABASE_BACKUP.md`
+**Reference:** `../../releases/maintenance/WEEKLY_MAINTENANCE_2026-05-01.md`, `../../infrastructure/DATABASE_BACKUP.md`
 
 ---
 

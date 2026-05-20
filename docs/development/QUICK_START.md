@@ -235,7 +235,7 @@ Or use the "Quick Test Login (Smith Family)" button on the login page.
 
 ## 🔗 Related Documentation
 
-- [Local Development Guide](LOCAL_DEVELOPMENT.md)
-- [Port Standardization](PORT_STANDARDIZATION.md)
-- [Deployment Guide](../DEPLOYMENT.md)
-- [Raspberry Pi Deployment](RASPBERRY_PI_DEPLOYMENT_GUIDE.md)
+- [Local Development Guide](../deployment/LOCAL_DEVELOPMENT.md)
+- [Port Standardization](../infrastructure/PORT_STANDARDIZATION.md)
+- [Deployment Guide](../deployment/DEPLOYMENT.md)
+- [Raspberry Pi Deployment](../deployment/RASPBERRY_PI_DEPLOYMENT.md)

@@ -29,7 +29,7 @@ All original P0 critical bugs (#71-78) have been **FIXED and CLOSED**. Based on 
 - ✅ #78 - Test database enriched (35+ recipes with nutrition/images)
 
 ### Design Review Process - COMPLETE
-- ✅ Created 20 design principles (docs/DESIGN_PRINCIPLES.md)
+- ✅ Created 20 design principles (../design/DESIGN_PRINCIPLES.md)
 - ✅ Conducted internal UX evaluation (750 lines)
 - ✅ Conducted external consultancy review (850 lines)
 - ✅ Resolved VP decisions on 4 critical disagreements
@@ -204,8 +204,8 @@ All original P0 critical bugs (#71-78) have been **FIXED and CLOSED**. Based on 
 
 ## 📚 Reference Documents
 
-- **Design Principles:** docs/DESIGN_PRINCIPLES.md
-- **Internal UX Review:** docs/UX_EVALUATION_REPORT.md
+- **Design Principles:** ../design/DESIGN_PRINCIPLES.md
+- **Internal UX Review:** ../DESIGN_UX_EVALUATION_REPORT.md
 - **External Consultancy:** docs/DESIGN_CONSULTANCY_REVIEW.md
 - **VP Decisions:** docs/DESIGN_REVIEW_COMPARISON.md
 - **Implementation Plan:** docs/GITHUB_ISSUES_UPDATE_PLAN.md

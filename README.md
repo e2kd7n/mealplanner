@@ -51,13 +51,13 @@ The setup script asks where you're deploying and guides you from there:
 
 | Topic | |
 |-------|-|
-| Development environment | [docs/SETUP.md](./docs/SETUP.md) |
-| Pi deployment | [docs/RASPBERRY_PI_DEPLOYMENT_GUIDE.md](./docs/RASPBERRY_PI_DEPLOYMENT_GUIDE.md) |
-| Deployment guide | [docs/DEPLOYMENT.md](./docs/DEPLOYMENT.md) |
-| Security & secrets | [docs/SECURITY_SETUP.md](./docs/SECURITY_SETUP.md) |
+| Development environment | [docs/development/SETUP.md](./docs/development/SETUP.md) |
+| Pi deployment | [docs/deployment/RASPBERRY_PI_DEPLOYMENT.md](./docs/deployment/RASPBERRY_PI_DEPLOYMENT.md) |
+| Deployment guide | [docs/deployment/DEPLOYMENT.md](./docs/deployment/DEPLOYMENT.md) |
+| Security & secrets | [docs/security/SECURITY_SETUP.md](./docs/security/SECURITY_SETUP.md) |
 | System architecture | [docs/ARCHITECTURE.md](./docs/ARCHITECTURE.md) |
-| Database backups | [docs/DATABASE_BACKUP.md](./docs/DATABASE_BACKUP.md) |
-| E2E tests | [docs/TESTING_ENVIRONMENT.md](./docs/TESTING_ENVIRONMENT.md) |
+| Database backups | [docs/infrastructure/DATABASE_BACKUP.md](./docs/infrastructure/DATABASE_BACKUP.md) |
+| E2E tests | [docs/testing/TESTING_ENVIRONMENT.md](./docs/testing/TESTING_ENVIRONMENT.md) |
 
 ---
 
