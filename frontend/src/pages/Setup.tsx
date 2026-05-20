@@ -21,20 +21,40 @@ import {
   IconButton,
   Link,
   Chip,
+  MenuItem,
+  List,
+  ListItem,
+  ListItemText,
+  ListItemSecondaryAction,
 } from '@mui/material';
 import {
   Visibility,
   VisibilityOff,
   CheckCircle as CheckCircleIcon,
   Error as ErrorIcon,
+  Delete as DeleteIcon,
+  PersonAdd as PersonAddIcon,
 } from '@mui/icons-material';
 import api from '../services/api';
+import { familyMemberAPI } from '../services/api';
 
-const STEPS = ['Welcome', 'Recipe API Key', 'Done'];
+const STEPS = ['Welcome', 'Family Members', 'Recipe API Key', 'Done'];
+
+interface PendingMember {
+  name: string;
+  ageGroup: 'adult' | 'teen' | 'child';
+}
 
 export default function Setup() {
   const navigate = useNavigate();
   const [activeStep, setActiveStep] = useState(0);
+
+  // Family members step
+  const [members, setMembers] = useState<PendingMember[]>([]);
+  const [memberName, setMemberName] = useState('');
+  const [memberAgeGroup, setMemberAgeGroup] = useState<'adult' | 'teen' | 'child'>('adult');
+  const [membersLoading, setMembersLoading] = useState(false);
+  const [membersError, setMembersError] = useState('');
 
   // Spoonacular step
   const [spoonacularKey, setSpoonacularKey] = useState('');
@@ -44,6 +64,44 @@ export default function Setup() {
   const [testMessage, setTestMessage] = useState('');
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState('');
+
+  const handleAddMember = () => {
+    const trimmed = memberName.trim();
+    if (!trimmed) return;
+    setMembers((prev) => [...prev, { name: trimmed, ageGroup: memberAgeGroup }]);
+    setMemberName('');
+    setMemberAgeGroup('adult');
+  };
+
+  const handleRemoveMember = (idx: number) => {
+    setMembers((prev) => prev.filter((_, i) => i !== idx));
+  };
+
+  const handleSaveMembers = async () => {
+    if (members.length === 0) {
+      setActiveStep(2);
+      return;
+    }
+    setMembersLoading(true);
+    setMembersError('');
+    try {
+      await Promise.all(
+        members.map((m) =>
+          familyMemberAPI.create({
+            name: m.name,
+            ageGroup: m.ageGroup,
+            dietaryRestrictions: [],
+          })
+        )
+      );
+      setActiveStep(2);
+    } catch {
+      setMembersError('Some members could not be saved. You can add them later from Profile.');
+      setActiveStep(2);
+    } finally {
+      setMembersLoading(false);
+    }
+  };
 
   const handleTestKey = async () => {
     if (!spoonacularKey.trim()) return;
@@ -70,7 +128,7 @@ export default function Setup() {
         await api.put('/admin/settings/spoonacular_api_key', { value: spoonacularKey.trim() });
       }
       await api.put('/admin/settings/ftue_completed', { value: 'true' });
-      setActiveStep(2);
+      setActiveStep(3);
     } catch (err: any) {
       setSaveError(err.response?.data?.message || 'Failed to save settings.');
     } finally {
@@ -87,7 +145,7 @@ export default function Setup() {
     } finally {
       setSaving(false);
     }
-    setActiveStep(2);
+    setActiveStep(3);
   };
 
   return (
@@ -147,14 +205,108 @@ export default function Setup() {
                   size="large"
                   onClick={() => setActiveStep(1)}
                 >
-                  Get Started
+                  Get Started →
                 </Button>
               </Box>
             </Box>
           )}
 
-          {/* Step 1: Spoonacular API key */}
+          {/* Step 1: Family Members */}
           {activeStep === 1 && (
+            <Box>
+              <Typography variant="h6" gutterBottom>
+                Who's in the family?
+              </Typography>
+              <Typography color="text.secondary" paragraph>
+                Add everyone who'll use the app. They'll log in by tapping their name and
+                picking their secret image — no password needed.
+              </Typography>
+
+              {membersError && (
+                <Alert severity="warning" sx={{ mb: 2 }}>
+                  {membersError}
+                </Alert>
+              )}
+
+              <Box sx={{ display: 'flex', gap: 1, mb: 1 }}>
+                <TextField
+                  label="Name"
+                  value={memberName}
+                  onChange={(e) => setMemberName(e.target.value)}
+                  onKeyDown={(e) => e.key === 'Enter' && handleAddMember()}
+                  sx={{ flex: 1 }}
+                  size="small"
+                />
+                <TextField
+                  select
+                  label="Age"
+                  value={memberAgeGroup}
+                  onChange={(e) => setMemberAgeGroup(e.target.value as 'adult' | 'teen' | 'child')}
+                  sx={{ width: 110 }}
+                  size="small"
+                >
+                  <MenuItem value="adult">Adult</MenuItem>
+                  <MenuItem value="teen">Teen</MenuItem>
+                  <MenuItem value="child">Child</MenuItem>
+                </TextField>
+                <Button
+                  variant="outlined"
+                  onClick={handleAddMember}
+                  disabled={!memberName.trim()}
+                  sx={{ whiteSpace: 'nowrap', minWidth: 0, px: 1.5 }}
+                  startIcon={<PersonAddIcon />}
+                >
+                  Add
+                </Button>
+              </Box>
+
+              {members.length > 0 && (
+                <List dense sx={{ mb: 2, borderRadius: 1, border: 1, borderColor: 'divider' }}>
+                  {members.map((m, i) => (
+                    <ListItem key={i} divider={i < members.length - 1}>
+                      <ListItemText
+                        primary={m.name}
+                        secondary={m.ageGroup.charAt(0).toUpperCase() + m.ageGroup.slice(1)}
+                      />
+                      <ListItemSecondaryAction>
+                        <IconButton edge="end" size="small" onClick={() => handleRemoveMember(i)}>
+                          <DeleteIcon fontSize="small" />
+                        </IconButton>
+                      </ListItemSecondaryAction>
+                    </ListItem>
+                  ))}
+                </List>
+              )}
+
+              <Alert severity="info" sx={{ mb: 3 }}>
+                Visual login images are picked from Profile → Family Members once you've added
+                some recipe photos. You can also set them up later.
+              </Alert>
+
+              <Box display="flex" justifyContent="space-between" alignItems="center">
+                <Button
+                  variant="text"
+                  color="inherit"
+                  onClick={() => setActiveStep(2)}
+                  disabled={membersLoading}
+                >
+                  Skip
+                </Button>
+                <Button
+                  variant="contained"
+                  size="large"
+                  onClick={handleSaveMembers}
+                  disabled={membersLoading}
+                  startIcon={membersLoading ? <CircularProgress size={16} /> : undefined}
+                >
+                  {membersLoading ? 'Saving…' : members.length > 0 ? 'Save & Continue' : 'Continue'}
+                </Button>
+              </Box>
+            </Box>
+          )}
+
+          {/* Step 2: Spoonacular API key */}
+          {activeStep === 2 && (
             <Box>
               <Typography variant="h6" gutterBottom>
                 Spoonacular API Key
@@ -256,8 +408,8 @@ export default function Setup() {
             </Box>
           )}
 
-          {/* Step 2: Done */}
-          {activeStep === 2 && (
+          {/* Step 3: Done */}
+          {activeStep === 3 && (
             <Box textAlign="center">
               <CheckCircleIcon color="success" sx={{ fontSize: 64, mb: 2 }} />
               <Typography variant="h6" gutterBottom>

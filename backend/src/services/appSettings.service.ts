@@ -3,8 +3,17 @@
  * All rights reserved.
  */
 
+import fs from 'fs';
 import prisma from '../utils/prisma';
 import { logger } from '../utils/logger';
+
+function readOptionalSecret(secretName: string, envVar: string): string | undefined {
+  try {
+    const val = fs.readFileSync(`/run/secrets/${secretName}`, 'utf8').trim();
+    if (val) return val;
+  } catch { /* file absent or unreadable — not an error for optional secrets */ }
+  return process.env[envVar] || undefined;
+}
 
 const CACHE_TTL_MS = 60_000;
 
@@ -46,9 +55,9 @@ const KNOWN_SETTINGS: Array<{
 ];
 
 const ENV_FALLBACKS: Record<string, string | undefined> = {
-  spoonacular_api_key: process.env.SPOONACULAR_API_KEY,
-  edamam_app_id: process.env.EDAMAM_APP_ID,
-  edamam_app_key: process.env.EDAMAM_APP_KEY,
+  spoonacular_api_key: readOptionalSecret('spoonacular_api_key', 'SPOONACULAR_API_KEY'),
+  edamam_app_id: readOptionalSecret('edamam_app_id', 'EDAMAM_APP_ID'),
+  edamam_app_key: readOptionalSecret('edamam_app_key', 'EDAMAM_APP_KEY'),
 };
 
 class AppSettingsService {
