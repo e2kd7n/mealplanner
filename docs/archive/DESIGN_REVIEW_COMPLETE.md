@@ -59,8 +59,8 @@ A comprehensive design review process was completed involving:
 
 ## Key Documents Created
 
-### 1. Design Principles (`docs/DESIGN_PRINCIPLES.md`)
-**Purpose:** Establish foundational UX principles for all future work  
+### 1. Design Principles (`../design/DESIGN_PRINCIPLES.md`)
+**Purpose:** Establish foundational UX principles for all future work
 **Content:** 20 comprehensive principles covering:
 - User Ownership & Control (CRUD Authority)
 - Progressive Disclosure
@@ -463,8 +463,8 @@ The comprehensive design review process successfully:
 
 ## Appendix: Document Index
 
-1. **Design Principles** - `docs/DESIGN_PRINCIPLES.md`
-2. **Internal UX Evaluation** - `docs/UX_EVALUATION_REPORT.md`
+1. **Design Principles** - `../design/DESIGN_PRINCIPLES.md`
+2. **Internal UX Evaluation** - `../DESIGN_UX_EVALUATION_REPORT.md`
 3. **External Consultancy Review** - `docs/DESIGN_CONSULTANCY_REVIEW.md`
 4. **Design Review Comparison** - `docs/DESIGN_REVIEW_COMPARISON.md`
 5. **GitHub Issues Update Plan** - `docs/GITHUB_ISSUES_UPDATE_PLAN.md`

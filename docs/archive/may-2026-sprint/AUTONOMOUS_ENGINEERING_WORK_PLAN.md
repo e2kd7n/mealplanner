@@ -214,7 +214,7 @@ This document outlines the work distribution for P0 (Critical) and P1 (High) pri
 - `scripts/backup-database.sh`
 - `scripts/restore-database.sh`
 - `podman-compose.yml` (add backup service)
-- `docs/DATABASE_BACKUP.md`
+- `../../infrastructure/DATABASE_BACKUP.md`
 
 **Deliverables:**
 - [ ] Automated backup script

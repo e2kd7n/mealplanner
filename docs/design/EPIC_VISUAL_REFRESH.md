@@ -12,7 +12,7 @@
 
 This epic does not start from a blank slate. Three prior design reviews had already identified the core problems; they are resolved here. This section credits that work explicitly so child issues can reference documented findings rather than re-arguing them.
 
-**`docs/DESIGN_PRINCIPLES.md` (v1.0, 2026-04-20)** established 20 design principles and flagged known violations against each. Violations directly addressed by this epic:
+**`DESIGN_PRINCIPLES.md` (v1.0, 2026-04-20)** established 20 design principles and flagged known violations against each. Violations directly addressed by this epic:
 - Principle 2 (Progressive Disclosure): *"❌ Missing: Collapsible filters on browse recipes page"* → Child #6
 - Principle 9 (Contextual Help): *"❌ Missing: Tooltips on icon buttons"* → Child #7
 - Principle 12 (Task-Oriented Organization): *"❌ Grocery list generation is buried in meal plan"* → Child #4
@@ -62,7 +62,7 @@ Both prior design reviews (internal B-, external C+) identified visual consisten
 3. Surface five hidden features through contextual hints, badges, and meaningful CTAs
 4. Establish a real typographic hierarchy in the theme
 5. Give the application a distinct, family-oriented identity
-6. Resolve open design debt documented in `docs/DESIGN_PRINCIPLES.md` (principles 2, 12, 13, 14)
+6. Resolve open design debt documented in `DESIGN_PRINCIPLES.md` (principles 2, 12, 13, 14)
 
 ## Non-Goals (Explicit Out of Scope)
 
@@ -110,8 +110,8 @@ Create each of the following as individual GitHub issues, labelled `visual-refre
 
 ### Child #1 — Dashboard Redesign: Live Information Hub
 **Labels:** `P1-high`, `frontend`, `ux`, `visual-refresh`  
-**Closes:** #25  
-**Relates to:** docs/DESIGN_PRINCIPLES.md principle 12 (Task-Oriented Organization)
+**Closes:** #25
+**Relates to:** DESIGN_PRINCIPLES.md principle 12 (Task-Oriented Organization)
 
 **Problem:** The dashboard shows 4 navigation cards and an empty "Recent Activity" placeholder. It answers no user question. Every morning a family member opens this app wanting to know: *What are we eating tonight? Is there anything I need to buy? Is anything about to expire?*
 
@@ -131,8 +131,8 @@ Create each of the following as individual GitHub issues, labelled `visual-refre
 ---
 
 ### Child #2 — Fix Color System: Secondary/Error/Warning Semantic Collision
-**Labels:** `P1-high`, `frontend`, `theme`, `visual-refresh`  
-**Relates to:** docs/DESIGN_PRINCIPLES.md principle 13 (Visual Hierarchy), docs/DESIGN_EVALUATION_CHECKLIST.md
+**Labels:** `P1-high`, `frontend`, `theme`, `visual-refresh`
+**Relates to:** DESIGN_PRINCIPLES.md principle 13 (Visual Hierarchy), ../archive/DESIGN_EVALUATION_CHECKLIST.md
 
 **Problem:** In `theme.ts`, `secondary.main` = `#C62828`, `warning.main` = `#C62828` (identical), and `error.main` = `#D32F2F` (visually indistinguishable). Users learn that red means danger; secondary action buttons then trigger a subconscious alarm. This erodes trust.
 
@@ -148,8 +148,8 @@ Create each of the following as individual GitHub issues, labelled `visual-refre
 ---
 
 ### Child #3 — Typography: Establish Weight Hierarchy in Theme
-**Labels:** `P2-medium`, `frontend`, `theme`, `visual-refresh`  
-**Relates to:** docs/DESIGN_PRINCIPLES.md principle 13 (Visual Hierarchy)
+**Labels:** `P2-medium`, `frontend`, `theme`, `visual-refresh`
+**Relates to:** DESIGN_PRINCIPLES.md principle 13 (Visual Hierarchy)
 
 **Problem:** Every heading level h1–h6 has `fontWeight: 600`. Only font size differentiates them. On a page with an h4 page title and h6 card titles, the visual weight is nearly identical — the hierarchy exists only in size, not weight, making pages feel monotonous and scan-resistant.
 
@@ -165,8 +165,8 @@ Create each of the following as individual GitHub issues, labelled `visual-refre
 ---
 
 ### Child #4 — Feature Discovery: Surface Hidden Capabilities
-**Labels:** `P1-high`, `frontend`, `ux`, `visual-refresh`  
-**Relates to:** #8, #19, #169; docs/DESIGN_PRINCIPLES.md principles 2, 9, 12
+**Labels:** `P1-high`, `frontend`, `ux`, `visual-refresh`
+**Relates to:** #8, #19, #169; DESIGN_PRINCIPLES.md principles 2, 9, 12
 
 **Problem:** Five high-value features are effectively invisible:
 
@@ -187,8 +187,8 @@ Create each of the following as individual GitHub issues, labelled `visual-refre
 ---
 
 ### Child #5 — Navigation Badges: Ambient State Awareness
-**Labels:** `P2-medium`, `frontend`, `ux`, `visual-refresh`  
-**Relates to:** #118, #20; docs/DESIGN_PRINCIPLES.md principle 4 (Immediate Feedback)
+**Labels:** `P2-medium`, `frontend`, `ux`, `visual-refresh`
+**Relates to:** #118, #20; DESIGN_PRINCIPLES.md principle 4 (Immediate Feedback)
 
 **Problem:** All 5 nav items look identical regardless of application state. A user with 3 expiring pantry items and 8 unchecked grocery items gets no ambient signal from the nav — they must navigate to each page to discover the state.
 
@@ -204,8 +204,8 @@ Create each of the following as individual GitHub issues, labelled `visual-refre
 
 ### Child #6 — Recipe Filter Bar: Collapse to Chips Pattern
 **Labels:** `P2-medium`, `frontend`, `ux`, `visual-refresh`  
-**Absorbs:** UIUX_ENHANCEMENTS.md — Smart Recipe Sorting by Meal Occasion (2026-03-23)  
-**Relates to:** #169, #179; docs/DESIGN_PRINCIPLES.md principle 2 (Progressive Disclosure)
+**Absorbs:** UIUX_ENHANCEMENTS.md — Smart Recipe Sorting by Meal Occasion (2026-03-23)
+**Relates to:** #169, #179; DESIGN_PRINCIPLES.md principle 2 (Progressive Disclosure)
 
 **Problem:** The My Recipes tab exposes 5 controls inline (Search + Difficulty + Meal Type + Cleanup + Sort By) before any recipes appear. This is identified in the external consultancy review as a progressive disclosure failure. Additionally, the meal occasion modal opens with unsorted recipes regardless of the slot context (documented in UIUX_ENHANCEMENTS.md).
 
@@ -221,8 +221,8 @@ Create each of the following as individual GitHub issues, labelled `visual-refre
 ---
 
 ### Child #7 — Cleanup Filter: Explanation and Iconography
-**Labels:** `P2-medium`, `frontend`, `ux`, `visual-refresh`  
-**Relates to:** docs/DESIGN_PRINCIPLES.md principle 9 (Contextual Help & Guidance)
+**Labels:** `P2-medium`, `frontend`, `ux`, `visual-refresh`
+**Relates to:** DESIGN_PRINCIPLES.md principle 9 (Contextual Help & Guidance)
 
 **Problem:** The "Cleanup" filter in Recipes is a genuinely differentiated feature for families — fewer dishes matters. But there is no explanation of what it measures, no icon to make it scannable, and the values ("Minimal (0-3)") are meaningless without context.
 
@@ -265,8 +265,8 @@ Create each of the following as individual GitHub issues, labelled `visual-refre
 ---
 
 ### Child #10 — Profile Discoverability & Onboarding Data Persistence
-**Labels:** `P2-medium`, `frontend`, `ux`, `visual-refresh`  
-**Relates to:** #134, #117; docs/DESIGN_PRINCIPLES.md principle 10 (Data Transparency)
+**Labels:** `P2-medium`, `frontend`, `ux`, `visual-refresh`
+**Relates to:** #134, #117; DESIGN_PRINCIPLES.md principle 10 (Data Transparency)
 
 **Problem:** The profile page holds dietary restrictions, family member setup, and cooking preferences — data that makes the app intelligent. But: (1) the AppBar avatar gives no indication that "Profile & Family Settings" live there; (2) the onboarding wizard collects this data but the handler literally has a comment `// In a real app, you would save this to the backend` — the data never persists beyond localStorage.
 
@@ -315,8 +315,8 @@ Phase 1 and 2 are the 80/20. The color fix and dashboard redesign alone will cha
 - [ ] All 11 child issues closed
 - [ ] Issue #25 closed with reference to Child #1
 - [ ] UIUX_ENHANCEMENTS.md smart-sorting item converted to a closed GitHub issue
-- [ ] `docs/DESIGN_PRINCIPLES.md` updated: mark principles 2, 9, 12, 13, 14 gaps as resolved where applicable
-- [ ] `docs/DESIGN_EVALUATION_CHECKLIST.md` re-evaluated against final state
+- [ ] `DESIGN_PRINCIPLES.md` updated: mark principles 2, 9, 12, 13, 14 gaps as resolved where applicable
+- [ ] `../archive/DESIGN_EVALUATION_CHECKLIST.md` re-evaluated against final state
 - [ ] No WCAG AA regressions (run contrast audit on any changed palette values)
 - [ ] `ISSUE_PRIORITIES.md` updated to reflect new child issues and closed #25
 
@@ -324,8 +324,8 @@ Phase 1 and 2 are the 80/20. The color fix and dashboard redesign alone will cha
 
 ## References
 
-- `docs/DESIGN_PRINCIPLES.md` — establishes the principles this epic addresses
-- `docs/UX_EVALUATION_REPORT.md` — internal B- grade evaluation (2026-04-20)
+- `DESIGN_PRINCIPLES.md` — establishes the principles this epic addresses
+- `../DESIGN_UX_EVALUATION_REPORT.md` — internal B- grade evaluation (2026-04-20)
 - `docs/DESIGN_CONSULTANCY_REVIEW.md` — external C+ grade evaluation (2026-04-21)
 - `docs/DESIGN_REVIEW_COMPARISON.md` — resolution of disagreements between the two reviews
 - `docs/DESIGN_EVALUATION_CHECKLIST.md` — beta launch readiness checklist

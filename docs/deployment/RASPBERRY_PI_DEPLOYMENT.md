@@ -1,7 +1,11 @@
+/** Copyright (c) 2026 e2kd7n. All rights reserved. */
+
 # Raspberry Pi Deployment Guide
 
-**Last Updated:** 2026-05-15
+**Last Updated:** 2026-05-20
 **Target:** Raspberry Pi 4B Rev 1.4 — **2GB RAM**, aarch64, Raspberry Pi OS 64-bit
+
+Complete guide for building and deploying the Meal Planner application on Raspberry Pi using Podman containers.
 
 ---
 
@@ -14,15 +18,6 @@
 - ✅ Network connectivity between dev machine and Pi
 - ✅ At least 5GB free disk space on Pi
 - ✅ `secrets/` directory populated (run `./scripts/generate-secrets.sh` first time)
-
-### Architecture: Pi 4B + ClusterHAT
-This deployment runs **4 containers** on the Pi 4B (2GB RAM):
-- `meals-postgres` (160MB) — PostgreSQL 16
-- `meals-redis` (32MB) — Redis 7
-- `meals-backend` (320MB) — Node.js API (fallback; primary API load goes to Zero W cluster)
-- `meals-nginx` (48MB) — Nginx serving static PWA + proxying `/api/` to cluster
-
-The React PWA is **not** a container. It is pre-built static files served directly by Nginx from `./data/frontend-dist/` — this saves ~100MB RAM vs running a separate container.
 
 ### Fast Track (3 Steps)
 ```bash
@@ -41,6 +36,94 @@ cd ~/mealplanner
 
 ---
 
+## 📐 Architecture Overview
+
+### Container Structure
+
+The Pi production deployment runs **4 containers** on the Pi 4B (2GB RAM):
+
+1. **`meals-postgres`** (160MB) — PostgreSQL 16 Alpine
+   - Persistent volume storage, tuned for SD card (conservative WAL)
+   - Port 5432 (internal only)
+
+2. **`meals-redis`** (32MB) — Redis 7 Alpine
+   - JWT/session cache, LRU eviction (28MB maxmemory)
+   - Port 6379 (internal only)
+
+3. **`meals-backend`** (320MB) — Node.js 20 Alpine
+   - Express API, Prisma ORM
+   - Acts as fallback when ClusterHAT Zero W nodes are unavailable
+   - Port 3000 (internal)
+   - Node.js heap capped at 256MB via `--max-old-space-size`
+
+4. **`meals-nginx`** (48MB) — Nginx Alpine
+   - Serves the React PWA as **static files** from `./data/frontend-dist/`
+   - Load balances `/api/` requests to ClusterHAT Zero W nodes (ports 3001), with Pi 4B backend as fallback
+   - Exposed on port 8080
+
+**Total: ~560MB** — leaves ~1.44GB for OS + buffers
+
+**No separate frontend container** — the React PWA is pre-built static files served by Nginx directly, saving ~100MB RAM.
+
+### Network Flow
+
+```
+Browser → http://192.168.4.110:8080
+                    │
+    ┌───────────────▼───────────────────────┐
+    │  meals-nginx  (48MB)                  │
+    │  Serves ./data/frontend-dist/ (PWA)   │
+    │  Proxies /api/ → ClusterHAT Zeros     │
+    └────────┬──────────────────────────────┘
+             │ /api/  (least_conn)
+    ┌────────▼──────────────────────────────┐
+    │  ClusterHAT Zero W cluster            │
+    │  172.19.180.1–4:3001  (primary)       │
+    │  meals-backend:3000   (backup/local)  │
+    └────────┬──────────────────────────────┘
+             │
+    ┌────────▼──────────────────────────────┐
+    │  meals-postgres  (160MB)              │
+    │  PostgreSQL 16, port 5432 (internal)  │
+    └───────────────────────────────────────┘
+    ┌───────────────────────────────────────┐
+    │  meals-redis  (32MB)                  │
+    │  Redis 7, port 6379 (internal)        │
+    └───────────────────────────────────────┘
+```
+
+### Data Persistence
+
+Volumes are used for persistent data:
+- `postgres_data`: Database files (Docker volume)
+- `./data/uploads`: User-uploaded files
+- `./data/images`: Recipe images
+- `./data/backups`: Database backups
+- `./data/frontend-dist`: React PWA static files
+
+---
+
+## 🚀 Deployment Workflows
+
+### Recommended: Build on Development Machine (Works from macOS)
+
+**Pros:** No cross-compilation issues, faster builds on powerful machine, works from macOS
+**Cons:** Requires image transfer (~400MB)
+
+This is the **recommended approach** because:
+- macOS cross-compilation to ARM64 has limitations
+- Development machines are faster for building
+- Simpler workflow with reliable results
+
+### Alternative: Build Directly on Pi
+
+**Pros:** No image transfer needed, automatic cache management
+**Cons:** First build is slow (~2 hours), uses Pi resources during build
+
+**Note:** After the initial 2-hour build, incremental builds take only 5-10 minutes due to build cache.
+
+---
+
 ## 📋 Detailed Deployment Steps
 
 ### Phase 1: Build Images (Development Machine)
@@ -54,14 +137,14 @@ cd ~/dev/mealplanner
 # Build ARM64 backend image + extract frontend static files (native build)
 ./scripts/build-for-pi.sh
 
-# For 32-bit ARM (only if your Pi runs 32-bit OS — unusual):
-./scripts/build-for-pi.sh  # defaults to arm64/v8 now; pass --arm64 if needed
+# For compressed transfer (recommended for slow connections):
+./scripts/build-for-pi.sh --compress
 ```
 
 **Expected Output:**
-- `pi-images/meals-backend.tar` (~400-500MB uncompressed) or `meals-backend.tar.gz` with `--compress`
+- `pi-images/meals-backend.tar` (~400-500MB uncompressed) or `meals-backend.tar.gz` (~150-250MB compressed)
 - `pi-images/frontend-dist.tar.gz` (~5-15MB) — architecture-independent React static files
-- Total transfer: ~15MB compressed frontend + ~400MB backend
+- Total transfer: ~15MB compressed frontend + ~150-250MB compressed backend (or ~400MB uncompressed)
 
 **Note:** The frontend static files are built natively (HTML/CSS/JS is architecture-independent) and do not need to be cross-compiled. Only the backend image targets ARM64.
 
@@ -156,9 +239,12 @@ cd ~/mealplanner
 ```
 
 **What this does:**
-1. Loads `meals-backend.tar` (or `.tar.gz`) into Podman
-2. Extracts `frontend-dist.tar.gz` → `./data/frontend-dist/` (Nginx serves these directly)
-3. Cleans up transferred files to save disk space
+1. Automatically detects compressed (.tar.gz) or uncompressed (.tar) files
+2. Decompresses on-the-fly (no manual unzip needed)
+3. Loads `meals-backend.tar` (or `.tar.gz`) into Podman
+4. Extracts `frontend-dist.tar.gz` → `./data/frontend-dist/` (Nginx serves these directly)
+5. Cleans up transferred files to save disk space
+6. Shows disk usage before and after
 
 **Expected Duration:** 3-5 minutes
 
@@ -186,8 +272,11 @@ cd ~/mealplanner
 **What this does:**
 1. Checks `meals-backend` image exists
 2. Checks `./data/frontend-dist/index.html` exists
-3. Starts all services via `podman-compose -f podman-compose.pi.yml up -d`
-4. Waits for health checks, then reports status
+3. Generates secrets if not present
+4. Stops existing containers
+5. Starts all services via `podman-compose -f podman-compose.pi.yml up -d`
+6. Runs database migrations automatically
+7. Waits for health checks, then reports status
 
 **Expected Duration:** 2-3 minutes
 
@@ -269,182 +358,6 @@ podman stats
 
 # Full diagnostics
 ./scripts/pi-diagnostics.sh
-```
-
----
-
-## 🚨 Troubleshooting
-
-### Issue: Platform Mismatch Warnings
-
-**Symptoms:** Warnings like `image platform ({arm64 linux [] v8}) does not match the expected platform ({arm linux [] })`
-
-**Cause:** Images were built for wrong architecture (64-bit vs 32-bit)
-
-**Solutions:**
-```bash
-# 1. Check your Pi's architecture
-uname -m   # should print: aarch64
-
-# 2. On dev machine, rebuild for ARM64:
-./scripts/build-for-pi.sh   # defaults to linux/arm64/v8
-
-# 3. Transfer and reload
-scp pi-images/meals-backend.tar pi-images/frontend-dist.tar.gz \
-    pi@192.168.4.110:~/mealplanner/pi-images/
-ssh pi@192.168.4.110
-cd ~/mealplanner
-./scripts/load-pi-images.sh
-./scripts/pi-run.sh
-```
-
----
-
-### Issue: Deployment Hangs or Times Out
-
-**Symptoms:** `deploy-podman.sh` hangs for 2 minutes then times out
-
-**Cause:** Usually platform mismatch or podman-compose blocking on health checks
-
-**Solutions:**
-```bash
-# 1. Check if containers were created but not started
-podman ps -a
-
-# 2. Try starting containers manually
-podman start meals-postgres
-sleep 5
-podman logs meals-postgres
-
-# 3. If platform mismatch, rebuild images for correct architecture
-./scripts/check-platform.sh  # Check your architecture
-# Then rebuild on dev machine with correct flag
-
-# 4. Clean up and redeploy
-podman-compose -f podman-compose.pi.yml down
-podman rm -f meals-postgres meals-redis meals-backend meals-nginx 2>/dev/null || true
-./scripts/pi-run.sh
-```
-
----
-
-### Issue: Containers Won't Start
-
-**Symptoms:** `podman ps` shows no containers or containers keep restarting
-
-**Solutions:**
-```bash
-# 1. Check logs for errors
-podman-compose -f podman-compose.pi.yml logs
-
-# 2. Verify images exist and check architecture
-podman images | grep meals
-./scripts/check-platform.sh
-
-# 3. Check disk space
-df -h /
-
-# 4. If disk is full, cleanup
-./scripts/cleanup-pi.sh
-
-# 5. Try redeploying
-./scripts/pi-run.sh
-```
-
----
-
-### Issue: Out of Memory
-
-**Symptoms:** Containers crash, system becomes unresponsive
-
-**Solutions:**
-```bash
-# 1. Check memory usage
-free -h
-podman stats
-
-# 2. Restart containers to clear memory
-./scripts/pi-bounce.sh
-
-# 3. Increase swap (if needed)
-sudo dphys-swapfile swapoff
-sudo sed -i 's/CONF_SWAPSIZE=.*/CONF_SWAPSIZE=2048/' /etc/dphys-swapfile
-sudo dphys-swapfile setup
-sudo dphys-swapfile swapon
-
-# 4. Verify swap
-free -h
-```
-
----
-
-### Issue: High CPU Load
-
-**Symptoms:** System is slow, CPU temperature high
-
-**Solutions:**
-```bash
-# 1. Check CPU usage
-top
-htop  # if installed
-
-# 2. Check temperature
-vcgencmd measure_temp
-
-# 3. Identify CPU-heavy processes
-ps aux --sort=-%cpu | head -10
-
-# 4. If temperature >70°C, improve cooling
-# - Add heatsink
-# - Add fan
-# - Improve ventilation
-```
-
----
-
-### Issue: Database Connection Errors
-
-**Symptoms:** Backend logs show "Cannot connect to database"
-
-**Solutions:**
-```bash
-# 1. Check if postgres container is running
-podman ps | grep postgres
-
-# 2. Check postgres logs
-podman logs meals-postgres
-
-# 3. Verify database is healthy
-podman exec meals-postgres pg_isready -U mealplanner
-
-# 4. If not healthy, restart postgres
-podman restart meals-postgres
-
-# 5. Wait 10 seconds, then restart backend
-sleep 10
-podman restart meals-backend
-```
-
----
-
-### Issue: Port Already in Use
-
-**Symptoms:** "Port 8080 already in use" error
-
-**Solutions:**
-```bash
-# 1. Check what's using port 8080
-sudo lsof -i :8080
-# or
-sudo netstat -tulpn | grep 8080
-
-# 2. Option A: Stop the conflicting service
-sudo systemctl stop <service-name>
-
-# 3. Option B: Change port in podman-compose.pi.yml
-# Edit the nginx ports section:
-# ports:
-#   - "8081:80"  # Change 8080 to 8081
 ```
 
 ---
@@ -648,11 +561,91 @@ crontab -e
 
 ---
 
+## 🌐 Network Configuration
+
+### Access from Other Devices
+
+To access from other devices on your network:
+
+1. Find Pi's IP address:
+```bash
+hostname -I
+```
+
+2. Access via IP:
+```
+http://192.168.1.XXX:8080
+```
+
+3. Or configure DNS/hosts file for hostname resolution
+
+### Port Forwarding
+
+To access from internet (not recommended without HTTPS):
+
+1. Configure router port forwarding: External 80 → Pi 8080
+2. Set up dynamic DNS
+3. Configure SSL certificates
+4. Update CORS_ORIGIN in podman-compose.yml
+
+---
+
+## 🔍 Key Files and Compose Configuration
+
+### podman-compose.pi.yml
+**Purpose:** Pi-specific compose file that uses pre-built images only (no build directives)
+
+**Why it exists:** The standard `podman-compose.yml` has `build:` sections that trigger image building. On Pi, we use pre-built images transferred from the development machine.
+
+### podman-compose.yml
+**Purpose:** Development/build compose file with build directives
+
+**When to use:** On development machines where you can build images
+
+### Secrets Management
+
+Secrets are stored in `./secrets/` directory:
+- `postgres_password.txt` - Database password
+- `jwt_secret.txt` - JWT signing key
+- `jwt_refresh_secret.txt` - JWT refresh token key
+- `session_secret.txt` - Session encryption key
+
+Generate secrets using:
+```bash
+./scripts/generate-secrets.sh
+```
+
+---
+
+## ✅ Deployment Checklist
+
+Use this checklist for each deployment:
+
+- [ ] Build backend image + frontend static files (`./scripts/build-for-pi.sh`)
+- [ ] Verify `pi-images/meals-backend.tar` and `pi-images/frontend-dist.tar.gz` exist
+- [ ] Transfer both files to Pi
+- [ ] SSH into Pi (`ssh pi@192.168.4.110`)
+- [ ] Check disk space (should be <70%)
+- [ ] Run cleanup if needed (`./scripts/cleanup-pi.sh`)
+- [ ] Verify Podman is installed
+- [ ] Generate secrets (first time only: `./scripts/generate-secrets.sh`)
+- [ ] Load image + extract frontend (`./scripts/load-pi-images.sh`)
+- [ ] Deploy (`./scripts/pi-run.sh`)
+- [ ] Verify 4 containers running (postgres, redis, backend, nginx)
+- [ ] Test health endpoints
+- [ ] Access application in browser
+- [ ] Test login functionality
+- [ ] Configure auto-start (optional)
+- [ ] Set up monitoring (optional)
+
+---
+
 ## 📞 Support and Resources
 
 ### Documentation
 - [Main README](../README.md)
-- [Pi Optimization Proposal](PI_OPTIMIZATION_PROPOSAL.md)
+- [Pi Optimization](PI_OPTIMIZATION.md)
+- [Pi Troubleshooting](RASPBERRY_PI_TROUBLESHOOTING.md)
 - [Deployment Guide](DEPLOYMENT.md)
 
 ### Useful Commands Reference
@@ -685,69 +678,48 @@ podman-compose -f podman-compose.pi.yml logs -f
 
 ---
 
-## 🎓 Understanding the Architecture
+## 🎓 Common Mistakes to Avoid
 
-### Container Structure (Pi Production)
-
-```
-Browser → http://192.168.4.110:8080
-                    │
-    ┌───────────────▼───────────────────────┐
-    │  meals-nginx  (48MB)                  │
-    │  Serves ./data/frontend-dist/ (PWA)   │
-    │  Proxies /api/ → ClusterHAT Zeros     │
-    └────────┬──────────────────────────────┘
-             │ /api/  (least_conn)
-    ┌────────▼──────────────────────────────┐
-    │  ClusterHAT Zero W cluster            │
-    │  172.19.180.1–4:3001  (primary)       │
-    │  meals-backend:3000   (backup/local)  │
-    └────────┬──────────────────────────────┘
-             │
-    ┌────────▼──────────────────────────────┐
-    │  meals-postgres  (160MB)              │
-    │  PostgreSQL 16, port 5432 (internal)  │
-    └───────────────────────────────────────┘
-    ┌───────────────────────────────────────┐
-    │  meals-redis  (32MB)                  │
-    │  Redis 7, port 6379 (internal)        │
-    └───────────────────────────────────────┘
-
-Note: No frontend container. The React PWA is pre-built static
-files in ./data/frontend-dist/, served directly by Nginx.
+### ❌ DON'T: Use podman-compose.yml on Pi
+```bash
+# WRONG - This tries to build images with wrong compose file
+podman-compose -f podman-compose.yml up -d
 ```
 
-### Data Persistence
+### ✅ DO: Use the right compose file
+```bash
+# CORRECT - Uses pre-built images
+podman-compose -f podman-compose.pi.yml up -d
+# Or simply use:
+./scripts/pi-run.sh
+```
 
-Volumes are used for persistent data:
-- `postgres_data`: Database files
-- `./data/uploads`: User-uploaded files
-- `./data/images`: Recipe images
-- `./data/backups`: Database backups
+### ❌ DON'T: Build on Pi without understanding the trade-offs
+Building on Pi works but is slow (~2 hours first time). Use development machine builds for faster deployment.
+
+### ✅ DO: Use build cache for development
+If building on Pi:
+```bash
+# CORRECT - Fast incremental builds (5-10 minutes)
+./scripts/build-on-pi.sh
+```
 
 ---
 
-## ✅ Deployment Checklist
+## 📝 Summary
 
-Use this checklist for each deployment:
+**The Golden Rule:** Build on a development machine and transfer pre-built images to Raspberry Pi for fastest, most reliable deployment.
 
-- [ ] Build backend image + frontend static files (`./scripts/build-for-pi.sh`)
-- [ ] Verify `pi-images/meals-backend.tar` and `pi-images/frontend-dist.tar.gz` exist
-- [ ] Transfer both files to Pi
-- [ ] SSH into Pi (`ssh pi@192.168.4.110`)
-- [ ] Check disk space (should be <70%)
-- [ ] Run cleanup if needed (`./scripts/cleanup-pi.sh`)
-- [ ] Verify Podman is installed
-- [ ] Generate secrets (first time only: `./scripts/generate-secrets.sh`)
-- [ ] Load image + extract frontend (`./scripts/load-pi-images.sh`)
-- [ ] Deploy (`./scripts/pi-run.sh`)
-- [ ] Verify 4 containers running (postgres, redis, backend, nginx)
-- [ ] Test health endpoints
-- [ ] Access application in browser
-- [ ] Test login functionality
-- [ ] Configure auto-start (optional)
-- [ ] Set up monitoring (optional)
+This approach is:
+- More reliable (no syscall issues)
+- Faster (build once, deploy many times)
+- More efficient (Pi resources saved for running, not building)
+- Industry standard (CI/CD builds, production deploys)
 
 ---
 
-**Made with Bob** 🤖
+**Last Updated:** 2026-05-20
+**Version:** 3.0.0
+**Tested on:** Raspberry Pi 4B (2GB), Raspberry Pi OS 64-bit
+
+// Made with Bob

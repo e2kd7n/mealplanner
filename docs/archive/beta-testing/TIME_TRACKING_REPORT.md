@@ -129,9 +129,9 @@
 - SETUP.md - Development environment setup
 - DEPLOYMENT.md - Production deployment guide
 - ISSUE_PRIORITIES.md - Current issue tracking
-- docs/ARCHITECTURE.md - System architecture
-- docs/SECURITY_SETUP.md - Security configuration
-- docs/WEBSOCKET_COLLABORATION.md - Real-time features
+- ../../ARCHITECTURE.md - System architecture
+- ../../security/SECURITY_SETUP.md - Security configuration
+- ../../features/WEBSOCKET_COLLABORATION.md - Real-time features
 - docs/FRONTEND_LOGGING.md - Logging system
 - docs/IMAGE_CACHING.md - Caching strategy
 

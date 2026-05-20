@@ -66,8 +66,8 @@ Recipes
 - [ ] No duplicate navigation items
 
 ## References
-- Design Principles: docs/DESIGN_PRINCIPLES.md
-- Internal UX Review: docs/UX_EVALUATION_REPORT.md
+- Design Principles: ../design/DESIGN_PRINCIPLES.md
+- Internal UX Review: ../DESIGN_UX_EVALUATION_REPORT.md
 - External Consultancy: docs/DESIGN_CONSULTANCY_REVIEW.md
 - VP Decisions: docs/DESIGN_REVIEW_COMPARISON.md
 
@@ -129,8 +129,8 @@ Interactive elements lack ARIA labels, making the application unusable with scre
 - Manual testing with screen reader successful
 
 ## References
-- Design Principles: docs/DESIGN_PRINCIPLES.md (Principle #7: Accessibility First)
-- External Consultancy: docs/DESIGN_CONSULTANCY_REVIEW.md (Section 2)
+- Design Principles: ../design/DESIGN_PRINCIPLES.md (Principle #7: Accessibility First)
+- External Consultancy: ../archive/DESIGN_CONSULTANCY_REVIEW.md (Section 2)
 - VP Decisions: docs/DESIGN_REVIEW_COMPARISON.md
 
 ## Timeline
@@ -179,8 +179,8 @@ Focus indicators are insufficient or missing, making keyboard navigation difficu
 - Focus order follows visual layout
 
 ## References
-- Design Principles: docs/DESIGN_PRINCIPLES.md (Principle #7)
-- External Consultancy: docs/DESIGN_CONSULTANCY_REVIEW.md (Section 2)
+- Design Principles: ../design/DESIGN_PRINCIPLES.md (Principle #7)
+- External Consultancy: ../archive/DESIGN_CONSULTANCY_REVIEW.md (Section 2)
 - VP Decisions: docs/DESIGN_REVIEW_COMPARISON.md
 
 ## Timeline
@@ -247,8 +247,8 @@ No skip navigation links exist, forcing keyboard users to tab through entire nav
 - Passes WCAG 2.1 AA 2.4.1
 
 ## References
-- Design Principles: docs/DESIGN_PRINCIPLES.md (Principle #7)
-- External Consultancy: docs/DESIGN_CONSULTANCY_REVIEW.md (Section 2)
+- Design Principles: ../design/DESIGN_PRINCIPLES.md (Principle #7)
+- External Consultancy: ../archive/DESIGN_CONSULTANCY_REVIEW.md (Section 2)
 - VP Decisions: docs/DESIGN_REVIEW_COMPARISON.md
 
 ## Timeline
@@ -297,8 +297,8 @@ Users lose all work if they navigate away or encounter an error during recipe cr
 - Works offline
 
 ## References
-- Design Principles: docs/DESIGN_PRINCIPLES.md (Principle #5: Error Prevention)
-- Internal UX Review: docs/UX_EVALUATION_REPORT.md
+- Design Principles: ../design/DESIGN_PRINCIPLES.md (Principle #5: Error Prevention)
+- Internal UX Review: ../DESIGN_UX_EVALUATION_REPORT.md
 - External Consultancy: docs/DESIGN_CONSULTANCY_REVIEW.md (Section 3)
 - VP Decisions: docs/DESIGN_REVIEW_COMPARISON.md
 
@@ -361,8 +361,8 @@ showToast({
 - Works for all destructive actions
 
 ## References
-- Design Principles: docs/DESIGN_PRINCIPLES.md (Principle #5)
-- External Consultancy: docs/DESIGN_CONSULTANCY_REVIEW.md (Section 3)
+- Design Principles: ../design/DESIGN_PRINCIPLES.md (Principle #5)
+- External Consultancy: ../archive/DESIGN_CONSULTANCY_REVIEW.md (Section 3)
 - VP Decisions: docs/DESIGN_REVIEW_COMPARISON.md (Compromise: P0 for undo)
 
 ## Timeline
@@ -411,8 +411,8 @@ Many interactive elements are too small for comfortable mobile interaction.
 - Passes mobile usability testing
 
 ## References
-- Design Principles: docs/DESIGN_PRINCIPLES.md (Principle #6: Mobile-First)
-- External Consultancy: docs/DESIGN_CONSULTANCY_REVIEW.md (Section 4)
+- Design Principles: ../design/DESIGN_PRINCIPLES.md (Principle #6: Mobile-First)
+- External Consultancy: ../archive/DESIGN_CONSULTANCY_REVIEW.md (Section 4)
 - VP Decisions: docs/DESIGN_REVIEW_COMPARISON.md (Compromise: P0 for tap targets)
 
 ## Timeline
@@ -503,7 +503,7 @@ Users cannot select multiple recipes for batch operations (delete, tag, export).
 - Clear selection button available
 
 ## References
-- Design Principles: docs/DESIGN_PRINCIPLES.md (Principle #8: Performance & Efficiency)
+- Design Principles: ../design/DESIGN_PRINCIPLES.md (Principle #8: Performance & Efficiency)
 - Both reviews agree: P1 priority
 - VP Decisions: docs/DESIGN_REVIEW_COMPARISON.md
 
@@ -554,7 +554,7 @@ Icon buttons lack labels, making their purpose unclear.
 - Consistent styling
 
 ## References
-- Design Principles: docs/DESIGN_PRINCIPLES.md (Principle #9: Contextual Help)
+- Design Principles: ../design/DESIGN_PRINCIPLES.md (Principle #9: Contextual Help)
 - Both reviews agree: P1 priority
 - VP Decisions: docs/DESIGN_REVIEW_COMPARISON.md
 
@@ -603,7 +603,7 @@ New users don't understand key features or how to get started.
 - Doesn't show again after completion
 
 ## References
-- Design Principles: docs/DESIGN_PRINCIPLES.md (Principle #9)
+- Design Principles: ../design/DESIGN_PRINCIPLES.md (Principle #9)
 - Both reviews agree: P1 priority
 - VP Decisions: docs/DESIGN_REVIEW_COMPARISON.md
 
@@ -656,8 +656,8 @@ window.addEventListener('beforeunload', (e) => {
 - No false positives
 
 ## References
-- Design Principles: docs/DESIGN_PRINCIPLES.md (Principle #5)
-- VP Decisions: docs/DESIGN_REVIEW_COMPARISON.md (Compromise: P1 instead of P0)
+- Design Principles: ../design/DESIGN_PRINCIPLES.md (Principle #5)
+- VP Decisions: ../archive/DESIGN_REVIEW_COMPARISON.md (Compromise: P1 instead of P0)
 
 ## Timeline
 - **Target:** Sprint 1 (Weeks 5-6)

@@ -7,26 +7,14 @@ This directory contains release documentation organized by GitHub milestones and
 ## 📁 Directory Structure
 
 ### `/beta-launch/` - Beta Launch Milestone (Due: April 22, 2026)
-**Milestone:** [Beta Launch](https://github.com/e2kd7n/mealplanner/milestone/2)  
-**Description:** P0 issues that must be fixed before beta launch  
+**Milestone:** [Beta Launch](https://github.com/e2kd7n/mealplanner/milestone/2)
+**Description:** P0 issues that must be fixed before beta launch
 **Status:** ✅ Complete
 
-Contains all documentation related to the Beta Launch milestone, including:
-- MVP release documentation
-- P0 (Critical) issue resolutions
-- P1 (High Priority) feature implementations
-- P2 (Medium Priority) improvements
-- Phase implementation summaries
-- E2E testing reports
-- Work session summaries
+Contains the milestone overview and key achievements. Detailed completion reports (27 files) have been archived to [`../archive/releases/beta-launch/`](../archive/releases/beta-launch/).
 
-**Key Documents:**
-- [`MVP_RELEASE_SUMMARY.md`](beta-launch/MVP_RELEASE_SUMMARY.md) - Initial MVP release (March 16, 2026)
-- [`P0_ISSUES_COMPLETE.md`](beta-launch/P0_ISSUES_COMPLETE.md) - Critical bug fixes
-- [`P1_ISSUES_FINAL_COMPLETION.md`](beta-launch/P1_ISSUES_FINAL_COMPLETION.md) - High priority features (April 22, 2026)
-- [`P2_ISSUES_COMPLETED.md`](beta-launch/P2_ISSUES_COMPLETED.md) - Medium priority improvements
-- [`ALL_ISSUES_WORK_COMPLETE.md`](beta-launch/ALL_ISSUES_WORK_COMPLETE.md) - Comprehensive completion report
-- [`RELEASE_v1.1_SUMMARY.md`](beta-launch/RELEASE_v1.1_SUMMARY.md) - Version 1.1 release (April 19, 2026)
+**Active Documents:**
+- [`README.md`](beta-launch/README.md) - Milestone overview and achievements
 
 ### `/public-launch/` - Public Launch Milestone (Due: April 30, 2026)
 **Milestone:** [Public Launch](https://github.com/e2kd7n/mealplanner/milestone/3)  
@@ -35,11 +23,12 @@ Contains all documentation related to the Beta Launch milestone, including:
 
 This directory will contain documentation for the Public Launch milestone as work progresses.
 
-### `/maintenance/` - Weekly Maintenance Reports
-Contains weekly maintenance reports documenting system health checks, dependency updates, and routine maintenance activities.
+### `/maintenance/` - Maintenance Documentation
+Contains maintenance procedures and checklists. Historical maintenance reports (5 files) have been archived to [`../archive/maintenance/`](../archive/maintenance/).
 
-**Reports:**
-- [`WEEKLY_MAINTENANCE_2026-04-25.md`](maintenance/WEEKLY_MAINTENANCE_2026-04-25.md) - April 25, 2026 maintenance
+**Active Documents:**
+- [`README.md`](maintenance/README.md) - Maintenance procedures and schedule
+- [`WEEKLY_MAINTENANCE_CHECKLIST.md`](maintenance/WEEKLY_MAINTENANCE_CHECKLIST.md) - Detailed maintenance checklist
 
 ---
 
@@ -94,24 +83,16 @@ Contains weekly maintenance reports documenting system health checks, dependency
 
 ## 🔍 Finding Documentation
 
-### By Priority Level
-- **P0 (Critical):** See [`beta-launch/P0_ISSUES_COMPLETE.md`](beta-launch/P0_ISSUES_COMPLETE.md)
-- **P1 (High):** See [`beta-launch/P1_ISSUES_FINAL_COMPLETION.md`](beta-launch/P1_ISSUES_FINAL_COMPLETION.md)
-- **P2 (Medium):** See [`beta-launch/P2_ISSUES_COMPLETED.md`](beta-launch/P2_ISSUES_COMPLETED.md)
+### Active Documentation
+- **Beta Launch Overview:** See [`beta-launch/README.md`](beta-launch/README.md)
+- **Maintenance Procedures:** See [`maintenance/README.md`](maintenance/README.md)
+- **Public Launch Progress:** See [`public-launch/`](public-launch/) directory
 
-### By Release Version
-- **v1.0.0 (MVP):** See [`beta-launch/MVP_RELEASE_SUMMARY.md`](beta-launch/MVP_RELEASE_SUMMARY.md)
-- **v1.1.0:** See [`beta-launch/RELEASE_v1.1_SUMMARY.md`](beta-launch/RELEASE_v1.1_SUMMARY.md)
-
-### By Development Phase
-- **Phase 1:** See [`beta-launch/PHASE1_IMPLEMENTATION_SUMMARY.md`](beta-launch/PHASE1_IMPLEMENTATION_SUMMARY.md)
-- **Phase 2:** See [`beta-launch/PHASE2_IMPLEMENTATION_SUMMARY.md`](beta-launch/PHASE2_IMPLEMENTATION_SUMMARY.md)
-- **Phase 3:** See [`beta-launch/PHASE3_IMPLEMENTATION_SUMMARY.md`](beta-launch/PHASE3_IMPLEMENTATION_SUMMARY.md)
-
-### By Activity Type
-- **Testing:** See [`beta-launch/E2E_CONSOLIDATED_TEST_REPORT.md`](beta-launch/E2E_CONSOLIDATED_TEST_REPORT.md)
-- **Maintenance:** See [`maintenance/`](maintenance/) directory
-- **Work Sessions:** See [`beta-launch/WORK_SESSION_COMPLETE.md`](beta-launch/WORK_SESSION_COMPLETE.md)
+### Archived Documentation
+- **Beta Launch Details (27 files):** See [`../archive/releases/beta-launch/`](../archive/releases/beta-launch/)
+- **Maintenance Reports (5 files):** See [`../archive/maintenance/`](../archive/maintenance/)
+- **User Testing Reports (20 files):** See [`../archive/usertesting/`](../archive/usertesting/)
+- **Design Reviews (3 files):** See [`../archive/design-reviews/`](../archive/design-reviews/)
 
 ---
 
