@@ -15,7 +15,6 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "$SCRIPT_DIR/utilities.sh"
 
 CLUSTERHAT=false
-ZEROS_ONLY=false
 ZERO_USER="pi"
 ZERO_IPS=("172.19.181.1" "172.19.181.2" "172.19.181.3" "172.19.181.4")
 BRIDGE_IP="172.19.181.254"
@@ -24,7 +23,6 @@ REACHABLE_ZEROS=()
 for arg in "$@"; do
     case $arg in
         --clusterhat)    CLUSTERHAT=true ;;
-        --zeros-only)    ZEROS_ONLY=true; CLUSTERHAT=true ;;
         --zero-user=*)   ZERO_USER="${arg#*=}" ;;
     esac
 done
@@ -181,39 +179,6 @@ deploy_zeros() {
 # ---------------------------------------------------------------------------
 
 echo "🚀 Starting Meal Planner on Raspberry Pi..."
-
-# --zeros-only: skip container management and deploy straight to Zero W nodes
-if [ "$ZEROS_ONLY" = true ]; then
-    echo -e "${BLUE}🎛️  Zero W deploy-only mode${NC}"
-
-    if [ ! -d "backend/dist" ]; then
-        echo -e "${YELLOW}backend/dist not found — extracting from running container...${NC}"
-        podman cp meals-backend:/app/dist backend/dist
-        podman cp meals-backend:/app/prisma backend/prisma
-        podman cp meals-backend:/app/package.json backend/package.json
-        echo -e "${GREEN}✓ Extracted backend assets from container${NC}"
-    fi
-
-    echo -e "${BLUE}Checking Zero W nodes...${NC}"
-    for i in "${!ZERO_IPS[@]}"; do
-        ip="${ZERO_IPS[$i]}"
-        slot=$((i + 1))
-        if ping -c 1 -W 2 "$ip" &>/dev/null; then
-            echo -e "  ${GREEN}✓ p${slot} (${ip}) reachable${NC}"
-            REACHABLE_ZEROS+=("${ip}:${slot}")
-        else
-            echo -e "  ${YELLOW}⚠  p${slot} (${ip}) not reachable — skipping${NC}"
-        fi
-    done
-
-    if [ ${#REACHABLE_ZEROS[@]} -eq 0 ]; then
-        echo -e "${RED}❌ No Zero W nodes reachable${NC}"
-        exit 1
-    fi
-
-    deploy_zeros
-    exit 0
-fi
 
 # Always ensure meals-network exists — podman-compose does not auto-create it
 # reliably across all versions; pre-creating is idempotent and safe.
