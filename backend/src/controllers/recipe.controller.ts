@@ -429,6 +429,15 @@ export async function createRecipe(
       throw new AppError('Missing required fields', 400);
     }
 
+    // Validate ingredient names upfront to avoid orphaned recipe rows
+    if (ingredients && ingredients.length > 0) {
+      for (const ing of ingredients) {
+        if (!ing.ingredientName || typeof ing.ingredientName !== 'string' || ing.ingredientName.trim() === '') {
+          throw new AppError('All ingredients must have a name', 400);
+        }
+      }
+    }
+
     // Calculate cleanup score
     const cleanupScore = calculateCleanupScore({
       ingredients: ingredients || [],
