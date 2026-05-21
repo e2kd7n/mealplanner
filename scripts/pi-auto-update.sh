@@ -24,6 +24,19 @@ FORCE=false
 
 log() { echo "[$(date '+%Y-%m-%d %H:%M:%S')] $*"; }
 
+# On failure: dump the last backend log lines so the error is debuggable without
+# SSH-ing in, then prune any dangling (untagged) images left by a partial pull.
+_on_exit() {
+    local exit_code=$?
+    if [ "$exit_code" -ne 0 ]; then
+        log "ERROR: script exited with code $exit_code — last 30 backend log lines:"
+        podman logs --tail=30 meals-backend 2>/dev/null || true
+        log "Pruning dangling images left by failed update..."
+        podman image prune -f 2>/dev/null || true
+    fi
+}
+trap _on_exit EXIT
+
 log "=== Meal Planner Auto-Update ==="
 
 # Git state check — uses cached fetch state, no network call
@@ -37,6 +50,12 @@ DISK_USAGE=$(df / | awk 'NR==2 {print $5}' | tr -d '%')
 if [ "$DISK_USAGE" -gt 80 ]; then
     log "WARNING: Disk at ${DISK_USAGE}% — pull may fail. Consider: podman image prune -a"
 fi
+
+# Prune stopped containers and dangling images before starting so stale remnants
+# from a previous failed run do not interfere with the pull.
+log "Cleaning up stale containers and dangling images..."
+podman container prune -f 2>/dev/null || true
+podman image prune -f 2>/dev/null || true
 
 if [ -f "$GHCR_TOKEN_FILE" ]; then
     log "Authenticating with GHCR..."
@@ -56,8 +75,13 @@ fi
 podman tag "$REMOTE_IMAGE" "$LOCAL_IMAGE"
 AFTER_ID=$(podman inspect "$LOCAL_IMAGE" --format '{{.Id}}' 2>/dev/null || echo "")
 
-# Keep only the local tag; layers are retained
+# Keep only the local tag; drop the GHCR reference so podman-compose doesn't
+# attempt a second pull. Remove the superseded image by ID to prevent it
+# accumulating as untagged layers on the Pi's limited storage.
 podman rmi "$REMOTE_IMAGE" 2>/dev/null || true
+if [ -n "$BEFORE_ID" ] && [ "$BEFORE_ID" != "$AFTER_ID" ]; then
+    podman rmi "$BEFORE_ID" 2>/dev/null || true
+fi
 
 if [ "$BEFORE_ID" = "$AFTER_ID" ] && [ -n "$BEFORE_ID" ] && [ "$FORCE" = false ]; then
     log "Image unchanged (${AFTER_ID:0:12}) — containers not restarted."
@@ -73,7 +97,11 @@ extract_frontend_from_image "$LOCAL_IMAGE" >/dev/null
 log "Extracted $(ls ./data/frontend-dist | wc -l) files to data/frontend-dist/"
 
 log "Restarting containers..."
-podman-compose -f podman-compose.pi.yml down
+# Suppress expected "not found" noise when nothing was running before this update.
+podman-compose -f podman-compose.pi.yml down 2>&1 \
+    | grep -v "no such container\|no such pod\|no pod with name\|no container with name" \
+    || true
+
 podman-compose -f podman-compose.pi.yml up -d
 
 log "Waiting for backend to become healthy..."
@@ -90,9 +118,17 @@ for i in $(seq 1 12); do
     fi
 done
 
+# Nginx caches backend DNS at startup; restart it so the new container IP is
+# picked up. Remove once issue #206 (resolver directive) is fixed in nginx config.
+log "Restarting nginx to refresh backend DNS..."
+podman restart meals-nginx 2>/dev/null || log "WARNING: could not restart meals-nginx"
+
 log "Running database migrations..."
 PRISMA_BIN=$(podman exec meals-backend find /app/node_modules/.pnpm -name "index.js" -path "*/prisma/build/index.js" 2>/dev/null | head -1)
 if [ -z "$PRISMA_BIN" ]; then
+    PRISMA_BIN="/app/node_modules/.bin/prisma"
+fi
+if ! podman exec meals-backend test -f "$PRISMA_BIN" 2>/dev/null; then
     log "WARNING: Prisma CLI not found in container — skipping migration step."
 else
     podman exec meals-backend sh -c "
@@ -101,5 +137,10 @@ else
         node $PRISMA_BIN migrate deploy
     " && log "✓ Migrations applied." || log "WARNING: Migration step failed — check logs."
 fi
+
+# Clean up any images that are now untagged (the superseded build left behind
+# by podman after restarting containers).
+log "Cleaning up superseded images..."
+podman image prune -f 2>/dev/null || true
 
 log "✓ Deployment complete."
