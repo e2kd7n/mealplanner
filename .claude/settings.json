@@ -20,9 +20,14 @@
       "Bash(npm run *)",
       "Bash(gh pr comment 202 --body ' *)",
       "Bash(gh api *)",
-      "Bash(pnpm audit *)",
+      "Bash(pnpm *)",
+      "PowerShell(pnpm *)",
       "Bash(ssh admin@pi4 \"podman exec meals-backend grep -r 'familyMember.findMany' /app/dist/controllers/ 2>&1\")",
-      "Bash(ssh admin@pi4 \"podman logs meals-nginx --tail 30\")"
+      "Bash(ssh admin@pi4 \"podman logs meals-nginx --tail 30\")",
+      "PowerShell(pnpm info socket.io version 2>&1)",
+      "PowerShell(pnpm info socket.io-client version 2>&1)",
+      "Skill(update-config)",
+      "Skill(update-config:*)"
     ]
   }
 }
