@@ -1,11 +1,13 @@
 # Multi-stage build for Node.js backend with integrated frontend
-# Optimized for ARM architecture (Raspberry Pi) with minimal size
+# Target runtime: linux/arm64 (Raspberry Pi 4B / Zero W)
 #
-# Build stages:
-#   [1/3] frontend-builder - Builds the React frontend application
-#   [2/3] backend-builder  - Builds the Node.js backend, generates Prisma client,
-#                            and prunes to production-only dependencies
-#   [3/3] production       - Final image — no pnpm, no build tools, no devDeps
+# Build stage architecture:
+#   [1/3] frontend-builder  amd64  — Vite/Rollup has broken ARM binaries; output is JS
+#   [2/3] backend-builder   amd64  — pnpm/tsc/prisma are QEMU-hostile; output is JS
+#   [3/3] production        arm64  — final runtime image for the Pi
+#
+# Stages 1 and 2 run on the native amd64 GitHub runner (no QEMU). Stage 3
+# inherits the target platform from `docker buildx --platform linux/arm64`.
 #
 # pnpm@11 blocks build scripts by default. onlyBuiltDependencies in the lockfile
 # settings section explicitly approves the packages that need native compilation
@@ -13,7 +15,9 @@
 # invocation including subprocess calls from prisma generate.
 
 # ============================================================================
-# STAGE 1/3: Frontend Builder
+# STAGE 1/3: Frontend Builder  [BUILD ARCH: amd64]
+# Pinned to amd64: Rolldown does not support ARM; Rollup's ARM binary is
+# unreliable under QEMU. JS/CSS output is platform-independent.
 # ============================================================================
 FROM --platform=linux/amd64 docker.io/library/node:22-alpine AS frontend-builder
 
@@ -36,9 +40,13 @@ ENV VITE_USE_ROLLUP=true
 RUN pnpm build
 
 # ============================================================================
-# STAGE 2/3: Backend Builder
+# STAGE 2/3: Backend Builder  [BUILD ARCH: amd64]
+# Pinned to amd64: pnpm install, tsc, and prisma generate are all
+# QEMU-hostile — 10-20x slower under ARM emulation. Compiled JS and the
+# Prisma client are platform-independent. bcrypt's native .node binary will
+# be amd64 here; it is recompiled for arm64 in the production stage below.
 # ============================================================================
-FROM docker.io/library/node:22-alpine AS backend-builder
+FROM --platform=linux/amd64 docker.io/library/node:22-alpine AS backend-builder
 
 # Build tools required by bcrypt's native module (node-gyp → python3/make/gcc)
 RUN apk add --no-cache python3 make g++ gcc
@@ -68,18 +76,26 @@ RUN pnpm prisma generate && \
     rm -rf /root/.local/share/pnpm/store /tmp/* /root/.cache /root/.npm
 
 # ============================================================================
-# STAGE 3/3: Production Image
+# STAGE 3/3: Production Image  [RUNTIME ARCH: arm64]
+# No platform pin — inherits linux/arm64 from `docker buildx --platform`.
+# bcrypt is rebuilt here from source because stage 2 compiled it for amd64.
 # ============================================================================
 FROM docker.io/library/node:22-alpine
 
 WORKDIR /app
 
-# libstdc++ and libgcc are required by bcrypt's native module at runtime
-RUN apk add --no-cache libstdc++ libgcc && \
-    rm -rf /var/cache/apk/*
+# Build tools: needed only to recompile bcrypt's native module for arm64.
+# Runtime libs (libstdc++, libgcc) are kept; build tools are removed after.
+RUN apk add --no-cache python3 make g++ gcc libstdc++ libgcc
 
-# Production node_modules (devDeps pruned, bcrypt binary compiled, no pnpm)
+# Production node_modules from the amd64 builder (bcrypt binary is wrong arch here)
 COPY --from=backend-builder /app/node_modules ./node_modules
+
+# Recompile bcrypt's native .node binary for the runtime platform (arm64).
+# All other native modules in this project are pure-JS so no other rebuilds needed.
+RUN npm rebuild bcrypt && \
+    apk del python3 make g++ gcc && \
+    rm -rf /var/cache/apk/*
 
 # Compiled TypeScript output
 COPY --from=backend-builder /app/dist ./dist
