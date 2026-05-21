@@ -21,11 +21,13 @@ import {
   Stepper,
   Step,
   StepLabel,
+  TextField,
+  Stack,
 } from '@mui/material';
 import { ArrowBack as ArrowBackIcon } from '@mui/icons-material';
 import { useAppDispatch } from '../store/hooks';
 import { setCredentials } from '../store/slices/authSlice';
-import api, { visualAuthAPI } from '../services/api';
+import api, { visualAuthAPI, authAPI, recipeAPI } from '../services/api';
 
 interface UserEntry {
   id: string;
@@ -38,7 +40,8 @@ interface ChallengeImage {
   imageUrl: string | null;
 }
 
-const STEPS = ['Who are you?', 'Pick your image'];
+const STEPS_NORMAL = ['Who are you?', 'Pick your image'];
+const STEPS_SETUP  = ['Who are you?', 'Sign in to set up', 'Pick your image'];
 
 const LocalLogin: React.FC = () => {
   const navigate = useNavigate();
@@ -52,6 +55,14 @@ const LocalLogin: React.FC = () => {
   const [challengeLoading, setChallengeLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [verifying, setVerifying] = useState(false);
+
+  // Setup mode — entered when user has no visual password yet
+  const [setupMode, setSetupMode] = useState(false);
+  const [setupEmail, setSetupEmail] = useState('');
+  const [setupPassword, setSetupPassword] = useState('');
+  const [setupLoading, setSetupLoading] = useState(false);
+
+  const steps = setupMode ? STEPS_SETUP : STEPS_NORMAL;
 
   // On mount: try device token first (silent, no UI flash)
   useEffect(() => {
@@ -103,39 +114,73 @@ const LocalLogin: React.FC = () => {
     try {
       const res = await visualAuthAPI.getVisualChallenge(user.id);
       setChallenge(res.data.images ?? []);
+      setSetupMode(false);
     } catch (err: any) {
       if (err?.response?.status === 400) {
-        setError(`${user.name} hasn't set a visual password yet — use the classic login instead.`);
+        // No visual password set — enter first-time setup flow
+        setSetupMode(true);
+        setChallenge([]);
       } else {
         setError('Failed to load visual challenge. Please try again.');
+        setStep(0);
+        setSelectedUser(null);
       }
-      setStep(0);
     } finally {
       setChallengeLoading(false);
     }
   }, []);
+
+  const handleSetupSignIn = async () => {
+    setSetupLoading(true);
+    setError(null);
+    try {
+      const loginRes = await authAPI.login({ email: setupEmail, password: setupPassword });
+      dispatch(setCredentials({ user: loginRes.data.user }));
+
+      const recipesRes = await recipeAPI.getAll({ limit: 100 });
+      const withImages = (recipesRes.data.recipes ?? []).filter((r: any) => r.imageUrl);
+      if (withImages.length === 0) {
+        setError('Add at least one recipe with an image before setting up visual login.');
+        return;
+      }
+      setChallenge(withImages.map((r: any) => ({ id: r.id, title: r.title, imageUrl: r.imageUrl })));
+      setStep(2);
+    } catch (err: any) {
+      setError(err.response?.data?.message || 'Sign-in failed. Check your email and password.');
+    } finally {
+      setSetupLoading(false);
+    }
+  };
 
   const handlePickImage = useCallback(async (recipeId: string) => {
     if (!selectedUser || verifying) return;
     setVerifying(true);
     setError(null);
     try {
-      const res = await visualAuthAPI.visualLogin({ memberId: selectedUser.id, recipeId });
-      const { user } = res.data;
-      dispatch(setCredentials({ user: { ...user, name: user.name } }));
-      const ftueDone = localStorage.getItem('mealplanner_member_ftue_done');
-      navigate(ftueDone ? '/dashboard' : '/member-welcome', { replace: true });
+      if (setupMode) {
+        await visualAuthAPI.setupVisualPassword(selectedUser.id, recipeId);
+        navigate('/dashboard', { replace: true });
+      } else {
+        const res = await visualAuthAPI.visualLogin({ memberId: selectedUser.id, recipeId });
+        const { user } = res.data;
+        dispatch(setCredentials({ user: { ...user, name: user.name } }));
+        const ftueDone = localStorage.getItem('mealplanner_member_ftue_done');
+        navigate(ftueDone ? '/dashboard' : '/member-welcome', { replace: true });
+      }
     } catch {
-      setError('Wrong image — tap the one you chose during setup.');
+      setError(setupMode ? 'Failed to save. Please try again.' : 'Wrong image — tap the one you chose during setup.');
       setVerifying(false);
     }
-  }, [selectedUser, verifying, dispatch, navigate]);
+  }, [selectedUser, verifying, dispatch, navigate, setupMode]);
 
   const handleBack = () => {
     setStep(0);
     setSelectedUser(null);
     setChallenge([]);
     setError(null);
+    setSetupMode(false);
+    setSetupEmail('');
+    setSetupPassword('');
   };
 
   return (
@@ -150,7 +195,7 @@ const LocalLogin: React.FC = () => {
       </Box>
 
       <Stepper activeStep={step} sx={{ mb: 4 }}>
-        {STEPS.map((label) => (
+        {steps.map((label) => (
           <Step key={label}>
             <StepLabel>{label}</StepLabel>
           </Step>
@@ -203,8 +248,8 @@ const LocalLogin: React.FC = () => {
         </Box>
       )}
 
-      {/* Step 1 — Visual challenge */}
-      {step === 1 && (
+      {/* Step 1 (normal) — Visual challenge */}
+      {step === 1 && !setupMode && (
         <Box>
           <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
             <Button
@@ -262,6 +307,98 @@ const LocalLogin: React.FC = () => {
               ))}
             </Box>
           )}
+        </Box>
+      )}
+
+      {/* Step 1 (setup) — Sign in to authenticate before picking visual password */}
+      {step === 1 && setupMode && (
+        <Box>
+          <Box sx={{ display: 'flex', alignItems: 'center', mb: 3 }}>
+            <Button startIcon={<ArrowBackIcon />} onClick={handleBack} size="small" sx={{ mr: 1 }}>
+              Back
+            </Button>
+            <Typography variant="body1">
+              First-time setup for <strong>{selectedUser?.name}</strong>
+            </Typography>
+          </Box>
+          <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
+            Sign in with your account email and password, then pick a recipe image as your visual login.
+          </Typography>
+          <Stack spacing={2}>
+            <TextField
+              label="Email"
+              type="email"
+              fullWidth
+              value={setupEmail}
+              onChange={(e) => setSetupEmail(e.target.value)}
+              disabled={setupLoading}
+              autoComplete="email"
+            />
+            <TextField
+              label="Password"
+              type="password"
+              fullWidth
+              value={setupPassword}
+              onChange={(e) => setSetupPassword(e.target.value)}
+              disabled={setupLoading}
+              autoComplete="current-password"
+              onKeyDown={(e) => e.key === 'Enter' && !setupLoading && setupEmail && setupPassword && handleSetupSignIn()}
+            />
+            <Button
+              variant="contained"
+              fullWidth
+              onClick={handleSetupSignIn}
+              disabled={setupLoading || !setupEmail || !setupPassword}
+            >
+              {setupLoading ? <CircularProgress size={24} /> : 'Continue'}
+            </Button>
+          </Stack>
+        </Box>
+      )}
+
+      {/* Step 2 (setup) — Pick recipe as visual password */}
+      {step === 2 && setupMode && (
+        <Box>
+          <Typography variant="body1" sx={{ mb: 1 }}>
+            Pick your image, <strong>{selectedUser?.name}</strong>
+          </Typography>
+          <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+            Tap the recipe you want to use as your visual login. You'll tap it every time you sign in.
+          </Typography>
+          <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 2, position: 'relative' }}>
+            {verifying && (
+              <Box
+                sx={{
+                  position: 'absolute',
+                  inset: 0,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  bgcolor: 'rgba(255,255,255,0.7)',
+                  zIndex: 1,
+                  borderRadius: 2,
+                }}
+              >
+                <CircularProgress />
+              </Box>
+            )}
+            {challenge.map((img) => (
+              <Card key={img.id} sx={{ cursor: 'pointer' }}>
+                <CardActionArea onClick={() => handlePickImage(img.id)} disabled={verifying}>
+                  <CardMedia
+                    component="img"
+                    height="160"
+                    image={img.imageUrl ?? '/placeholder-recipe.jpg'}
+                    alt={img.title}
+                    sx={{ objectFit: 'cover' }}
+                  />
+                  <CardContent sx={{ py: 1 }}>
+                    <Typography variant="caption" noWrap>{img.title}</Typography>
+                  </CardContent>
+                </CardActionArea>
+              </Card>
+            ))}
+          </Box>
         </Box>
       )}
 
