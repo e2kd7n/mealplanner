@@ -130,13 +130,7 @@ const Profile: React.FC = () => {
   const [memberNewIngredient, setMemberNewIngredient] = useState('');
 
   useEffect(() => {
-    // Only load data if we have an access token
-    const token = localStorage.getItem('accessToken');
-    if (token) {
-      loadData();
-    } else {
-      setLoading(false);
-    }
+    loadData();
   }, []);
 
   const loadData = async () => {
