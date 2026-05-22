@@ -13,7 +13,6 @@ import {
   Stepper,
   Step,
   StepLabel,
-  TextField,
   FormControl,
   FormLabel,
   FormControlLabel,
@@ -30,7 +29,6 @@ import {
 import {
   Close as CloseIcon,
   Restaurant as RestaurantIcon,
-  People as PeopleIcon,
   Favorite as FavoriteIcon,
   CheckCircle as CheckCircleIcon,
   ArrowForward as ArrowForwardIcon,
@@ -46,7 +44,6 @@ interface OnboardingWizardProps {
 }
 
 export interface OnboardingData {
-  householdSize: number;
   dietaryPreferences: string[];
   cuisinePreferences: string[];
   cookingSkillLevel: string;
@@ -73,7 +70,6 @@ const OnboardingWizard: React.FC<OnboardingWizardProps> = ({ open, onClose, onCo
   const [, setSkipped] = useState(false);
   
   // Form state
-  const [householdSize, setHouseholdSize] = useState<number>(2);
   const [dietaryPreferences, setDietaryPreferences] = useState<string[]>([]);
   const [cuisinePreferences, setCuisinePreferences] = useState<string[]>([]);
   const [cookingSkillLevel, setCookingSkillLevel] = useState<string>('intermediate');
@@ -81,7 +77,6 @@ const OnboardingWizard: React.FC<OnboardingWizardProps> = ({ open, onClose, onCo
 
   const steps = [
     'Welcome',
-    'Household',
     'Dietary Preferences',
     'Cuisine Preferences',
     'Cooking Profile',
@@ -98,7 +93,6 @@ const OnboardingWizard: React.FC<OnboardingWizardProps> = ({ open, onClose, onCo
   const handleSkip = () => {
     setSkipped(true);
     const data: OnboardingData = {
-      householdSize: 2,
       dietaryPreferences: [],
       cuisinePreferences: [],
       cookingSkillLevel: 'intermediate',
@@ -111,7 +105,6 @@ const OnboardingWizard: React.FC<OnboardingWizardProps> = ({ open, onClose, onCo
 
   const handleComplete = () => {
     const data: OnboardingData = {
-      householdSize,
       dietaryPreferences,
       cuisinePreferences,
       cookingSkillLevel,
@@ -154,52 +147,6 @@ const OnboardingWizard: React.FC<OnboardingWizardProps> = ({ open, onClose, onCo
         );
 
       case 1:
-        return (
-          <Box sx={{ py: 2 }}>
-            <Box sx={{ display: 'flex', alignItems: 'center', mb: 3 }}>
-              <PeopleIcon sx={{ mr: 2, color: 'primary.main', fontSize: 40 }} />
-              <Box>
-                <Typography variant="h5" gutterBottom>
-                  Household Size
-                </Typography>
-                <Typography variant="body2" color="text.secondary">
-                  How many people are you cooking for?
-                </Typography>
-              </Box>
-            </Box>
-            <TextField
-              fullWidth
-              type="number"
-              label="Number of people"
-              value={householdSize}
-              onChange={(e) => {
-                const value = e.target.value;
-                // Allow empty string for user to clear and retype
-                if (value === '') {
-                  setHouseholdSize(1);
-                } else {
-                  const parsed = parseInt(value, 10);
-                  if (!isNaN(parsed)) {
-                    setHouseholdSize(Math.max(1, Math.min(20, parsed)));
-                  }
-                }
-              }}
-              onFocus={(e) => e.target.select()}
-              inputProps={{ min: 1, max: 20 }}
-              helperText="This helps us suggest appropriate serving sizes"
-              sx={{ mb: 3 }}
-            />
-            <Card variant="outlined">
-              <CardContent>
-                <Typography variant="body2" color="text.secondary">
-                  💡 <strong>Tip:</strong> You can add individual family members later in your profile to track dietary restrictions and preferences for each person.
-                </Typography>
-              </CardContent>
-            </Card>
-          </Box>
-        );
-
-      case 2:
         return (
           <Box sx={{ py: 2 }}>
             <Box sx={{ display: 'flex', alignItems: 'center', mb: 3 }}>
@@ -262,7 +209,7 @@ const OnboardingWizard: React.FC<OnboardingWizardProps> = ({ open, onClose, onCo
           </Box>
         );
 
-      case 3:
+      case 2:
         return (
           <Box sx={{ py: 2 }}>
             <Box sx={{ display: 'flex', alignItems: 'center', mb: 3 }}>
@@ -298,7 +245,7 @@ const OnboardingWizard: React.FC<OnboardingWizardProps> = ({ open, onClose, onCo
           </Box>
         );
 
-      case 4:
+      case 3:
         return (
           <Box sx={{ py: 2 }}>
             <Typography variant="h5" gutterBottom sx={{ mb: 3 }}>
