@@ -150,8 +150,6 @@ app.use('/api/admin/settings', appSettingsRoutes);
 app.use('/api/images', imageRoutes);
 app.use('/api/logs', logsRoutes);
 app.use('/api/feedback', feedbackRoutes);
-app.use('/api/setup', appSettingsRoutes);
-
 // Serve static files from frontend build (in production)
 if (process.env.NODE_ENV === 'production') {
   const frontendPath = path.join(__dirname, '../public');
