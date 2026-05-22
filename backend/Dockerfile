@@ -103,6 +103,14 @@ COPY --from=backend-builder /app/dist ./dist
 # Prisma schema — needed for `prisma migrate deploy` at container startup
 COPY --from=backend-builder /app/prisma ./prisma
 
+# Regenerate the Prisma client natively for arm64.
+# pnpm prune --prod in stage 2 wipes .prisma/client (a side effect of the prisma
+# devDep), so we re-run generate here on the actual target platform. The prisma
+# CLI survives prune in .pnpm/ because @prisma/client lists it as a peer dep.
+RUN PRISMA_BIN=$(find /app/node_modules/.pnpm -name "index.js" -path "*/prisma/build/index.js" 2>/dev/null | head -1) && \
+    [ -n "$PRISMA_BIN" ] || (echo "ERROR: prisma CLI not found in pnpm store" && exit 1) && \
+    DATABASE_URL="postgresql://dummy:dummy@localhost:5432/dummy" node "$PRISMA_BIN" generate
+
 COPY backend/package.json ./
 
 # Frontend static files (served by the backend in non-Pi deployments)
@@ -117,6 +125,6 @@ ENV NODE_ENV=production
 EXPOSE 3000
 
 HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
-  CMD wget --no-verbose --tries=1 --spider http://localhost:3000/health || exit 1
+  CMD wget --no-verbose --tries=1 --spider http://127.0.0.1:3000/health || exit 1
 
 ENTRYPOINT ["/app/docker-entrypoint.sh"]
