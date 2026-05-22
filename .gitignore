@@ -86,6 +86,9 @@ Thumbs.db
 *.temp
 .cache/
 
+# Claude Code
+.claude/
+
 # Made with Bob
 # Bob AI assistant files
 bob_skills.md
