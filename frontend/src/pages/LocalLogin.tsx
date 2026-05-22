@@ -27,7 +27,7 @@ import {
 import { ArrowBack as ArrowBackIcon } from '@mui/icons-material';
 import { useAppDispatch } from '../store/hooks';
 import { setCredentials } from '../store/slices/authSlice';
-import api, { visualAuthAPI, authAPI, recipeAPI } from '../services/api';
+import api, { visualAuthAPI, authAPI } from '../services/api';
 
 interface UserEntry {
   id: string;
@@ -137,15 +137,15 @@ const LocalLogin: React.FC = () => {
       const loginRes = await authAPI.login({ email: setupEmail, password: setupPassword });
       dispatch(setCredentials({ user: loginRes.data.user }));
 
-      const recipesRes = await recipeAPI.getAll({ limit: 100 });
-      const withImages = (recipesRes.data.recipes ?? []).filter((r: any) => r.imageUrl);
-      if (withImages.length === 0) {
-        // Authenticated but no recipe images yet — send to dashboard so they can add one,
+      const imagesRes = await visualAuthAPI.getSetupImages();
+      const images = imagesRes.data.images ?? [];
+      if (images.length === 0) {
+        // Authenticated but no recipe images exist yet — send to dashboard so they can add one,
         // then return here to complete visual login setup.
         navigate('/dashboard', { replace: true, state: { visualLoginSetupPending: true } });
         return;
       }
-      setChallenge(withImages.map((r: any) => ({ id: r.id, title: r.title, imageUrl: r.imageUrl })));
+      setChallenge(images.map((r: any) => ({ id: r.id, title: r.title, imageUrl: r.imageUrl })));
       setStep(2);
     } catch (err: any) {
       setError(err.response?.data?.message || 'Sign-in failed. Check your email and password.');
