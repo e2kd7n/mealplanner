@@ -443,7 +443,7 @@ export async function deviceLogout(req: Request, res: Response, next: NextFuncti
  * Used by the setup flow so users can pick from seed recipes and their own.
  * Requires authentication to prevent unauthenticated enumeration.
  */
-export async function getVisualSetupImages(req: Request, res: Response, next: NextFunction): Promise<void> {
+export async function getVisualSetupImages(_req: Request, res: Response, next: NextFunction): Promise<void> {
   try {
     const recipes = await withRetry(() =>
       prisma.recipe.findMany({
