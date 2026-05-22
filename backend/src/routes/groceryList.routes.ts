@@ -16,7 +16,6 @@ import {
   addItemToList,
   updateListItem,
   removeItemFromList,
-  optimizeGroceryList,
 } from '../controllers/groceryList.controller';
 
 const router: Router = Router();
@@ -51,13 +50,6 @@ router.post('/', createGroceryList);
  * @access  Private
  */
 router.post('/from-meal-plan/:mealPlanId', generateFromMealPlan);
-
-/**
- * @route   POST /api/grocery-lists/:id/optimize
- * @desc    Optimize grocery list by store sections or price
- * @access  Private
- */
-router.post('/:id/optimize', optimizeGroceryList);
 
 /**
  * @route   PUT /api/grocery-lists/:id

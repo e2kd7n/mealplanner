@@ -15,8 +15,6 @@ import {
   rateRecipe,
   getRecipeRatings,
   searchRecipes,
-  getRecommendations,
-  getSimilarRecipes,
   importRecipe,
 } from '../controllers/recipe.controller';
 
@@ -28,13 +26,6 @@ const router: Router = Router();
  * @access  Public/Private
  */
 router.get('/search', optionalAuthenticate, searchRecipes);
-
-/**
- * @route   GET /api/recipes/recommendations
- * @desc    Get personalized recipe recommendations
- * @access  Private
- */
-router.get('/recommendations', authenticate, getRecommendations);
 
 /**
  * @route   POST /api/recipes/import
@@ -91,13 +82,6 @@ router.post('/:id/rate', authenticate, rateRecipe);
  * @access  Public
  */
 router.get('/:id/ratings', getRecipeRatings);
-
-/**
- * @route   GET /api/recipes/:id/similar
- * @desc    Get similar recipes
- * @access  Public/Private
- */
-router.get('/:id/similar', optionalAuthenticate, getSimilarRecipes);
 
 export default router;
 

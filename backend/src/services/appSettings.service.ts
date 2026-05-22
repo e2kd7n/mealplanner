@@ -56,8 +56,6 @@ const KNOWN_SETTINGS: Array<{
 
 const ENV_FALLBACKS: Record<string, string | undefined> = {
   spoonacular_api_key: readOptionalSecret('spoonacular_api_key', 'SPOONACULAR_API_KEY'),
-  edamam_app_id: readOptionalSecret('edamam_app_id', 'EDAMAM_APP_ID'),
-  edamam_app_key: readOptionalSecret('edamam_app_key', 'EDAMAM_APP_KEY'),
 };
 
 class AppSettingsService {
