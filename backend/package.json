@@ -14,6 +14,7 @@
     "prisma:backup": "cd .. && ./scripts/pre-migration-backup.sh",
     "prisma:studio": "prisma studio",
     "prisma:seed": "ts-node prisma/seed.ts",
+    "prisma:seed:visual-login": "ts-node prisma/seed-visual-login.ts",
     "lint": "eslint . --ext .ts",
     "lint:fix": "eslint . --ext .ts --fix",
     "format": "prettier --write \"src/**/*.ts\"",
