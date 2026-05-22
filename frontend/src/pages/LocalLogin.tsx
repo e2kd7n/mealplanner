@@ -140,7 +140,9 @@ const LocalLogin: React.FC = () => {
       const recipesRes = await recipeAPI.getAll({ limit: 100 });
       const withImages = (recipesRes.data.recipes ?? []).filter((r: any) => r.imageUrl);
       if (withImages.length === 0) {
-        setError('Add at least one recipe with an image before setting up visual login.');
+        // Authenticated but no recipe images yet — send to dashboard so they can add one,
+        // then return here to complete visual login setup.
+        navigate('/dashboard', { replace: true, state: { visualLoginSetupPending: true } });
         return;
       }
       setChallenge(withImages.map((r: any) => ({ id: r.id, title: r.title, imageUrl: r.imageUrl })));
