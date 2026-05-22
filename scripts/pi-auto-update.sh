@@ -118,11 +118,6 @@ for i in $(seq 1 12); do
     fi
 done
 
-# Nginx caches backend DNS at startup; restart it so the new container IP is
-# picked up. Remove once issue #206 (resolver directive) is fixed in nginx config.
-log "Restarting nginx to refresh backend DNS..."
-podman restart meals-nginx 2>/dev/null || log "WARNING: could not restart meals-nginx"
-
 log "Running database migrations..."
 PRISMA_BIN=$(podman exec meals-backend find /app/node_modules/.pnpm -name "index.js" -path "*/prisma/build/index.js" 2>/dev/null | head -1)
 if [ -z "$PRISMA_BIN" ]; then
