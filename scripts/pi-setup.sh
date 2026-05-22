@@ -302,6 +302,17 @@ else
     echo -e "You can run this script again anytime to enable it."
 fi
 
+# Install weekly Podman image prune cron job
+echo ""
+echo -e "${YELLOW}🧹 Installing weekly image prune cron job...${NC}"
+sudo tee /etc/cron.weekly/podman-prune > /dev/null << 'EOF'
+#!/bin/bash
+# Remove dangling Podman images to reclaim SD card space.
+podman image prune -f >> /var/log/podman-prune.log 2>&1
+EOF
+sudo chmod 755 /etc/cron.weekly/podman-prune
+echo -e "${GREEN}✓ Weekly image prune installed (/etc/cron.weekly/podman-prune)${NC}"
+
 # Ask about Glances monitoring
 echo ""
 echo -e "${YELLOW}📊 Monitoring (Glances)${NC}"
