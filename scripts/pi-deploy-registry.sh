@@ -173,22 +173,22 @@ fi
 
 section "Authentication" "🔐"
 
-if [ -f "$GHCR_TOKEN_FILE" ]; then
-    GHCR_TOKEN=$(cat "$GHCR_TOKEN_FILE")
-    start_spinner "Logging into GitHub Container Registry"
-    if echo "$GHCR_TOKEN" | podman login "$REGISTRY" -u "$IMAGE_OWNER" --password-stdin &>/dev/null; then
-        stop_spinner ok
-    else
-        stop_spinner fail
-        echo -e "${RED}   Login failed — check the token in ${GHCR_TOKEN_FILE}${NC}"
-        echo -e "${YELLOW}   Token needs 'read:packages' scope (classic PAT)${NC}"
-        exit 1
-    fi
-else
-    echo -e "${YELLOW}⚠️  No token file at ${GHCR_TOKEN_FILE}${NC}"
-    echo -e "${YELLOW}   Proceeding without login — only works for public packages${NC}"
-    echo -e "${YELLOW}   To create the token file:${NC}"
+if [ ! -f "$GHCR_TOKEN_FILE" ]; then
+    echo -e "${RED}❌ No token file at ${GHCR_TOKEN_FILE}${NC}"
+    echo -e "${YELLOW}   Create it with a classic PAT (read:packages scope):${NC}"
     echo -e "      echo 'ghp_yourtoken' > ./secrets/ghcr_token.txt${NC}"
+    exit 1
+fi
+
+GHCR_TOKEN=$(cat "$GHCR_TOKEN_FILE")
+start_spinner "Logging into GitHub Container Registry"
+if echo "$GHCR_TOKEN" | podman login "$REGISTRY" -u "$IMAGE_OWNER" --password-stdin &>/dev/null; then
+    stop_spinner ok
+else
+    stop_spinner fail
+    echo -e "${RED}   Login failed — check the token in ${GHCR_TOKEN_FILE}${NC}"
+    echo -e "${YELLOW}   Token needs 'read:packages' scope (classic PAT)${NC}"
+    exit 1
 fi
 
 # ── Pull image ──────────────────────────────────────────────────────────────────
