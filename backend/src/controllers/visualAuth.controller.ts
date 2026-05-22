@@ -437,4 +437,25 @@ export async function deviceLogout(req: Request, res: Response, next: NextFuncti
   }
 }
 
+/**
+ * GET /api/auth/visual-setup/images
+ * Returns all recipes that have images, regardless of owner.
+ * Used by the setup flow so users can pick from seed recipes and their own.
+ * Requires authentication to prevent unauthenticated enumeration.
+ */
+export async function getVisualSetupImages(req: Request, res: Response, next: NextFunction): Promise<void> {
+  try {
+    const recipes = await withRetry(() =>
+      prisma.recipe.findMany({
+        where: { imageUrl: { not: null } },
+        select: { id: true, title: true, imageUrl: true },
+        orderBy: { createdAt: 'asc' },
+      })
+    );
+    res.json({ images: recipes });
+  } catch (err) {
+    next(err);
+  }
+}
+
 // Made with Bob

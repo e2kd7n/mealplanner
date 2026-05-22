@@ -138,6 +138,9 @@ export const visualAuthAPI = {
 
   setupVisualPassword: (familyMemberId: string, recipeId: string) =>
     api.post('/auth/visual-password/setup', { familyMemberId, recipeId }),
+
+  getSetupImages: () =>
+    api.get('/auth/visual-setup/images'),
 };
 
 // Recipe API

@@ -13,6 +13,7 @@ import {
   setupVisualPassword,
   getVisualPasswordStatus,
   deviceLogout,
+  getVisualSetupImages,
 } from '../controllers/visualAuth.controller';
 
 const router: Router = Router();
@@ -27,6 +28,7 @@ router.post('/logout/device', deviceLogout);
 // ── Authenticated endpoints ───────────────────────────────────────────────
 router.get('/visual-password/status', authenticate, getVisualPasswordStatus);
 router.post('/visual-password/setup', authenticate, setupVisualPassword);
+router.get('/visual-setup/images', authenticate, getVisualSetupImages);
 
 export default router;
 

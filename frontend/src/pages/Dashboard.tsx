@@ -26,7 +26,7 @@ import {
   Warning as WarningIcon,
   Add as AddIcon,
 } from '@mui/icons-material';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { useTheme } from '@mui/material/styles';
 import { format, startOfWeek, addDays, isSameDay } from 'date-fns';
 import { useAppDispatch, useAppSelector } from '../store/hooks';
@@ -313,6 +313,7 @@ QuickActionCard.displayName = 'QuickActionCard';
 
 const Dashboard: React.FC = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const theme = useTheme();
   const dispatch = useAppDispatch();
 
@@ -457,6 +458,21 @@ const Dashboard: React.FC = () => {
             Plan your meals, manage your grocery list, and track your pantry.
           </Typography>
         </Box>
+
+        {/* Visual login setup nudge — shown when redirected from setup with no recipe images */}
+        {(location.state as any)?.visualLoginSetupPending && (
+          <Alert
+            severity="info"
+            action={
+              <Button size="small" color="inherit" onClick={() => navigate('/recipes/create')}>
+                Add Recipe
+              </Button>
+            }
+            sx={{ mb: 3 }}
+          >
+            To finish setting up visual login, add a recipe with a photo first, then return to the login page.
+          </Alert>
+        )}
 
         {/* Profile nudge */}
         {showProfileNudge && (
