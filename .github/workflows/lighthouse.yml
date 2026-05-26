@@ -1,0 +1,129 @@
+name: Lighthouse CI
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'frontend/**'
+      - '.lighthouserc.yml'
+      - '.github/workflows/lighthouse.yml'
+  workflow_dispatch:
+
+concurrency:
+  group: lighthouse-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  lighthouse:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_USER: mealplanner
+          POSTGRES_PASSWORD: mealplanner_password
+          POSTGRES_DB: mealplanner
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: '11.1.2'
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'pnpm'
+          cache-dependency-path: |
+            frontend/pnpm-lock.yaml
+            backend/pnpm-lock.yaml
+
+      - name: Install backend dependencies
+        working-directory: backend
+        run: pnpm install --frozen-lockfile
+
+      - name: Install frontend dependencies
+        working-directory: frontend
+        run: pnpm install --frozen-lockfile
+
+      - name: Setup database
+        working-directory: backend
+        env:
+          DATABASE_URL: postgresql://mealplanner:mealplanner_password@localhost:5432/mealplanner
+        run: |
+          pnpm prisma generate
+          pnpm prisma migrate deploy
+          pnpm run prisma:seed
+
+      - name: Start backend server
+        working-directory: backend
+        env:
+          DATABASE_URL: postgresql://mealplanner:mealplanner_password@localhost:5432/mealplanner
+          JWT_SECRET: test-jwt-secret-for-ci
+          JWT_REFRESH_SECRET: test-jwt-refresh-secret-for-ci
+          SESSION_SECRET: test-session-secret-for-ci
+          NODE_ENV: test
+          E2E_TESTING: true
+          PORT: 3000
+          CORS_ORIGIN: http://localhost:5173
+        run: |
+          pnpm dev > backend.log 2>&1 &
+          echo $! > backend.pid
+          for i in {1..30}; do
+            if curl -f -s http://localhost:3000/health > /dev/null 2>&1; then
+              echo "Backend is ready!"
+              break
+            fi
+            [ $i -eq 30 ] && { echo "Backend failed to start"; cat backend.log; exit 1; }
+            sleep 2
+          done
+
+      - name: Start frontend server
+        working-directory: frontend
+        env:
+          VITE_API_URL: http://localhost:3000/api
+        run: |
+          pnpm run dev > frontend.log 2>&1 &
+          echo $! > frontend.pid
+          for i in {1..30}; do
+            if curl -f -s http://127.0.0.1:5173 > /dev/null 2>&1; then
+              echo "Frontend is ready!"
+              break
+            fi
+            [ $i -eq 30 ] && { echo "Frontend failed to start"; cat frontend.log; exit 1; }
+            sleep 2
+          done
+
+      - name: Run Lighthouse CI
+        run: |
+          npm install -g @lhci/cli
+          lhci autorun --config=.lighthouserc.yml
+
+      - name: Upload Lighthouse report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: lighthouse-report
+          path: .lighthouseci/
+          retention-days: 30
+
+      - name: Cleanup
+        if: always()
+        run: |
+          [ -f backend/backend.pid ] && kill $(cat backend/backend.pid) 2>/dev/null || true
+          [ -f frontend/frontend.pid ] && kill $(cat frontend/frontend.pid) 2>/dev/null || true
+
+# Made with Bob
