@@ -41,7 +41,7 @@ const SpoonacularRecipeDialog: React.FC<SpoonacularRecipeDialogProps> = ({
   onClose,
 }) => {
   const dispatch = useAppDispatch();
-  const [recipe, setRecipe] = useState<any>(null);
+  const [recipe, setRecipe] = useState<import('../store/slices/recipeBrowseSlice').SpoonacularRecipe | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [adding, setAdding] = useState(false);
@@ -55,8 +55,8 @@ const SpoonacularRecipeDialog: React.FC<SpoonacularRecipeDialogProps> = ({
           setError(null);
           const result = await dispatch(getSpoonacularRecipeDetails(recipeId)).unwrap();
           setRecipe(result);
-        } catch (err: any) {
-          setError(err || 'Failed to load recipe details');
+        } catch (err: unknown) {
+          setError(typeof err === 'string' ? err : 'Failed to load recipe details');
         } finally {
           setLoading(false);
         }
@@ -74,9 +74,9 @@ const SpoonacularRecipeDialog: React.FC<SpoonacularRecipeDialogProps> = ({
       setAdding(true);
       await dispatch(addSpoonacularRecipeToBox(recipeId)).unwrap();
       setAdded(true);
-    } catch (err: any) {
+    } catch (err: unknown) {
       // Check if it's a duplicate error (409)
-      if (err?.includes('already in your recipe box')) {
+      if (typeof err === 'string' && err.includes('already in your recipe box')) {
         setAdded(true);
       }
       // Other errors handled by Redux
@@ -200,7 +200,7 @@ const SpoonacularRecipeDialog: React.FC<SpoonacularRecipeDialogProps> = ({
                   Ingredients
                 </Typography>
                 <Box component="ul" sx={{ pl: 2 }}>
-                  {recipe.extendedIngredients.map((ing: any, index: number) => (
+                  {recipe.extendedIngredients.map((ing, index) => (
                     <Typography component="li" key={index} variant="body2" sx={{ mb: 0.5 }}>
                       {ing.original}
                     </Typography>
@@ -217,7 +217,7 @@ const SpoonacularRecipeDialog: React.FC<SpoonacularRecipeDialogProps> = ({
                 <Typography variant="h6" gutterBottom>
                   Instructions
                 </Typography>
-                {recipe.analyzedInstructions[0].steps.map((step: any) => (
+                {recipe.analyzedInstructions[0].steps.map((step) => (
                   <Box key={step.number} sx={{ mb: 2 }}>
                     <Typography variant="subtitle2" color="primary">
                       Step {step.number}
@@ -235,7 +235,7 @@ const SpoonacularRecipeDialog: React.FC<SpoonacularRecipeDialogProps> = ({
                   Nutrition (per serving)
                 </Typography>
                 <Stack direction="row" spacing={2} flexWrap="wrap" gap={1}>
-                  {recipe.nutrition.nutrients.slice(0, 6).map((nutrient: any) => (
+                  {recipe.nutrition.nutrients.slice(0, 6).map((nutrient) => (
                     <Chip
                       key={nutrient.name}
                       label={`${nutrient.name}: ${Math.round(nutrient.amount)}${nutrient.unit}`}

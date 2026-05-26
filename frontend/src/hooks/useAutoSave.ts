@@ -7,13 +7,13 @@ import { useEffect, useRef, useState, useCallback } from 'react';
 
 interface UseAutoSaveOptions {
   key: string;
-  data: any;
+  data: unknown;
   delay?: number;
   enabled?: boolean;
 }
 
 interface UseAutoSaveReturn {
-  savedData: any;
+  savedData: unknown;
   clearSaved: () => void;
   lastSaved: Date | null;
   isSaving: boolean;

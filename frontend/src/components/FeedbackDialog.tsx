@@ -35,6 +35,8 @@ import {
 import { useLocation } from 'react-router-dom';
 import type { Options as Html2CanvasOptions } from 'html2canvas';
 import api from '../services/api';
+import { isAxiosError } from 'axios';
+import { getApiErrorMessage } from '../utils/errorHandler';
 
 interface FeedbackDialogProps {
   open: boolean;
@@ -165,16 +167,16 @@ const FeedbackDialog: React.FC<FeedbackDialogProps> = ({ open, onClose, onSucces
 
       onClose();
       onSuccess?.();
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Feedback submission error:', err);
-      if (err.response?.status === 429) {
-        const retryAfter = parseInt(err.response.headers['retry-after'] ?? '900', 10);
+      if (isAxiosError(err) && err.response?.status === 429) {
+        const retryAfter = parseInt((err.response.headers['retry-after'] as string | undefined) ?? '900', 10);
         const until = new Date(Date.now() + retryAfter * 1000);
         setRateLimitedUntil(until);
         setRateLimitInfo({ remaining: 0, resetAt: until });
         setError(null);
       } else {
-        setError(err.response?.data?.message || 'Failed to submit feedback. Please try again.');
+        setError(getApiErrorMessage(err, 'Failed to submit feedback. Please try again.'));
       }
     } finally {
       setSubmitting(false);

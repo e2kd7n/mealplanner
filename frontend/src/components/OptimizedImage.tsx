@@ -3,6 +3,7 @@
  * Provides responsive images with lazy loading, WebP support, and fallbacks
  */
 
+/* eslint-disable react-refresh/only-export-components */
 import React, { useState, useEffect, useRef } from 'react';
 import { Box, Skeleton } from '@mui/material';
 import { useCachedImage } from '../hooks/useCachedImage';
@@ -71,7 +72,6 @@ export const OptimizedImage: React.FC<OptimizedImageProps> = ({
   // Intersection Observer for lazy loading
   useEffect(() => {
     if (loading === 'eager' || !containerRef.current) {
-      setIsInView(true);
       return;
     }
 

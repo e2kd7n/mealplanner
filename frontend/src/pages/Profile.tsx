@@ -43,6 +43,8 @@ import {
 } from '@mui/icons-material';
 import { userAPI, familyMemberAPI } from '../services/api';
 import { DIETARY_PREFERENCES, COMMON_ALLERGENS, getDietaryLabel } from '../constants/dietaryOptions';
+import { isAxiosError } from 'axios';
+import { getApiErrorMessage } from '../utils/errorHandler';
 
 interface TabPanelProps {
   children?: React.ReactNode;
@@ -155,10 +157,10 @@ const Profile: React.FC = () => {
       setPreferencesForm(prefsData);
 
       setFamilyMembers(membersRes.data.data);
-    } catch (error: any) {
+    } catch (error: unknown) {
       // Only show error if it's not a 401 (which means user needs to login)
-      if (error.response?.status !== 401) {
-        showSnackbar(error.response?.data?.message || 'Failed to load profile data', 'error');
+      if (!isAxiosError(error) || error.response?.status !== 401) {
+        showSnackbar(getApiErrorMessage(error, 'Failed to load profile data'), 'error');
       }
     } finally {
       setLoading(false);
@@ -176,8 +178,8 @@ const Profile: React.FC = () => {
       setProfile({ ...profile!, familyName: profileForm.familyName });
       setEditingProfile(false);
       showSnackbar('Profile updated successfully', 'success');
-    } catch (error: any) {
-      showSnackbar(error.response?.data?.message || 'Failed to update profile', 'error');
+    } catch (error: unknown) {
+      showSnackbar(getApiErrorMessage(error, 'Failed to update profile'), 'error');
     } finally {
       setSaving(false);
     }
@@ -190,8 +192,8 @@ const Profile: React.FC = () => {
       setPreferences(preferencesForm);
       setEditingPreferences(false);
       showSnackbar('Preferences updated successfully', 'success');
-    } catch (error: any) {
-      showSnackbar(error.response?.data?.message || 'Failed to update preferences', 'error');
+    } catch (error: unknown) {
+      showSnackbar(getApiErrorMessage(error, 'Failed to update preferences'), 'error');
     } finally {
       setSaving(false);
     }
@@ -262,8 +264,8 @@ const Profile: React.FC = () => {
       }
       await refreshFamilyMembers();
       handleCloseMemberDialog();
-    } catch (error: any) {
-      showSnackbar(error.response?.data?.message || 'Failed to save family member', 'error');
+    } catch (error: unknown) {
+      showSnackbar(getApiErrorMessage(error, 'Failed to save family member'), 'error');
     } finally {
       setSaving(false);
     }
@@ -276,8 +278,8 @@ const Profile: React.FC = () => {
       await familyMemberAPI.delete(id);
       await refreshFamilyMembers();
       showSnackbar('Family member deleted successfully', 'success');
-    } catch (error: any) {
-      showSnackbar(error.response?.data?.message || 'Failed to delete family member', 'error');
+    } catch (error: unknown) {
+      showSnackbar(getApiErrorMessage(error, 'Failed to delete family member'), 'error');
     }
   };
 

@@ -7,6 +7,7 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 import type { PayloadAction } from '@reduxjs/toolkit';
 import { recipeAPI } from '../../services/api';
+import { getApiErrorMessage } from '../../utils/errorHandler';
 
 export interface Recipe {
   id: string;
@@ -25,7 +26,7 @@ export interface Recipe {
     quantity: number;
     unit: string;
   }>;
-  instructions: any;
+  instructions: unknown;
   kidFriendly: boolean;
   averageRating?: number;
   totalRatings?: number;
@@ -76,13 +77,15 @@ export const fetchRecipes = createAsyncThunk(
     difficulty?: string;
     maxPrepTime?: number;
     kidFriendly?: boolean;
+    maxCleanupScore?: string;
+    sortBy?: string;
   } = {}, { rejectWithValue }) => {
     try {
       const response = await recipeAPI.getAll(params);
       return response.data;
-    } catch (error: any) {
+    } catch (error: unknown) {
       if (import.meta.env.DEV) console.error('Recipe fetch error:', error);
-      return rejectWithValue(error.response?.data?.message || 'Failed to fetch recipes');
+      return rejectWithValue(getApiErrorMessage(error, 'Failed to fetch recipes'));
     }
   }
 );
@@ -93,32 +96,32 @@ export const fetchRecipeById = createAsyncThunk(
     try {
       const response = await recipeAPI.getById(id);
       return response.data;
-    } catch (error: any) {
-      return rejectWithValue(error.response?.data?.message || 'Failed to fetch recipe');
+    } catch (error: unknown) {
+      return rejectWithValue(getApiErrorMessage(error, 'Failed to fetch recipe'));
     }
   }
 );
 
 export const createRecipe = createAsyncThunk(
   'recipes/createRecipe',
-  async (recipeData: any, { rejectWithValue }) => {
+  async (recipeData: Record<string, unknown>, { rejectWithValue }) => {
     try {
       const response = await recipeAPI.create(recipeData);
       return response.data;
-    } catch (error: any) {
-      return rejectWithValue(error.response?.data?.message || 'Failed to create recipe');
+    } catch (error: unknown) {
+      return rejectWithValue(getApiErrorMessage(error, 'Failed to create recipe'));
     }
   }
 );
 
 export const updateRecipe = createAsyncThunk(
   'recipes/updateRecipe',
-  async ({ id, data }: { id: string; data: any }, { rejectWithValue }) => {
+  async ({ id, data }: { id: string; data: Record<string, unknown> }, { rejectWithValue }) => {
     try {
       const response = await recipeAPI.update(id, data);
       return response.data;
-    } catch (error: any) {
-      return rejectWithValue(error.response?.data?.message || 'Failed to update recipe');
+    } catch (error: unknown) {
+      return rejectWithValue(getApiErrorMessage(error, 'Failed to update recipe'));
     }
   }
 );
@@ -129,8 +132,8 @@ export const deleteRecipe = createAsyncThunk(
     try {
       await recipeAPI.delete(id);
       return id;
-    } catch (error: any) {
-      return rejectWithValue(error.response?.data?.message || 'Failed to delete recipe');
+    } catch (error: unknown) {
+      return rejectWithValue(getApiErrorMessage(error, 'Failed to delete recipe'));
     }
   }
 );
@@ -146,8 +149,8 @@ export const rateRecipe = createAsyncThunk(
     try {
       const response = await recipeAPI.rate(id, { rating, notes, wouldMakeAgain });
       return response.data.data;
-    } catch (error: any) {
-      return rejectWithValue(error.response?.data?.message || 'Failed to rate recipe');
+    } catch (error: unknown) {
+      return rejectWithValue(getApiErrorMessage(error, 'Failed to rate recipe'));
     }
   }
 );
@@ -158,8 +161,8 @@ export const searchRecipes = createAsyncThunk(
     try {
       const response = await recipeAPI.search(query);
       return response.data.data;
-    } catch (error: any) {
-      return rejectWithValue(error.response?.data?.message || 'Failed to search recipes');
+    } catch (error: unknown) {
+      return rejectWithValue(getApiErrorMessage(error, 'Failed to search recipes'));
     }
   }
 );

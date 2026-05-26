@@ -48,6 +48,9 @@ import {
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAppDispatch, useAppSelector } from '../store/hooks';
 import { fetchRecipes } from '../store/slices/recipesSlice';
+import type { Recipe } from '../store/slices/recipesSlice';
+
+type FetchRecipesParams = Parameters<typeof fetchRecipes>[0];
 import { useDebounce } from '../hooks/useDebounce';
 import { useCachedImage } from '../hooks/useCachedImage';
 import BrowseRecipes from './BrowseRecipes';
@@ -55,7 +58,7 @@ import RecipeDiscoveryEmptyState from '../components/RecipeDiscoveryEmptyState';
 
 // Memoized Recipe Card Component for better performance
 interface RecipeCardProps {
-  recipe: any;
+  recipe: Recipe;
   onNavigate: (id: string) => void;
 }
 
@@ -223,7 +226,7 @@ const Recipes: React.FC = () => {
 
   useEffect(() => {
     if (activeTab === 0) {
-      const params: any = { page: currentPage, limit: 12 };
+      const params: FetchRecipesParams = { page: currentPage, limit: 12 };
       if (debouncedSearch) params.search = debouncedSearch;
       if (difficulty) params.difficulty = difficulty;
       if (mealType) params.mealType = mealType;
@@ -233,11 +236,10 @@ const Recipes: React.FC = () => {
     }
   }, [dispatch, activeTab, currentPage, debouncedSearch, difficulty, mealType, cleanupScore, sortBy]);
 
-  useEffect(() => {
-    if (debouncedSearch !== searchInput) setCurrentPage(1);
-  }, [debouncedSearch, searchInput]);
-
-  const handleSearchInput = useCallback((value: string) => setSearchInput(value), []);
+  const handleSearchInput = useCallback((value: string) => {
+    setSearchInput(value);
+    setCurrentPage(1);
+  }, []);
 
   const handlePageChange = useCallback((_event: React.ChangeEvent<unknown>, value: number) => {
     setCurrentPage(value);

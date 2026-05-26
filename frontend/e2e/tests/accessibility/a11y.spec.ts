@@ -1,4 +1,4 @@
-import { test, expect } from '../../fixtures/auth.fixture';
+import { test } from '../../fixtures/auth.fixture';
 import AxeBuilder from '@axe-core/playwright';
 
 // Violations to skip across all pages — known third-party component issues

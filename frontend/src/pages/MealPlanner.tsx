@@ -51,6 +51,7 @@ import {
 import { format, addDays, startOfWeek, isSameDay, startOfMonth, endOfMonth, eachDayOfInterval } from 'date-fns';
 import { DndContext, DragOverlay, PointerSensor, useSensor, useSensors, useDraggable, useDroppable } from '@dnd-kit/core';
 import { mealPlanAPI } from '../services/api';
+import type { MealPlan, PlannedMeal } from '../store/slices/mealPlansSlice';
 import type { DragEndEvent, DragStartEvent } from '@dnd-kit/core';
 import { recipeAPI, familyMemberAPI, groceryListAPI } from '../services/api';
 import BatchCookingDialog from '../components/BatchCookingDialog';
@@ -290,7 +291,7 @@ const MealPlanner: React.FC = () => {
       // Find the meal plan that matches the current week
       const weekStartStr = formatDateForAPI(currentWeekStart);
       
-      const mealPlan = mealPlans.find((mp: any) => {
+      const mealPlan = (mealPlans as MealPlan[]).find((mp) => {
         // Extract just the date part from the ISO string (YYYY-MM-DD)
         const mpDateStr = mp.weekStartDate.split('T')[0];
         return mpDateStr === weekStartStr;
@@ -300,7 +301,8 @@ const MealPlanner: React.FC = () => {
         setCurrentMealPlanId(mealPlan.id);
         
         // Transform planned meals to our Meal interface
-        const transformedMeals: Meal[] = (mealPlan.plannedMeals || []).map((pm: any) => {
+        type PlannedMealWithRelations = PlannedMeal & { assignedCook?: { name: string }; recipe?: PlannedMeal['recipe'] & { sourceUrl?: string } };
+        const transformedMeals: Meal[] = (mealPlan.plannedMeals as PlannedMealWithRelations[] || []).map((pm) => {
           // Parse the date - it comes as ISO string from backend
           const mealDate = new Date(pm.date);
           

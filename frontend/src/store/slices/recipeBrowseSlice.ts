@@ -6,6 +6,7 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 import type { PayloadAction } from '@reduxjs/toolkit';
 import { recipeBrowseAPI } from '../../services/api';
+import { getApiErrorMessage } from '../../utils/errorHandler';
 
 export interface SpoonacularRecipe {
   id: number;
@@ -27,7 +28,7 @@ export interface SpoonacularRecipe {
     unit: string;
     original: string;
   }>;
-  analyzedInstructions?: any[];
+  analyzedInstructions?: Array<{ steps: Array<{ number: number; step: string }> }>;
   nutrition?: {
     nutrients: Array<{
       name: string;
@@ -94,9 +95,9 @@ export const searchSpoonacularRecipes = createAsyncThunk(
       const response = await recipeBrowseAPI.search(params);
       // Backend wraps response in { success: true, data: {...} }
       return { ...response.data.data, skipPaginationUpdate: params.skipPaginationUpdate };
-    } catch (error: any) {
+    } catch (error: unknown) {
       if (import.meta.env.DEV) console.error('Spoonacular search error:', error);
-      return rejectWithValue(error.response?.data?.message || 'Failed to search recipes');
+      return rejectWithValue(getApiErrorMessage(error, 'Failed to search recipes'));
     }
   }
 );
@@ -108,9 +109,9 @@ export const getSpoonacularRecipeDetails = createAsyncThunk(
       const response = await recipeBrowseAPI.getDetails(id);
       // Backend wraps response in { success: true, data: {...} }
       return response.data.data;
-    } catch (error: any) {
+    } catch (error: unknown) {
       if (import.meta.env.DEV) console.error('Spoonacular recipe details error:', error);
-      return rejectWithValue(error.response?.data?.message || 'Failed to fetch recipe details');
+      return rejectWithValue(getApiErrorMessage(error, 'Failed to fetch recipe details'));
     }
   }
 );
@@ -122,9 +123,9 @@ export const addSpoonacularRecipeToBox = createAsyncThunk(
       const response = await recipeBrowseAPI.addToBox(id);
       // Backend wraps response in { success: true, data: {...} }
       return response.data.data;
-    } catch (error: any) {
+    } catch (error: unknown) {
       if (import.meta.env.DEV) console.error('Add to recipe box error:', error);
-      return rejectWithValue(error.response?.data?.message || 'Failed to add recipe to box');
+      return rejectWithValue(getApiErrorMessage(error, 'Failed to add recipe to box'));
     }
   }
 );

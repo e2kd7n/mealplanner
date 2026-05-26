@@ -46,7 +46,7 @@ export const ALL_DIETARY_OPTIONS = [
  * Check if a dietary restriction is an allergen
  */
 export function isAllergen(restriction: string): boolean {
-  return COMMON_ALLERGENS.includes(restriction as any);
+  return (COMMON_ALLERGENS as readonly string[]).includes(restriction);
 }
 
 /**

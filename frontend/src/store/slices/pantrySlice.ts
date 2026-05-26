@@ -7,6 +7,7 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 import type { PayloadAction } from '@reduxjs/toolkit';
 import { pantryAPI } from '../../services/api';
+import { getApiErrorMessage } from '../../utils/errorHandler';
 
 export interface PantryItem {
   id: string;
@@ -56,8 +57,8 @@ export const fetchPantryItems = createAsyncThunk(
     try {
       const response = await pantryAPI.getAll(params);
       return response.data.data;
-    } catch (error: any) {
-      return rejectWithValue(error.response?.data?.message || 'Failed to fetch pantry items');
+    } catch (error: unknown) {
+      return rejectWithValue(getApiErrorMessage(error, 'Failed to fetch pantry items'));
     }
   }
 );
@@ -68,8 +69,8 @@ export const fetchPantryItemById = createAsyncThunk(
     try {
       const response = await pantryAPI.getById(id);
       return response.data.data;
-    } catch (error: any) {
-      return rejectWithValue(error.response?.data?.message || 'Failed to fetch pantry item');
+    } catch (error: unknown) {
+      return rejectWithValue(getApiErrorMessage(error, 'Failed to fetch pantry item'));
     }
   }
 );
@@ -80,8 +81,8 @@ export const fetchLowStockItems = createAsyncThunk(
     try {
       const response = await pantryAPI.getLowStock();
       return response.data.data;
-    } catch (error: any) {
-      return rejectWithValue(error.response?.data?.message || 'Failed to fetch low stock items');
+    } catch (error: unknown) {
+      return rejectWithValue(getApiErrorMessage(error, 'Failed to fetch low stock items'));
     }
   }
 );
@@ -92,8 +93,8 @@ export const fetchExpiringItems = createAsyncThunk(
     try {
       const response = await pantryAPI.getExpiringSoon();
       return response.data.data;
-    } catch (error: any) {
-      return rejectWithValue(error.response?.data?.message || 'Failed to fetch expiring items');
+    } catch (error: unknown) {
+      return rejectWithValue(getApiErrorMessage(error, 'Failed to fetch expiring items'));
     }
   }
 );
@@ -110,20 +111,20 @@ export const addPantryItem = createAsyncThunk(
     try {
       const response = await pantryAPI.add(data);
       return response.data.data;
-    } catch (error: any) {
-      return rejectWithValue(error.response?.data?.message || 'Failed to add pantry item');
+    } catch (error: unknown) {
+      return rejectWithValue(getApiErrorMessage(error, 'Failed to add pantry item'));
     }
   }
 );
 
 export const updatePantryItem = createAsyncThunk(
   'pantry/updatePantryItem',
-  async ({ id, data }: { id: string; data: any }, { rejectWithValue }) => {
+  async ({ id, data }: { id: string; data: Record<string, unknown> }, { rejectWithValue }) => {
     try {
       const response = await pantryAPI.update(id, data);
       return response.data.data;
-    } catch (error: any) {
-      return rejectWithValue(error.response?.data?.message || 'Failed to update pantry item');
+    } catch (error: unknown) {
+      return rejectWithValue(getApiErrorMessage(error, 'Failed to update pantry item'));
     }
   }
 );
@@ -134,8 +135,8 @@ export const deletePantryItem = createAsyncThunk(
     try {
       await pantryAPI.delete(id);
       return id;
-    } catch (error: any) {
-      return rejectWithValue(error.response?.data?.message || 'Failed to delete pantry item');
+    } catch (error: unknown) {
+      return rejectWithValue(getApiErrorMessage(error, 'Failed to delete pantry item'));
     }
   }
 );

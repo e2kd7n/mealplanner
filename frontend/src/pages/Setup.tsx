@@ -37,6 +37,7 @@ import {
 } from '@mui/icons-material';
 import api from '../services/api';
 import { familyMemberAPI } from '../services/api';
+import { getApiErrorMessage } from '../utils/errorHandler';
 
 const STEPS = ['Welcome', 'Family Members', 'Recipe API Key', 'Done'];
 
@@ -112,9 +113,9 @@ export default function Setup() {
       await api.post('/setup/test/spoonacular', { key: spoonacularKey.trim() });
       setTestResult('valid');
       setTestMessage('API key verified successfully.');
-    } catch (err: any) {
+    } catch (err: unknown) {
       setTestResult('invalid');
-      setTestMessage(err.response?.data?.message || 'Could not verify key.');
+      setTestMessage(getApiErrorMessage(err, 'Could not verify key.'));
     } finally {
       setTesting(false);
     }
@@ -129,8 +130,8 @@ export default function Setup() {
       }
       await api.put('/admin/settings/ftue_completed', { value: 'true' });
       setActiveStep(3);
-    } catch (err: any) {
-      setSaveError(err.response?.data?.message || 'Failed to save settings.');
+    } catch (err: unknown) {
+      setSaveError(getApiErrorMessage(err, 'Failed to save settings.'));
     } finally {
       setSaving(false);
     }

@@ -42,6 +42,7 @@ import {
   CloudUpload as CloudUploadIcon,
 } from '@mui/icons-material';
 import api from '../services/api';
+import { getApiErrorMessage } from '../utils/errorHandler';
 
 interface Ingredient {
   id: string;
@@ -161,7 +162,7 @@ export default function CreateRecipe() {
       const recipe = response.data;
 
       // Transform recipe data to form format
-      const ingredients = recipe.ingredients?.map((ri: any) => ({
+      const ingredients = (recipe.ingredients as Array<{ ingredient: { id: string; name: string }; quantity: number; unit: string; notes?: string }> | undefined)?.map((ri) => ({
         ingredientId: ri.ingredient.id,
         ingredientName: ri.ingredient.name,
         quantity: ri.quantity,
@@ -170,7 +171,7 @@ export default function CreateRecipe() {
       })) || [];
 
       const instructions = Array.isArray(recipe.instructions)
-        ? recipe.instructions.map((inst: any, index: number) => ({
+        ? (recipe.instructions as Array<string | { instruction?: string; text?: string }>).map((inst, index) => ({
             step: index + 1,
             instruction: typeof inst === 'string' ? inst : inst.instruction || inst.text || '',
           }))
@@ -193,7 +194,7 @@ export default function CreateRecipe() {
         instructions,
         nutritionInfo: recipe.nutritionInfo || {},
       });
-    } catch (err: any) {
+    } catch (err: unknown) {
       if (import.meta.env.DEV) console.error('Failed to load recipe:', err);
       setError('Failed to load recipe for editing');
     } finally {
@@ -400,7 +401,7 @@ export default function CreateRecipe() {
       setTimeout(() => {
         navigate(`/recipes/${recipeId}`);
       }, 1500);
-    } catch (err: any) {
+    } catch (err: unknown) {
       setError(err.response?.data?.message || `Failed to ${isEditMode ? 'update' : 'create'} recipe`);
     } finally {
       setLoading(false);
@@ -444,8 +445,8 @@ export default function CreateRecipe() {
         setSuccess('Image uploaded successfully!');
         setTimeout(() => setSuccess(''), 3000);
       }
-    } catch (err: any) {
-      setError(err.response?.data?.message || 'Failed to upload image');
+    } catch (err: unknown) {
+      setError(getApiErrorMessage(err, 'Failed to upload image'));
     } finally {
       setUploadingImage(false);
       // Reset file input
@@ -539,7 +540,7 @@ export default function CreateRecipe() {
           select
           label="Difficulty"
           value={formData.difficulty}
-          onChange={(e) => setFormData({ ...formData, difficulty: e.target.value as any })}
+          onChange={(e) => setFormData({ ...formData, difficulty: e.target.value as 'easy' | 'medium' | 'hard' })}
         >
           <MenuItem value="easy">Easy</MenuItem>
           <MenuItem value="medium">Medium</MenuItem>
@@ -790,7 +791,7 @@ export default function CreateRecipe() {
     const lines = text.split('\n').filter(line => line.trim());
     
     // Try to detect if it's a numbered list
-    const numberedPattern = /^\d+[\.\)]\s*/;
+    const numberedPattern = /^\d+[.)]\s*/;
     const bulletPattern = /^[-•*]\s*/;
     
     const steps: InstructionStep[] = [];

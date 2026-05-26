@@ -83,7 +83,7 @@ api.interceptors.response.use(
 
     // Handle CSRF token errors (403 with EBADCSRFTOKEN)
     if (error.response?.status === 403 &&
-        (error.response.data as any)?.code === 'EBADCSRFTOKEN') {
+        (error.response.data as { code?: string })?.code === 'EBADCSRFTOKEN') {
       // Fetch new CSRF token and retry
       try {
         await fetchCsrfToken();
@@ -158,10 +158,10 @@ export const recipeAPI = {
   getById: (id: string) =>
     api.get(`/recipes/${id}`),
   
-  create: (data: any) =>
+  create: (data: Record<string, unknown>) =>
     api.post('/recipes', data),
-  
-  update: (id: string, data: any) =>
+
+  update: (id: string, data: Record<string, unknown>) =>
     api.put(`/recipes/${id}`, data),
   
   delete: (id: string) =>
@@ -185,9 +185,9 @@ export const mealPlanAPI = {
   create: (data: { weekStartDate: string }) =>
     api.post('/meal-plans', data),
   
-  update: (id: string, data: any) =>
+  update: (id: string, data: Record<string, unknown>) =>
     api.put(`/meal-plans/${id}`, data),
-  
+
   delete: (id: string) =>
     api.delete(`/meal-plans/${id}`),
   
@@ -200,7 +200,7 @@ export const mealPlanAPI = {
     notes?: string;
   }) => api.post(`/meal-plans/${id}/meals`, data),
   
-  updateMeal: (planId: string, mealId: string, data: any) =>
+  updateMeal: (planId: string, mealId: string, data: Record<string, unknown>) =>
     api.put(`/meal-plans/${planId}/meals/${mealId}`, data),
   
   deleteMeal: (planId: string, mealId: string) =>
@@ -227,7 +227,7 @@ export const groceryListAPI = {
   create: (data: { mealPlanId: string }) =>
     api.post('/grocery-lists', data),
   
-  update: (id: string, data: any) =>
+  update: (id: string, data: Record<string, unknown>) =>
     api.put(`/grocery-lists/${id}`, data),
   
   delete: (id: string) =>
@@ -244,7 +244,7 @@ export const groceryListAPI = {
     notes?: string;
   }) => api.post(`/grocery-lists/${listId}/items`, data),
   
-  updateItem: (listId: string, itemId: string, data: any) =>
+  updateItem: (listId: string, itemId: string, data: Record<string, unknown>) =>
     api.put(`/grocery-lists/${listId}/items/${itemId}`, data),
   
   deleteItem: (listId: string, itemId: string) =>
@@ -270,7 +270,7 @@ export const pantryAPI = {
     expirationDate?: string;
   }) => api.post('/pantry', data),
   
-  update: (id: string, data: any) =>
+  update: (id: string, data: Record<string, unknown>) =>
     api.put(`/pantry/${id}`, data),
   
   delete: (id: string) =>
@@ -291,10 +291,10 @@ export const ingredientAPI = {
   getById: (id: string) =>
     api.get(`/ingredients/${id}`),
   
-  create: (data: any) =>
+  create: (data: Record<string, unknown>) =>
     api.post('/ingredients', data),
-  
-  update: (id: string, data: any) =>
+
+  update: (id: string, data: Record<string, unknown>) =>
     api.put(`/ingredients/${id}`, data),
   
   delete: (id: string) =>
@@ -338,7 +338,7 @@ export const familyMemberAPI = {
     avoidedIngredients?: string[];
   }) => api.post('/family-members', data),
   
-  update: (id: string, data: any) =>
+  update: (id: string, data: Record<string, unknown>) =>
     api.put(`/family-members/${id}`, data),
   
   delete: (id: string) =>
@@ -366,8 +366,8 @@ export const recipeImportAPI = {
       unit: string;
       notes?: string;
     }>;
-    instructions: any;
-    nutritionInfo?: any;
+    instructions: unknown;
+    nutritionInfo?: unknown;
     sourceUrl?: string;
   }) => api.post('/recipes/import/url/save', data),
 };

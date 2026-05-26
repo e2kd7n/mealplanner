@@ -28,6 +28,8 @@ import { ArrowBack as ArrowBackIcon } from '@mui/icons-material';
 import { useAppDispatch } from '../store/hooks';
 import { setCredentials } from '../store/slices/authSlice';
 import api, { visualAuthAPI, authAPI } from '../services/api';
+import { isAxiosError } from 'axios';
+import { getApiErrorMessage } from '../utils/errorHandler';
 
 interface UserEntry {
   id: string;
@@ -115,8 +117,8 @@ const LocalLogin: React.FC = () => {
       const res = await visualAuthAPI.getVisualChallenge(user.id);
       setChallenge(res.data.images ?? []);
       setSetupMode(false);
-    } catch (err: any) {
-      if (err?.response?.status === 400) {
+    } catch (err: unknown) {
+      if (isAxiosError(err) && err.response?.status === 400) {
         // No visual password set — enter first-time setup flow
         setSetupMode(true);
         setChallenge([]);
@@ -145,10 +147,10 @@ const LocalLogin: React.FC = () => {
         navigate('/dashboard', { replace: true, state: { visualLoginSetupPending: true } });
         return;
       }
-      setChallenge(images.map((r: any) => ({ id: r.id, title: r.title, imageUrl: r.imageUrl })));
+      setChallenge(images.map((r: { id: string; title: string; imageUrl: string }) => ({ id: r.id, title: r.title, imageUrl: r.imageUrl })));
       setStep(2);
-    } catch (err: any) {
-      setError(err.response?.data?.message || 'Sign-in failed. Check your email and password.');
+    } catch (err: unknown) {
+      setError(getApiErrorMessage(err, 'Sign-in failed. Check your email and password.'));
     } finally {
       setSetupLoading(false);
     }
