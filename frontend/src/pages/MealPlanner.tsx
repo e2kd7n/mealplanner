@@ -139,6 +139,7 @@ const MealPlanner: React.FC = () => {
   // Meal detail dialog state
   const [openMealDetail, setOpenMealDetail] = useState(false);
   const [selectedMeal, setSelectedMeal] = useState<Meal | null>(null);
+  const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false);
 
   // Day summary dialog state
   const [openDaySummary, setOpenDaySummary] = useState(false);
@@ -1247,6 +1248,7 @@ const MealPlanner: React.FC = () => {
               fullWidth
               value={newMeal.servings}
               onChange={(e) => setNewMeal({ ...newMeal, servings: Number(e.target.value) })}
+              inputProps={{ min: 1, onFocus: (e: React.FocusEvent<HTMLInputElement>) => e.target.select() }}
             />
           </Stack>
         </DialogContent>
@@ -1474,12 +1476,7 @@ const MealPlanner: React.FC = () => {
               <Button
                 color="error"
                 startIcon={<DeleteIcon />}
-                onClick={() => {
-                  if (selectedMeal) {
-                    handleDeleteMeal(selectedMeal.id);
-                    setOpenMealDetail(false);
-                  }
-                }}
+                onClick={() => setConfirmDeleteOpen(true)}
               >
                 Delete
               </Button>
@@ -1675,6 +1672,43 @@ const MealPlanner: React.FC = () => {
             startIcon={<ShoppingCartIcon />}
           >
             View Grocery List
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Delete Meal Confirmation Dialog */}
+      <Dialog
+        open={confirmDeleteOpen}
+        onClose={() => setConfirmDeleteOpen(false)}
+        maxWidth="xs"
+        fullWidth
+      >
+        <DialogTitle>Delete Meal?</DialogTitle>
+        <DialogContent>
+          <Typography>
+            Are you sure you want to remove this meal from your plan? This cannot be undone.
+          </Typography>
+        </DialogContent>
+        <DialogActions>
+          <Button
+            autoFocus
+            variant="outlined"
+            onClick={() => setConfirmDeleteOpen(false)}
+          >
+            Cancel
+          </Button>
+          <Button
+            variant="contained"
+            color="error"
+            onClick={() => {
+              if (selectedMeal) {
+                handleDeleteMeal(selectedMeal.id);
+                setOpenMealDetail(false);
+              }
+              setConfirmDeleteOpen(false);
+            }}
+          >
+            Delete
           </Button>
         </DialogActions>
       </Dialog>

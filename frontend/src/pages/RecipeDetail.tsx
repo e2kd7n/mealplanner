@@ -540,7 +540,8 @@ const RecipeDetail: React.FC = () => {
                     min: 1,
                     max: 99,
                     'aria-label': 'Number of servings',
-                    style: { textAlign: 'center', padding: '4px 8px' }
+                    style: { textAlign: 'center', padding: '4px 8px' },
+                    onFocus: (e: React.FocusEvent<HTMLInputElement>) => e.target.select(),
                   }}
                   sx={{
                     width: '60px',

@@ -170,7 +170,7 @@ const BatchCookingDialog: React.FC<BatchCookingDialogProps> = ({
               type="number"
               value={servingsMultiplier}
               onChange={(e) => setServingsMultiplier(Math.max(1, parseInt(e.target.value) || 1))}
-              inputProps={{ min: 1, max: 10, step: 0.5 }}
+              inputProps={{ min: 1, max: 10, step: 0.5, onFocus: (e: React.FocusEvent<HTMLInputElement>) => e.target.select() }}
               size="small"
               sx={{ width: 150 }}
               helperText={`${meal.servings} × ${servingsMultiplier} = ${meal.servings * servingsMultiplier} servings per meal`}
