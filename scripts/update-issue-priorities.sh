@@ -2,8 +2,14 @@
 
 # WSL/Cygwin fix: LANG is unset in those environments, causing bash to mangle multi-byte
 # UTF-8 sequences (emoji appear as garbage). macOS sets en_US.UTF-8 automatically.
-export LANG="${LANG:-en_US.UTF-8}"
-export LC_ALL="${LC_ALL:-en_US.UTF-8}"
+# Fall back to C.UTF-8 when en_US.UTF-8 locale is not generated (common in minimal WSL installs).
+if locale -a 2>/dev/null | grep -qi "en_US.utf8\|en_US.UTF-8"; then
+    export LANG="${LANG:-en_US.UTF-8}"
+    export LC_ALL="${LC_ALL:-en_US.UTF-8}"
+else
+    export LANG="${LANG:-C.UTF-8}"
+    export LC_ALL="${LC_ALL:-C.UTF-8}"
+fi
 
 # Check required dependencies before doing anything
 MISSING_DEPS=()
