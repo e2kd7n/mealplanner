@@ -8,6 +8,7 @@ import { Prisma } from '@prisma/client';
 import prisma from '../utils/prisma';
 import { AppError } from '../middleware/errorHandler';
 import logger from '../utils/logger';
+import { cacheGet, cacheSet, cacheDelPattern } from '../utils/cache';
 
 /**
  * Extract and validate user ID from request
@@ -77,6 +78,13 @@ export const getGroceryLists = async (
       where.status = status;
     }
 
+    const cacheKey = `grocery-lists:${userId}:list:${status || ''}`;
+    const cached = await cacheGet(cacheKey);
+    if (cached) {
+      res.json(cached);
+      return;
+    }
+
     const groceryLists = await prisma.groceryList.findMany({
       where,
       include: {
@@ -103,10 +111,9 @@ export const getGroceryLists = async (
       },
     });
 
-    res.json({
-      success: true,
-      data: groceryLists,
-    });
+    const result = { success: true, data: groceryLists };
+    await cacheSet(cacheKey, result, 60);
+    res.json(result);
   } catch (error) {
     next(error);
   }
@@ -126,6 +133,13 @@ export const getGroceryListById = async (
     const userId = getUserId(req);
 
     const { id } = req.params as { id: string };
+
+    const cacheKey = `grocery-lists:${userId}:${id}`;
+    const cached = await cacheGet(cacheKey);
+    if (cached) {
+      res.json(cached);
+      return;
+    }
 
     const groceryList = await prisma.groceryList.findFirst({
       where: {
@@ -164,10 +178,9 @@ export const getGroceryListById = async (
       throw new AppError('Grocery list not found', 404);
     }
 
-    res.json({
-      success: true,
-      data: groceryList,
-    });
+    const result = { success: true, data: groceryList };
+    await cacheSet(cacheKey, result, 120);
+    res.json(result);
   } catch (error) {
     next(error);
   }
@@ -213,6 +226,7 @@ export const createGroceryList = async (
     });
 
     logger.info(`Grocery list created: ${groceryList.id} by user ${userId}`);
+    await cacheDelPattern(`grocery-lists:${userId}:*`);
 
     res.status(201).json({
       success: true,
@@ -363,6 +377,7 @@ export const generateFromMealPlan = async (
     });
 
     logger.info(`Grocery list generated from meal plan ${mealPlanId}: ${result.groceryList.id}`);
+    await cacheDelPattern(`grocery-lists:${userId}:*`);
 
     res.status(201).json({
       success: true,
@@ -422,6 +437,7 @@ export const updateGroceryList = async (
     });
 
     logger.info(`Grocery list updated: ${id} by user ${userId}`);
+    await cacheDelPattern(`grocery-lists:${userId}:*`);
 
     res.json({
       success: true,
@@ -464,6 +480,7 @@ export const deleteGroceryList = async (
     });
 
     logger.info(`Grocery list deleted: ${id} by user ${userId}`);
+    await cacheDelPattern(`grocery-lists:${userId}:*`);
 
     res.json({
       success: true,
@@ -532,6 +549,7 @@ export const addItemToList = async (
     });
 
     logger.info(`Item added to grocery list ${id}: ${item.id} by user ${userId}`);
+    await cacheDelPattern(`grocery-lists:${userId}:*`);
 
     res.status(201).json({
       success: true,
@@ -596,6 +614,7 @@ export const updateListItem = async (
     });
 
     logger.info(`Item updated: ${itemId} in list ${listId} by user ${userId}`);
+    await cacheDelPattern(`grocery-lists:${userId}:*`);
 
     res.json({
       success: true,
@@ -650,6 +669,7 @@ export const removeItemFromList = async (
     });
 
     logger.info(`Item removed: ${itemId} from list ${listId} by user ${userId}`);
+    await cacheDelPattern(`grocery-lists:${userId}:*`);
 
     res.json({
       success: true,

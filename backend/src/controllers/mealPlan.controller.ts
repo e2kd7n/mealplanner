@@ -10,6 +10,7 @@ import prisma from '../utils/prisma';
 import { AppError } from '../middleware/errorHandler';
 import logger from '../utils/logger';
 import { getWebSocketService } from '../services/websocket.service';
+import { cacheGet, cacheSet, cacheDelPattern } from '../utils/cache';
 
 /**
  * @route   GET /api/meal-plans
@@ -40,6 +41,13 @@ export const getMealPlans = async (
       if (endDate) {
         where.weekStartDate.lte = new Date(endDate as string);
       }
+    }
+
+    const cacheKey = `meal-plans:${userId}:list:${startDate || ''}:${endDate || ''}`;
+    const cached = await cacheGet(cacheKey);
+    if (cached) {
+      res.json(cached);
+      return;
     }
 
     const mealPlans = await prisma.mealPlan.findMany({
@@ -75,10 +83,9 @@ export const getMealPlans = async (
       },
     });
 
-    res.json({
-      success: true,
-      data: mealPlans,
-    });
+    const result = { success: true, data: mealPlans };
+    await cacheSet(cacheKey, result, 120);
+    res.json(result);
   } catch (error) {
     next(error);
   }
@@ -102,6 +109,13 @@ export const getMealPlanById = async (
 
     const { id } = req.params as { id: string };
 
+    const cacheKey = `meal-plans:${userId}:${id}`;
+    const cached = await cacheGet(cacheKey);
+    if (cached) {
+      res.json(cached);
+      return;
+    }
+
     const mealPlan = await prisma.mealPlan.findFirst({
       where: {
         id,
@@ -124,10 +138,9 @@ export const getMealPlanById = async (
       throw new AppError('Meal plan not found', 404);
     }
 
-    res.json({
-      success: true,
-      data: mealPlan,
-    });
+    const result = { success: true, data: mealPlan };
+    await cacheSet(cacheKey, result, 300);
+    res.json(result);
   } catch (error) {
     next(error);
   }
@@ -168,6 +181,7 @@ export const createMealPlan = async (
     });
 
     logger.info(`Meal plan created: ${mealPlan.id} by user ${userId}`);
+    await cacheDelPattern(`meal-plans:${userId}:*`);
 
     res.status(201).json({
       success: true,
@@ -227,6 +241,7 @@ export const updateMealPlan = async (
     });
 
     logger.info(`Meal plan updated: ${id} by user ${userId}`);
+    await cacheDelPattern(`meal-plans:${userId}:*`);
 
     res.json({
       success: true,
@@ -272,6 +287,7 @@ export const deleteMealPlan = async (
     });
 
     logger.info(`Meal plan deleted: ${id} by user ${userId}`);
+    await cacheDelPattern(`meal-plans:${userId}:*`);
 
     res.json({
       success: true,
@@ -345,6 +361,7 @@ export const addMealToPlan = async (
     });
 
     logger.info(`Meal added to plan ${id}: ${meal.id} by user ${userId}`);
+    await cacheDelPattern(`meal-plans:${userId}:*`);
 
     // Broadcast to other users in the meal plan
     try {
@@ -431,6 +448,7 @@ export const updateMeal = async (
     });
 
     logger.info(`Meal updated: ${mealId} in plan ${planId} by user ${userId}`);
+    await cacheDelPattern(`meal-plans:${userId}:*`);
 
     // Broadcast to other users in the meal plan
     try {
@@ -502,6 +520,7 @@ export const removeMealFromPlan = async (
     });
 
     logger.info(`Meal removed: ${mealId} from plan ${planId} by user ${userId}`);
+    await cacheDelPattern(`meal-plans:${userId}:*`);
 
     // Broadcast to other users in the meal plan
     try {
@@ -606,6 +625,7 @@ export const batchCookMeal = async (
     logger.info(
       `Batch cooked meal ${mealId} to ${dates.length} dates in plan ${planId} by user ${userId}`
     );
+    await cacheDelPattern(`meal-plans:${userId}:*`);
 
     // Broadcast each created meal to other users in the meal plan
     try {

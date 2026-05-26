@@ -9,6 +9,7 @@ import { Prisma } from '@prisma/client';
 import prisma from '../utils/prisma';
 import { AppError } from '../middleware/errorHandler';
 import logger from '../utils/logger';
+import { cacheGet, cacheSet, cacheDelPattern } from '../utils/cache';
 
 /**
  * @route   GET /api/pantry
@@ -41,6 +42,13 @@ export const getPantryItems = async (
     //   where.quantity = { lte: 1 }; // Could use a hardcoded threshold
     // }
 
+    const cacheKey = `pantry:${userId}:list:${category || ''}`;
+    const cached = await cacheGet(cacheKey);
+    if (cached) {
+      res.json(cached);
+      return;
+    }
+
     const pantryItems = await prisma.pantryInventory.findMany({
       where,
       include: {
@@ -52,10 +60,9 @@ export const getPantryItems = async (
       ],
     });
 
-    res.json({
-      success: true,
-      data: pantryItems,
-    });
+    const result = { success: true, data: pantryItems };
+    await cacheSet(cacheKey, result, 180);
+    res.json(result);
   } catch (error) {
     next(error);
   }
@@ -163,6 +170,7 @@ export const addPantryItem = async (
       });
 
       logger.info(`Pantry item updated: ${pantryItem.id} by user ${userId}`);
+      await cacheDelPattern(`pantry:${userId}:*`);
 
       res.json({
         success: true,
@@ -188,6 +196,7 @@ export const addPantryItem = async (
     });
 
     logger.info(`Pantry item added: ${pantryItem.id} by user ${userId}`);
+    await cacheDelPattern(`pantry:${userId}:*`);
 
     res.status(201).json({
       success: true,
@@ -252,6 +261,7 @@ export const updatePantryItem = async (
     });
 
     logger.info(`Pantry item updated: ${id} by user ${userId}`);
+    await cacheDelPattern(`pantry:${userId}:*`);
 
     res.json({
       success: true,
@@ -297,6 +307,7 @@ export const deletePantryItem = async (
     });
 
     logger.info(`Pantry item deleted: ${id} by user ${userId}`);
+    await cacheDelPattern(`pantry:${userId}:*`);
 
     res.json({
       success: true,
@@ -355,6 +366,7 @@ export const consumePantryItem = async (
       });
 
       logger.info(`Pantry item consumed and removed: ${id} by user ${userId}`);
+      await cacheDelPattern(`pantry:${userId}:*`);
 
       res.json({
         success: true,
@@ -374,6 +386,7 @@ export const consumePantryItem = async (
     });
 
     logger.info(`Pantry item consumed: ${id} by user ${userId}`);
+    await cacheDelPattern(`pantry:${userId}:*`);
 
     res.json({
       success: true,
@@ -400,6 +413,13 @@ export const getLowStockItems = async (
       throw new AppError('User not authenticated', 401);
     }
 
+    const lowStockCacheKey = `pantry:${userId}:low-stock`;
+    const cachedLowStock = await cacheGet(lowStockCacheKey);
+    if (cachedLowStock) {
+      res.json(cachedLowStock);
+      return;
+    }
+
     // Note: Low stock detection simplified as minQuantity field doesn't exist
     const pantryItems = await prisma.pantryInventory.findMany({
       where: {
@@ -417,10 +437,9 @@ export const getLowStockItems = async (
       ],
     });
 
-    res.json({
-      success: true,
-      data: pantryItems,
-    });
+    const lowStockResult = { success: true, data: pantryItems };
+    await cacheSet(lowStockCacheKey, lowStockResult, 180);
+    res.json(lowStockResult);
   } catch (error) {
     next(error);
   }
@@ -445,6 +464,13 @@ export const getExpiringSoonItems = async (
     const { days = '7' } = req.query;
     const daysNum = parseInt(days as string);
 
+    const expiryCacheKey = `pantry:${userId}:expiring:${daysNum}`;
+    const cachedExpiry = await cacheGet(expiryCacheKey);
+    if (cachedExpiry) {
+      res.json(cachedExpiry);
+      return;
+    }
+
     const expirationDate = new Date();
     expirationDate.setDate(expirationDate.getDate() + daysNum);
 
@@ -464,10 +490,9 @@ export const getExpiringSoonItems = async (
       },
     });
 
-    res.json({
-      success: true,
-      data: pantryItems,
-    });
+    const expiryResult = { success: true, data: pantryItems };
+    await cacheSet(expiryCacheKey, expiryResult, 180);
+    res.json(expiryResult);
   } catch (error) {
     next(error);
   }
