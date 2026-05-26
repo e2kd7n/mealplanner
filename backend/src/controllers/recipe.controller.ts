@@ -133,6 +133,7 @@ export async function getRecipes(
       cuisineType,
       maxPrepTime,
       maxCookTime,
+      maxCleanupScore,
       sortBy,
     } = req.query;
 
@@ -183,6 +184,10 @@ export async function getRecipes(
 
     if (maxCookTime) {
       where.cookTime = { lte: parseInt(maxCookTime as string) };
+    }
+
+    if (maxCleanupScore) {
+      where.cleanupScore = { lte: parseInt(maxCleanupScore as string) };
     }
 
     // Build orderBy clause based on sortBy parameter
