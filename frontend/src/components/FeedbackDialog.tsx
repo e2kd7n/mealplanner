@@ -25,6 +25,7 @@ import {
   Paper,
   Divider,
   useMediaQuery,
+  Tooltip,
 } from '@mui/material';
 import {
   Close as CloseIcon,
@@ -38,9 +39,18 @@ import api from '../services/api';
 interface FeedbackDialogProps {
   open: boolean;
   onClose: () => void;
+  onSuccess?: () => void;
 }
 
-const FeedbackDialog: React.FC<FeedbackDialogProps> = ({ open, onClose }) => {
+const FEEDBACK_TYPE_TOOLTIPS: Record<string, string> = {
+  bug: 'Report bugs or unexpected behavior',
+  feature: 'Suggest new features',
+  improvement: 'Suggest improvements to existing features',
+  question: 'Ask questions about the app',
+  other: 'General feedback or comments',
+};
+
+const FeedbackDialog: React.FC<FeedbackDialogProps> = ({ open, onClose, onSuccess }) => {
   const location = useLocation();
   const isLandscape = useMediaQuery('(orientation: landscape) and (max-height: 500px)');
   const isIOS = /iPhone|iPad|iPod/i.test(navigator.userAgent);
@@ -50,7 +60,6 @@ const FeedbackDialog: React.FC<FeedbackDialogProps> = ({ open, onClose }) => {
   const [screenshot, setScreenshot] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [success, setSuccess] = useState(false);
 
   const handleClose = () => {
     if (!submitting) {
@@ -60,7 +69,6 @@ const FeedbackDialog: React.FC<FeedbackDialogProps> = ({ open, onClose }) => {
       setMessage('');
       setScreenshot(null);
       setError(null);
-      setSuccess(false);
       onClose();
     }
   };
@@ -111,12 +119,15 @@ const FeedbackDialog: React.FC<FeedbackDialogProps> = ({ open, onClose }) => {
         screenshot,
       });
 
-      setSuccess(true);
-      
-      // Close dialog after 2 seconds
-      setTimeout(() => {
-        handleClose();
-      }, 2000);
+      // Reset form state before closing
+      setFeedbackType('improvement');
+      setRating(null);
+      setMessage('');
+      setScreenshot(null);
+
+      // Close immediately; parent shows the success toast
+      onClose();
+      onSuccess?.();
     } catch (err: any) {
       console.error('Feedback submission error:', err);
       setError(err.response?.data?.message || 'Failed to submit feedback. Please try again.');
@@ -155,171 +166,185 @@ const FeedbackDialog: React.FC<FeedbackDialogProps> = ({ open, onClose }) => {
           WebkitOverflowScrolling: 'touch',
         }}
       >
-        {success ? (
-          <Alert severity="success" sx={{ mb: 2 }}>
-            Thank you for your feedback! It helps us improve the app.
-          </Alert>
-        ) : (
-          <Stack spacing={isLandscape ? 1.5 : 3}>
-            {error && (
-              <Alert severity="error" onClose={() => setError(null)}>
-                {error}
-              </Alert>
-            )}
+        <Stack spacing={isLandscape ? 1.5 : 3}>
+          {error && (
+            <Alert severity="error" onClose={() => setError(null)}>
+              {error}
+            </Alert>
+          )}
 
-            <Typography variant="body2" sx={{ color: 'text.primary' }}>
-              We value your input! Please share your thoughts, report bugs, or suggest improvements.
-            </Typography>
+          <Typography variant="body2" sx={{ color: 'text.primary' }}>
+            We value your input! Please share your thoughts, report bugs, or suggest improvements.
+          </Typography>
 
-            <FormControl fullWidth>
-              <InputLabel id="feedback-type-label">Feedback Type</InputLabel>
-              <Select
-                labelId="feedback-type-label"
-                id="feedback-type"
-                value={feedbackType}
-                label="Feedback Type"
-                onChange={(e) => setFeedbackType(e.target.value)}
-                disabled={submitting}
-                aria-describedby="feedback-type-helper"
-              >
-                <MenuItem value="bug" aria-label="Bug Report">
-                  <span aria-hidden="true">🐛</span> Bug Report
-                </MenuItem>
-                <MenuItem value="feature" aria-label="Feature Request">
-                  <span aria-hidden="true">💡</span> Feature Request
-                </MenuItem>
-                <MenuItem value="improvement" aria-label="Improvement">
-                  <span aria-hidden="true">✨</span> Improvement
-                </MenuItem>
-                <MenuItem value="question" aria-label="Question">
-                  <span aria-hidden="true">❓</span> Question
-                </MenuItem>
-                <MenuItem value="other" aria-label="Other">
-                  <span aria-hidden="true">📝</span> Other
-                </MenuItem>
-              </Select>
-              <Typography
-                id="feedback-type-helper"
-                variant="caption"
-                sx={{ mt: 0.5, display: 'block', color: 'text.primary' }}
-              >
-                Select the category that best describes your feedback
-              </Typography>
-            </FormControl>
-
-            <Box>
-              <Typography component="legend" gutterBottom id="rating-label">
-                How would you rate your experience? (Optional)
-              </Typography>
-              <Rating
-                name="rating"
-                value={rating}
-                onChange={(_, newValue) => setRating(newValue)}
-                disabled={submitting}
-                size="large"
-                aria-label="Rate your experience from 1 to 5 stars"
-                aria-labelledby="rating-label"
-                aria-describedby="rating-helper"
-              />
-              <Typography
-                id="rating-helper"
-                variant="caption"
-                sx={{ display: 'block', mt: 0.5, color: 'text.primary' }}
-              >
-                {rating ? `You rated ${rating} out of 5 stars` : 'No rating selected'}
-              </Typography>
-            </Box>
-
-            <TextField
-              label="Your Feedback"
-              multiline
-              rows={isLandscape ? 2 : 4}
-              value={message}
-              onChange={(e) => setMessage(e.target.value)}
-              placeholder="Please describe your feedback in detail..."
+          <FormControl fullWidth>
+            <InputLabel id="feedback-type-label">Feedback Type</InputLabel>
+            <Select
+              labelId="feedback-type-label"
+              id="feedback-type"
+              value={feedbackType}
+              label="Feedback Type"
+              onChange={(e) => setFeedbackType(e.target.value)}
               disabled={submitting}
-              required
-              fullWidth
-              inputProps={{
-                maxLength: 2000,
-                'aria-describedby': 'feedback-message-helper',
-              }}
-              helperText={`${message.length}/2000 characters`}
-              aria-describedby="feedback-message-helper"
+              aria-describedby="feedback-type-helper"
+            >
+              {(['bug', 'feature', 'improvement', 'question', 'other'] as const).map((type) => {
+                const labels: Record<string, string> = {
+                  bug: '🐛 Bug Report',
+                  feature: '💡 Feature Request',
+                  improvement: '✨ Improvement',
+                  question: '❓ Question',
+                  other: '📝 Other',
+                };
+                return (
+                  <MenuItem key={type} value={type} aria-label={labels[type]}>
+                    <Tooltip title={FEEDBACK_TYPE_TOOLTIPS[type]} placement="right" disableInteractive>
+                      <Box component="span" sx={{ display: 'flex', alignItems: 'center', width: '100%' }}>
+                        <span aria-hidden="true">{labels[type].split(' ')[0]}</span>&nbsp;
+                        {labels[type].split(' ').slice(1).join(' ')}
+                      </Box>
+                    </Tooltip>
+                  </MenuItem>
+                );
+              })}
+            </Select>
+            <Typography
+              id="feedback-type-helper"
+              variant="caption"
+              sx={{ mt: 0.5, display: 'block', color: 'text.primary' }}
+            >
+              Select the category that best describes your feedback
+            </Typography>
+          </FormControl>
+
+          <Box>
+            <Typography component="legend" gutterBottom id="rating-label">
+              How would you rate your experience? (Optional)
+            </Typography>
+            <Rating
+              name="rating"
+              value={rating}
+              onChange={(_, newValue) => setRating(newValue)}
+              disabled={submitting}
+              size="large"
+              aria-label="Rate your experience from 1 to 5 stars"
+              aria-labelledby="rating-label"
+              aria-describedby="rating-helper"
             />
             <Typography
-              id="feedback-message-helper"
+              variant="caption"
+              sx={{ display: 'block', mt: 0.5, color: 'text.secondary' }}
+            >
+              1 = Very Poor · 2 = Poor · 3 = Average · 4 = Good · 5 = Excellent
+            </Typography>
+            <Typography
+              id="rating-helper"
               variant="caption"
               sx={{ display: 'block', mt: 0.5, color: 'text.primary' }}
             >
-              Please describe your feedback in detail (required, maximum 2000 characters)
+              {rating ? `You rated ${rating} out of 5 stars` : 'No rating selected'}
+            </Typography>
+          </Box>
+
+          <TextField
+            label="Your Feedback"
+            multiline
+            rows={isLandscape ? 2 : 4}
+            value={message}
+            onChange={(e) => setMessage(e.target.value)}
+            placeholder="Please describe your feedback in detail..."
+            disabled={submitting}
+            required
+            fullWidth
+            inputProps={{
+              maxLength: 2000,
+              'aria-describedby': 'feedback-message-helper',
+            }}
+            helperText={`${message.length}/2000 characters`}
+            aria-describedby="feedback-message-helper"
+          />
+          <Typography
+            id="feedback-message-helper"
+            variant="caption"
+            sx={{ display: 'block', mt: 0.5, color: 'text.primary' }}
+          >
+            Please describe your feedback in detail (required, maximum 2000 characters)
+          </Typography>
+
+          <Box>
+            <Button
+              startIcon={<CameraIcon />}
+              onClick={captureScreenshot}
+              disabled={submitting || !!screenshot}
+              variant="outlined"
+              size="small"
+              aria-label={screenshot ? 'Screenshot captured successfully' : 'Capture screenshot of current page'}
+              aria-describedby="screenshot-helper"
+            >
+              {screenshot ? 'Screenshot Captured' : 'Capture Screenshot (Optional)'}
+            </Button>
+
+            {/* #155 — Privacy notice for screenshot feature */}
+            <Typography
+              variant="caption"
+              display="block"
+              sx={{ mt: 0.75, color: 'text.secondary' }}
+            >
+              Screenshots may include personal data visible on screen. Review before submitting.
             </Typography>
 
-            <Box>
-              <Button
-                startIcon={<CameraIcon />}
-                onClick={captureScreenshot}
-                disabled={submitting || !!screenshot}
-                variant="outlined"
-                size="small"
-                aria-label={screenshot ? 'Screenshot captured successfully' : 'Capture screenshot of current page'}
-                aria-describedby="screenshot-helper"
-              >
-                {screenshot ? 'Screenshot Captured' : 'Capture Screenshot (Optional)'}
-              </Button>
-              <Typography
-                id="screenshot-helper"
-                variant="caption"
-                display="block"
-                sx={{ mt: 1, color: 'text.primary' }}
-              >
-                {screenshot
-                  ? 'Screenshot will be included with your feedback'
-                  : 'Optionally capture a screenshot to help illustrate your feedback'}
+            <Typography
+              id="screenshot-helper"
+              variant="caption"
+              display="block"
+              sx={{ mt: 0.5, color: 'text.primary' }}
+            >
+              {screenshot
+                ? 'Screenshot will be included with your feedback'
+                : 'Optionally capture a screenshot to help illustrate your feedback'}
+            </Typography>
+
+            <Paper
+              variant="outlined"
+              sx={{
+                mt: 2,
+                p: 2,
+                bgcolor: 'background.default',
+              }}
+              aria-live="polite"
+            >
+              <Typography variant="subtitle2" sx={{ mb: 1, color: 'text.primary' }}>
+                Included context
               </Typography>
+              <Stack spacing={1.5} divider={<Divider flexItem />}>
+                <Box>
+                  <Typography variant="caption" sx={{ color: 'text.primary' }} component="div">
+                    Current page path
+                  </Typography>
+                  <Typography
+                    variant="body2"
+                    sx={{
+                      fontFamily: 'monospace',
+                      wordBreak: 'break-all',
+                      color: 'text.primary',
+                    }}
+                  >
+                    {location.pathname}
+                  </Typography>
+                </Box>
 
-              <Paper
-                variant="outlined"
-                sx={{
-                  mt: 2,
-                  p: 2,
-                  bgcolor: 'background.default',
-                }}
-                aria-live="polite"
-              >
-                <Typography variant="subtitle2" sx={{ mb: 1, color: 'text.primary' }}>
-                  Included context
-                </Typography>
-                <Stack spacing={1.5} divider={<Divider flexItem />}>
-                  <Box>
-                    <Typography variant="caption" sx={{ color: 'text.primary' }} component="div">
-                      Current page path
-                    </Typography>
-                    <Typography
-                      variant="body2"
-                      sx={{
-                        fontFamily: 'monospace',
-                        wordBreak: 'break-all',
-                        color: 'text.primary',
-                      }}
-                    >
-                      {location.pathname}
-                    </Typography>
-                  </Box>
-
-                  <Box>
-                    <Typography variant="caption" sx={{ color: 'text.primary' }} component="div">
-                      Screenshot attachment
-                    </Typography>
-                    <Typography variant="body2" color="text.primary">
-                      {screenshot ? 'Attached to this feedback submission' : 'Not attached'}
-                    </Typography>
-                  </Box>
-                </Stack>
-              </Paper>
-            </Box>
-          </Stack>
-        )}
+                <Box>
+                  <Typography variant="caption" sx={{ color: 'text.primary' }} component="div">
+                    Screenshot attachment
+                  </Typography>
+                  <Typography variant="body2" color="text.primary">
+                    {screenshot ? 'Attached to this feedback submission' : 'Not attached'}
+                  </Typography>
+                </Box>
+              </Stack>
+            </Paper>
+          </Box>
+        </Stack>
       </DialogContent>
 
       <DialogActions>
@@ -329,7 +354,7 @@ const FeedbackDialog: React.FC<FeedbackDialogProps> = ({ open, onClose }) => {
         <Button
           onClick={handleSubmit}
           variant="contained"
-          disabled={submitting || success || !message.trim()}
+          disabled={submitting || !message.trim()}
           startIcon={submitting ? <CircularProgress size={20} /> : <SendIcon />}
         >
           {submitting ? 'Submitting...' : 'Submit Feedback'}
