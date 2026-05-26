@@ -22,7 +22,33 @@ This will:
 
 ### Automated Backups
 
-#### Option 1: Cron Job (Recommended for Development)
+#### Pi Production (Active — Raspberry Pi 4B)
+
+A weekly cron job runs on the Pi every Sunday at 2 AM CDT as the `admin` user:
+
+```
+0 2 * * 0 cd /home/admin/mealplanner && ./scripts/backup-database.sh >> /home/admin/mealplanner/data/backups/backup.log 2>&1
+```
+
+To verify or reinstall after a fresh Pi deploy:
+
+```bash
+ssh admin@192.168.4.110 "crontab -l"
+# If missing, reinstall:
+ssh admin@192.168.4.110 "(crontab -l 2>/dev/null; echo '# Mealplanner: weekly DB backup — Sunday 2 AM'; echo '0 2 * * 0 cd /home/admin/mealplanner && ./scripts/backup-database.sh >> /home/admin/mealplanner/data/backups/backup.log 2>&1') | crontab -"
+```
+
+To run a manual backup on the Pi:
+
+```bash
+ssh admin@192.168.4.110 "cd /home/admin/mealplanner && ./scripts/backup-database.sh"
+```
+
+Backup logs: `/home/admin/mealplanner/data/backups/backup.log`
+Backup files: `/home/admin/mealplanner/data/backups/backup_meal_planner_YYYYMMDD_HHMMSS.sql.gz`
+Retention: 30 days
+
+#### Option 1: Cron Job (Development)
 
 Add to your crontab (`crontab -e`):
 
