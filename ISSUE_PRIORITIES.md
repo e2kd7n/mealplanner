@@ -1,6 +1,6 @@
 # Issue Prioritization
 
-**Last Updated:** 2026-05-26 02:26:03 UTC / 2026-05-25 21:26:03 CDT
+**Last Updated:** 2026-05-26 22:35:41 UTC / 2026-05-26 17:35:41 CDT
 
 This file reflects the current state of GitHub issues organized by milestone and priority within each milestone.
 
@@ -16,13 +16,9 @@ This file reflects the current state of GitHub issues organized by milestone and
 
 ### 🟡 P2 - MEDIUM
 - #142 - E2E Tests: Optimize GitHub Actions configuration for reliability
-- #141 - E2E Tests: Add retry logic to handle flaky tests
-- #140 - E2E Tests: Implement proper test data management and cleanup
 - #83 - [Testing] Add automated accessibility and performance tests
 
 ### 🟢 P3 - LOW
-- #213 - [Maintenance] Upgrade @types/node to v25 (frontend)
-- #212 - [Maintenance] Upgrade ESLint to v10 (frontend)
 - #170 - ✨ Add photo capture and PDF upload for recipe creation
 - #45 - Achieve 70%+ Test Coverage
 - #43 - Implement Logging Aggregation
@@ -63,7 +59,6 @@ These issues need to be assigned to a milestone and prioritized.
 
 ### ⚠️ Unprioritized (No P-label)
 - #209 - fix(monitoring): repair Glances service and add ClusterHAT cluster-wide monitoring
-- #205 - feat(ui): default theme to system light/dark preference
 
 ## 📝 Workspace TODOs & Tasks
 Code comments and inline tasks found in the workspace that may need attention.
