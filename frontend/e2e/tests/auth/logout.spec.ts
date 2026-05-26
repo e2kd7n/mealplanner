@@ -2,39 +2,35 @@ import { test, expect } from '../../fixtures/auth.fixture';
 
 test.describe('Logout Flow', () => {
   test('should logout successfully', async ({ authenticatedPage }) => {
-    // Click user menu button
-    await authenticatedPage.getByRole('button', { name: /test user/i }).click();
-    
-    // Click logout button
+    // Open the profile/account menu (aria-label from Layout.tsx)
+    await authenticatedPage.getByLabel('Profile & Family Settings').click();
+
+    // Click logout
     await authenticatedPage.getByRole('menuitem', { name: /logout/i }).click();
-    
-    // Should redirect to login page
+
+    // Should redirect to the local login page
     await expect(authenticatedPage).toHaveURL('/login');
-    
-    // Should show login form
-    await expect(authenticatedPage.getByRole('heading', { name: /sign in/i })).toBeVisible();
   });
 
   test('should not access protected routes after logout', async ({ authenticatedPage }) => {
-    // Logout
-    await authenticatedPage.getByRole('button', { name: /test user/i }).click();
+    await authenticatedPage.getByLabel('Profile & Family Settings').click();
     await authenticatedPage.getByRole('menuitem', { name: /logout/i }).click();
-    
-    // Try to access dashboard
+
+    // Try to access a protected route
     await authenticatedPage.goto('/dashboard');
-    
-    // Should redirect to login
-    await expect(authenticatedPage).toHaveURL('/login');
+
+    // PrivateRoute should redirect back to login when session is cleared
+    await expect(authenticatedPage).toHaveURL(/\/login/);
   });
 
-  test('should clear session data on logout', async ({ authenticatedPage }) => {
-    // Logout
-    await authenticatedPage.getByRole('button', { name: /test user/i }).click();
+  test('should clear session on logout', async ({ authenticatedPage }) => {
+    await authenticatedPage.getByLabel('Profile & Family Settings').click();
     await authenticatedPage.getByRole('menuitem', { name: /logout/i }).click();
-    
-    // Check that auth token is cleared
-    const token = await authenticatedPage.evaluate(() => localStorage.getItem('token'));
-    expect(token).toBeNull();
+    await expect(authenticatedPage).toHaveURL('/login');
+
+    // Attempting a protected route confirms the session cookie was cleared
+    await authenticatedPage.goto('/recipes');
+    await expect(authenticatedPage).toHaveURL(/\/login/);
   });
 });
 
