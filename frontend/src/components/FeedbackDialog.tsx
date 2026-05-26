@@ -3,7 +3,7 @@
  * All rights reserved.
  */
 
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   Dialog,
   DialogTitle,
@@ -50,6 +50,11 @@ const FEEDBACK_TYPE_TOOLTIPS: Record<string, string> = {
   other: 'General feedback or comments',
 };
 
+interface RateLimitInfo {
+  remaining: number;
+  resetAt: Date;
+}
+
 const FeedbackDialog: React.FC<FeedbackDialogProps> = ({ open, onClose, onSuccess }) => {
   const location = useLocation();
   const isLandscape = useMediaQuery('(orientation: landscape) and (max-height: 500px)');
@@ -60,10 +65,37 @@ const FeedbackDialog: React.FC<FeedbackDialogProps> = ({ open, onClose, onSucces
   const [screenshot, setScreenshot] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [rateLimitInfo, setRateLimitInfo] = useState<RateLimitInfo | null>(null);
+  const [rateLimitedUntil, setRateLimitedUntil] = useState<Date | null>(null);
+  const rateLimitTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const [timeRemaining, setTimeRemaining] = useState<string>('');
+
+  useEffect(() => {
+    if (!rateLimitedUntil) return;
+
+    const tick = () => {
+      const secsLeft = Math.max(0, Math.ceil((rateLimitedUntil.getTime() - Date.now()) / 1000));
+      if (secsLeft === 0) {
+        setRateLimitedUntil(null);
+        setRateLimitInfo(null);
+        setError(null);
+        if (rateLimitTimerRef.current) clearInterval(rateLimitTimerRef.current);
+      } else {
+        const mins = Math.floor(secsLeft / 60);
+        const secs = secsLeft % 60;
+        setTimeRemaining(mins > 0 ? `${mins}m ${secs}s` : `${secs}s`);
+      }
+    };
+
+    tick();
+    rateLimitTimerRef.current = setInterval(tick, 1000);
+    return () => {
+      if (rateLimitTimerRef.current) clearInterval(rateLimitTimerRef.current);
+    };
+  }, [rateLimitedUntil]);
 
   const handleClose = () => {
     if (!submitting) {
-      // Reset form
       setFeedbackType('improvement');
       setRating(null);
       setMessage('');
@@ -111,7 +143,7 @@ const FeedbackDialog: React.FC<FeedbackDialogProps> = ({ open, onClose, onSucces
       setSubmitting(true);
       setError(null);
 
-      await api.post('/feedback', {
+      const response = await api.post('/feedback', {
         page: location.pathname,
         feedbackType,
         rating,
@@ -119,18 +151,31 @@ const FeedbackDialog: React.FC<FeedbackDialogProps> = ({ open, onClose, onSucces
         screenshot,
       });
 
-      // Reset form state before closing
+      const remaining = parseInt(response.headers['ratelimit-remaining'] ?? '5', 10);
+      const resetSecs = parseInt(response.headers['ratelimit-reset'] ?? '0', 10);
+      if (!isNaN(remaining) && resetSecs > 0) {
+        const resetAt = new Date(Date.now() + resetSecs * 1000);
+        setRateLimitInfo({ remaining, resetAt });
+      }
+
       setFeedbackType('improvement');
       setRating(null);
       setMessage('');
       setScreenshot(null);
 
-      // Close immediately; parent shows the success toast
       onClose();
       onSuccess?.();
     } catch (err: any) {
       console.error('Feedback submission error:', err);
-      setError(err.response?.data?.message || 'Failed to submit feedback. Please try again.');
+      if (err.response?.status === 429) {
+        const retryAfter = parseInt(err.response.headers['retry-after'] ?? '900', 10);
+        const until = new Date(Date.now() + retryAfter * 1000);
+        setRateLimitedUntil(until);
+        setRateLimitInfo({ remaining: 0, resetAt: until });
+        setError(null);
+      } else {
+        setError(err.response?.data?.message || 'Failed to submit feedback. Please try again.');
+      }
     } finally {
       setSubmitting(false);
     }
@@ -167,6 +212,18 @@ const FeedbackDialog: React.FC<FeedbackDialogProps> = ({ open, onClose, onSucces
         }}
       >
         <Stack spacing={isLandscape ? 1.5 : 3}>
+          {rateLimitedUntil ? (
+            <Alert severity="error">
+              Submission limit reached. You can submit again in {timeRemaining || '…'}.
+            </Alert>
+          ) : rateLimitInfo && rateLimitInfo.remaining <= 2 ? (
+            <Alert severity={rateLimitInfo.remaining === 0 ? 'error' : rateLimitInfo.remaining === 1 ? 'warning' : 'info'}>
+              {rateLimitInfo.remaining === 0
+                ? 'No submissions remaining in this window.'
+                : `${rateLimitInfo.remaining} submission${rateLimitInfo.remaining !== 1 ? 's' : ''} remaining in this window.`}
+            </Alert>
+          ) : null}
+
           {error && (
             <Alert severity="error" onClose={() => setError(null)}>
               {error}
@@ -354,7 +411,7 @@ const FeedbackDialog: React.FC<FeedbackDialogProps> = ({ open, onClose, onSucces
         <Button
           onClick={handleSubmit}
           variant="contained"
-          disabled={submitting || !message.trim()}
+          disabled={submitting || !message.trim() || !!rateLimitedUntil || rateLimitInfo?.remaining === 0}
           startIcon={submitting ? <CircularProgress size={20} /> : <SendIcon />}
         >
           {submitting ? 'Submitting...' : 'Submit Feedback'}
