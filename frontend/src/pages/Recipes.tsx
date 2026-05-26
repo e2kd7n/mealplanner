@@ -4,7 +4,7 @@
  */
 
 
-import React, { useEffect, useState, memo, useCallback } from 'react';
+import React, { useEffect, useState, memo, useCallback, useMemo } from 'react';
 import {
   Container,
   Typography,
@@ -43,6 +43,7 @@ import {
   Tune as TuneIcon,
   Info as InfoIcon,
   CleaningServices as CleaningServicesIcon,
+  Clear as ClearIcon,
 } from '@mui/icons-material';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAppDispatch, useAppSelector } from '../store/hooks';
@@ -193,7 +194,18 @@ const Recipes: React.FC = () => {
   // Filter panel open/closed
   const [filtersOpen, setFiltersOpen] = useState(false);
 
-  const debouncedSearch = useDebounce(searchInput, 500);
+  const debouncedSearch = useDebounce(searchInput, 300);
+
+  // Client-side filter of already-loaded recipes by search text
+  const displayedRecipes = useMemo(() => {
+    if (!debouncedSearch.trim()) return recipes;
+    const term = debouncedSearch.trim().toLowerCase();
+    return recipes.filter(
+      (r) =>
+        r.title.toLowerCase().includes(term) ||
+        (r.description && r.description.toLowerCase().includes(term))
+    );
+  }, [recipes, debouncedSearch]);
 
   const activeFilterCount = [difficulty, mealType, cleanupScore].filter(Boolean).length;
 
@@ -249,18 +261,18 @@ const Recipes: React.FC = () => {
         {/* Header */}
         <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
           <Typography variant="h4">Recipes</Typography>
-          {activeTab === 0 && (
-            <Box sx={{ display: 'flex', gap: 2 }}>
-              <Tooltip title="Paste any recipe URL — we'll extract the ingredients and steps automatically." arrow>
-                <Button
-                  variant="outlined"
-                  startIcon={<LinkIcon />}
-                  onClick={() => navigate('/recipes/import')}
-                  aria-label="Import recipe from URL"
-                >
-                  Import Recipe
-                </Button>
-              </Tooltip>
+          <Box sx={{ display: 'flex', gap: 2 }}>
+            <Tooltip title="Paste any recipe URL — we'll extract the ingredients and steps automatically." arrow>
+              <Button
+                variant="outlined"
+                startIcon={<LinkIcon />}
+                onClick={() => navigate('/recipes/import')}
+                aria-label="Import recipe from URL"
+              >
+                Import Recipe
+              </Button>
+            </Tooltip>
+            {activeTab === 0 && (
               <Button
                 variant="contained"
                 startIcon={<AddIcon />}
@@ -269,8 +281,8 @@ const Recipes: React.FC = () => {
               >
                 Create Recipe
               </Button>
-            </Box>
-          )}
+            )}
+          </Box>
         </Box>
 
         {/* Tabs */}
@@ -309,7 +321,7 @@ const Recipes: React.FC = () => {
             <Stack direction="row" spacing={1} alignItems="center">
               <TextField
                 fullWidth
-                placeholder="Search recipes..."
+                placeholder="Search my recipes..."
                 value={searchInput}
                 onChange={(e) => handleSearchInput(e.target.value)}
                 InputProps={{
@@ -318,6 +330,17 @@ const Recipes: React.FC = () => {
                       <SearchIcon />
                     </InputAdornment>
                   ),
+                  endAdornment: searchInput ? (
+                    <InputAdornment position="end">
+                      <IconButton
+                        size="small"
+                        onClick={() => { handleSearchInput(''); setCurrentPage(1); }}
+                        aria-label="Clear search"
+                      >
+                        <ClearIcon fontSize="small" />
+                      </IconButton>
+                    </InputAdornment>
+                  ) : null,
                 }}
                 aria-label="Search my recipes"
               />
@@ -466,7 +489,7 @@ const Recipes: React.FC = () => {
             >
               {[...Array(8)].map((_, index) => <RecipeCardSkeleton key={index} />)}
             </Box>
-          ) : recipes.length === 0 ? (
+          ) : displayedRecipes.length === 0 ? (
             !searchInput && !difficulty && !mealType && !cleanupScore ? (
               <RecipeDiscoveryEmptyState />
             ) : (
@@ -488,7 +511,7 @@ const Recipes: React.FC = () => {
                   mb: 4,
                 }}
               >
-                {recipes.map((recipe) => (
+                {displayedRecipes.map((recipe) => (
                   <RecipeCard key={recipe.id} recipe={recipe} onNavigate={handleNavigate} />
                 ))}
               </Box>
