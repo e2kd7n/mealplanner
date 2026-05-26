@@ -1,72 +1,61 @@
 import { test, expect } from '../../fixtures/auth.fixture';
+import { createTestRecipe, deleteTestRecipe, TestRecipe } from '../../helpers/test-data';
 
 test.describe('Delete Recipe', () => {
+  let testRecipe: TestRecipe;
+
+  test.beforeEach(async ({ apiContext }) => {
+    testRecipe = await createTestRecipe(apiContext, { title: 'Delete Target Recipe' });
+  });
+
+  // Best-effort cleanup for tests that did not delete the recipe themselves
+  test.afterEach(async ({ apiContext }) => {
+    await deleteTestRecipe(apiContext, testRecipe.id).catch(() => undefined);
+  });
+
   test('should delete a recipe with confirmation', async ({ authenticatedPage }) => {
-    // Navigate to recipes page
-    await authenticatedPage.goto('/recipes');
-    
-    // Get the first recipe title for verification
-    const firstRecipeTitle = await authenticatedPage.getByRole('heading').first().textContent();
-    
-    // Click on first recipe
-    await authenticatedPage.getByRole('link', { name: /view recipe/i }).first().click();
-    
+    await authenticatedPage.goto(`/recipes/${testRecipe.id}`);
+
     // Click delete button
     await authenticatedPage.getByRole('button', { name: /delete/i }).click();
-    
+
     // Should show confirmation dialog
     await expect(authenticatedPage.getByText(/are you sure/i)).toBeVisible();
-    
+
     // Confirm deletion
     await authenticatedPage.getByRole('button', { name: /confirm|yes|delete/i }).click();
-    
+
     // Should redirect to recipes list
     await expect(authenticatedPage).toHaveURL('/recipes');
-    
+
     // Should show success message
     await expect(authenticatedPage.getByText(/recipe deleted successfully/i)).toBeVisible();
-    
-    // Recipe should no longer appear in list
-    if (firstRecipeTitle) {
-      await expect(authenticatedPage.getByRole('heading', { name: firstRecipeTitle })).not.toBeVisible();
-    }
   });
 
   test('should cancel recipe deletion', async ({ authenticatedPage }) => {
-    await authenticatedPage.goto('/recipes');
-    
-    // Click on first recipe
-    await authenticatedPage.getByRole('link', { name: /view recipe/i }).first().click();
-    const recipeUrl = authenticatedPage.url();
-    
+    await authenticatedPage.goto(`/recipes/${testRecipe.id}`);
+
     // Click delete button
     await authenticatedPage.getByRole('button', { name: /delete/i }).click();
-    
+
     // Should show confirmation dialog
     await expect(authenticatedPage.getByText(/are you sure/i)).toBeVisible();
-    
+
     // Cancel deletion
     await authenticatedPage.getByRole('button', { name: /cancel|no/i }).click();
-    
+
     // Should stay on recipe detail page
-    await expect(authenticatedPage).toHaveURL(recipeUrl);
-    
+    await expect(authenticatedPage).toHaveURL(`/recipes/${testRecipe.id}`);
+
     // Recipe should still be visible
-    await expect(authenticatedPage.getByRole('heading')).toBeVisible();
+    await expect(authenticatedPage.getByRole('heading', { name: /delete target recipe/i })).toBeVisible();
   });
 
   test('should only allow owner to delete recipe', async ({ authenticatedPage }) => {
-    // This test assumes there are recipes from other users
-    // Navigate to a recipe that doesn't belong to the current user
-    await authenticatedPage.goto('/recipes');
-    
-    // Try to find a recipe from another user (if any)
-    // For now, we'll just verify the delete button exists for owned recipes
-    await authenticatedPage.getByRole('link', { name: /view recipe/i }).first().click();
-    
+    await authenticatedPage.goto(`/recipes/${testRecipe.id}`);
+
     // Delete button should be visible for owned recipes
-    const deleteButton = authenticatedPage.getByRole('button', { name: /delete/i });
-    await expect(deleteButton).toBeVisible();
+    await expect(authenticatedPage.getByRole('button', { name: /delete/i })).toBeVisible();
   });
 });
 

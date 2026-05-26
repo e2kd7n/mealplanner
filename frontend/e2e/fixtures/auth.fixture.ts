@@ -3,13 +3,14 @@
  * All rights reserved.
  */
 
-import { test as base } from '@playwright/test';
+import { test as base, request as playwrightRequest, APIRequestContext, Page } from '@playwright/test';
 import { LoginPage } from '../page-objects/LoginPage';
-import { authenticateViaAPI, injectAuthTokens } from '../helpers/api-auth';
+import { authenticatePage } from '../helpers/api-auth';
 
 type AuthFixtures = {
-  authenticatedPage: any;
+  authenticatedPage: Page;
   loginPage: LoginPage;
+  apiContext: APIRequestContext;
 };
 
 export const test = base.extend<AuthFixtures>({
@@ -18,18 +19,29 @@ export const test = base.extend<AuthFixtures>({
     await use(loginPage);
   },
 
+  // Standalone authenticated API request context pointed at the backend.
+  // Use this in beforeEach/afterEach to create/delete test data via API
+  // without going through the UI.
+  apiContext: async ({ baseURL }, use) => {
+    const backendURL = (baseURL || 'http://localhost:5173').replace(':5173', ':3000');
+    const context = await playwrightRequest.newContext({ baseURL: backendURL });
+    const resp = await context.post('/api/auth/login', {
+      data: { email: 'test@example.com', password: 'TestPass123!' },
+    });
+    if (!resp.ok()) {
+      await context.dispose();
+      throw new Error(`apiContext login failed: ${resp.status()} ${await resp.text()}`);
+    }
+    await use(context);
+    await context.dispose();
+  },
+
   authenticatedPage: async ({ page, baseURL }, use) => {
     const backendURL = (baseURL || 'http://localhost:5173').replace(':5173', ':3000');
-    const tokens = await authenticateViaAPI(backendURL);
-
-    // Navigate to origin first so storage APIs target the correct origin,
-    // then inject accessToken into localStorage and refreshToken into
-    // sessionStorage (api.ts reads refreshToken from sessionStorage — not
-    // localStorage — so it cannot be seeded via Playwright's storageState).
-    await page.goto('/');
-    await injectAuthTokens(page, tokens);
+    // page.request shares the browser context cookie store, so the httpOnly
+    // auth cookies set by the login response are sent on every subsequent request.
+    await authenticatePage(page, backendURL);
     await page.goto('/dashboard');
-
     await use(page);
   },
 });

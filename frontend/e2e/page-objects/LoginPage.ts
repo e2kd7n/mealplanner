@@ -29,8 +29,8 @@ export class LoginPage {
   }
 
   async goto() {
-    await this.page.goto('/login');
-    // Wait for the login form to be visible instead of networkidle (more reliable across browsers)
+    // Use the classic email/password login form, not the visual LocalLogin stepper
+    await this.page.goto('/login/classic');
     await this.loginButton.waitFor({ state: 'visible', timeout: 10000 });
   }
 
