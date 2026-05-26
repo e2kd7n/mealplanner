@@ -191,6 +191,7 @@ model PlannedMeal {
   @@index([mealPlanId])
   @@index([recipeId])
   @@index([date])
+  @@index([mealPlanId, date])
   @@map("planned_meals")
 }
 
@@ -244,6 +245,7 @@ model RecipeRating {
   @@index([recipeId])
   @@index([userId])
   @@index([rating])
+  @@index([recipeId, userId])
   @@map("recipe_ratings")
 }
 
@@ -278,6 +280,7 @@ model PantryInventory {
   @@index([userId])
   @@index([ingredientId])
   @@index([expirationDate])
+  @@index([userId, expirationDate])
   @@map("pantry_inventory")
 }
 

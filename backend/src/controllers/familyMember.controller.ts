@@ -7,6 +7,7 @@ import { Request, Response, NextFunction } from 'express';
 import prisma from '../utils/prisma';
 import { AppError } from '../middleware/errorHandler';
 import { logger } from '../utils/logger';
+import { cacheGet, cacheSet, cacheDelPattern } from '../utils/cache';
 
 /**
  * Extract and validate user ID from request
@@ -32,6 +33,13 @@ export async function getFamilyMembers(
   try {
     const userId = getUserId(req);
 
+    const cacheKey = `family-members:${userId}:list`;
+    const cached = await cacheGet(cacheKey);
+    if (cached) {
+      res.json(cached);
+      return;
+    }
+
     const familyMembers = await prisma.familyMember.findMany({
       where: { userId },
       orderBy: {
@@ -39,9 +47,9 @@ export async function getFamilyMembers(
       },
     });
 
-    res.json({
-      data: familyMembers,
-    });
+    const result = { data: familyMembers };
+    await cacheSet(cacheKey, result, 1800);
+    res.json(result);
   } catch (error) {
     next(error);
   }
@@ -119,6 +127,7 @@ export async function createFamilyMember(
     });
 
     logger.info('Family member created', { familyMemberId: familyMember.id, userId });
+    await cacheDelPattern(`family-members:${userId}:*`);
 
     res.status(201).json({
       message: 'Family member added successfully',
@@ -179,6 +188,7 @@ export async function updateFamilyMember(
     });
 
     logger.info('Family member updated', { familyMemberId: id, userId });
+    await cacheDelPattern(`family-members:${userId}:*`);
 
     res.json({
       message: 'Family member updated successfully',
@@ -221,6 +231,7 @@ export async function deleteFamilyMember(
     });
 
     logger.info('Family member deleted', { familyMemberId: id, userId });
+    await cacheDelPattern(`family-members:${userId}:*`);
 
     res.json({
       message: 'Family member removed successfully',

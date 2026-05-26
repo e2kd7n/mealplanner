@@ -1,6 +1,6 @@
 # Issue Prioritization
 
-**Last Updated:** 2026-05-26 01:03:03 UTC / 2026-05-26 01:03:03 GMT
+**Last Updated:** 2026-05-26 01:29:11 UTC / 2026-05-25 20:29:11 CDT
 
 This file reflects the current state of GitHub issues organized by milestone and priority within each milestone.
 
@@ -15,23 +15,15 @@ This file reflects the current state of GitHub issues organized by milestone and
 **No issues** ✅
 
 ### 🟡 P2 - MEDIUM
-- #210 - security: replace csurf with modern CSRF middleware
-- #198 - Pi: set up automated DB backup cron job
-- #175 - [Maintenance] Audit and Update Backend Dependencies
-- #174 - [DevOps] Configure Automated Weekly Database Backups
-- #173 - [Maintenance] Evaluate and Plan Major Frontend Dependency Updates
-- #172 - [Maintenance] Update Frontend Dependencies (Minor Versions)
-- #160 - CI/CD: Re-enable E2E tests in GitHub Actions
-- #159 - CI/CD: Implement comprehensive CI/CD pipeline
 - #152 - [P2-Medium] Proactive Rate Limit Indicator - User Feedback Enhancement
 - #142 - E2E Tests: Optimize GitHub Actions configuration for reliability
 - #141 - E2E Tests: Add retry logic to handle flaky tests
 - #140 - E2E Tests: Implement proper test data management and cleanup
-- #117 - [P2][UX] Enhance Dietary Restriction Support & Safety
-- #115 - [P2][UX] Improve Error Messages with Actionable Details
 - #83 - [Testing] Add automated accessibility and performance tests
 
 ### 🟢 P3 - LOW
+- #213 - [Maintenance] Upgrade @types/node to v25 (frontend)
+- #212 - [Maintenance] Upgrade ESLint to v10 (frontend)
 - #170 - ✨ Add photo capture and PDF upload for recipe creation
 - #54 - Performance Optimization
 - #46 - Implement CI/CD Pipeline
@@ -69,7 +61,6 @@ These issues need to be assigned to a milestone and prioritized.
 - #9 - MyFitnessPal Integration
 
 ### 📋 P4 - FUTURE
-- #118 - [P2][UX] Integrate Pantry with Meal Planning
 - #66 - Publish Meals to ICS Calendar feed
 - #64 - Implement Advanced Features (Nutrition Tracking, etc.)
 
