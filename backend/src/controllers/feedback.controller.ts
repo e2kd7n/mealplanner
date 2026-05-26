@@ -371,14 +371,14 @@ export const getFeedbackStats = async (req: Request, res: Response) => {
       success: true,
       data: {
         total: totalFeedback,
-        byStatus: byStatus.reduce((acc, item) => {
+        byStatus: byStatus.reduce((acc: Record<string, number>, item: any) => {
           acc[item.status] = item._count;
           return acc;
-        }, {} as Record<string, number>),
-        byType: byType.reduce((acc, item) => {
+        }, {}),
+        byType: byType.reduce((acc: Record<string, number>, item: any) => {
           acc[item.feedbackType] = item._count;
           return acc;
-        }, {} as Record<string, number>),
+        }, {}),
         recent: recentFeedback,
       },
     });
