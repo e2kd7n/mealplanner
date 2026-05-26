@@ -5,13 +5,11 @@
 
 import { test, expect } from '@playwright/test';
 import { mockSpoonacularAPI } from '../../mocks/spoonacular.mock';
-import { authenticateViaAPI, injectAuthTokens } from '../../helpers/api-auth';
+import { authenticatePage } from '../../helpers/api-auth';
 
 async function setupAuth(page: any, baseURL: string | undefined) {
   const backendURL = (baseURL || 'http://localhost:5173').replace(':5173', ':3000');
-  const tokens = await authenticateViaAPI(backendURL);
-  await page.goto('/');
-  await injectAuthTokens(page, tokens);
+  await authenticatePage(page, backendURL);
 }
 
 test.describe('Browse Recipes', () => {
