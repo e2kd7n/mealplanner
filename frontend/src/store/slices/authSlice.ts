@@ -7,8 +7,9 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 import type { PayloadAction } from '@reduxjs/toolkit';
 import { authAPI } from '../../services/api';
+import { getApiErrorMessage } from '../../utils/errorHandler';
 
-interface User {
+export interface User {
   id: string;
   email: string;
   name: string;
@@ -38,9 +39,9 @@ export const bootstrapAuth = createAsyncThunk(
     try {
       const response = await authAPI.getCurrentUser();
       return { user: response.data.user };
-    } catch (error: any) {
+    } catch (error: unknown) {
       // Not authenticated - this is expected on initial load
-      return rejectWithValue(error.response?.data?.message || 'Not authenticated');
+      return rejectWithValue(getApiErrorMessage(error, 'Not authenticated'));
     }
   }
 );
@@ -52,8 +53,8 @@ export const login = createAsyncThunk(
       const response = await authAPI.login(credentials);
       const { user } = response.data;
       return { user };
-    } catch (error: any) {
-      return rejectWithValue(error.response?.data?.message || 'Login failed');
+    } catch (error: unknown) {
+      return rejectWithValue(getApiErrorMessage(error, 'Login failed'));
     }
   }
 );
@@ -68,8 +69,8 @@ export const register = createAsyncThunk(
       const response = await authAPI.register(userData);
       const { user } = response.data;
       return { user };
-    } catch (error: any) {
-      return rejectWithValue(error.response?.data?.message || 'Registration failed');
+    } catch (error: unknown) {
+      return rejectWithValue(getApiErrorMessage(error, 'Registration failed'));
     }
   }
 );

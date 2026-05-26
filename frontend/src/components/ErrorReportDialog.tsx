@@ -28,6 +28,7 @@ import {
   ExpandLess as ExpandLessIcon,
 } from '@mui/icons-material';
 import api from '../services/api';
+import { getApiErrorMessage } from '../utils/errorHandler';
 import type { ErrorReportData } from '../hooks/useErrorReport';
 
 interface ErrorReportDialogProps {
@@ -101,9 +102,9 @@ ${JSON.stringify(errorData.error.details || {}, null, 2)}
       setTimeout(() => {
         handleClose();
       }, 2000);
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Error report submission failed:', err);
-      setError(err.response?.data?.message || 'Failed to submit error report. Please try again.');
+      setError(getApiErrorMessage(err, 'Failed to submit error report. Please try again.'));
     } finally {
       setSubmitting(false);
     }

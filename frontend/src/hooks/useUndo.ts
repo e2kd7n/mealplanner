@@ -7,7 +7,7 @@ import { useState, useCallback, useRef } from 'react';
 
 interface UndoAction {
   type: string;
-  data: any;
+  data: unknown;
   undo: () => Promise<void> | void;
   message: string;
 }

@@ -7,6 +7,7 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 import type { PayloadAction } from '@reduxjs/toolkit';
 import { groceryListAPI } from '../../services/api';
+import { getApiErrorMessage } from '../../utils/errorHandler';
 
 export interface GroceryListItem {
   id: string;
@@ -54,8 +55,8 @@ export const fetchGroceryLists = createAsyncThunk(
     try {
       const response = await groceryListAPI.getAll(params);
       return response.data.data;
-    } catch (error: any) {
-      return rejectWithValue(error.response?.data?.message || 'Failed to fetch grocery lists');
+    } catch (error: unknown) {
+      return rejectWithValue(getApiErrorMessage(error, 'Failed to fetch grocery lists'));
     }
   }
 );
@@ -66,8 +67,8 @@ export const fetchGroceryListById = createAsyncThunk(
     try {
       const response = await groceryListAPI.getById(id);
       return response.data.data;
-    } catch (error: any) {
-      return rejectWithValue(error.response?.data?.message || 'Failed to fetch grocery list');
+    } catch (error: unknown) {
+      return rejectWithValue(getApiErrorMessage(error, 'Failed to fetch grocery list'));
     }
   }
 );
@@ -78,8 +79,8 @@ export const createGroceryList = createAsyncThunk(
     try {
       const response = await groceryListAPI.create(data);
       return response.data.data;
-    } catch (error: any) {
-      return rejectWithValue(error.response?.data?.message || 'Failed to create grocery list');
+    } catch (error: unknown) {
+      return rejectWithValue(getApiErrorMessage(error, 'Failed to create grocery list'));
     }
   }
 );
@@ -90,20 +91,20 @@ export const generateGroceryList = createAsyncThunk(
     try {
       const response = await groceryListAPI.generateFromMealPlan(mealPlanId);
       return response.data.data;
-    } catch (error: any) {
-      return rejectWithValue(error.response?.data?.message || 'Failed to generate grocery list');
+    } catch (error: unknown) {
+      return rejectWithValue(getApiErrorMessage(error, 'Failed to generate grocery list'));
     }
   }
 );
 
 export const updateGroceryList = createAsyncThunk(
   'groceryLists/updateGroceryList',
-  async ({ id, data }: { id: string; data: any }, { rejectWithValue }) => {
+  async ({ id, data }: { id: string; data: Record<string, unknown> }, { rejectWithValue }) => {
     try {
       const response = await groceryListAPI.update(id, data);
       return response.data.data;
-    } catch (error: any) {
-      return rejectWithValue(error.response?.data?.message || 'Failed to update grocery list');
+    } catch (error: unknown) {
+      return rejectWithValue(getApiErrorMessage(error, 'Failed to update grocery list'));
     }
   }
 );
@@ -114,8 +115,8 @@ export const deleteGroceryList = createAsyncThunk(
     try {
       await groceryListAPI.delete(id);
       return id;
-    } catch (error: any) {
-      return rejectWithValue(error.response?.data?.message || 'Failed to delete grocery list');
+    } catch (error: unknown) {
+      return rejectWithValue(getApiErrorMessage(error, 'Failed to delete grocery list'));
     }
   }
 );
@@ -135,8 +136,8 @@ export const addItemToList = createAsyncThunk(
     try {
       const response = await groceryListAPI.addItem(listId, itemData);
       return { listId, item: response.data.data };
-    } catch (error: any) {
-      return rejectWithValue(error.response?.data?.message || 'Failed to add item');
+    } catch (error: unknown) {
+      return rejectWithValue(getApiErrorMessage(error, 'Failed to add item'));
     }
   }
 );
@@ -146,13 +147,13 @@ export const updateItemInList = createAsyncThunk(
   async ({ listId, itemId, data }: {
     listId: string;
     itemId: string;
-    data: any;
+    data: Record<string, unknown>;
   }, { rejectWithValue }) => {
     try {
       const response = await groceryListAPI.updateItem(listId, itemId, data);
       return { listId, item: response.data.data };
-    } catch (error: any) {
-      return rejectWithValue(error.response?.data?.message || 'Failed to update item');
+    } catch (error: unknown) {
+      return rejectWithValue(getApiErrorMessage(error, 'Failed to update item'));
     }
   }
 );
@@ -163,8 +164,8 @@ export const deleteItemFromList = createAsyncThunk(
     try {
       await groceryListAPI.deleteItem(listId, itemId);
       return { listId, itemId };
-    } catch (error: any) {
-      return rejectWithValue(error.response?.data?.message || 'Failed to delete item');
+    } catch (error: unknown) {
+      return rejectWithValue(getApiErrorMessage(error, 'Failed to delete item'));
     }
   }
 );
@@ -175,8 +176,8 @@ export const toggleItemChecked = createAsyncThunk(
     try {
       const response = await groceryListAPI.toggleItem(listId, itemId);
       return { listId, item: response.data.data };
-    } catch (error: any) {
-      return rejectWithValue(error.response?.data?.message || 'Failed to toggle item');
+    } catch (error: unknown) {
+      return rejectWithValue(getApiErrorMessage(error, 'Failed to toggle item'));
     }
   }
 );

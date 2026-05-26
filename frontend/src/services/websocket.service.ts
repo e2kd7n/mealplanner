@@ -4,7 +4,7 @@ import { store } from '../store';
 interface MealPlanUpdate {
   type: 'meal_added' | 'meal_updated' | 'meal_deleted';
   mealPlanId: string;
-  data: any;
+  data: unknown;
   userId: string;
   timestamp: string;
 }
@@ -173,7 +173,7 @@ class WebSocketService {
       console.log('[WebSocket] User left:', data);
     });
 
-    this.socket.on('error', (error: any) => {
+    this.socket.on('error', (error: unknown) => {
       console.error('[WebSocket] Error:', error);
     });
   }

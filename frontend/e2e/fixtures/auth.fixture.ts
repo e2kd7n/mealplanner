@@ -3,6 +3,7 @@
  * All rights reserved.
  */
 
+/* eslint-disable react-hooks/rules-of-hooks */
 import { test as base, request as playwrightRequest, APIRequestContext, Page } from '@playwright/test';
 import { LoginPage } from '../page-objects/LoginPage';
 import { authenticatePage } from '../helpers/api-auth';

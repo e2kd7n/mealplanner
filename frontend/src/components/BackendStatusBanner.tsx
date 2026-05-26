@@ -6,7 +6,7 @@
 import React, { useState, useEffect } from 'react';
 import { Alert, AlertTitle, Button, Collapse, IconButton } from '@mui/material';
 import { Close as CloseIcon, Refresh as RefreshIcon } from '@mui/icons-material';
-import axios from 'axios';
+import axios, { isAxiosError } from 'axios';
 
 const BackendStatusBanner: React.FC = () => {
   const [isBackendDown, setIsBackendDown] = useState(false);
@@ -30,14 +30,15 @@ const BackendStatusBanner: React.FC = () => {
         setIsBackendDown(false);
         setIsDismissed(false);
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       // Check if it's a connection error
-      const isConnectionError = 
-        error.code === 'ECONNREFUSED' ||
-        error.code === 'ERR_NETWORK' ||
-        error.message?.includes('Network Error') ||
-        error.message?.includes('ERR_CONNECTION_REFUSED') ||
-        !error.response;
+      const axiosErr = isAxiosError(error) ? error : null;
+      const isConnectionError =
+        axiosErr?.code === 'ECONNREFUSED' ||
+        axiosErr?.code === 'ERR_NETWORK' ||
+        axiosErr?.message?.includes('Network Error') ||
+        axiosErr?.message?.includes('ERR_CONNECTION_REFUSED') ||
+        (isAxiosError(error) && !error.response);
 
       if (isConnectionError) {
         setIsBackendDown(true);

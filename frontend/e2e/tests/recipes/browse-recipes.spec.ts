@@ -7,7 +7,7 @@ import { test, expect } from '@playwright/test';
 import { mockSpoonacularAPI } from '../../mocks/spoonacular.mock';
 import { authenticatePage } from '../../helpers/api-auth';
 
-async function setupAuth(page: any, baseURL: string | undefined) {
+async function setupAuth(page: import('@playwright/test').Page, baseURL: string | undefined) {
   const backendURL = (baseURL || 'http://localhost:5173').replace(':5173', ':3000');
   await authenticatePage(page, backendURL);
 }

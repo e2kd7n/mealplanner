@@ -7,6 +7,7 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 import type { PayloadAction } from '@reduxjs/toolkit';
 import { mealPlanAPI } from '../../services/api';
+import { getApiErrorMessage } from '../../utils/errorHandler';
 
 export interface PlannedMeal {
   id: string;
@@ -55,8 +56,8 @@ export const fetchMealPlans = createAsyncThunk(
     try {
       const response = await mealPlanAPI.getAll(params);
       return response.data.data;
-    } catch (error: any) {
-      return rejectWithValue(error.response?.data?.message || 'Failed to fetch meal plans');
+    } catch (error: unknown) {
+      return rejectWithValue(getApiErrorMessage(error, 'Failed to fetch meal plans'));
     }
   }
 );
@@ -67,8 +68,8 @@ export const fetchMealPlanById = createAsyncThunk(
     try {
       const response = await mealPlanAPI.getById(id);
       return response.data.data;
-    } catch (error: any) {
-      return rejectWithValue(error.response?.data?.message || 'Failed to fetch meal plan');
+    } catch (error: unknown) {
+      return rejectWithValue(getApiErrorMessage(error, 'Failed to fetch meal plan'));
     }
   }
 );
@@ -79,8 +80,8 @@ export const fetchCurrentMealPlan = createAsyncThunk(
     try {
       const response = await mealPlanAPI.getCurrent();
       return response.data.data;
-    } catch (error: any) {
-      return rejectWithValue(error.response?.data?.message || 'Failed to fetch current meal plan');
+    } catch (error: unknown) {
+      return rejectWithValue(getApiErrorMessage(error, 'Failed to fetch current meal plan'));
     }
   }
 );
@@ -91,20 +92,20 @@ export const createMealPlan = createAsyncThunk(
     try {
       const response = await mealPlanAPI.create(data);
       return response.data.data;
-    } catch (error: any) {
-      return rejectWithValue(error.response?.data?.message || 'Failed to create meal plan');
+    } catch (error: unknown) {
+      return rejectWithValue(getApiErrorMessage(error, 'Failed to create meal plan'));
     }
   }
 );
 
 export const updateMealPlan = createAsyncThunk(
   'mealPlans/updateMealPlan',
-  async ({ id, data }: { id: string; data: any }, { rejectWithValue }) => {
+  async ({ id, data }: { id: string; data: Record<string, unknown> }, { rejectWithValue }) => {
     try {
       const response = await mealPlanAPI.update(id, data);
       return response.data.data;
-    } catch (error: any) {
-      return rejectWithValue(error.response?.data?.message || 'Failed to update meal plan');
+    } catch (error: unknown) {
+      return rejectWithValue(getApiErrorMessage(error, 'Failed to update meal plan'));
     }
   }
 );
@@ -115,8 +116,8 @@ export const deleteMealPlan = createAsyncThunk(
     try {
       await mealPlanAPI.delete(id);
       return id;
-    } catch (error: any) {
-      return rejectWithValue(error.response?.data?.message || 'Failed to delete meal plan');
+    } catch (error: unknown) {
+      return rejectWithValue(getApiErrorMessage(error, 'Failed to delete meal plan'));
     }
   }
 );
@@ -137,8 +138,8 @@ export const addMealToPlan = createAsyncThunk(
     try {
       const response = await mealPlanAPI.addMeal(planId, mealData);
       return { planId, meal: response.data.data };
-    } catch (error: any) {
-      return rejectWithValue(error.response?.data?.message || 'Failed to add meal');
+    } catch (error: unknown) {
+      return rejectWithValue(getApiErrorMessage(error, 'Failed to add meal'));
     }
   }
 );
@@ -148,13 +149,13 @@ export const updateMealInPlan = createAsyncThunk(
   async ({ planId, mealId, data }: {
     planId: string;
     mealId: string;
-    data: any;
+    data: Record<string, unknown>;
   }, { rejectWithValue }) => {
     try {
       const response = await mealPlanAPI.updateMeal(planId, mealId, data);
       return { planId, meal: response.data.data };
-    } catch (error: any) {
-      return rejectWithValue(error.response?.data?.message || 'Failed to update meal');
+    } catch (error: unknown) {
+      return rejectWithValue(getApiErrorMessage(error, 'Failed to update meal'));
     }
   }
 );
@@ -165,8 +166,8 @@ export const deleteMealFromPlan = createAsyncThunk(
     try {
       await mealPlanAPI.deleteMeal(planId, mealId);
       return { planId, mealId };
-    } catch (error: any) {
-      return rejectWithValue(error.response?.data?.message || 'Failed to delete meal');
+    } catch (error: unknown) {
+      return rejectWithValue(getApiErrorMessage(error, 'Failed to delete meal'));
     }
   }
 );

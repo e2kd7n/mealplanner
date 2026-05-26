@@ -460,7 +460,7 @@ const Dashboard: React.FC = () => {
         </Box>
 
         {/* Visual login setup nudge — shown when redirected from setup with no recipe images */}
-        {(location.state as any)?.visualLoginSetupPending && (
+        {(location.state as { visualLoginSetupPending?: boolean })?.visualLoginSetupPending && (
           <Alert
             severity="info"
             action={

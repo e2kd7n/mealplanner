@@ -52,6 +52,7 @@ import { fetchGroceryLists, addItemToList } from '../store/slices/groceryListsSl
 import { fetchMealPlans, addMealToPlan } from '../store/slices/mealPlansSlice';
 import { useCachedImage } from '../hooks/useCachedImage';
 
+
 // Helper function to format date without timezone issues
 const formatDateForAPI = (date: Date): string => {
   const year = date.getFullYear();
@@ -171,7 +172,7 @@ const RecipeDetail: React.FC = () => {
       setOpenMealPlanDialog(false);
       setSelectedMealPlanId('');
       alert(`Successfully added "${recipe.title}" to meal plan!`);
-    } catch (error: any) {
+    } catch (error: unknown) {
       if (import.meta.env.DEV) console.error('Failed to add to meal plan:', error);
       alert(error.message || 'Failed to add recipe to meal plan');
     } finally {
@@ -195,7 +196,11 @@ const RecipeDetail: React.FC = () => {
     try {
       // Add each ingredient from the recipe to the selected grocery list
       for (const item of recipe.ingredients || []) {
-        const ingredientData: any = item;
+        const ingredientData = item as typeof item & {
+          ingredientId?: string;
+          ingredient?: { id: string; averagePrice?: number };
+          notes?: string;
+        };
         await dispatch(addItemToList({
           listId: selectedListId,
           itemData: {
@@ -211,7 +216,7 @@ const RecipeDetail: React.FC = () => {
       setOpenGroceryDialog(false);
       setSelectedListId('');
       alert(`Successfully added ${recipe.ingredients?.length || 0} ingredients to grocery list!`);
-    } catch (error: any) {
+    } catch (error: unknown) {
       if (import.meta.env.DEV) console.error('Failed to add ingredients:', error);
       alert(error.message || 'Failed to add ingredients to grocery list');
     } finally {
@@ -232,7 +237,7 @@ const RecipeDetail: React.FC = () => {
       setOpenDeleteDialog(false);
       alert(`Successfully deleted "${recipe.title}"`);
       navigate('/recipes');
-    } catch (error: any) {
+    } catch (error: unknown) {
       if (import.meta.env.DEV) console.error('Failed to delete recipe:', error);
       alert(error.message || 'Failed to delete recipe');
     } finally {
@@ -576,7 +581,7 @@ const RecipeDetail: React.FC = () => {
             <Divider sx={{ mb: 3 }} />
             <List sx={{ '& .MuiListItem-root': { py: 1.5 } }}>
               {recipe.ingredients && recipe.ingredients.length > 0 ? (
-                recipe.ingredients.map((item: any, index: number) => (
+                recipe.ingredients.map((item, index) => (
                   <ListItem
                     key={index}
                     sx={{
@@ -629,7 +634,7 @@ const RecipeDetail: React.FC = () => {
             <Divider sx={{ mb: 3 }} />
             <List sx={{ '& .MuiListItem-root': { py: 2 } }}>
               {recipe.instructions && Array.isArray(recipe.instructions) && recipe.instructions.length > 0 ? (
-                recipe.instructions.map((step: any, index: number) => (
+                (recipe.instructions as Array<string | { step?: string | number; instruction?: string; text?: string }>).map((step, index) => (
                   <ListItem
                     key={index}
                     sx={{
