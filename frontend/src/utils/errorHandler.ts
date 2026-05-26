@@ -10,7 +10,7 @@ export interface AppError {
   message: string;
   code?: string;
   statusCode?: number;
-  details?: any;
+  details?: unknown;
 }
 
 /**
@@ -23,7 +23,7 @@ export function getErrorMessage(error: unknown): string {
 
   // Axios error
   if (isAxiosError(error)) {
-    const axiosError = error as AxiosError<any>;
+    const axiosError = error as AxiosError<{ message?: string; error?: string }>;
     
     // Check for response data message
     if (axiosError.response?.data?.message) {
@@ -86,7 +86,7 @@ export function getErrorMessage(error: unknown): string {
 
   // Object with message property
   if (typeof error === 'object' && error !== null && 'message' in error) {
-    return String((error as any).message);
+    return String((error as Record<string, unknown>).message);
   }
 
   return 'An unexpected error occurred';
@@ -100,7 +100,7 @@ function isAxiosError(error: unknown): error is AxiosError {
     typeof error === 'object' &&
     error !== null &&
     'isAxiosError' in error &&
-    (error as any).isAxiosError === true
+    (error as Record<string, unknown>).isAxiosError === true
   );
 }
 
@@ -111,7 +111,7 @@ export function parseError(error: unknown): AppError {
   const message = getErrorMessage(error);
   
   if (isAxiosError(error)) {
-    const axiosError = error as AxiosError<any>;
+    const axiosError = error as AxiosError<{ message?: string }>;
     return {
       message,
       code: axiosError.code,
@@ -121,6 +121,18 @@ export function parseError(error: unknown): AppError {
   }
 
   return { message };
+}
+
+/**
+ * Extract the API error message from an Axios error, falling back to a provided default.
+ * Use this in Redux thunk catch blocks instead of `(error: any)`.
+ */
+export function getApiErrorMessage(error: unknown, fallback: string): string {
+  if (isAxiosError(error)) {
+    const axiosError = error as AxiosError<{ message?: string }>;
+    return axiosError.response?.data?.message || fallback;
+  }
+  return fallback;
 }
 
 /**
