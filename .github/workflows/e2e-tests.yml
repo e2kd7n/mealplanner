@@ -3,7 +3,23 @@ name: E2E Tests
 # Root cause fixed: VITE_API_URL now includes /api suffix (was http://localhost:3000,
 # causing CSRF fetch to hit /csrf-token instead of /api/csrf-token — Issue #132)
 on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'frontend/**'
+      - 'backend/**'
+      - '.github/workflows/e2e-tests.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'frontend/**'
+      - 'backend/**'
+      - '.github/workflows/e2e-tests.yml'
   workflow_dispatch:
+
+concurrency:
+  group: e2e-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   e2e-tests:
@@ -47,9 +63,9 @@ jobs:
         uses: actions/cache@v4
         with:
           path: ${{ steps.pnpm-cache.outputs.STORE_PATH }}
-          key: ${{ runner.os }}-pnpm-store-${{ hashFiles('**/pnpm-lock.yaml') }}
+          key: ${{ runner.os }}-pnpm-store-e2e-${{ hashFiles('frontend/pnpm-lock.yaml') }}-${{ hashFiles('backend/pnpm-lock.yaml') }}
           restore-keys: |
-            ${{ runner.os }}-pnpm-store-
+            ${{ runner.os }}-pnpm-store-e2e-
 
       - name: Install backend dependencies
         working-directory: backend
@@ -64,7 +80,7 @@ jobs:
         id: playwright-cache
         with:
           path: ~/.cache/ms-playwright
-          key: ${{ runner.os }}-playwright-${{ hashFiles('**/pnpm-lock.yaml') }}
+          key: ${{ runner.os }}-playwright-${{ hashFiles('frontend/pnpm-lock.yaml') }}
           restore-keys: |
             ${{ runner.os }}-playwright-
 
@@ -148,9 +164,9 @@ jobs:
         working-directory: frontend
         run: |
           if [ "${{ steps.playwright-cache.outputs.cache-hit }}" != "true" ]; then
-            npx playwright install --with-deps chromium
+            pnpm exec playwright install --with-deps chromium
           else
-            npx playwright install-deps chromium
+            pnpm exec playwright install-deps chromium
           fi
 
       - name: Run E2E tests
