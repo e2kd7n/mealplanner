@@ -3,15 +3,16 @@
  * All rights reserved.
  */
 
-
+/* eslint-disable react-refresh/only-export-components */
 import React, { createContext, useContext, useEffect } from 'react';
 import { useAppDispatch, useAppSelector } from '../store/hooks';
 import { bootstrapAuth } from '../store/slices/authSlice';
+import type { User } from '../store/slices/authSlice';
 
 interface AuthContextType {
   isAuthenticated: boolean;
   loading: boolean;
-  user: any | null;
+  user: User | null;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);

@@ -22,7 +22,7 @@ export interface LogEntry {
   message: string;
   timestamp: number;
   context?: string;
-  data?: any;
+  data?: unknown;
   stack?: string;
   userAgent?: string;
   url?: string;
@@ -104,7 +104,7 @@ class Logger {
     level: LogLevel,
     message: string,
     context?: string,
-    data?: any,
+    data?: unknown,
     error?: Error
   ): LogEntry {
     const entry: LogEntry = {
@@ -126,26 +126,24 @@ class Logger {
   /**
    * Sanitize data to prevent logging sensitive information
    */
-  private sanitizeData(data: any): any {
-    if (!data) return data;
+  private sanitizeData(data: unknown): unknown {
+    if (!data || typeof data !== 'object') return data;
 
     const sensitiveKeys = ['password', 'token', 'secret', 'apiKey', 'authorization'];
-    
-    if (typeof data === 'object') {
-      const sanitized = Array.isArray(data) ? [...data] : { ...data };
-      
-      for (const key in sanitized) {
-        if (sensitiveKeys.some(sk => key.toLowerCase().includes(sk))) {
-          sanitized[key] = '[REDACTED]';
-        } else if (typeof sanitized[key] === 'object') {
-          sanitized[key] = this.sanitizeData(sanitized[key]);
-        }
+    const source = data as Record<string, unknown>;
+    const sanitized: Record<string, unknown> = Array.isArray(data)
+      ? [...(data as unknown[])] as unknown as Record<string, unknown>
+      : { ...source };
+
+    for (const key in sanitized) {
+      if (sensitiveKeys.some(sk => key.toLowerCase().includes(sk))) {
+        sanitized[key] = '[REDACTED]';
+      } else if (typeof sanitized[key] === 'object') {
+        sanitized[key] = this.sanitizeData(sanitized[key]);
       }
-      
-      return sanitized;
     }
-    
-    return data;
+
+    return sanitized;
   }
 
   /**
@@ -227,7 +225,7 @@ class Logger {
   /**
    * Log an error
    */
-  error(message: string, context?: string, data?: any, error?: Error): void {
+  error(message: string, context?: string, data?: unknown, error?: Error): void {
     if (this.isThrottled()) return;
 
     this.errorCount++;
@@ -245,7 +243,7 @@ class Logger {
   /**
    * Log a warning
    */
-  warn(message: string, context?: string, data?: any): void {
+  warn(message: string, context?: string, data?: unknown): void {
     if (this.config.minLevel === LogLevel.ERROR) return;
 
     const entry = this.createLogEntry(LogLevel.WARN, message, context, data);
@@ -259,7 +257,7 @@ class Logger {
   /**
    * Log info
    */
-  info(message: string, context?: string, data?: any): void {
+  info(message: string, context?: string, data?: unknown): void {
     if (this.config.minLevel === LogLevel.ERROR || this.config.minLevel === LogLevel.WARN) {
       return;
     }
@@ -275,7 +273,7 @@ class Logger {
   /**
    * Log debug information
    */
-  debug(message: string, context?: string, data?: any): void {
+  debug(message: string, context?: string, data?: unknown): void {
     if (this.config.minLevel !== LogLevel.DEBUG) return;
 
     const entry = this.createLogEntry(LogLevel.DEBUG, message, context, data);

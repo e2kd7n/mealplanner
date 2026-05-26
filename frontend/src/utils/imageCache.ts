@@ -183,12 +183,12 @@ class ImageCache {
             reject(request.error);
           };
         });
-      } catch (fetchError: any) {
+      } catch (fetchError: unknown) {
         clearTimeout(timeoutId);
-        if (fetchError.name === 'AbortError') {
+        if ((fetchError as { name?: string }).name === 'AbortError') {
           if (import.meta.env.DEV) console.warn('Image fetch timeout:', url.substring(0, 100));
         } else {
-          if (import.meta.env.DEV) console.warn('Image fetch error:', fetchError.message);
+          if (import.meta.env.DEV) console.warn('Image fetch error:', (fetchError as Error).message);
         }
         return null;
       }

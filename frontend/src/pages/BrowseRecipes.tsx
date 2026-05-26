@@ -54,6 +54,8 @@ import SearchSuggestions from '../components/SearchSuggestions';
 import SpoonacularRecipeDialog from '../components/SpoonacularRecipeDialog';
 import ErrorAlert from '../components/ErrorAlert';
 
+type SearchParams = Parameters<typeof searchSpoonacularRecipes>[0];
+
 // Memoized Recipe Card Component
 interface BrowseRecipeCardProps {
   recipe: import('../store/slices/recipeBrowseSlice').SpoonacularRecipe;
@@ -75,7 +77,7 @@ const BrowseRecipeCard = memo(({ recipe, onAddToBox, onViewDetails, isAdded }: B
     setAdding(true);
     try {
       await onAddToBox(recipe.id);
-    } catch (err: any) {
+    } catch {
       // Error handled by Redux
     } finally {
       setAdding(false);
@@ -217,6 +219,14 @@ const BrowseRecipes: React.FC = () => {
   const debouncedSearch = useDebounce(searchQuery, 500);
   const { suggestions, addRecentSearch } = useSearchSuggestions(searchQuery);
 
+  const handleSuggestionSelect = useCallback((suggestion: string) => {
+    setSearchQuery(suggestion);
+    setShowSuggestions(false);
+    setHighlightedIndex(-1);
+    addRecentSearch(suggestion);
+    searchInputRef.current?.blur();
+  }, [addRecentSearch]);
+
   // D2-3 FIX: Keyboard shortcuts for better navigation
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -255,32 +265,20 @@ const BrowseRecipes: React.FC = () => {
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [searchQuery, showSuggestions, suggestions, highlightedIndex]);
+  }, [searchQuery, showSuggestions, suggestions, highlightedIndex, handleSuggestionSelect]);
 
-  // Parse natural language queries
+  // Parse natural language queries and auto-apply detected filters
   useEffect(() => {
     if (debouncedSearch && debouncedSearch.length > 5) {
       const parsed = parseNaturalLanguage(debouncedSearch);
-      
-      // Auto-apply parsed filters
-      if (parsed.maxTime && maxTime === 0) {
-        setMaxTime(parsed.maxTime);
-      }
-      if (parsed.diet && !diet) {
-        setDiet(parsed.diet);
-      }
-      if (parsed.mealType && !mealType) {
-        setMealType(parsed.mealType);
-      }
-      if (parsed.cuisine && !cuisine) {
-        setCuisine(parsed.cuisine);
-      }
-      
-      // Show parsed query info
+      /* eslint-disable react-hooks/set-state-in-effect */
+      if (parsed.maxTime && maxTime === 0) setMaxTime(parsed.maxTime);
+      if (parsed.diet && !diet) setDiet(parsed.diet);
+      if (parsed.mealType && !mealType) setMealType(parsed.mealType);
+      if (parsed.cuisine && !cuisine) setCuisine(parsed.cuisine);
       const info = formatParsedQuery(parsed);
-      if (info) {
-        setParsedQueryInfo(info);
-      }
+      if (info) setParsedQueryInfo(info);
+      /* eslint-enable react-hooks/set-state-in-effect */
     } else {
       setParsedQueryInfo('');
     }
@@ -295,7 +293,7 @@ const BrowseRecipes: React.FC = () => {
     if (isInitialMount.current) {
       isInitialMount.current = false;
       // Set initial search params ref to prevent immediate search
-      const params: any = {
+      const params: SearchParams = {
         offset: pagination.offset,
         number: pagination.number,
       };
@@ -316,7 +314,7 @@ const BrowseRecipes: React.FC = () => {
       return;
     }
 
-    const params: any = {
+    const params: SearchParams = {
       offset: pagination.offset,
       number: pagination.number,
     };
@@ -360,14 +358,6 @@ const BrowseRecipes: React.FC = () => {
     setShowSuggestions(true);
   };
 
-  const handleSuggestionSelect = (suggestion: string) => {
-    setSearchQuery(suggestion);
-    setShowSuggestions(false);
-    setHighlightedIndex(-1);
-    addRecentSearch(suggestion);
-    searchInputRef.current?.blur();
-  };
-
   const handleClickAway = () => {
     setShowSuggestions(false);
     setHighlightedIndex(-1);
@@ -387,7 +377,7 @@ const BrowseRecipes: React.FC = () => {
     if (loading) return;
 
     const newOffset = (page - 1) * pagination.number;
-    const params: any = {
+    const params: SearchParams = {
       offset: newOffset,
       number: pagination.number,
     };

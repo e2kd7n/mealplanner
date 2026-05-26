@@ -44,19 +44,14 @@ const COMMON_INGREDIENTS: SearchSuggestion[] = [
  */
 export function useSearchSuggestions(query: string) {
   const [suggestions, setSuggestions] = useState<SearchSuggestion[]>([]);
-  const [recentSearches, setRecentSearches] = useState<string[]>([]);
-
-  // Load recent searches from localStorage on mount
-  useEffect(() => {
+  const [recentSearches, setRecentSearches] = useState<string[]>(() => {
     try {
       const stored = localStorage.getItem(RECENT_SEARCHES_KEY);
-      if (stored) {
-        setRecentSearches(JSON.parse(stored));
-      }
-    } catch (error) {
-      console.error('Failed to load recent searches:', error);
+      return stored ? (JSON.parse(stored) as string[]) : [];
+    } catch {
+      return [];
     }
-  }, []);
+  });
 
   // Add a search to recent searches
   const addRecentSearch = useCallback((searchQuery: string) => {
@@ -98,6 +93,7 @@ export function useSearchSuggestions(query: string) {
         type: 'recent' as const,
         text,
       }));
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setSuggestions([...recent.slice(0, 5), ...POPULAR_SEARCHES.slice(0, 5)]);
       return;
     }

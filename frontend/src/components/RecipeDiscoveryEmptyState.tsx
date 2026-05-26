@@ -29,11 +29,12 @@ import {
 import { useNavigate } from 'react-router-dom';
 import { useAppDispatch, useAppSelector } from '../store/hooks';
 import { searchSpoonacularRecipes, addSpoonacularRecipeToBox } from '../store/slices/recipeBrowseSlice';
+import type { SpoonacularRecipe } from '../store/slices/recipeBrowseSlice';
 import { useCachedImage } from '../hooks/useCachedImage';
 import SpoonacularRecipeDialog from './SpoonacularRecipeDialog';
 
 interface RecipeCardProps {
-  recipe: any;
+  recipe: SpoonacularRecipe;
   onAdd: (id: number) => void;
   onView: (id: number) => void;
   isAdded: boolean;
@@ -50,7 +51,7 @@ const QuickRecipeCard: React.FC<RecipeCardProps> = ({ recipe, onAdd, onView, isA
     setAdding(true);
     try {
       await onAdd(recipe.id);
-    } catch (err: any) {
+    } catch {
       // Error handled by Redux
     } finally {
       setAdding(false);
@@ -141,8 +142,8 @@ const RecipeDiscoveryEmptyState: React.FC = () => {
   const navigate = useNavigate();
   const dispatch = useAppDispatch();
   const { addedRecipeIds } = useAppSelector((state) => state.recipeBrowse);
-  const [trendingRecipes, setTrendingRecipes] = useState<any[]>([]);
-  const [quickDinners, setQuickDinners] = useState<any[]>([]);
+  const [trendingRecipes, setTrendingRecipes] = useState<SpoonacularRecipe[]>([]);
+  const [quickDinners, setQuickDinners] = useState<SpoonacularRecipe[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedRecipeId, setSelectedRecipeId] = useState<number | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);

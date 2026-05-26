@@ -58,7 +58,7 @@ interface UseAsyncOperationOptions {
 interface UseAsyncOperationReturn {
   loading: boolean;
   error: AppError | null;
-  execute: (operation: () => Promise<any>) => Promise<void>;
+  execute: (operation: () => Promise<unknown>) => Promise<void>;
   clearError: () => void;
 }
 
@@ -66,7 +66,7 @@ export function useAsyncOperation(options: UseAsyncOperationOptions = {}): UseAs
   const [loading, setLoading] = useState(false);
   const { error, handleError, clearError } = useErrorHandler();
 
-  const execute = useCallback(async (operation: () => Promise<any>) => {
+  const execute = useCallback(async (operation: () => Promise<unknown>) => {
     setLoading(true);
     clearError();
 

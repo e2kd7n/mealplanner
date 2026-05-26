@@ -40,6 +40,7 @@ export function useCachedImage(
 
   useEffect(() => {
     // Reset state when URL changes
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setError(null);
     
     // If no URL provided, use placeholder
@@ -123,6 +124,7 @@ export function usePreloadImages(urls: string[]): {
 
   useEffect(() => {
     if (!urls || urls.length === 0) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setProgress(100);
       return;
     }

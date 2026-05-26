@@ -32,6 +32,7 @@ import {
   OpenInNew as OpenInNewIcon,
 } from '@mui/icons-material';
 import { recipeImportAPI } from '../services/api';
+import { getApiErrorMessage } from '../utils/errorHandler';
 import { useCachedImage } from '../hooks/useCachedImage';
 
 interface ParsedRecipe {
@@ -50,8 +51,8 @@ interface ParsedRecipe {
     unit: string;
     notes?: string;
   }>;
-  instructions: any;
-  nutritionInfo?: any;
+  instructions: unknown;
+  nutritionInfo?: unknown;
   sourceUrl: string;
 }
 
@@ -77,8 +78,8 @@ export default function ImportRecipe() {
     try {
       const response = await recipeImportAPI.importFromUrl(url);
       setParsedRecipe(response.data.data);
-    } catch (err: any) {
-      setError(err.response?.data?.message || 'Failed to import recipe. Please check the URL and try again.');
+    } catch (err: unknown) {
+      setError(getApiErrorMessage(err, 'Failed to import recipe. Please check the URL and try again.'));
     } finally {
       setLoading(false);
     }
@@ -102,8 +103,8 @@ export default function ImportRecipe() {
       }
       
       navigate(`/recipes/${recipeId}`);
-    } catch (err: any) {
-      setError(err.response?.data?.message || 'Failed to save recipe');
+    } catch (err: unknown) {
+      setError(getApiErrorMessage(err, 'Failed to save recipe'));
       setSaving(false);
     }
   };
@@ -113,13 +114,11 @@ export default function ImportRecipe() {
     navigate('/recipes/create', { state: { importedRecipe: parsedRecipe } });
   };
 
-  const formatInstructions = (instructions: any): string[] => {
-    if (Array.isArray(instructions)) {
-      return instructions.map((inst: any) => 
-        typeof inst === 'string' ? inst : inst.instruction || inst.text || ''
-      );
-    }
-    return [];
+  const formatInstructions = (instructions: unknown): string[] => {
+    if (!Array.isArray(instructions)) return [];
+    return instructions.map((inst) =>
+      typeof inst === 'string' ? inst : (inst as { instruction?: string; text?: string }).instruction || (inst as { text?: string }).text || ''
+    );
   };
 
   return (

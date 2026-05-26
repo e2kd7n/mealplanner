@@ -50,6 +50,8 @@ import {
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import api from '../services/api';
+import { isAxiosError } from 'axios';
+import { getApiErrorMessage } from '../utils/errorHandler';
 
 interface AppSetting {
   key: string;
@@ -161,9 +163,9 @@ export default function AdminDashboard() {
       // Load stats
       const statsResponse = await api.get('/admin/stats');
       setStats(statsResponse.data);
-    } catch (err: any) {
-      setError(err.response?.data?.message || 'Failed to load data');
-      if (err.response?.status === 403) {
+    } catch (err: unknown) {
+      setError(getApiErrorMessage(err, 'Failed to load data'));
+      if (isAxiosError(err) && err.response?.status === 403) {
         navigate('/');
       }
     } finally {
@@ -176,8 +178,8 @@ export default function AdminDashboard() {
       await api.post(`/admin/users/${userId}/block`);
       setSuccess('User blocked successfully');
       loadData();
-    } catch (err: any) {
-      setError(err.response?.data?.message || 'Failed to block user');
+    } catch (err: unknown) {
+      setError(getApiErrorMessage(err, 'Failed to block user'));
     }
   };
 
@@ -186,8 +188,8 @@ export default function AdminDashboard() {
       await api.post(`/admin/users/${userId}/unblock`);
       setSuccess('User unblocked successfully');
       loadData();
-    } catch (err: any) {
-      setError(err.response?.data?.message || 'Failed to unblock user');
+    } catch (err: unknown) {
+      setError(getApiErrorMessage(err, 'Failed to unblock user'));
     }
   };
 
@@ -199,8 +201,8 @@ export default function AdminDashboard() {
       await api.delete(`/admin/users/${userId}`);
       setSuccess('User deleted successfully');
       loadData();
-    } catch (err: any) {
-      setError(err.response?.data?.message || 'Failed to delete user');
+    } catch (err: unknown) {
+      setError(getApiErrorMessage(err, 'Failed to delete user'));
     }
   };
 
@@ -212,8 +214,8 @@ export default function AdminDashboard() {
       setEditRoleDialog(false);
       setSelectedUser(null);
       loadData();
-    } catch (err: any) {
-      setError(err.response?.data?.message || 'Failed to update role');
+    } catch (err: unknown) {
+      setError(getApiErrorMessage(err, 'Failed to update role'));
     }
   };
 
@@ -227,8 +229,8 @@ export default function AdminDashboard() {
       setResetPasswordDialog(false);
       setSelectedUser(null);
       setNewPassword('');
-    } catch (err: any) {
-      setError(err.response?.data?.message || 'Failed to reset password');
+    } catch (err: unknown) {
+      setError(getApiErrorMessage(err, 'Failed to reset password'));
     }
   };
 
@@ -256,9 +258,9 @@ export default function AdminDashboard() {
       await api.post('/admin/settings/test/spoonacular', { key: editValue.trim() });
       setKeyTestResult('valid');
       setKeyTestMessage('API key verified.');
-    } catch (err: any) {
+    } catch (err: unknown) {
       setKeyTestResult('invalid');
-      setKeyTestMessage(err.response?.data?.message || 'Verification failed.');
+      setKeyTestMessage(getApiErrorMessage(err, 'Verification failed.'));
     } finally {
       setKeyTesting(false);
     }
@@ -273,8 +275,8 @@ export default function AdminDashboard() {
       setSettingsSuccess('Setting updated.');
       cancelEditKey();
       loadSettings();
-    } catch (err: any) {
-      setSettingsError(err.response?.data?.message || 'Failed to save.');
+    } catch (err: unknown) {
+      setSettingsError(getApiErrorMessage(err, 'Failed to save.'));
     } finally {
       setKeySaving(false);
     }
