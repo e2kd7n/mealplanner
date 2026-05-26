@@ -42,9 +42,24 @@
         justify-content: center;
         align-items: center;
         min-height: 100vh;
-        background-color: #fafafa;
+        background-color: #F5F5F5;
+      }
+      html[data-color-scheme="dark"] body,
+      html[data-color-scheme="dark"] .app-loading {
+        background-color: #121212;
+        color-scheme: dark;
       }
     </style>
+    <!-- Blocking script: apply color scheme before React mounts to prevent flash -->
+    <script>
+      (function () {
+        var stored = localStorage.getItem('theme-preference');
+        var isDark =
+          stored === 'dark' ||
+          (stored !== 'light' && window.matchMedia('(prefers-color-scheme: dark)').matches);
+        if (isDark) document.documentElement.setAttribute('data-color-scheme', 'dark');
+      })();
+    </script>
   </head>
   <body>
     <div id="root"></div>
