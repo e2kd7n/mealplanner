@@ -54,6 +54,8 @@ import { promRegistry } from './utils/prometheus';
 import logPruner from './utils/logPruner';
 import { initializeWebSocket } from './services/websocket.service';
 import { appSettingsService } from './services/appSettings.service';
+import { healthMonitorService } from './services/healthMonitor.service';
+import { notificationService } from './services/notification.service';
 
 const app: Application = express();
 const PORT = process.env.PORT || 3000;
@@ -236,6 +238,14 @@ async function startServer() {
     initializeWebSocket(server);
     logger.info('WebSocket service initialized');
 
+    // Start health monitoring if notifications enabled
+    if (notificationService.isEnabled()) {
+      healthMonitorService.start();
+      logger.info('Health monitoring started');
+    } else {
+      logger.info('Health monitoring disabled (notifications not enabled)');
+    }
+
     // Start server
     const serverPort = USE_HTTPS && existsSync(SSL_KEY_PATH) && existsSync(SSL_CERT_PATH) ? HTTPS_PORT : PORT;
     const protocol = USE_HTTPS && existsSync(SSL_KEY_PATH) && existsSync(SSL_CERT_PATH) ? 'https' : 'http';
@@ -257,6 +267,7 @@ async function startServer() {
 // Graceful shutdown
 process.on('SIGTERM', () => {
   logger.info('SIGTERM signal received: closing HTTP server');
+  healthMonitorService.stop();
   server.close(() => {
     logger.info('HTTP server closed');
     process.exit(0);
@@ -265,6 +276,7 @@ process.on('SIGTERM', () => {
 
 process.on('SIGINT', () => {
   logger.info('SIGINT signal received: closing HTTP server');
+  healthMonitorService.stop();
   server.close(() => {
     logger.info('HTTP server closed');
     process.exit(0);
