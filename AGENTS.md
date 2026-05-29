@@ -221,3 +221,21 @@ This file provides guidance to agents when working with code in this repository.
 - Update screenshots when UI changes
 - Verify setup instructions still work
 - Document all architectural decisions
+
+## Shared Pi Infrastructure
+
+### Pi Health Stats File
+
+A nightly snapshot of the Pi's hardware, OS, containers, services, and performance is written to `/home/admin/pi-stats.txt` by a cron job installed from the `couponclipper` project (`scripts/pi-diag.sh`). Updated daily at 3am.
+
+Reference this file when:
+- Diagnosing memory pressure or CPU spikes affecting this app
+- Checking container inventory before deploying a new image
+- Identifying optimization opportunities (disk usage, image sizes, running services)
+- Verifying what else is running on the Pi that could compete for resources
+
+```bash
+cat ~/pi-stats.txt                          # full report
+grep -A 30 "CONTAINER RUNTIME" ~/pi-stats.txt
+grep -A 10 "QUICK HEALTH CHECK" ~/pi-stats.txt
+```
