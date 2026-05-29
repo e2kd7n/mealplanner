@@ -226,7 +226,7 @@ This file provides guidance to agents when working with code in this repository.
 
 ### Pi Health Stats File
 
-A nightly snapshot of the Pi's hardware, OS, containers, services, and performance is written to `/home/admin/pi-stats.txt` by a cron job installed from the `couponclipper` project (`scripts/pi-diag.sh`). Updated daily at 3am.
+A snapshot of the Pi's hardware, OS, containers, services, and performance is written to `/home/admin/pi-stats.txt` by cron jobs installed from the `couponclipper` project (`scripts/pi-diag.sh`). Updated daily at 3am and on every reboot (45s after boot).
 
 Reference this file when:
 - Diagnosing memory pressure or CPU spikes affecting this app
