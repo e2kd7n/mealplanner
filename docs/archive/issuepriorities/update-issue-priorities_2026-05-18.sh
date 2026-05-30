@@ -570,4 +570,3 @@ echo "- Use \`FIXME:\` for bugs that need attention"
 echo "- Use \`HACK:\` for temporary solutions that need proper fixes"
 echo "- Use \`NOTE:\` for important information or context"
 
-# Made with Bob

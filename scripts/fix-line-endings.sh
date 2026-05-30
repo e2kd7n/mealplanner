@@ -20,4 +20,3 @@ echo "✅ Line endings fixed!"
 echo ""
 echo "You can now run your scripts normally."
 
-# Made with Bob

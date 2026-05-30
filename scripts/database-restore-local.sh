@@ -216,4 +216,3 @@ echo -e "   Full setup:       ${GREEN}./scripts/run-local.sh${NC}"
 
 exit 1
 
-# Made with Bob

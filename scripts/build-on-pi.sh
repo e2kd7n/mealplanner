@@ -239,4 +239,3 @@ echo ""
 echo -e "${YELLOW}Next steps:${NC}"
 echo -e "   Deploy: ${GREEN}./scripts/pi-run.sh${NC}"
 
-# Made with Bob

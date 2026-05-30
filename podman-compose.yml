@@ -170,4 +170,3 @@ secrets:
   session_secret:
     file: ./secrets/session_secret.txt
 
-# Made with Bob

@@ -38,4 +38,3 @@ echo -e "${YELLOW}Next steps:${NC}"
 echo -e "   If app is running: ${GREEN}./scripts/pi-bounce.sh${NC}"
 echo -e "   To start fresh:    ${GREEN}./scripts/pi-run.sh${NC}"
 
-# Made with Bob

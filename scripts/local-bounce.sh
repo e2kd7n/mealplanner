@@ -37,4 +37,3 @@ echo ""
 echo "Step 2/2: Starting services..."
 "$SCRIPT_DIR/local-run.sh"
 
-# Made with Bob

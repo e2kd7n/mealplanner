@@ -50,4 +50,3 @@ if [ "$CLUSTERHAT" = true ]; then
     done
 fi
 
-# Made with Bob

@@ -200,4 +200,3 @@ echo ""
 echo -e "${YELLOW}Your backups are stored in:${NC} ${GREEN}data/backups/${NC}"
 echo ""
 
-# Made with Bob

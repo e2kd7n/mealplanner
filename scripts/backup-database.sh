@@ -78,4 +78,3 @@ echo "Retention: ${RETENTION_DAYS} days"
 
 exit 0
 
-# Made with Bob

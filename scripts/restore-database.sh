@@ -110,4 +110,3 @@ echo "Safety backup: ${BACKUP_DIR}/${SAFETY_BACKUP}"
 
 exit 0
 
-# Made with Bob

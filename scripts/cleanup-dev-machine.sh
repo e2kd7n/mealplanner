@@ -112,4 +112,3 @@ echo ""
 
 echo -e "${BLUE}💡 Tip: Run './scripts/build-for-pi.sh' to rebuild fresh images${NC}"
 
-# Made with Bob

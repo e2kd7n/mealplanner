@@ -96,4 +96,3 @@ fi
 
 echo -e "${GREEN}Done!${NC}"
 
-# Made with Bob

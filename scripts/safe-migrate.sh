@@ -153,4 +153,3 @@ echo -e "  2. Check for any data inconsistencies"
 echo -e "  3. Keep the backup file safe for at least 7 days"
 echo ""
 
-# Made with Bob

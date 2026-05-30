@@ -29,4 +29,3 @@ cd "$PROJECT_ROOT"
 
 echo "Maintenance reminder sent"
 
-# Made with Bob

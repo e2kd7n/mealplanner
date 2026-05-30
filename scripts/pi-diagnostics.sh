@@ -315,4 +315,3 @@ section_header "📋 SUMMARY"
 echo ""
 echo -e "${GREEN}✅ Diagnostics complete! Check $OUTPUT_FILE for details.${NC}"
 
-# Made with Bob
