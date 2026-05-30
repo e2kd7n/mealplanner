@@ -391,7 +391,7 @@ if podman ps | grep -q "meals-backend"; then
     echo ""
 
     if [ -f "./scripts/check-deployment-mode.sh" ]; then
-        bash ./scripts/check-deployment-mode.sh
+        bash ./scripts/check-deployment-mode.sh || true
     else
         echo -e "${BLUE}Access the application:${NC}"
         echo -e "   🌐 Web: http://$(hostname -I | awk '{print $1}'):8080"
