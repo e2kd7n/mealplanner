@@ -131,3 +131,4 @@ echo "  - You're subscribed to the correct topic: $NTFY_TOPIC"
 echo "  - Your device has notifications enabled"
 echo "  - Your network allows connections to $NTFY_SERVER_URL"
 echo ""
+

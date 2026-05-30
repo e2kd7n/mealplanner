@@ -165,3 +165,4 @@ echo -e "Restore instructions: ${GREEN}$RESTORE_INSTRUCTIONS${NC}"
 echo ""
 echo -e "${YELLOW}IMPORTANT:${NC} Keep this backup safe before proceeding with migration!"
 echo ""
+

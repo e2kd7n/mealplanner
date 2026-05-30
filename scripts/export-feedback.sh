@@ -95,3 +95,4 @@ if [ "$UPLOAD_TO_GITHUB" = "true" ]; then
 fi
 
 echo -e "${GREEN}Done!${NC}"
+

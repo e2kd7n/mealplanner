@@ -130,3 +130,4 @@ echo -e "${BLUE}Monitoring dashboard:${NC}"
 echo -e "  ${GREEN}http://${PI4B_IP}:8080/monitoring${NC}"
 echo -e "  ${YELLOW}Browse Zero W nodes via the Connections menu in the dashboard${NC}"
 echo ""
+

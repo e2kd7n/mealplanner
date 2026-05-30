@@ -435,3 +435,4 @@ wait_for() {
     stop_spinner fail
     return 1
 }
+

@@ -420,3 +420,4 @@ else
     podman-compose -f podman-compose.pi.yml logs backend
     exit 1
 fi
+

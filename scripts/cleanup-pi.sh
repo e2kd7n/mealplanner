@@ -208,3 +208,4 @@ echo -e "${GREEN}💡 To redeploy:${NC}"
 echo -e "   1. Transfer new images: ${BLUE}scp pi-images/*.tar.gz pi@pihole.local:~/mealplanner/pi-images/${NC}"
 echo -e "   2. Load images: ${BLUE}./scripts/load-pi-images.sh${NC}"
 echo -e "   3. Deploy: ${BLUE}./scripts/deploy-podman.sh${NC}"
+

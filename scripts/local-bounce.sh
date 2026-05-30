@@ -36,3 +36,4 @@ echo ""
 # Run start script
 echo "Step 2/2: Starting services..."
 "$SCRIPT_DIR/local-run.sh"
+

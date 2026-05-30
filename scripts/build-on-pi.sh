@@ -238,3 +238,4 @@ echo -e "${YELLOW}💡 Tip: Review ${BUILD_LOG} to identify optimization opportu
 echo ""
 echo -e "${YELLOW}Next steps:${NC}"
 echo -e "   Deploy: ${GREEN}./scripts/pi-run.sh${NC}"
+

@@ -59,3 +59,4 @@ if command -v podman &> /dev/null; then
 else
     echo "❌ Podman not installed"
 fi
+

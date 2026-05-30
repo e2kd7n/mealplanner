@@ -28,3 +28,4 @@ cd "$PROJECT_ROOT"
     "clipboard,calendar"
 
 echo "Maintenance reminder sent"
+

@@ -184,3 +184,4 @@ secrets:
     file: ./secrets/edamam_app_id.txt
   edamam_app_key:
     file: ./secrets/edamam_app_key.txt
+

@@ -77,3 +77,4 @@ echo "Size: ${BACKUP_SIZE}"
 echo "Retention: ${RETENTION_DAYS} days"
 
 exit 0
+

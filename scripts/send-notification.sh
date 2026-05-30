@@ -95,3 +95,4 @@ else
     echo "Failed to send notification"
     exit 1
 fi
+

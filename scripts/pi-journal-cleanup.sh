@@ -78,3 +78,4 @@ echo -e "   2. Consider adding a UPS or battery backup"
 echo -e "   3. Use 'sudo systemctl reboot' for reboots"
 echo ""
 echo -e "${GREEN}🎯 Journal is now clean and optimized for SD card longevity${NC}"
+

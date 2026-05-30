@@ -49,3 +49,4 @@ else
     echo ""
     echo -e "${BLUE}To start again: ./scripts/pi-run.sh${NC}"
 fi
+

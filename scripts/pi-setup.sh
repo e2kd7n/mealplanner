@@ -346,3 +346,4 @@ echo -e "  1. Read your quick start guide: ${GREEN}cat ${DOC_FILE}${NC}"
 echo -e "  2. Check application health: ${GREEN}./scripts/pi-health-check.sh${NC}"
 echo -e "  3. View logs: ${GREEN}podman-compose -f podman-compose.pi.yml logs -f${NC}"
 echo ""
+

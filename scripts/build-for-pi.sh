@@ -257,3 +257,4 @@ echo -e "      ${GREEN}./scripts/pi-run.sh${NC}"
 echo ""
 echo -e "${BLUE}💡 Tip: Use rsync for faster, resumable transfers:${NC}"
 echo -e "   ${GREEN}rsync -avz --progress pi-images/meals-backend.tar pi-images/frontend-dist.tar.gz pi@raspberrypi.local:~/mealplanner/pi-images/${NC}"
+

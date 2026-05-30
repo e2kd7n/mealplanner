@@ -199,3 +199,4 @@ echo -e "  3. Follow maintenance checklist: ${GREEN}docs/releases/maintenance/WE
 echo ""
 echo -e "${YELLOW}Your backups are stored in:${NC} ${GREEN}data/backups/${NC}"
 echo ""
+

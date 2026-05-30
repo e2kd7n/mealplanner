@@ -109,3 +109,4 @@ echo "Tables: ${TABLE_COUNT}"
 echo "Safety backup: ${BACKUP_DIR}/${SAFETY_BACKUP}"
 
 exit 0
+

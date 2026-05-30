@@ -125,3 +125,4 @@ echo -e "${BLUE}💾 Disk usage after cleanup: ${DISK_AFTER}${NC}"
 echo ""
 echo -e "${GREEN}🚀 Next step: Deploy the application${NC}"
 echo -e "   ${GREEN}./scripts/pi-run.sh${NC}"
+

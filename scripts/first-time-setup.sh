@@ -249,3 +249,4 @@ echo -e "  Architecture:  ${BLUE}docs/ARCHITECTURE.md${NC}"
 echo -e "  All scripts:   ${GREEN}./scripts/menu.sh${NC}"
 echo -e "${BOLD}${CYAN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
 echo ""
+

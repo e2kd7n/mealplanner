@@ -28,3 +28,4 @@ find backend/src frontend/src -type f \( -name "*.ts" -o -name "*.tsx" \) | whil
 done
 
 echo "Copyright notices added successfully!"
+

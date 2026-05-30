@@ -46,3 +46,4 @@ rm -f "$ROOT_DIR/frontend.log" && echo -e "${GREEN}   ✓ frontend.log removed${
 
 echo ""
 echo -e "${GREEN}✅ All services stopped successfully!${NC}"
+

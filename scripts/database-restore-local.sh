@@ -215,3 +215,4 @@ echo -e "   Restart database: ${GREEN}podman restart meals-postgres${NC}"
 echo -e "   Full setup:       ${GREEN}./scripts/run-local.sh${NC}"
 
 exit 1
+
