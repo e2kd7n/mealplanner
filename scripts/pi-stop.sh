@@ -50,4 +50,3 @@ else
     echo -e "${BLUE}To start again: ./scripts/pi-run.sh${NC}"
 fi
 
-# Made with Bob

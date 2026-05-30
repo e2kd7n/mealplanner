@@ -194,4 +194,3 @@ echo ""
 echo "Note: Test feedback entries were filtered out and not converted to issues."
 echo ""
 
-# Made with Bob

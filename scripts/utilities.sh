@@ -436,4 +436,3 @@ wait_for() {
     return 1
 }
 
-# Made with Bob

@@ -79,4 +79,3 @@ echo -e "   3. Use 'sudo systemctl reboot' for reboots"
 echo ""
 echo -e "${GREEN}🎯 Journal is now clean and optimized for SD card longevity${NC}"
 
-# Made with Bob

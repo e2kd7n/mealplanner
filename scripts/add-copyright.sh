@@ -29,4 +29,3 @@ done
 
 echo "Copyright notices added successfully!"
 
-# Made with Bob

@@ -63,4 +63,3 @@ echo "Starting application..."
 # Start the application
 exec node dist/index.js
 
-# Made with Bob

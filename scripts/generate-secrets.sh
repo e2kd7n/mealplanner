@@ -272,4 +272,3 @@ echo -e "  • Keep backups encrypted and secure"
 echo ""
 echo -e "${RED}IMPORTANT: Add '$SECRETS_DIR/' to your .gitignore if not already present!${NC}"
 
-# Made with Bob

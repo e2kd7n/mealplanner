@@ -185,4 +185,3 @@ secrets:
   edamam_app_key:
     file: ./secrets/edamam_app_key.txt
 
-# Made with Bob

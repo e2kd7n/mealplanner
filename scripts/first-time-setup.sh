@@ -250,4 +250,3 @@ echo -e "  All scripts:   ${GREEN}./scripts/menu.sh${NC}"
 echo -e "${BOLD}${CYAN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
 echo ""
 
-# Made with Bob

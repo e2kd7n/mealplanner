@@ -168,4 +168,3 @@ echo ""
 UNUSED=$(podman images -f "dangling=true" -q | wc -l)
 [ "$UNUSED" -gt 0 ] && echo -e "${YELLOW}⚠️  ${UNUSED} dangling images found — run cleanup-dev-machine.sh${NC}"
 
-# Made with Bob

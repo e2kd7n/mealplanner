@@ -34,4 +34,3 @@ npm run test:e2e
 
 echo "✅ E2E tests completed!"
 
-# Made with Bob

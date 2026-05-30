@@ -27,4 +27,3 @@ done
 echo "✅ Processed $count files"
 echo "⚠️  Note: console.error and console.warn statements preserved for production error tracking"
 
-# Made with Bob

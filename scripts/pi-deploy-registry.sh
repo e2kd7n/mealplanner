@@ -250,4 +250,3 @@ echo -e "${GREEN}  ✓ Image ready — starting services...${NC}"
 echo ""
 bash ./scripts/pi-run.sh
 
-# Made with Bob

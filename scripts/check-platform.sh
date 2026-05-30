@@ -60,4 +60,3 @@ else
     echo "❌ Podman not installed"
 fi
 
-# Made with Bob

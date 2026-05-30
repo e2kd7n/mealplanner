@@ -84,4 +84,3 @@ jobs:
             VITE_API_URL=/api
           provenance: false
 
-# Made with Bob

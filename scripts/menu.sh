@@ -506,4 +506,3 @@ main() {
 # Run main
 main
 
-# Made with Bob
