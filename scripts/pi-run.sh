@@ -386,6 +386,9 @@ if podman ps | grep -q "meals-backend"; then
 
     echo ""
     echo -e "${GREEN}✅ Application started successfully!${NC}"
+    bash "$SCRIPT_DIR/send-notification.sh" high "Mealplanner Started" \
+        "Services up on $(hostname -s 2>/dev/null || echo Pi)${CLUSTERHAT:+ — ${#REACHABLE_ZEROS[@]}/4 Zero W nodes online}" \
+        "white_check_mark,rocket" || true
     echo ""
     echo "═══════════════════════════════════════════════════════════════"
     echo ""
@@ -418,6 +421,9 @@ else
     echo -e "${RED}❌ Failed to start backend container${NC}"
     echo -e "${YELLOW}Checking logs...${NC}"
     podman-compose -f podman-compose.pi.yml logs backend
+    bash "$SCRIPT_DIR/send-notification.sh" urgent "Deployment Failed" \
+        "Backend container failed to start on $(hostname -s 2>/dev/null || echo Pi)" \
+        "rotating_light,rocket" || true
     exit 1
 fi
 
