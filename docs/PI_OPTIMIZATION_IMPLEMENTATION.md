@@ -279,7 +279,7 @@ podman stats
 ### Health Checks:
 ```bash
 # Application health
-curl http://localhost:8080/api/health
+curl http://localhost/api/health
 
 # Container status
 podman ps
@@ -337,7 +337,7 @@ If performance is still insufficient:
 - [ ] Load images without errors
 - [ ] Deploy containers successfully
 - [ ] All containers healthy
-- [ ] Application accessible at http://pihole:8080
+- [ ] Application accessible at http://pihole
 - [ ] PWA installable
 - [ ] Service worker caching works
 - [ ] Memory usage within limits
