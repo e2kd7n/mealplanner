@@ -190,6 +190,24 @@ The frontend is **not** a separate container on the Pi. The React PWA is pre-bui
 served directly by Nginx from `./data/frontend-dist/`. This saves 100MB RAM vs running
 a dedicated frontend container.
 
+### Production Access — Port 80 (NOT 8080)
+
+**Mealplanner is reachable at `http://192.168.4.110/` or `http://raspberrypi.local/` —
+host port 80.** `podman-compose.pi.yml` maps `"80:80"`.
+
+This is *not* the same as the local container-mode port (`./scripts/deploy-podman.sh`
+uses `:8080` — see "Running the App" above). Don't confuse the two.
+
+Port 80 was chosen (changed from `8080` in commit `2098cf9`, 2026-05-21) so Nginx can
+host **both** `mealplanner` and `ride-optimizer` on the same port via name-based virtual
+hosts (`server_name` blocks in `nginx/default.conf`). Raw IP / unmatched-host requests
+fall through to the `mealplanner` server block (listed first = default).
+
+**If you ever change this port mapping again:** `git grep` the old port number across
+the whole repo (compose files, `CORS_ORIGIN`, docs) and fix every hit in the same
+commit — `CORS_ORIGIN` was left stale pointing at `:8080` after the 2098cf9 change and
+had to be corrected later.
+
 ### ClusterHAT Networking
 
 - Mode: **CBRIDGE** (not CNAT)

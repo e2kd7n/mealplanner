@@ -784,7 +784,7 @@ Request → Middleware Logger → Winston Logger → Console/File
 │                  Pi 4B (192.168.4.110)                       │
 │                                                              │
 │  ┌────────────────────────────────────────────────────────┐ │
-│  │  meals-nginx  :8080 (48MB)                             │ │
+│  │  meals-nginx  :80 (48MB)                               │ │
 │  │  - Serves ./data/frontend-dist/ (React PWA, static)    │ │
 │  │  - Proxies /api/ → ClusterHAT Zeros (172.19.180.1-4)   │ │
 │  │  - Fallback /api/ → meals-backend:3000                 │ │
