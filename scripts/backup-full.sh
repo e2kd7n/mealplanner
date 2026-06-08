@@ -12,6 +12,20 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # shellcheck source=utilities.sh
 source "$SCRIPT_DIR/utilities.sh"
 
+_backup_full_exit() {
+    local code=$?
+    rm -rf "${STAGING}"
+    if [ "$code" -eq 0 ]; then
+        bash "$SCRIPT_DIR/send-notification.sh" default "Full Backup Complete" \
+            "${BUNDLE_NAME} (${BUNDLE_SIZE:-?}) → ${OUTPUT_DIR}" \
+            "white_check_mark,floppy_disk,package" || true
+    else
+        bash "$SCRIPT_DIR/send-notification.sh" urgent "Full Backup Failed" \
+            "Full system backup failed — exit ${code} on $(hostname -s 2>/dev/null || echo Pi)" \
+            "rotating_light,floppy_disk" || true
+    fi
+}
+
 APP_DIR="$(dirname "$SCRIPT_DIR")"
 TIMESTAMP=$(date +%Y%m%d_%H%M%S)
 BUNDLE_NAME="mealplanner-full-${TIMESTAMP}"
@@ -34,7 +48,7 @@ echo "Bundle:    ${BUNDLE}"
 echo ""
 
 mkdir -p "${STAGING}" "${OUTPUT_DIR}"
-trap 'rm -rf "${STAGING}"' EXIT
+trap _backup_full_exit EXIT
 
 # 1. Database
 start_spinner "Backing up PostgreSQL..."
