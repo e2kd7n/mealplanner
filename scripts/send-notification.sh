@@ -22,7 +22,7 @@ fi
 # Configuration
 NTFY_ENABLED="${NTFY_ENABLED:-false}"
 NTFY_SERVER="${NTFY_SERVER_URL:-https://ntfy.sh}"
-NTFY_TOPIC="${NTFY_TOPIC:-mealplanner-alerts}"
+NTFY_TOPIC="${NTFY_TOPIC:-mealplanner}"
 NTFY_AUTH_TOKEN="${NTFY_AUTH_TOKEN:-}"
 
 # Check if notifications are enabled
@@ -67,30 +67,24 @@ case "$PRIORITY" in
         ;;
 esac
 
-# Build curl command
-CURL_CMD="curl -s"
+CURL_ARGS=(-s)
 
-# Add auth header if token is set
 if [ -n "$NTFY_AUTH_TOKEN" ]; then
-    CURL_CMD="$CURL_CMD -H \"Authorization: Bearer $NTFY_AUTH_TOKEN\""
+    CURL_ARGS+=(-H "Authorization: Bearer $NTFY_AUTH_TOKEN")
 fi
 
-# Add notification headers
-CURL_CMD="$CURL_CMD -H \"Title: $TITLE\""
-CURL_CMD="$CURL_CMD -H \"Priority: $PRIORITY_NUM\""
-CURL_CMD="$CURL_CMD -H \"Tags: $TAGS\""
+CURL_ARGS+=(
+    -H "Title: $TITLE"
+    -H "Priority: $PRIORITY_NUM"
+    -H "Tags: $TAGS"
+    -d "$MESSAGE"
+    "$NTFY_SERVER/$NTFY_TOPIC"
+)
 
-# Add message and URL
-CURL_CMD="$CURL_CMD -d \"$MESSAGE\""
-CURL_CMD="$CURL_CMD \"$NTFY_SERVER/$NTFY_TOPIC\""
-
-# Send notification
 echo "Sending notification: $TITLE ($PRIORITY)"
-eval $CURL_CMD
-
-if [ $? -eq 0 ]; then
+if curl "${CURL_ARGS[@]}"; then
+    echo ""
     echo "Notification sent successfully"
-    exit 0
 else
     echo "Failed to send notification"
     exit 1

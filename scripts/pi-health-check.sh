@@ -109,8 +109,14 @@ fi
 
 # Exit with appropriate code
 if [ "$ALERTS" -gt 0 ]; then
+    bash "$SCRIPT_DIR/send-notification.sh" urgent "Pi Health: CRITICAL" \
+        "${ALERTS} critical alert(s) — Temp:${TEMP}°C Mem:${MEM_USED}% Disk:${DISK_USED}% Load:${CPU_LOAD}" \
+        "rotating_light,thermometer" || true
     exit 2
 elif [ "$WARNINGS" -gt 0 ]; then
+    bash "$SCRIPT_DIR/send-notification.sh" high "Pi Health: Warning" \
+        "${WARNINGS} warning(s) — Temp:${TEMP}°C Mem:${MEM_USED}% Disk:${DISK_USED}% Load:${CPU_LOAD}" \
+        "warning,thermometer" || true
     exit 1
 else
     exit 0

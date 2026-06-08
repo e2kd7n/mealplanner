@@ -8,6 +8,19 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # shellcheck source=utilities.sh
 source "$SCRIPT_DIR/utilities.sh"
 
+_notify_exit() {
+    local code=$?
+    if [ "$code" -eq 0 ]; then
+        bash "$SCRIPT_DIR/send-notification.sh" default "DB Backup Complete" \
+            "Backup: ${BACKUP_FILE} (${BACKUP_SIZE})" "white_check_mark,floppy_disk" || true
+    else
+        bash "$SCRIPT_DIR/send-notification.sh" urgent "DB Backup Failed" \
+            "Database backup failed — exit ${code} on $(hostname -s 2>/dev/null || echo Pi)" \
+            "rotating_light,floppy_disk" || true
+    fi
+}
+trap _notify_exit EXIT
+
 # Configuration
 BACKUP_DIR="${BACKUP_DIR:-./data/backups}"
 RETENTION_DAYS="${RETENTION_DAYS:-30}"
