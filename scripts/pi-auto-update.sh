@@ -96,13 +96,20 @@ log "Extracting frontend static files..."
 extract_frontend_from_image "$LOCAL_IMAGE" >/dev/null
 log "Extracted $(ls ./data/frontend-dist | wc -l) files to data/frontend-dist/"
 
+COMPOSE_FILES=$(clusterhat_compose_files)
+if echo "$COMPOSE_FILES" | grep -q "clusterhat"; then
+    log "ClusterHAT overlay enabled"
+fi
+
 log "Restarting containers..."
 # Suppress expected "not found" noise when nothing was running before this update.
-podman-compose -f podman-compose.pi.yml down 2>&1 \
+# shellcheck disable=SC2086
+podman-compose $COMPOSE_FILES down 2>&1 \
     | grep -v "no such container\|no such pod\|no pod with name\|no container with name" \
     || true
 
-podman-compose -f podman-compose.pi.yml up -d
+# shellcheck disable=SC2086
+podman-compose $COMPOSE_FILES up -d
 
 log "Waiting for backend to become healthy..."
 for i in $(seq 1 12); do
@@ -113,7 +120,8 @@ for i in $(seq 1 12); do
     fi
     if [ "$i" -eq 12 ]; then
         log "ERROR: meals-backend did not become healthy after 60s. Last 30 log lines:"
-        podman-compose -f podman-compose.pi.yml logs --tail=30 backend >&2
+        # shellcheck disable=SC2086
+        podman-compose $COMPOSE_FILES logs --tail=30 backend >&2
         exit 1
     fi
 done
@@ -131,6 +139,17 @@ else
         export DATABASE_URL=\"postgresql://\${POSTGRES_USER}:\${POSTGRES_PASSWORD}@\${POSTGRES_HOST}:\${POSTGRES_PORT}/\${POSTGRES_DB}\"
         node $PRISMA_BIN migrate deploy
     " && log "✓ Migrations applied." || log "WARNING: Migration step failed — check logs."
+fi
+
+# Deploy updated backend to Zero W nodes
+if detect_clusterhat; then
+    log "Deploying updated backend to Zero W nodes..."
+    if bash "$SCRIPT_DIR/pi-run.sh" --zeros-only --zero-user="$CLUSTERHAT_ZERO_USER" 2>&1 \
+        | while IFS= read -r line; do log "  $line"; done; then
+        log "✓ Zero W deployment complete."
+    else
+        log "WARNING: Zero W deployment had errors — check output above"
+    fi
 fi
 
 # Clean up any images that are now untagged (the superseded build left behind
