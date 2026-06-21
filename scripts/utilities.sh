@@ -436,3 +436,74 @@ wait_for() {
     return 1
 }
 
+# ── ClusterHAT Helpers ──────────────────────────────────────────────────────
+
+CLUSTERHAT_ZERO_IPS=("172.19.181.1" "172.19.181.2" "172.19.181.3" "172.19.181.4")
+CLUSTERHAT_BRIDGE_IP="172.19.181.254"
+CLUSTERHAT_ZERO_USER="admin"
+CLUSTERHAT_SSH_OPTS="-o ConnectTimeout=10 -o StrictHostKeyChecking=accept-new -o BatchMode=yes"
+
+detect_clusterhat() {
+    if [ -f /proc/device-tree/hat/product ] && \
+       grep -qi "clusterhat" /proc/device-tree/hat/product 2>/dev/null; then
+        return 0
+    fi
+    command -v clusterctrl &>/dev/null
+}
+
+clusterhat_compose_files() {
+    local files="-f podman-compose.pi.yml"
+    if detect_clusterhat && [ -f podman-compose.pi.clusterhat.yml ]; then
+        files="$files -f podman-compose.pi.clusterhat.yml"
+    fi
+    echo "$files"
+}
+
+clusterhat_stop_zeros() {
+    local zero_user="${1:-$CLUSTERHAT_ZERO_USER}"
+    if ! detect_clusterhat; then
+        return 0
+    fi
+
+    echo -e "${BLUE}Stopping Zero W backend services...${NC}"
+    for i in "${!CLUSTERHAT_ZERO_IPS[@]}"; do
+        local ip="${CLUSTERHAT_ZERO_IPS[$i]}"
+        local slot=$((i + 1))
+        if ping -c 1 -W 2 "$ip" &>/dev/null; then
+            # shellcheck disable=SC2086
+            if ssh $CLUSTERHAT_SSH_OPTS "${zero_user}@${ip}" \
+                'sudo systemctl stop mealplanner' 2>/dev/null; then
+                echo -e "  ${GREEN}p${slot} stopped${NC}"
+            else
+                echo -e "  ${YELLOW}p${slot} stop failed or not running${NC}"
+            fi
+        else
+            echo -e "  ${YELLOW}p${slot} (${ip}) not reachable${NC}"
+        fi
+    done
+}
+
+clusterhat_restart_zeros() {
+    local zero_user="${1:-$CLUSTERHAT_ZERO_USER}"
+    if ! detect_clusterhat; then
+        return 0
+    fi
+
+    echo -e "${BLUE}Restarting Zero W backend services...${NC}"
+    for i in "${!CLUSTERHAT_ZERO_IPS[@]}"; do
+        local ip="${CLUSTERHAT_ZERO_IPS[$i]}"
+        local slot=$((i + 1))
+        if ping -c 1 -W 2 "$ip" &>/dev/null; then
+            # shellcheck disable=SC2086
+            if ssh $CLUSTERHAT_SSH_OPTS "${zero_user}@${ip}" \
+                'sudo systemctl restart mealplanner' 2>/dev/null; then
+                echo -e "  ${GREEN}p${slot} restarted${NC}"
+            else
+                echo -e "  ${YELLOW}p${slot} restart failed — may need deployment first${NC}"
+            fi
+        else
+            echo -e "  ${YELLOW}p${slot} (${ip}) not reachable${NC}"
+        fi
+    done
+}
+

@@ -30,10 +30,16 @@ echo -e "${BLUE}Currently running containers:${NC}"
 podman ps --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}" | grep meals
 
 echo ""
+
+# Stop Zero W backend services first (while they can still reach Postgres/Redis)
+clusterhat_stop_zeros
+
 echo -e "${YELLOW}🛑 Stopping all services...${NC}"
 
-# Stop services
-podman-compose -f podman-compose.pi.yml down
+# Stop services (include ClusterHAT overlay if present so ports are cleaned up)
+COMPOSE_FILES=$(clusterhat_compose_files)
+# shellcheck disable=SC2086
+podman-compose $COMPOSE_FILES down
 
 # Verify containers are stopped
 echo ""
