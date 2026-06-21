@@ -1,12 +1,16 @@
 #!/bin/bash
 
 # Start the Meal Planner application on Raspberry Pi using Podman.
-# Usage: ./scripts/pi-run.sh [--clusterhat] [--zero-user=<user>]
+# Usage: ./scripts/pi-run.sh [--clusterhat] [--force] [--zero-user=<user>]
 #
 # --clusterhat      Detect Zero W nodes, fix Nginx IPs, expose Postgres/Redis
 #                   on the ClusterHAT bridge, and deploy the backend to each
-#                   reachable Zero W via SSH.
-# --zero-user=USER  SSH user on Zero W nodes (default: pi)
+#                   reachable Zero W via SSH. Auto-enabled when ClusterHAT
+#                   hardware is detected.
+# --force           Tear down and restart containers even if already running.
+#                   Used by systemd boot service to ensure correct compose
+#                   overlays are applied.
+# --zero-user=USER  SSH user on Zero W nodes (default: admin)
 
 set -e
 
@@ -16,9 +20,10 @@ source "$SCRIPT_DIR/utilities.sh"
 
 CLUSTERHAT=false
 ZEROS_ONLY=false
-ZERO_USER="pi"
-ZERO_IPS=("172.19.181.1" "172.19.181.2" "172.19.181.3" "172.19.181.4")
-BRIDGE_IP="172.19.181.254"
+FORCE=false
+ZERO_USER="$CLUSTERHAT_ZERO_USER"
+ZERO_IPS=("${CLUSTERHAT_ZERO_IPS[@]}")
+BRIDGE_IP="$CLUSTERHAT_BRIDGE_IP"
 REACHABLE_ZEROS=()
 # Match the Node.js version in the backend container image
 NODE_VERSION="22.22.3"
@@ -29,8 +34,14 @@ for arg in "$@"; do
         --clusterhat)    CLUSTERHAT=true ;;
         --zeros-only)    ZEROS_ONLY=true; CLUSTERHAT=true ;;
         --zero-user=*)   ZERO_USER="${arg#*=}" ;;
+        --force)         FORCE=true ;;
     esac
 done
+
+if [ "$CLUSTERHAT" = false ] && [ "$ZEROS_ONLY" = false ] && detect_clusterhat; then
+    echo -e "${BLUE}ClusterHAT hardware detected — enabling cluster mode${NC}"
+    CLUSTERHAT=true
+fi
 
 # ---------------------------------------------------------------------------
 # Zero W deployment helpers
@@ -272,13 +283,21 @@ fi
 
 # Check if containers are already running
 if podman ps | grep -q "meals-backend"; then
-    echo -e "${YELLOW}⚠️  Application is already running${NC}"
-    echo ""
-    echo -e "${BLUE}Container status:${NC}"
-    podman-compose -f podman-compose.pi.yml ps
-    echo ""
-    echo -e "${BLUE}To restart, use: ./scripts/pi-bounce.sh${NC}"
-    exit 0
+    if [ "$FORCE" = false ]; then
+        echo -e "${YELLOW}⚠️  Application is already running${NC}"
+        echo ""
+        echo -e "${BLUE}Container status:${NC}"
+        podman-compose -f podman-compose.pi.yml ps
+        echo ""
+        echo -e "${BLUE}To restart, use: ./scripts/pi-bounce.sh${NC}"
+        exit 0
+    fi
+    echo -e "${YELLOW}--force: tearing down running containers for clean restart...${NC}"
+    local_compose=$(clusterhat_compose_files)
+    # shellcheck disable=SC2086
+    podman-compose $local_compose down 2>&1 \
+        | grep -v "no such container\|no such pod\|no pod with name\|no container with name" \
+        || true
 fi
 
 # Remove any stopped/failed containers from a previous run so Podman does not
@@ -344,8 +363,8 @@ if [ "$CLUSTERHAT" = true ]; then
     done
 
     if [ ${#REACHABLE_ZEROS[@]} -eq 0 ]; then
-        echo -e "${RED}❌ No Zero W nodes reachable — are they powered on?${NC}"
-        exit 1
+        echo -e "${YELLOW}No Zero W nodes reachable yet — containers will start, Zeros can be deployed later${NC}"
+        echo -e "${YELLOW}  Run: ./scripts/pi-run.sh --zeros-only --zero-user=${ZERO_USER}${NC}"
     fi
 
     # Add ClusterHAT overlay: exposes Postgres/Redis on the bridge interface

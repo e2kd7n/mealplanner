@@ -257,8 +257,9 @@ Requires=podman.socket
 [Service]
 Type=oneshot
 RemainAfterExit=yes
+TimeoutStartSec=300
 WorkingDirectory=$(pwd)
-ExecStart=$(pwd)/scripts/pi-run.sh
+ExecStart=$(pwd)/scripts/pi-run.sh --force
 ExecStop=$(pwd)/scripts/pi-stop.sh
 User=$(whoami)
 Group=$(whoami)
@@ -272,12 +273,57 @@ EOF
     # Install service
     sudo mv "$SERVICE_FILE" /etc/systemd/system/mealplanner.service
     sudo chmod 644 /etc/systemd/system/mealplanner.service
-    
+
     # Enable and start service
     sudo systemctl daemon-reload
     sudo systemctl enable mealplanner.service
-    
+
     echo -e "${GREEN}✓ Auto-start configured successfully!${NC}"
+
+    # Install delayed Zero W deployment timer if ClusterHAT is present
+    if detect_clusterhat; then
+        echo -e "${YELLOW}ClusterHAT detected — installing delayed Zero W deployment timer...${NC}"
+
+        ZEROS_SERVICE="/tmp/mealplanner-zeros.service"
+        cat > "$ZEROS_SERVICE" << EOF
+[Unit]
+Description=Meal Planner — Deploy backend to Zero W nodes
+After=mealplanner.service
+Requires=mealplanner.service
+
+[Service]
+Type=oneshot
+WorkingDirectory=$(pwd)
+ExecStart=$(pwd)/scripts/pi-run.sh --zeros-only --zero-user=$CLUSTERHAT_ZERO_USER
+User=$(whoami)
+TimeoutStartSec=600
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=mealplanner-zeros
+EOF
+
+        ZEROS_TIMER="/tmp/mealplanner-zeros.timer"
+        cat > "$ZEROS_TIMER" << 'EOF'
+[Unit]
+Description=Meal Planner — Deploy to Zeros after boot
+
+[Timer]
+OnBootSec=120
+
+[Install]
+WantedBy=timers.target
+EOF
+
+        sudo mv "$ZEROS_SERVICE" /etc/systemd/system/mealplanner-zeros.service
+        sudo mv "$ZEROS_TIMER" /etc/systemd/system/mealplanner-zeros.timer
+        sudo chmod 644 /etc/systemd/system/mealplanner-zeros.service
+        sudo chmod 644 /etc/systemd/system/mealplanner-zeros.timer
+        sudo systemctl daemon-reload
+        sudo systemctl enable mealplanner-zeros.timer
+
+        echo -e "${GREEN}✓ Zero W deployment timer installed (fires 2 min after boot)${NC}"
+    fi
+
     echo ""
     echo -e "${BLUE}Service commands:${NC}"
     echo -e "  Start:   ${GREEN}sudo systemctl start mealplanner${NC}"
