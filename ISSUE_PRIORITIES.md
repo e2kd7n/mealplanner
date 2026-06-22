@@ -1,6 +1,6 @@
 # Issue Prioritization
 
-**Last Updated:** 2026-06-04 21:08:50 UTC / 2026-06-04 16:08:50 CDT
+**Last Updated:** 2026-06-22 13:29:41 UTC / 2026-06-22 13:29:41 GMT
 
 This file reflects the current state of GitHub issues organized by milestone and priority within each milestone.
 
@@ -38,6 +38,9 @@ This file reflects the current state of GitHub issues organized by milestone and
 ## ⚠️ Issues Without Milestone Assignment
 
 These issues need to be assigned to a milestone and prioritized.
+
+### 🔴 P0 - CRITICAL
+- #206 - fix(nginx): add resolver directive to prevent stale DNS after backend restarts
 
 ### 🔴 P1 - HIGH
 - #194 - Pi deployment pre-flight: add secrets/redis_password.txt
