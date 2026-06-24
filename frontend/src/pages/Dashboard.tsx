@@ -32,7 +32,6 @@ import { useAppDispatch, useAppSelector } from '../store/hooks';
 import { fetchCurrentMealPlan } from '../store/slices/mealPlansSlice';
 import { fetchGroceryLists } from '../store/slices/groceryListsSlice';
 import { fetchExpiringItems, fetchLowStockItems } from '../store/slices/pantrySlice';
-import { userAPI } from '../services/api';
 
 const getTimeOfDayGreeting = () => {
   const hour = new Date().getHours();
