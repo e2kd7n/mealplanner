@@ -112,7 +112,7 @@ function countCharacterTypes(password: string): {
     uppercase: (password.match(/[A-Z]/g) || []).length,
     lowercase: (password.match(/[a-z]/g) || []).length,
     numbers: (password.match(/[0-9]/g) || []).length,
-    special: (password.match(/[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/g) || []).length,
+    special: (password.match(/[!@#$%^&*()_+\-=[\]{};':"\\|,.<>/?]/g) || []).length,
   };
 }
 

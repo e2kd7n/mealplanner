@@ -160,11 +160,11 @@ export function verifyAccessToken(token: string): TokenPayload {
           throw currentError; // Throw original error to preserve error type
         }
       }
-    } catch (versionError) {
+    } catch (_versionError) {
       // Versioned secret loading failed, fall through to original error
       logger.debug('Could not load versioned secrets for rotation support');
     }
-    
+
     // No previous secret or it also failed
     // Only log non-expired token errors
     if (!isExpired) {
@@ -208,11 +208,11 @@ export function verifyRefreshToken(token: string): TokenPayload {
           throw currentError; // Throw original error to preserve error type
         }
       }
-    } catch (versionError) {
+    } catch (_versionError) {
       // Versioned secret loading failed, fall through to original error
       logger.debug('Could not load versioned secrets for rotation support');
     }
-    
+
     // No previous secret or it also failed
     // Only log non-expired token errors
     if (!isExpired) {

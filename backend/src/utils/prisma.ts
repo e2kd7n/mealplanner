@@ -93,7 +93,7 @@ export async function withRetry<T>(
       // Try to reconnect
       try {
         await prisma.$connect();
-      } catch (reconnectError) {
+      } catch (_reconnectError) {
         logger.debug('Reconnection attempt failed, will retry operation');
       }
     }

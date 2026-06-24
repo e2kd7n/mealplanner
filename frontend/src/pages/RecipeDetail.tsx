@@ -174,7 +174,7 @@ const RecipeDetail: React.FC = () => {
       alert(`Successfully added "${recipe.title}" to meal plan!`);
     } catch (error: unknown) {
       if (import.meta.env.DEV) console.error('Failed to add to meal plan:', error);
-      alert(error.message || 'Failed to add recipe to meal plan');
+      alert(error instanceof Error ? error.message : 'Failed to add recipe to meal plan');
     } finally {
       setAddingToMealPlan(false);
     }
@@ -218,7 +218,7 @@ const RecipeDetail: React.FC = () => {
       alert(`Successfully added ${recipe.ingredients?.length || 0} ingredients to grocery list!`);
     } catch (error: unknown) {
       if (import.meta.env.DEV) console.error('Failed to add ingredients:', error);
-      alert(error.message || 'Failed to add ingredients to grocery list');
+      alert(error instanceof Error ? error.message : 'Failed to add ingredients to grocery list');
     } finally {
       setAddingToList(false);
     }
@@ -239,7 +239,7 @@ const RecipeDetail: React.FC = () => {
       navigate('/recipes');
     } catch (error: unknown) {
       if (import.meta.env.DEV) console.error('Failed to delete recipe:', error);
-      alert(error.message || 'Failed to delete recipe');
+      alert(error instanceof Error ? error.message : 'Failed to delete recipe');
     } finally {
       setDeleting(false);
     }
@@ -634,7 +634,7 @@ const RecipeDetail: React.FC = () => {
             <Divider sx={{ mb: 3 }} />
             <List sx={{ '& .MuiListItem-root': { py: 2 } }}>
               {recipe.instructions && Array.isArray(recipe.instructions) && recipe.instructions.length > 0 ? (
-                (recipe.instructions as Array<string | { step?: string | number; instruction?: string; text?: string }>).map((step, index) => (
+                recipe.instructions.map((step, index) => (
                   <ListItem
                     key={index}
                     sx={{
@@ -666,13 +666,13 @@ const RecipeDetail: React.FC = () => {
                           fontSize: '0.875rem',
                         }}
                       >
-                        {step.step || index + 1}
+                        {typeof step === 'string' ? index + 1 : (step.step || index + 1)}
                       </Box>
                     </ListItemIcon>
                     <ListItemText
                       primary={
                         <Typography variant="body1" sx={{ lineHeight: 1.7, color: 'text.primary' }}>
-                          {step.instruction || step.text || step}
+                          {typeof step === 'string' ? step : (step.instruction || step.text || '')}
                         </Typography>
                       }
                     />

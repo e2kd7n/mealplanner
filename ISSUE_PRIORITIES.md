@@ -1,24 +1,26 @@
 # Issue Prioritization
 
-**Last Updated:** 2026-06-22 13:29:41 UTC / 2026-06-22 13:29:41 GMT
+**Last Updated:** 2026-06-22 14:19:03 UTC / 2026-06-22 14:19:03 GMT
 
 This file reflects the current state of GitHub issues organized by milestone and priority within each milestone.
 
 **Priority is within a milestone** — P0/P1 issues in the active milestone take precedence over all issues in future milestones.
 
-## 🎯 Public Launch (due 2026-05-30)
+## 🎯 Public Launch (due 2026-06-30)
 
 ### 🔴 P0 - CRITICAL
-**No issues** ✅
+- #206 - fix(nginx): add resolver directive to prevent stale DNS after backend restarts
 
 ### 🔴 P1 - HIGH
-**No issues** ✅
+- #194 - Pi deployment pre-flight: add secrets/redis_password.txt
 
 ### 🟡 P2 - MEDIUM
 - #142 - E2E Tests: Optimize GitHub Actions configuration for reliability
 - #83 - [Testing] Add automated accessibility and performance tests
 
 ### 🟢 P3 - LOW
+- #230 - chore: plan major dependency upgrades (MUI 9, Prisma 7, Express 5, TS 6)
+- #209 - fix(monitoring): repair Glances service and add ClusterHAT cluster-wide monitoring
 - #170 - ✨ Add photo capture and PDF upload for recipe creation
 - #45 - Achieve 70%+ Test Coverage
 - #43 - Implement Logging Aggregation
@@ -39,12 +41,6 @@ This file reflects the current state of GitHub issues organized by milestone and
 
 These issues need to be assigned to a milestone and prioritized.
 
-### 🔴 P0 - CRITICAL
-- #206 - fix(nginx): add resolver directive to prevent stale DNS after backend restarts
-
-### 🔴 P1 - HIGH
-- #194 - Pi deployment pre-flight: add secrets/redis_password.txt
-
 ### 🟡 P2 - MEDIUM
 - #116 - [P2][UX] Add Cost Tracking for Budget-Conscious Users
 
@@ -59,9 +55,6 @@ These issues need to be assigned to a milestone and prioritized.
 ### 📋 P4 - FUTURE
 - #66 - Publish Meals to ICS Calendar feed
 - #64 - Implement Advanced Features (Nutrition Tracking, etc.)
-
-### ⚠️ Unprioritized (No P-label)
-- #209 - fix(monitoring): repair Glances service and add ClusterHAT cluster-wide monitoring
 
 ## 📝 Workspace TODOs & Tasks
 Code comments and inline tasks found in the workspace that may need attention.

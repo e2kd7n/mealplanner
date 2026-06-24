@@ -126,7 +126,7 @@ app.get('/metrics', async (_req, res) => {
   try {
     res.set('Content-Type', promRegistry.contentType);
     res.end(await promRegistry.metrics());
-  } catch (error) {
+  } catch (_error) {
     res.status(500).end();
   }
 });

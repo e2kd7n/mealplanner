@@ -169,6 +169,26 @@ if [ "$DISK_USAGE" -gt 70 ]; then
     fi
 fi
 
+# ── Deployment secrets check ───────────────────────────────────────────────────
+
+missing_secret=false
+for secret in \
+    secrets/postgres_password.txt \
+    secrets/redis_password.txt \
+    secrets/jwt_secret.txt \
+    secrets/jwt_refresh_secret.txt \
+    secrets/session_secret.txt; do
+    if [ ! -f "$secret" ]; then
+        echo -e "${RED}❌ Missing secret: ${secret}${NC}"
+        missing_secret=true
+    fi
+done
+if [ "$missing_secret" = true ]; then
+    echo -e "${YELLOW}   Generate all secrets with: ./scripts/generate-secrets.sh${NC}"
+    exit 1
+fi
+echo -e "  ${GREEN}✓${NC}  All deployment secrets present."
+
 # ── GHCR authentication ─────────────────────────────────────────────────────────
 
 section "Authentication" "🔐"
