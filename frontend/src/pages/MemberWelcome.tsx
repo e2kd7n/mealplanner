@@ -16,7 +16,7 @@ import {
 } from '@mui/icons-material';
 import { useAppSelector } from '../store/hooks';
 
-const FTUE_KEY = 'mealplanner_member_ftue_done';
+const FTUE_KEY_PREFIX = 'mealplanner_member_ftue_done';
 
 interface Slide {
   icon: React.ReactNode;
@@ -30,6 +30,7 @@ export default function MemberWelcome() {
   const navigate = useNavigate();
   const theme = useTheme();
   const userName = useAppSelector((s) => s.auth.user?.name ?? 'there');
+  const userId = useAppSelector((s) => s.auth.user?.id);
   const [step, setStep] = useState(0);
 
   const slides: Slide[] = [
@@ -67,7 +68,9 @@ export default function MemberWelcome() {
   const current = slides[step];
 
   const finish = () => {
-    localStorage.setItem(FTUE_KEY, '1');
+    if (userId) {
+      localStorage.setItem(`${FTUE_KEY_PREFIX}_${userId}`, '1');
+    }
     navigate('/dashboard', { replace: true });
   };
 

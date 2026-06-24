@@ -139,8 +139,14 @@ export const visualAuthAPI = {
   setupVisualPassword: (familyMemberId: string, recipeId: string) =>
     api.post('/auth/visual-password/setup', { familyMemberId, recipeId }),
 
+  setupStockVisualPassword: (familyMemberId: string, imageUrl: string) =>
+    api.post('/auth/visual-password/setup-stock', { familyMemberId, imageUrl }),
+
   getSetupImages: () =>
     api.get('/auth/visual-setup/images'),
+
+  getStockImages: () =>
+    api.get('/auth/visual-setup/stock-images'),
 };
 
 // Recipe API
@@ -319,6 +325,8 @@ export const userAPI = {
     dietaryRestrictions?: string[];
     cookingSkillLevel?: string;
     avoidedIngredients?: string[];
+    preferredCuisines?: string[];
+    weeklyBudget?: number;
   }) => api.put('/users/preferences', data),
 };
 

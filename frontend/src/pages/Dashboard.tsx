@@ -14,7 +14,6 @@ import {
   Skeleton,
   LinearProgress,
   Alert,
-  Snackbar,
   Paper,
   Tooltip,
 } from '@mui/material';
@@ -33,8 +32,6 @@ import { useAppDispatch, useAppSelector } from '../store/hooks';
 import { fetchCurrentMealPlan } from '../store/slices/mealPlansSlice';
 import { fetchGroceryLists } from '../store/slices/groceryListsSlice';
 import { fetchExpiringItems, fetchLowStockItems } from '../store/slices/pantrySlice';
-import OnboardingWizard from '../components/OnboardingWizard';
-import type { OnboardingData } from '../components/OnboardingWizard';
 import { userAPI } from '../services/api';
 
 const getTimeOfDayGreeting = () => {
@@ -105,11 +102,20 @@ const TodayMeals = memo(({ loading, meals, onNavigate }: TodayMealsProps) => {
               ) : (
                 <Button
                   size="small"
-                  startIcon={<AddIcon sx={{ fontSize: 14 }} />}
+                  startIcon={<AddIcon sx={{ fontSize: 16 }} />}
                   onClick={onNavigate}
-                  sx={{ fontSize: '0.7rem', p: 0, minWidth: 0, mt: 0.5 }}
+                  sx={{
+                    fontSize: '0.8rem',
+                    minHeight: 44,
+                    minWidth: 44,
+                    mt: 0.5,
+                    border: '1px dashed',
+                    borderColor: 'divider',
+                    borderRadius: 1,
+                    width: '100%',
+                  }}
                 >
-                  Not planned
+                  Plan {slot}
                 </Button>
               )}
             </Box>
@@ -322,24 +328,10 @@ const Dashboard: React.FC = () => {
   const { expiringItems, lowStockItems, loading: pantryLoading } = useAppSelector((state) => state.pantry);
   const { user } = useAppSelector((state) => state.auth);
 
-  const [showOnboarding, setShowOnboarding] = useState(false);
   const [profileNudgeDismissed, setProfileNudgeDismissed] = useState(
     () => !!localStorage.getItem('profileNudgeDismissed')
   );
-  const [onboardingSnackbar, setOnboardingSnackbar] = useState<{ open: boolean; error: boolean }>({
-    open: false,
-    error: false,
-  });
 
-  useEffect(() => {
-    const onboardingCompleted = localStorage.getItem('onboardingCompleted');
-    if (!onboardingCompleted) {
-      const timer = setTimeout(() => setShowOnboarding(true), 500);
-      return () => clearTimeout(timer);
-    }
-  }, []);
-
-  // Fetch all dashboard data in parallel on mount
   useEffect(() => {
     dispatch(fetchCurrentMealPlan());
     dispatch(fetchGroceryLists({ status: 'shopping' }));
@@ -348,28 +340,6 @@ const Dashboard: React.FC = () => {
   }, [dispatch]);
 
   const handleNavigate = useCallback((path: string) => navigate(path), [navigate]);
-
-  const handleOnboardingComplete = async (data: OnboardingData) => {
-    localStorage.setItem('onboardingCompleted', 'true');
-    localStorage.setItem('onboardingData', JSON.stringify(data));
-    setShowOnboarding(false);
-
-    try {
-      // Persist onboarding preferences to backend
-      await userAPI.updatePreferences({
-        dietaryRestrictions: data.dietaryPreferences,
-        cookingSkillLevel: data.cookingSkillLevel,
-      });
-      setOnboardingSnackbar({ open: true, error: false });
-    } catch {
-      setOnboardingSnackbar({ open: true, error: true });
-    }
-  };
-
-  const handleOnboardingClose = () => {
-    localStorage.setItem('onboardingCompleted', 'true');
-    setShowOnboarding(false);
-  };
 
   const handleDismissNudge = () => {
     localStorage.setItem('profileNudgeDismissed', 'true');
@@ -401,7 +371,7 @@ const Dashboard: React.FC = () => {
 
   const showProfileNudge =
     !profileNudgeDismissed &&
-    !!localStorage.getItem('onboardingData') &&
+    !!localStorage.getItem('onboardingCompleted') &&
     !localStorage.getItem('profileNudgeDismissed');
 
   const familyName = user?.name ?? 'Family';
@@ -538,29 +508,6 @@ const Dashboard: React.FC = () => {
         </Grid>
       </Container>
 
-      <OnboardingWizard
-        open={showOnboarding}
-        onClose={handleOnboardingClose}
-        onComplete={handleOnboardingComplete}
-      />
-
-      <Snackbar
-        open={onboardingSnackbar.open}
-        autoHideDuration={6000}
-        onClose={() => setOnboardingSnackbar((s) => ({ ...s, open: false }))}
-        message={
-          onboardingSnackbar.error
-            ? 'Could not save preferences — visit Profile to complete setup'
-            : 'Your preferences were saved — you can update them in Profile any time'
-        }
-        action={
-          onboardingSnackbar.error ? (
-            <Button color="secondary" size="small" onClick={() => navigate('/profile')}>
-              Go to Profile
-            </Button>
-          ) : undefined
-        }
-      />
     </>
   );
 };

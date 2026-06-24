@@ -135,7 +135,7 @@ const OnboardingWizard: React.FC<OnboardingWizardProps> = ({ open, onClose, onCo
           <Box sx={{ textAlign: 'center', py: 4 }}>
             <RestaurantIcon sx={{ fontSize: 80, color: 'primary.main', mb: 3 }} />
             <Typography variant="h4" gutterBottom>
-              Welcome to Meal Planner!
+              Welcome to Family Meal Planner!
             </Typography>
             <Typography variant="body1" color="text.secondary" sx={{ mb: 3, maxWidth: 500, mx: 'auto' }}>
               Let's personalize your experience in just a few quick steps. This will help us provide better recipe recommendations and meal planning suggestions.

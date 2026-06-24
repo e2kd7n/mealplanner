@@ -261,6 +261,15 @@ const Welcome: React.FC = () => {
                   color={strengthColor()}
                   sx={{ height: 6, borderRadius: 3 }}
                 />
+                {passwordStrength < 50 && (
+                  <Typography variant="caption" color="error" sx={{ mt: 0.5, display: 'block' }}>
+                    Too weak to continue
+                    {password.length < 12 && ' — try a longer password'}
+                    {!/[A-Z]/.test(password) && ', add uppercase'}
+                    {!/\d/.test(password) && ', add a number'}
+                    {!/[^a-zA-Z\d]/.test(password) && ', add a symbol'}
+                  </Typography>
+                )}
               </Box>
             )}
             <TextField

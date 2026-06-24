@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" width="200" height="200">
+  <rect width="200" height="200" rx="32" fill="#E91E63"/>
+  <!-- Bottom cake layer -->
+  <rect x="45" y="110" width="110" height="40" rx="6" fill="#FFEAA7"/>
+  <!-- Top cake layer -->
+  <rect x="55" y="78" width="90" height="36" rx="5" fill="#FFEAA7"/>
+  <!-- Bottom frosting -->
+  <path d="M45 110 Q60 120 75 110 Q90 120 105 110 Q120 120 135 110 Q150 120 155 110 L155 116 L45 116 Z" fill="#FEFEFE"/>
+  <!-- Top frosting -->
+  <path d="M55 78 Q67 88 80 78 Q93 88 105 78 Q118 88 130 78 Q140 88 145 78 L145 84 L55 84 Z" fill="#FEFEFE"/>
+  <!-- Middle frosting line -->
+  <rect x="45" y="108" width="110" height="5" rx="2" fill="#F8BBD0"/>
+  <!-- Strawberry on top -->
+  <path d="M95 68 Q100 52 105 68 Q100 72 95 68 Z" fill="#EF5350"/>
+  <line x1="100" y1="52" x2="100" y2="48" stroke="#4CAF50" stroke-width="2"/>
+  <path d="M97 48 Q100 44 103 48" fill="none" stroke="#4CAF50" stroke-width="2" stroke-linecap="round"/>
+  <!-- Candles -->
+  <rect x="72" y="55" width="4" height="24" rx="2" fill="#FF7043"/>
+  <ellipse cx="74" cy="52" rx="3" ry="5" fill="#FFD54F"/>
+  <rect x="124" y="55" width="4" height="24" rx="2" fill="#42A5F5"/>
+  <ellipse cx="126" cy="52" rx="3" ry="5" fill="#FFD54F"/>
+  <!-- Plate -->
+  <ellipse cx="100" cy="152" rx="68" ry="8" fill="#FEFEFE" opacity="0.3"/>
+</svg>

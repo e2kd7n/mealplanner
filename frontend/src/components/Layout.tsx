@@ -35,6 +35,7 @@ import {
   ShoppingCart as ShoppingCartIcon,
   Kitchen as KitchenIcon,
   AccountCircle as AccountCircleIcon,
+  SwapHoriz as SwapHorizIcon,
   AdminPanelSettings as AdminIcon,
   LightMode as LightModeIcon,
   DarkMode as DarkModeIcon,
@@ -119,7 +120,7 @@ const Layout: React.FC = () => {
 
   // ── Family identity ──────────────────────────────────────────────────────
   const familyName = user?.name ?? 'Family';
-  const drawerTitle = `${familyName} Kitchen`;
+  const drawerTitle = `${familyName}'s Meal Planner`;
 
   const handleDrawerToggle = () => setMobileOpen(!mobileOpen);
 
@@ -134,10 +135,20 @@ const Layout: React.FC = () => {
 
   const handleProfileMenuClose = () => setAnchorEl(null);
 
+  const handleSwitchUser = async () => {
+    handleProfileMenuClose();
+    try {
+      const { visualAuthAPI } = await import('../services/api');
+      await visualAuthAPI.deviceLogout();
+    } catch {}
+    await dispatch(logout());
+    navigate('/login');
+  };
+
   const handleLogout = async () => {
     await dispatch(logout());
     handleProfileMenuClose();
-    navigate('/login');
+    navigate('/login/classic');
   };
 
   const getPantryAriaLabel = () => {
@@ -321,6 +332,12 @@ const Layout: React.FC = () => {
                 <AccountCircleIcon fontSize="small" />
               </ListItemIcon>
               Profile
+            </MenuItem>
+            <MenuItem onClick={handleSwitchUser}>
+              <ListItemIcon>
+                <SwapHorizIcon fontSize="small" />
+              </ListItemIcon>
+              Switch User
             </MenuItem>
             <MenuItem onClick={handleLogout}>Logout</MenuItem>
           </Menu>

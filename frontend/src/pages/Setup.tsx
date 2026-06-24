@@ -3,7 +3,7 @@
  * All rights reserved.
  */
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Box,
@@ -26,6 +26,17 @@ import {
   ListItem,
   ListItemText,
   ListItemSecondaryAction,
+  Card,
+  CardActionArea,
+  CardMedia,
+  CardContent,
+  FormControl,
+  FormLabel,
+  FormControlLabel,
+  RadioGroup,
+  Radio,
+  useMediaQuery,
+  useTheme,
 } from '@mui/material';
 import {
   Visibility,
@@ -34,28 +45,58 @@ import {
   Error as ErrorIcon,
   Delete as DeleteIcon,
   PersonAdd as PersonAddIcon,
+  ArrowBack as ArrowBackIcon,
 } from '@mui/icons-material';
-import api from '../services/api';
-import { familyMemberAPI } from '../services/api';
+import api, { familyMemberAPI, visualAuthAPI, userAPI } from '../services/api';
 import { getApiErrorMessage } from '../utils/errorHandler';
+import { DIETARY_PREFERENCES, COMMON_ALLERGENS, getDietaryLabel } from '../constants/dietaryOptions';
 
-const STEPS = ['Welcome', 'Family Members', 'Recipe API Key', 'Done'];
+const STEPS = ['Welcome', 'Family', 'Preferences', 'API Key', 'Done'];
+const STEPS_SHORT = ['Welcome', 'Family', 'Prefs', 'API', 'Done'];
+
+const CUISINE_OPTIONS = [
+  'Italian', 'Mexican', 'Chinese', 'Japanese', 'Indian',
+  'Thai', 'Mediterranean', 'American', 'French', 'Korean',
+];
 
 interface PendingMember {
   name: string;
   ageGroup: 'adult' | 'teen' | 'child';
 }
 
+interface StockImage {
+  id: string;
+  title: string;
+  imageUrl: string;
+}
+
+interface SavedMember {
+  id: string;
+  name: string;
+  visualPasswordImageUrl?: string;
+}
+
 export default function Setup() {
   const navigate = useNavigate();
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
   const [activeStep, setActiveStep] = useState(0);
 
   // Family members step
   const [members, setMembers] = useState<PendingMember[]>([]);
+  const [savedMembers, setSavedMembers] = useState<SavedMember[]>([]);
   const [memberName, setMemberName] = useState('');
   const [memberAgeGroup, setMemberAgeGroup] = useState<'adult' | 'teen' | 'child'>('adult');
   const [membersLoading, setMembersLoading] = useState(false);
   const [membersError, setMembersError] = useState('');
+  const [stockImages, setStockImages] = useState<StockImage[]>([]);
+  const [assigningMemberId, setAssigningMemberId] = useState<string | null>(null);
+
+  // Preferences step
+  const [dietaryPreferences, setDietaryPreferences] = useState<string[]>([]);
+  const [cuisinePreferences, setCuisinePreferences] = useState<string[]>([]);
+  const [cookingSkillLevel, setCookingSkillLevel] = useState('intermediate');
+  const [weeklyBudget, setWeeklyBudget] = useState('moderate');
 
   // Spoonacular step
   const [spoonacularKey, setSpoonacularKey] = useState('');
@@ -65,6 +106,12 @@ export default function Setup() {
   const [testMessage, setTestMessage] = useState('');
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState('');
+
+  useEffect(() => {
+    visualAuthAPI.getStockImages()
+      .then((res) => setStockImages(res.data.images ?? []))
+      .catch(() => {});
+  }, []);
 
   const handleAddMember = () => {
     const trimmed = memberName.trim();
@@ -79,29 +126,107 @@ export default function Setup() {
   };
 
   const handleSaveMembers = async () => {
+    if (members.length === 0 && savedMembers.length === 0) {
+      setActiveStep(2);
+      return;
+    }
     if (members.length === 0) {
       setActiveStep(2);
       return;
     }
+
     setMembersLoading(true);
     setMembersError('');
-    try {
-      await Promise.all(
-        members.map((m) =>
-          familyMemberAPI.create({
-            name: m.name,
-            ageGroup: m.ageGroup,
-            dietaryRestrictions: [],
-          })
-        )
-      );
-      setActiveStep(2);
-    } catch {
-      setMembersError('Some members could not be saved. You can add them later from Profile.');
-      setActiveStep(2);
-    } finally {
-      setMembersLoading(false);
+
+    const results = await Promise.allSettled(
+      members.map((m) =>
+        familyMemberAPI.create({
+          name: m.name,
+          ageGroup: m.ageGroup,
+          dietaryRestrictions: [],
+        })
+      )
+    );
+
+    const newSaved: SavedMember[] = [];
+    const failed: string[] = [];
+
+    results.forEach((result, i) => {
+      if (result.status === 'fulfilled') {
+        const data = result.value.data;
+        newSaved.push({ id: data.id, name: data.name ?? members[i].name });
+      } else {
+        failed.push(members[i].name);
+      }
+    });
+
+    setSavedMembers((prev) => [...prev, ...newSaved]);
+    setMembers(failed.map((name) => ({ name, ageGroup: 'adult' as const })));
+
+    if (failed.length > 0) {
+      setMembersError(`Could not save: ${failed.join(', ')}. You can retry or skip.`);
+    } else {
+      if (stockImages.length > 0 && newSaved.length > 0) {
+        setAssigningMemberId(newSaved[0].id);
+      } else {
+        setActiveStep(2);
+      }
     }
+
+    setMembersLoading(false);
+  };
+
+  const handleAssignVisualPassword = async (memberId: string, imageUrl: string) => {
+    try {
+      await visualAuthAPI.setupStockVisualPassword(memberId, imageUrl);
+      setSavedMembers((prev) =>
+        prev.map((m) => (m.id === memberId ? { ...m, visualPasswordImageUrl: imageUrl } : m))
+      );
+    } catch {
+      // Non-fatal — they can set it up later
+    }
+
+    // Move to next unassigned member or advance to next step
+    const unassigned = savedMembers.filter(
+      (m) => m.id !== memberId && !m.visualPasswordImageUrl
+    );
+    if (unassigned.length > 0) {
+      setAssigningMemberId(unassigned[0].id);
+    } else {
+      setAssigningMemberId(null);
+      setActiveStep(2);
+    }
+  };
+
+  const handleSkipVisualPassword = () => {
+    const current = savedMembers.find((m) => m.id === assigningMemberId);
+    const remaining = savedMembers.filter(
+      (m) => m.id !== assigningMemberId && !m.visualPasswordImageUrl
+    );
+    if (remaining.length > 0) {
+      setAssigningMemberId(remaining[0].id);
+    } else {
+      setAssigningMemberId(null);
+      setActiveStep(2);
+    }
+  };
+
+  const handleSavePreferences = async () => {
+    setSaving(true);
+    try {
+      const budgetMap: Record<string, number> = { budget: 75, moderate: 150, flexible: 250 };
+      await userAPI.updatePreferences({
+        dietaryRestrictions: dietaryPreferences,
+        cookingSkillLevel,
+        preferredCuisines: cuisinePreferences,
+        weeklyBudget: budgetMap[weeklyBudget] ?? 150,
+      });
+    } catch {
+      // Non-fatal — they can update from Profile
+    } finally {
+      setSaving(false);
+    }
+    setActiveStep(3);
   };
 
   const handleTestKey = async () => {
@@ -129,7 +254,8 @@ export default function Setup() {
         await api.put('/admin/settings/spoonacular_api_key', { value: spoonacularKey.trim() });
       }
       await api.put('/admin/settings/ftue_completed', { value: 'true' });
-      setActiveStep(3);
+      localStorage.setItem('onboardingCompleted', 'true');
+      setActiveStep(4);
     } catch (err: unknown) {
       setSaveError(getApiErrorMessage(err, 'Failed to save settings.'));
     } finally {
@@ -141,13 +267,25 @@ export default function Setup() {
     setSaving(true);
     try {
       await api.put('/admin/settings/ftue_completed', { value: 'true' });
+      localStorage.setItem('onboardingCompleted', 'true');
     } catch {
       // Proceed anyway
     } finally {
       setSaving(false);
     }
-    setActiveStep(3);
+    setActiveStep(4);
   };
+
+  const handleBack = () => {
+    if (assigningMemberId) {
+      setAssigningMemberId(null);
+      return;
+    }
+    setActiveStep((s) => Math.max(0, s - 1));
+  };
+
+  const stepLabels = isMobile ? STEPS_SHORT : STEPS;
+  const currentMemberName = savedMembers.find((m) => m.id === assigningMemberId)?.name;
 
   return (
     <Box
@@ -162,7 +300,6 @@ export default function Setup() {
     >
       <Container maxWidth="sm">
         <Paper sx={{ p: { xs: 3, sm: 5 }, borderRadius: 3 }} elevation={3}>
-          {/* Header */}
           <Box textAlign="center" mb={4}>
             <Typography variant="h4" fontWeight={700} gutterBottom>
               Family Meal Planner
@@ -172,8 +309,8 @@ export default function Setup() {
             </Typography>
           </Box>
 
-          <Stepper activeStep={activeStep} sx={{ mb: 5 }}>
-            {STEPS.map((label) => (
+          <Stepper activeStep={activeStep} alternativeLabel={isMobile} sx={{ mb: 4 }}>
+            {stepLabels.map((label) => (
               <Step key={label}>
                 <StepLabel>{label}</StepLabel>
               </Step>
@@ -187,40 +324,29 @@ export default function Setup() {
                 Welcome!
               </Typography>
               <Typography color="text.secondary" paragraph>
-                This wizard will help you connect optional external services that
-                unlock additional features.
-              </Typography>
-              <Typography color="text.secondary" paragraph>
-                The only optional integration right now is{' '}
-                <strong>Spoonacular</strong>, which powers the{' '}
-                <em>Browse Recipes</em> feature — letting you search millions of
-                recipes by ingredient, cuisine, or diet.
+                This wizard will walk you through setting up your family, preferences,
+                and optional integrations.
               </Typography>
               <Typography color="text.secondary">
-                You can skip any step and configure it later from the{' '}
-                <strong>Admin → API Keys</strong> page.
+                You can skip any step and configure it later from settings.
               </Typography>
               <Box mt={4} display="flex" justifyContent="flex-end">
-                <Button
-                  variant="contained"
-                  size="large"
-                  onClick={() => setActiveStep(1)}
-                >
-                  Get Started →
+                <Button variant="contained" size="large" onClick={() => setActiveStep(1)}>
+                  Get Started
                 </Button>
               </Box>
             </Box>
           )}
 
           {/* Step 1: Family Members */}
-          {activeStep === 1 && (
+          {activeStep === 1 && !assigningMemberId && (
             <Box>
               <Typography variant="h6" gutterBottom>
                 Who's in the family?
               </Typography>
               <Typography color="text.secondary" paragraph>
-                Add everyone who'll use the app. They'll log in by tapping their name and
-                picking their secret image — no password needed.
+                Add everyone who'll use the app. After saving, you'll pick a login
+                image for each person — no passwords needed.
               </Typography>
 
               {membersError && (
@@ -279,35 +405,204 @@ export default function Setup() {
                 </List>
               )}
 
-              <Alert severity="info" sx={{ mb: 3 }}>
-                Visual login images are picked from Profile → Family Members once you've added
-                some recipe photos. You can also set them up later.
-              </Alert>
+              {savedMembers.length > 0 && (
+                <Alert severity="success" sx={{ mb: 2 }}>
+                  Saved: {savedMembers.map((m) => m.name).join(', ')}
+                  {savedMembers.some((m) => m.visualPasswordImageUrl) && ' (with visual login)'}
+                </Alert>
+              )}
 
-              <Box display="flex" justifyContent="space-between" alignItems="center">
-                <Button
-                  variant="text"
-                  color="inherit"
-                  onClick={() => setActiveStep(2)}
-                  disabled={membersLoading}
-                >
-                  Skip
+              <Box display="flex" justifyContent="space-between" alignItems="center" mt={3}>
+                <Button variant="text" color="inherit" onClick={handleBack}>
+                  Back
                 </Button>
-                <Button
-                  variant="contained"
-                  size="large"
-                  onClick={handleSaveMembers}
-                  disabled={membersLoading}
-                  startIcon={membersLoading ? <CircularProgress size={16} /> : undefined}
-                >
-                  {membersLoading ? 'Saving…' : members.length > 0 ? 'Save & Continue' : 'Continue'}
+                <Box sx={{ display: 'flex', gap: 1 }}>
+                  <Button
+                    variant="text"
+                    color="inherit"
+                    onClick={() => setActiveStep(2)}
+                    disabled={membersLoading}
+                  >
+                    Skip
+                  </Button>
+                  <Button
+                    variant="contained"
+                    size="large"
+                    onClick={handleSaveMembers}
+                    disabled={membersLoading}
+                    startIcon={membersLoading ? <CircularProgress size={16} /> : undefined}
+                  >
+                    {membersLoading ? 'Saving…' : members.length > 0 ? 'Save & Continue' : 'Continue'}
+                  </Button>
+                </Box>
+              </Box>
+            </Box>
+          )}
+
+          {/* Step 1b: Visual password picker (shown after members are saved) */}
+          {activeStep === 1 && assigningMemberId && (
+            <Box>
+              <Typography variant="h6" gutterBottom>
+                Pick a login image for {currentMemberName}
+              </Typography>
+              <Typography color="text.secondary" paragraph>
+                {currentMemberName} will tap this image to sign in — no password needed.
+              </Typography>
+
+              <Box
+                sx={{
+                  display: 'grid',
+                  gridTemplateColumns: 'repeat(4, 1fr)',
+                  gap: 1.5,
+                  mb: 3,
+                }}
+              >
+                {stockImages.map((img) => (
+                  <Card key={img.id} sx={{ cursor: 'pointer' }}>
+                    <CardActionArea onClick={() => handleAssignVisualPassword(assigningMemberId, img.imageUrl)}>
+                      <CardMedia
+                        component="img"
+                        height="80"
+                        image={img.imageUrl}
+                        alt={img.title}
+                        sx={{ objectFit: 'cover' }}
+                      />
+                      <CardContent sx={{ py: 0.5, px: 1 }}>
+                        <Typography variant="caption" noWrap>{img.title}</Typography>
+                      </CardContent>
+                    </CardActionArea>
+                  </Card>
+                ))}
+              </Box>
+
+              <Box display="flex" justifyContent="space-between">
+                <Button variant="text" color="inherit" onClick={handleBack} startIcon={<ArrowBackIcon />}>
+                  Back
+                </Button>
+                <Button variant="text" color="inherit" onClick={handleSkipVisualPassword}>
+                  Skip for now
                 </Button>
               </Box>
             </Box>
           )}
 
-          {/* Step 2: Spoonacular API key */}
+          {/* Step 2: Preferences */}
           {activeStep === 2 && (
+            <Box>
+              <Typography variant="h6" gutterBottom>
+                Your preferences
+              </Typography>
+              <Typography color="text.secondary" paragraph>
+                Help us personalise recipes and meal plans. All optional.
+              </Typography>
+
+              <Typography variant="subtitle2" sx={{ mt: 1, mb: 1, fontWeight: 600 }}>
+                Dietary Preferences
+              </Typography>
+              <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, mb: 2 }}>
+                {DIETARY_PREFERENCES.map((option) => (
+                  <Chip
+                    key={option}
+                    label={option}
+                    onClick={() =>
+                      setDietaryPreferences((prev) =>
+                        prev.includes(option) ? prev.filter((p) => p !== option) : [...prev, option]
+                      )
+                    }
+                    color={dietaryPreferences.includes(option) ? 'primary' : 'default'}
+                    variant={dietaryPreferences.includes(option) ? 'filled' : 'outlined'}
+                  />
+                ))}
+              </Box>
+
+              <Typography variant="subtitle2" sx={{ mt: 1, mb: 1, fontWeight: 600, color: 'error.main' }}>
+                Food Allergens
+              </Typography>
+              <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, mb: 2 }}>
+                {COMMON_ALLERGENS.map((option) => (
+                  <Chip
+                    key={option}
+                    label={getDietaryLabel(option)}
+                    onClick={() =>
+                      setDietaryPreferences((prev) =>
+                        prev.includes(option) ? prev.filter((p) => p !== option) : [...prev, option]
+                      )
+                    }
+                    color={dietaryPreferences.includes(option) ? 'error' : 'default'}
+                    variant={dietaryPreferences.includes(option) ? 'filled' : 'outlined'}
+                  />
+                ))}
+              </Box>
+
+              <Typography variant="subtitle2" sx={{ mt: 2, mb: 1, fontWeight: 600 }}>
+                Favourite Cuisines
+              </Typography>
+              <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, mb: 3 }}>
+                {CUISINE_OPTIONS.map((cuisine) => (
+                  <Chip
+                    key={cuisine}
+                    label={cuisine}
+                    onClick={() =>
+                      setCuisinePreferences((prev) =>
+                        prev.includes(cuisine) ? prev.filter((c) => c !== cuisine) : [...prev, cuisine]
+                      )
+                    }
+                    color={cuisinePreferences.includes(cuisine) ? 'primary' : 'default'}
+                    variant={cuisinePreferences.includes(cuisine) ? 'filled' : 'outlined'}
+                  />
+                ))}
+              </Box>
+
+              <FormControl component="fieldset" sx={{ mb: 2, width: '100%' }}>
+                <FormLabel component="legend">Cooking skill level</FormLabel>
+                <RadioGroup
+                  row
+                  value={cookingSkillLevel}
+                  onChange={(e) => setCookingSkillLevel(e.target.value)}
+                >
+                  <FormControlLabel value="beginner" control={<Radio size="small" />} label="Beginner" />
+                  <FormControlLabel value="intermediate" control={<Radio size="small" />} label="Intermediate" />
+                  <FormControlLabel value="advanced" control={<Radio size="small" />} label="Advanced" />
+                </RadioGroup>
+              </FormControl>
+
+              <FormControl component="fieldset" sx={{ width: '100%' }}>
+                <FormLabel component="legend">Weekly grocery budget</FormLabel>
+                <RadioGroup
+                  row
+                  value={weeklyBudget}
+                  onChange={(e) => setWeeklyBudget(e.target.value)}
+                >
+                  <FormControlLabel value="budget" control={<Radio size="small" />} label="Under $100" />
+                  <FormControlLabel value="moderate" control={<Radio size="small" />} label="$100–200" />
+                  <FormControlLabel value="flexible" control={<Radio size="small" />} label="Over $200" />
+                </RadioGroup>
+              </FormControl>
+
+              <Box display="flex" justifyContent="space-between" alignItems="center" mt={3}>
+                <Button variant="text" color="inherit" onClick={handleBack}>
+                  Back
+                </Button>
+                <Box sx={{ display: 'flex', gap: 1 }}>
+                  <Button variant="text" color="inherit" onClick={() => setActiveStep(3)}>
+                    Skip
+                  </Button>
+                  <Button
+                    variant="contained"
+                    size="large"
+                    onClick={handleSavePreferences}
+                    disabled={saving}
+                    startIcon={saving ? <CircularProgress size={16} /> : undefined}
+                  >
+                    {saving ? 'Saving…' : 'Save & Continue'}
+                  </Button>
+                </Box>
+              </Box>
+            </Box>
+          )}
+
+          {/* Step 3: Spoonacular API key */}
+          {activeStep === 3 && (
             <Box>
               <Typography variant="h6" gutterBottom>
                 Spoonacular API Key
@@ -351,11 +646,7 @@ export default function Setup() {
               />
 
               {testResult === 'valid' && (
-                <Alert
-                  severity="success"
-                  icon={<CheckCircleIcon />}
-                  sx={{ mb: 2 }}
-                >
+                <Alert severity="success" icon={<CheckCircleIcon />} sx={{ mb: 2 }}>
                   {testMessage}
                 </Alert>
               )}
@@ -385,40 +676,37 @@ export default function Setup() {
               </Box>
 
               <Box display="flex" justifyContent="space-between" alignItems="center">
-                <Button
-                  variant="text"
-                  color="inherit"
-                  onClick={handleSkip}
-                  disabled={saving}
-                >
-                  Skip for now
+                <Button variant="text" color="inherit" onClick={handleBack}>
+                  Back
                 </Button>
-                <Button
-                  variant="contained"
-                  size="large"
-                  onClick={handleSaveAndContinue}
-                  disabled={saving || (!!spoonacularKey.trim() && testResult !== 'valid')}
-                  startIcon={saving ? <CircularProgress size={16} /> : undefined}
-                >
-                  {saving ? 'Saving…' : 'Save & Continue'}
-                </Button>
+                <Box sx={{ display: 'flex', gap: 1 }}>
+                  <Button variant="text" color="inherit" onClick={handleSkip} disabled={saving}>
+                    Skip for now
+                  </Button>
+                  <Button
+                    variant="contained"
+                    size="large"
+                    onClick={handleSaveAndContinue}
+                    disabled={saving || (!!spoonacularKey.trim() && testResult !== 'valid')}
+                    startIcon={saving ? <CircularProgress size={16} /> : undefined}
+                  >
+                    {saving ? 'Saving…' : 'Save & Continue'}
+                  </Button>
+                </Box>
               </Box>
-              <Typography variant="caption" color="text.secondary" display="block" mt={1}>
-                You must test and verify the key before saving, or leave the field empty to skip.
-              </Typography>
             </Box>
           )}
 
-          {/* Step 3: Done */}
-          {activeStep === 3 && (
+          {/* Step 4: Done */}
+          {activeStep === 4 && (
             <Box textAlign="center">
               <CheckCircleIcon color="success" sx={{ fontSize: 64, mb: 2 }} />
               <Typography variant="h6" gutterBottom>
                 You're all set!
               </Typography>
               <Typography color="text.secondary" paragraph>
-                Setup is complete. You can update API keys at any time from the{' '}
-                <strong>Admin → API Keys</strong> tab.
+                Setup is complete. You can update preferences and API keys any time
+                from the <strong>Profile</strong> and <strong>Admin</strong> pages.
               </Typography>
               <Button
                 variant="contained"
