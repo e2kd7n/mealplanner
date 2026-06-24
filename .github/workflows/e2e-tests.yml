@@ -1,7 +1,5 @@
 name: E2E Tests
 
-# Root cause fixed: VITE_API_URL now includes /api suffix (was http://localhost:3000,
-# causing CSRF fetch to hit /csrf-token instead of /api/csrf-token — Issue #132)
 on:
   pull_request:
     branches: [main]
@@ -21,6 +19,9 @@ concurrency:
   group: e2e-${{ github.ref }}
   cancel-in-progress: true
 
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
 jobs:
   e2e-tests:
     runs-on: ubuntu-latest
@@ -28,13 +29,13 @@ jobs:
 
     services:
       postgres:
-        image: postgres:15
+        image: postgres:16
         env:
           POSTGRES_USER: mealplanner
           POSTGRES_PASSWORD: mealplanner_password
           POSTGRES_DB: mealplanner
         options: >-
-          --health-cmd pg_isready
+          --health-cmd "pg_isready -U mealplanner -d mealplanner"
           --health-interval 10s
           --health-timeout 5s
           --health-retries 5
@@ -76,6 +77,10 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-playwright-chromium-
 
+      - name: Install Playwright browsers
+        working-directory: frontend
+        run: pnpm exec playwright install --with-deps chromium
+
       - name: Setup database
         working-directory: backend
         env:
@@ -84,9 +89,10 @@ jobs:
           pnpm prisma generate
           pnpm prisma migrate deploy
           pnpm run prisma:seed
-          # Verify seed data was created
+
           echo "Verifying database seed..."
-          echo "SELECT COUNT(*) as user_count FROM users; SELECT COUNT(*) as recipe_count FROM recipes;" | pnpm prisma db execute --stdin --url "$DATABASE_URL"
+          echo "SELECT COUNT(*) as user_count FROM users; SELECT COUNT(*) as recipe_count FROM recipes;" \
+            | pnpm prisma db execute --stdin --url "$DATABASE_URL"
 
       - name: Start backend server
         working-directory: backend
@@ -96,31 +102,45 @@ jobs:
           JWT_REFRESH_SECRET: test-jwt-refresh-secret-for-ci
           SESSION_SECRET: test-session-secret-for-ci
           NODE_ENV: test
-          E2E_TESTING: true
+          E2E_TESTING: 'true'
           PORT: 3000
           CORS_ORIGIN: http://localhost:5173
         run: |
           pnpm dev > backend.log 2>&1 &
           echo $! > backend.pid
           echo "Backend PID: $(cat backend.pid)"
-          
-          # Wait for backend to be ready with improved health check
+
           echo "Waiting for backend server..."
-          for i in {1..30}; do
+          for i in $(seq 1 45); do
             if curl -f -s http://localhost:3000/health > /dev/null 2>&1; then
-              echo "Backend is ready!"
+              echo "Backend is ready (attempt $i)!"
               curl -s http://localhost:3000/health | jq '.'
               break
             fi
-            if [ $i -eq 30 ]; then
-              echo "Backend failed to start within 60 seconds"
+            if [ "$i" -eq 45 ]; then
+              echo "::error::Backend failed to start within 90 seconds"
               echo "=== Backend logs ==="
               cat backend.log
               exit 1
             fi
-            echo "Attempt $i/30: Backend not ready yet..."
+            echo "Attempt $i/45: Backend not ready yet..."
             sleep 2
           done
+
+          # Verify login endpoint works (catches secret/DB config issues early)
+          echo "Verifying login endpoint..."
+          LOGIN_RESPONSE=$(curl -s -w "\n%{http_code}" -X POST http://localhost:3000/api/auth/login \
+            -H "Content-Type: application/json" \
+            -d '{"email":"test@example.com","password":"TestPass123!"}')
+          HTTP_CODE=$(echo "$LOGIN_RESPONSE" | tail -1)
+          BODY=$(echo "$LOGIN_RESPONSE" | sed '$d')
+          if [ "$HTTP_CODE" != "200" ]; then
+            echo "::error::Login endpoint returned $HTTP_CODE: $BODY"
+            echo "=== Backend logs ==="
+            cat backend.log
+            exit 1
+          fi
+          echo "Login endpoint verified (HTTP $HTTP_CODE)"
 
       - name: Start frontend server
         working-directory: frontend
@@ -130,16 +150,15 @@ jobs:
           pnpm run dev > frontend.log 2>&1 &
           echo $! > frontend.pid
           echo "Frontend PID: $(cat frontend.pid)"
-          
-          # Wait for frontend to be ready
+
           echo "Waiting for frontend server..."
-          for i in {1..30}; do
+          for i in $(seq 1 30); do
             if curl -f -s http://localhost:5173 > /dev/null 2>&1; then
-              echo "Frontend is ready!"
+              echo "Frontend is ready (attempt $i)!"
               break
             fi
-            if [ $i -eq 30 ]; then
-              echo "Frontend failed to start within 60 seconds"
+            if [ "$i" -eq 30 ]; then
+              echo "::error::Frontend failed to start within 60 seconds"
               echo "=== Frontend logs ==="
               cat frontend.log
               exit 1
@@ -152,14 +171,10 @@ jobs:
         working-directory: frontend
         run: mkdir -p e2e/.auth
 
-      - name: Install Playwright browsers
-        working-directory: frontend
-        run: pnpm exec playwright install --with-deps chromium
-
       - name: Run E2E tests
         working-directory: frontend
         env:
-          E2E_TESTING: true
+          E2E_TESTING: 'true'
           BASE_URL: http://localhost:5173
         run: pnpm run test:e2e
 
@@ -171,11 +186,11 @@ jobs:
           path: frontend/playwright-report/
           retention-days: 30
 
-      - name: Upload test videos
+      - name: Upload test traces
         if: failure()
         uses: actions/upload-artifact@v4
         with:
-          name: test-videos
+          name: test-traces
           path: frontend/test-results/
           retention-days: 7
 
@@ -189,28 +204,37 @@ jobs:
             frontend/frontend.log
           retention-days: 7
 
+      - name: Test summary
+        if: always()
+        working-directory: frontend
+        run: |
+          if [ -f test-results/results.json ]; then
+            echo "### E2E Test Results" >> $GITHUB_STEP_SUMMARY
+            PASSED=$(jq '[.suites[].specs[] | select(.ok == true)] | length' test-results/results.json 2>/dev/null || echo "?")
+            FAILED=$(jq '[.suites[].specs[] | select(.ok == false)] | length' test-results/results.json 2>/dev/null || echo "?")
+            echo "| Status | Count |" >> $GITHUB_STEP_SUMMARY
+            echo "|--------|-------|" >> $GITHUB_STEP_SUMMARY
+            echo "| Passed | $PASSED |" >> $GITHUB_STEP_SUMMARY
+            echo "| Failed | $FAILED |" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "### E2E Test Results" >> $GITHUB_STEP_SUMMARY
+            echo "No test results found — tests may not have run." >> $GITHUB_STEP_SUMMARY
+          fi
+
       - name: Cleanup
         if: always()
         run: |
           echo "Cleaning up processes..."
-          if [ -f backend/backend.pid ]; then
-            PID=$(cat backend/backend.pid)
-            echo "Killing backend process $PID"
-            kill $PID 2>/dev/null || true
-            # Wait for graceful shutdown
-            sleep 2
-            # Force kill if still running
-            kill -9 $PID 2>/dev/null || true
-          fi
-          if [ -f frontend/frontend.pid ]; then
-            PID=$(cat frontend/frontend.pid)
-            echo "Killing frontend process $PID"
-            kill $PID 2>/dev/null || true
-            sleep 2
-            kill -9 $PID 2>/dev/null || true
-          fi
-          # Kill any remaining node processes on ports 3000 and 5173
+          for pidfile in backend/backend.pid frontend/frontend.pid; do
+            if [ -f "$pidfile" ]; then
+              PID=$(cat "$pidfile")
+              echo "Stopping process $PID (from $pidfile)"
+              kill "$PID" 2>/dev/null || true
+              sleep 1
+              kill -0 "$PID" 2>/dev/null && kill -9 "$PID" 2>/dev/null || true
+            fi
+          done
+          # Kill any remaining node processes on our ports
           lsof -ti:3000 | xargs kill -9 2>/dev/null || true
           lsof -ti:5173 | xargs kill -9 2>/dev/null || true
           echo "Cleanup complete"
-
