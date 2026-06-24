@@ -294,13 +294,15 @@ cross-compile if needed.
 ```nginx
 upstream backend_cluster {
     least_conn;
-    server 172.19.181.1:3001 max_fails=2 fail_timeout=10s;
-    server 172.19.181.2:3001 max_fails=2 fail_timeout=10s;
-    server 172.19.181.3:3001 max_fails=2 fail_timeout=10s;
-    server 172.19.181.4:3001 max_fails=2 fail_timeout=10s;
-    server backend:3000 backup;
+    server 172.19.181.1:3001 max_fails=2 fail_timeout=60s;
+    server 172.19.181.2:3001 max_fails=2 fail_timeout=60s;
+    server 172.19.181.3:3001 max_fails=2 fail_timeout=60s;
+    server 172.19.181.4:3001 max_fails=2 fail_timeout=60s;
     keepalive 8;
 }
+# Pi 4B local backend fallback uses variable-based proxy_pass in a named
+# location (@backend_local) so the resolver re-resolves backend:3000 on
+# every request — avoids stale DNS after container restarts.
 ```
 
 Zero W backends run as systemd services (not containers) on port **3001**. They connect

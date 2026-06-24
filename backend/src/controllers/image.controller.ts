@@ -32,7 +32,7 @@ export const proxyImage = async (
     let imageUrl: URL;
     try {
       imageUrl = new URL(url);
-    } catch (err) {
+    } catch (_err) {
       throw new AppError('Invalid image URL format', 400);
     }
 

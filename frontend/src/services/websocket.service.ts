@@ -1,10 +1,23 @@
 import { io, Socket } from 'socket.io-client';
 import { store } from '../store';
 
+interface MealPlanUpdateData {
+  id: string;
+  mealId?: string;
+  recipeId: string;
+  mealType: string;
+  date: string;
+  servings: number;
+  assignedCookId?: string;
+  assignedCook?: { name: string };
+  recipe?: { title: string; imageUrl?: string; sourceUrl?: string };
+  isLeftover?: boolean;
+}
+
 interface MealPlanUpdate {
   type: 'meal_added' | 'meal_updated' | 'meal_deleted';
   mealPlanId: string;
-  data: unknown;
+  data: MealPlanUpdateData;
   userId: string;
   timestamp: string;
 }

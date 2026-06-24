@@ -50,7 +50,7 @@ export class RecipeImportService {
       if (!['http:', 'https:'].includes(urlObj.protocol)) {
         throw new Error('Invalid protocol. Only HTTP and HTTPS are supported.');
       }
-    } catch (error) {
+    } catch (_error) {
       throw new Error('Invalid URL format');
     }
 

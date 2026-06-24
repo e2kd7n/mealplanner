@@ -209,7 +209,7 @@ export function sanitizeUrl(url: string): string | undefined {
     }
 
     return parsed.toString();
-  } catch (error) {
+  } catch (_error) {
     logger.warn('Invalid URL format', { url: url.substring(0, 100) });
     return undefined;
   }

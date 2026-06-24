@@ -51,8 +51,13 @@ interface ParsedRecipe {
     unit: string;
     notes?: string;
   }>;
-  instructions: unknown;
-  nutritionInfo?: unknown;
+  instructions: Array<string | { step?: string | number; instruction?: string; text?: string }>;
+  nutritionInfo?: {
+    calories?: string | number;
+    protein?: string | number;
+    carbs?: string | number;
+    fat?: string | number;
+  };
   sourceUrl: string;
 }
 

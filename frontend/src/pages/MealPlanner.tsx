@@ -222,7 +222,7 @@ const MealPlanner: React.FC = () => {
               id: update.data.id,
               recipeId: update.data.recipeId,
               recipeName: update.data.recipe?.title || 'Unknown Recipe',
-              mealType: update.data.mealType,
+              mealType: update.data.mealType as Meal['mealType'],
               date: new Date(update.data.date),
               servings: update.data.servings,
               assignedCookId: update.data.assignedCookId,
@@ -241,7 +241,7 @@ const MealPlanner: React.FC = () => {
               meal.id === update.data.id
                 ? {
                     ...meal,
-                    mealType: update.data.mealType,
+                    mealType: update.data.mealType as Meal['mealType'],
                     date: new Date(update.data.date),
                     servings: update.data.servings,
                     assignedCookId: update.data.assignedCookId,
