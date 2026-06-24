@@ -199,7 +199,6 @@ export default function Setup() {
   };
 
   const handleSkipVisualPassword = () => {
-    const current = savedMembers.find((m) => m.id === assigningMemberId);
     const remaining = savedMembers.filter(
       (m) => m.id !== assigningMemberId && !m.visualPasswordImageUrl
     );
