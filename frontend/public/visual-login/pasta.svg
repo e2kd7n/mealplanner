@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" width="200" height="200">
+  <rect width="200" height="200" rx="32" fill="#E67E22"/>
+  <!-- Plate -->
+  <ellipse cx="100" cy="120" rx="65" ry="35" fill="#FEFEFE"/>
+  <ellipse cx="100" cy="118" rx="58" ry="30" fill="#F5F5F5"/>
+  <!-- Sauce -->
+  <ellipse cx="100" cy="110" rx="40" ry="20" fill="#E74C3C" opacity="0.7"/>
+  <!-- Spaghetti noodles -->
+  <path d="M65 105 Q80 90 95 108 Q110 85 125 105" fill="none" stroke="#FFEAA7" stroke-width="4" stroke-linecap="round"/>
+  <path d="M60 115 Q78 95 98 115 Q118 92 140 112" fill="none" stroke="#FFEAA7" stroke-width="4" stroke-linecap="round"/>
+  <path d="M70 110 Q85 98 100 112 Q115 95 130 110" fill="none" stroke="#FFEAA7" stroke-width="3.5" stroke-linecap="round"/>
+  <path d="M62 120 Q82 102 102 118 Q122 100 138 118" fill="none" stroke="#FFEAA7" stroke-width="3" stroke-linecap="round"/>
+  <!-- Meatball -->
+  <circle cx="90" cy="105" r="10" fill="#8D6E63"/>
+  <circle cx="115" cy="108" r="9" fill="#8D6E63"/>
+  <!-- Basil leaf -->
+  <path d="M100 92 Q108 82 106 92 Q112 88 100 92" fill="#4CAF50"/>
+</svg>

@@ -20,6 +20,17 @@ const DEVICE_COOKIE_NAME = 'mealplanner_device';
 const DEVICE_TOKEN_DAYS = 14;
 const VISUAL_CHALLENGE_SIZE = 4; // 1 correct + 3 decoys
 
+const STOCK_IMAGES = [
+  { id: 'stock-burger', title: 'Burger', imageUrl: '/visual-login/burger.svg' },
+  { id: 'stock-pizza', title: 'Pizza', imageUrl: '/visual-login/pizza.svg' },
+  { id: 'stock-sushi', title: 'Sushi', imageUrl: '/visual-login/sushi.svg' },
+  { id: 'stock-salad', title: 'Salad', imageUrl: '/visual-login/salad.svg' },
+  { id: 'stock-pasta', title: 'Pasta', imageUrl: '/visual-login/pasta.svg' },
+  { id: 'stock-taco', title: 'Taco', imageUrl: '/visual-login/taco.svg' },
+  { id: 'stock-cake', title: 'Cake', imageUrl: '/visual-login/cake.svg' },
+  { id: 'stock-soup', title: 'Soup', imageUrl: '/visual-login/soup.svg' },
+];
+
 function hashToken(token: string): string {
   return crypto.createHash('sha256').update(token).digest('hex');
 }
@@ -92,18 +103,33 @@ export async function getVisualChallenge(req: Request, res: Response, next: Next
     const member = await withRetry(() =>
       prisma.familyMember.findUnique({
         where: { id: memberId },
-        select: { visualPasswordRecipeId: true },
+        select: { visualPasswordRecipeId: true, visualPasswordImageUrl: true },
       })
     );
 
     if (!member) {
       throw new AppError('Family member not found', 404);
     }
+
+    // Stock image visual password
+    if (member.visualPasswordImageUrl) {
+      const correct = STOCK_IMAGES.find((s) => s.imageUrl === member.visualPasswordImageUrl);
+      if (!correct) {
+        throw new AppError('Visual password image not found', 500);
+      }
+      const decoys = STOCK_IMAGES.filter((s) => s.imageUrl !== member.visualPasswordImageUrl);
+      shuffle(decoys);
+      const images = [correct, ...decoys.slice(0, VISUAL_CHALLENGE_SIZE - 1)];
+      shuffle(images);
+      res.json({ images });
+      return;
+    }
+
+    // Recipe-based visual password (legacy)
     if (!member.visualPasswordRecipeId) {
       throw new AppError('Visual password not set for this family member', 400);
     }
 
-    // Get the correct recipe
     const correctRecipe = await withRetry(() =>
       prisma.recipe.findUnique({
         where: { id: member.visualPasswordRecipeId! },
@@ -114,7 +140,6 @@ export async function getVisualChallenge(req: Request, res: Response, next: Next
       throw new AppError('Visual password recipe not found', 500);
     }
 
-    // Get random decoy recipes (with images, excluding the correct one)
     const decoys = await withRetry(() =>
       prisma.recipe.findMany({
         where: {
@@ -138,36 +163,44 @@ export async function getVisualChallenge(req: Request, res: Response, next: Next
 
 /**
  * POST /api/auth/login/visual
- * Body: { memberId, recipeId }
+ * Body: { memberId, imageId } where imageId is a recipe ID or stock image ID (e.g. "stock-burger")
  * Validates the family member's visual password and issues JWT + 14-day device cookie on success.
  */
 export async function visualLogin(req: Request, res: Response, next: NextFunction): Promise<void> {
   try {
-    const { memberId, recipeId } = req.body as { memberId: string; recipeId: string };
+    const { memberId, recipeId: imageId } = req.body as { memberId: string; recipeId: string };
 
-    if (!memberId || !recipeId) {
+    if (!memberId || !imageId) {
       throw new AppError('memberId and recipeId are required', 400);
     }
 
     const member = await withRetry(() =>
       prisma.familyMember.findUnique({
         where: { id: memberId },
-        select: { id: true, name: true, userId: true, visualPasswordRecipeId: true },
+        select: { id: true, name: true, userId: true, visualPasswordRecipeId: true, visualPasswordImageUrl: true },
       })
     );
 
     if (!member) {
       throw new AppError('Invalid credentials', 401);
     }
-    if (!member.visualPasswordRecipeId) {
+
+    // Check stock image password
+    if (member.visualPasswordImageUrl) {
+      const stockMatch = STOCK_IMAGES.find((s) => s.id === imageId);
+      if (!stockMatch || stockMatch.imageUrl !== member.visualPasswordImageUrl) {
+        logger.warn('Visual password mismatch (stock)', { memberId });
+        throw new AppError('Invalid credentials', 401);
+      }
+    } else if (member.visualPasswordRecipeId) {
+      if (member.visualPasswordRecipeId !== imageId) {
+        logger.warn('Visual password mismatch (recipe)', { memberId });
+        throw new AppError('Invalid credentials', 401);
+      }
+    } else {
       throw new AppError('Visual password not configured', 400);
     }
-    if (member.visualPasswordRecipeId !== recipeId) {
-      logger.warn('Visual password mismatch', { memberId });
-      throw new AppError('Invalid credentials', 401);
-    }
 
-    // Issue JWT for the parent user account
     const user = await withRetry(() =>
       prisma.user.findUnique({
         where: { id: member.userId },
@@ -186,10 +219,9 @@ export async function visualLogin(req: Request, res: Response, next: NextFunctio
       role: user.role,
     });
 
-    // Create auth session for refresh token
     const refreshTokenHash = hashSessionToken(tokens.refreshToken);
     const sessionExpiresAt = new Date();
-    sessionExpiresAt.setDate(sessionExpiresAt.getDate() + 1); // 24 hours
+    sessionExpiresAt.setDate(sessionExpiresAt.getDate() + 1);
 
     await withRetry(() =>
       prisma.authSession.create({
@@ -203,10 +235,8 @@ export async function visualLogin(req: Request, res: Response, next: NextFunctio
       })
     );
 
-    // Set auth cookies
     setAuthCookies(res, tokens.accessToken, tokens.refreshToken);
 
-    // Issue 14-day device token
     const rawToken = generateDeviceToken();
     const tokenHash = hashToken(rawToken);
     const deviceExpiresAt = new Date();
@@ -214,7 +244,7 @@ export async function visualLogin(req: Request, res: Response, next: NextFunctio
 
     await withRetry(() =>
       prisma.deviceToken.create({
-        data: { userId: user.id, tokenHash, expiresAt: deviceExpiresAt },
+        data: { userId: user.id, familyMemberId: member.id, tokenHash, expiresAt: deviceExpiresAt },
       })
     );
 
@@ -225,6 +255,8 @@ export async function visualLogin(req: Request, res: Response, next: NextFunctio
     res.json({
       message: 'Visual login successful',
       user: { id: user.id, email: user.email, name: member.name, role: user.role },
+      familyMemberId: member.id,
+      memberName: member.name,
     });
   } catch (err) {
     next(err);
@@ -250,6 +282,9 @@ export async function deviceLogin(req: Request, res: Response, next: NextFunctio
         include: {
           user: {
             select: { id: true, email: true, familyName: true, role: true, isBlocked: true },
+          },
+          familyMember: {
+            select: { id: true, name: true },
           },
         },
       })
@@ -312,14 +347,18 @@ export async function deviceLogin(req: Request, res: Response, next: NextFunctio
 
     setDeviceCookie(res, newRawToken);
 
+    const memberName = deviceToken.familyMember?.name ?? deviceToken.user.familyName;
+
     res.json({
       message: 'Device login successful',
       user: {
         id: deviceToken.user.id,
         email: deviceToken.user.email,
-        name: deviceToken.user.familyName,
+        name: memberName,
         role: deviceToken.user.role,
       },
+      familyMemberId: deviceToken.familyMember?.id ?? null,
+      memberName: deviceToken.familyMember?.name ?? null,
     });
   } catch (err) {
     next(err);
@@ -388,15 +427,15 @@ export async function getVisualPasswordStatus(req: Request, res: Response, next:
       const member = await withRetry(() =>
         prisma.familyMember.findFirst({
           where: { id: familyMemberId, userId },
-          select: { visualPasswordRecipeId: true },
+          select: { visualPasswordRecipeId: true, visualPasswordImageUrl: true },
         })
       );
-      res.json({ hasVisualPassword: !!member?.visualPasswordRecipeId });
+      res.json({ hasVisualPassword: !!(member?.visualPasswordRecipeId || member?.visualPasswordImageUrl) });
     } else {
       const members = await withRetry(() =>
         prisma.familyMember.findMany({
           where: { userId },
-          select: { id: true, name: true, visualPasswordRecipeId: true },
+          select: { id: true, name: true, visualPasswordRecipeId: true, visualPasswordImageUrl: true },
           orderBy: { name: 'asc' },
         })
       );
@@ -404,7 +443,7 @@ export async function getVisualPasswordStatus(req: Request, res: Response, next:
         members: members.map((m) => ({
           id: m.id,
           name: m.name,
-          hasVisualPassword: !!m.visualPasswordRecipeId,
+          hasVisualPassword: !!(m.visualPasswordRecipeId || m.visualPasswordImageUrl),
         })),
       });
     }
@@ -458,4 +497,54 @@ export async function getVisualSetupImages(_req: Request, res: Response, next: N
   }
 }
 
-// Made with Bob
+/**
+ * GET /api/auth/visual-setup/stock-images
+ * Returns the list of bundled stock food images available for visual password setup.
+ * No auth required — used during the Setup wizard.
+ */
+export function getStockImages(_req: Request, res: Response): void {
+  res.json({ images: STOCK_IMAGES });
+}
+
+/**
+ * POST /api/auth/visual-password/setup-stock
+ * Body: { familyMemberId, imageUrl }
+ * Sets a family member's visual password to a stock image.
+ * Requires authentication. The family member must belong to the authenticated user.
+ */
+export async function setupStockVisualPassword(req: Request, res: Response, next: NextFunction): Promise<void> {
+  try {
+    const userId = (req as any).user?.userId;
+    const { familyMemberId, imageUrl } = req.body as { familyMemberId: string; imageUrl: string };
+
+    if (!familyMemberId || !imageUrl) {
+      throw new AppError('familyMemberId and imageUrl are required', 400);
+    }
+
+    const stockImage = STOCK_IMAGES.find((s) => s.imageUrl === imageUrl);
+    if (!stockImage) {
+      throw new AppError('Invalid stock image', 400);
+    }
+
+    const member = await withRetry(() =>
+      prisma.familyMember.findFirst({
+        where: { id: familyMemberId, userId },
+      })
+    );
+    if (!member) {
+      throw new AppError('Family member not found', 404);
+    }
+
+    await withRetry(() =>
+      prisma.familyMember.update({
+        where: { id: familyMemberId },
+        data: { visualPasswordImageUrl: imageUrl, visualPasswordRecipeId: null },
+      })
+    );
+
+    logger.info('Stock visual password set', { familyMemberId, userId });
+    res.json({ message: 'Visual password set', image: stockImage });
+  } catch (err) {
+    next(err);
+  }
+}
