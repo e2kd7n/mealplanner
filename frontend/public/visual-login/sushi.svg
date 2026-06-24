@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" width="200" height="200">
+  <rect width="200" height="200" rx="32" fill="#2ECC71"/>
+  <!-- Sushi roll (maki) - outer nori wrap -->
+  <ellipse cx="100" cy="105" rx="50" ry="35" fill="#2C3E50"/>
+  <!-- Rice ring -->
+  <ellipse cx="100" cy="105" rx="42" ry="28" fill="#FEFEFE"/>
+  <!-- Salmon filling -->
+  <ellipse cx="100" cy="105" rx="22" ry="15" fill="#E8734A"/>
+  <!-- Avocado accent -->
+  <ellipse cx="92" cy="100" rx="6" ry="8" fill="#7CB342" opacity="0.8"/>
+  <!-- Chopsticks -->
+  <line x1="140" y1="50" x2="165" y2="155" stroke="#DEB887" stroke-width="4" stroke-linecap="round"/>
+  <line x1="150" y1="48" x2="170" y2="150" stroke="#DEB887" stroke-width="4" stroke-linecap="round"/>
+  <!-- Rice texture dots -->
+  <circle cx="85" cy="90" r="2" fill="#EEE" opacity="0.6"/>
+  <circle cx="115" cy="95" r="2" fill="#EEE" opacity="0.6"/>
+  <circle cx="100" cy="125" r="2" fill="#EEE" opacity="0.6"/>
+  <circle cx="78" cy="110" r="2" fill="#EEE" opacity="0.6"/>
+  <circle cx="122" cy="115" r="2" fill="#EEE" opacity="0.6"/>
+</svg>

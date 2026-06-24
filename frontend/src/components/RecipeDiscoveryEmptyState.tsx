@@ -16,6 +16,7 @@ import {
   Stack,
   Skeleton,
   Container,
+  Alert,
 } from '@mui/material';
 import {
   Restaurant as RestaurantIcon,
@@ -148,12 +149,13 @@ const RecipeDiscoveryEmptyState: React.FC = () => {
   const [selectedRecipeId, setSelectedRecipeId] = useState<number | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
 
+  const [apiKeyMissing, setApiKeyMissing] = useState(false);
+
   useEffect(() => {
     const fetchSuggestions = async () => {
       try {
         setLoading(true);
-        
-        // Fetch trending recipes (popular)
+
         const trendingResult = await dispatch(
           searchSpoonacularRecipes({
             query: '',
@@ -162,8 +164,7 @@ const RecipeDiscoveryEmptyState: React.FC = () => {
             skipPaginationUpdate: true,
           })
         ).unwrap();
-        
-        // Fetch quick dinner recipes
+
         const quickResult = await dispatch(
           searchSpoonacularRecipes({
             query: 'dinner',
@@ -176,7 +177,12 @@ const RecipeDiscoveryEmptyState: React.FC = () => {
 
         setTrendingRecipes(trendingResult.results || []);
         setQuickDinners(quickResult.results || []);
-      } catch (error) {
+      } catch (error: unknown) {
+        const status = (error as { status?: number })?.status;
+        const message = String((error as { message?: string })?.message ?? '');
+        if (status === 400 || message.toLowerCase().includes('api key')) {
+          setApiKeyMissing(true);
+        }
         if (import.meta.env.DEV) console.error('Error fetching recipe suggestions:', error);
       } finally {
         setLoading(false);
@@ -290,6 +296,14 @@ const RecipeDiscoveryEmptyState: React.FC = () => {
               />
             ))}
           </Box>
+        ) : apiKeyMissing ? (
+          <Alert severity="info" action={
+            <Button size="small" color="inherit" onClick={() => navigate('/profile')}>
+              Set up API Key
+            </Button>
+          }>
+            Connect a Spoonacular API key in Admin → API Keys to browse thousands of recipes.
+          </Alert>
         ) : (
           <Typography color="text.secondary">
             No trending recipes available at the moment.

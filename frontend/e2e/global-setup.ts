@@ -7,6 +7,13 @@ import { FullConfig } from '@playwright/test';
 import { verifyBackendAuth } from './helpers/api-auth';
 
 async function globalSetup(config: FullConfig) {
+  const activeProjects = config.projects.filter((p) => !p.grep || !p.grepInvert);
+  const onlyFtue = activeProjects.length === 1 && activeProjects[0].name === 'ftue-audit';
+  if (onlyFtue || process.env.SKIP_GLOBAL_SETUP === '1') {
+    console.log('Global Setup: Skipped (FTUE audit handles its own auth)');
+    return;
+  }
+
   const { baseURL } = config.projects[0].use;
   const backendURL = baseURL?.replace(':5173', ':3000') || 'http://localhost:3000';
 

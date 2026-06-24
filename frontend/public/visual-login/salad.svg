@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" width="200" height="200">
+  <rect width="200" height="200" rx="32" fill="#27AE60"/>
+  <!-- Bowl -->
+  <path d="M40 100 Q40 155 100 155 Q160 155 160 100 Z" fill="#FEFEFE"/>
+  <path d="M35 100 L165 100" stroke="#E0E0E0" stroke-width="3" stroke-linecap="round"/>
+  <!-- Lettuce leaves -->
+  <path d="M60 95 Q70 65 85 80 Q90 60 100 75 Q110 55 120 78 Q130 62 140 95" fill="#66BB6A"/>
+  <path d="M65 90 Q80 70 95 85 Q105 68 115 82 Q125 65 135 90" fill="#81C784"/>
+  <!-- Tomato slices -->
+  <circle cx="75" cy="95" r="10" fill="#EF5350"/>
+  <circle cx="125" cy="92" r="8" fill="#EF5350"/>
+  <!-- Cucumber slices -->
+  <circle cx="100" cy="88" r="9" fill="#A5D6A7"/>
+  <circle cx="100" cy="88" r="5" fill="#C8E6C9"/>
+  <!-- Crouton -->
+  <rect x="88" y="100" width="10" height="10" rx="2" fill="#FFCC80" transform="rotate(15 93 105)"/>
+  <rect x="112" y="98" width="9" height="9" rx="2" fill="#FFCC80" transform="rotate(-10 116 102)"/>
+  <!-- Egg slice -->
+  <ellipse cx="100" cy="105" rx="7" ry="5" fill="#FFF9C4"/>
+  <ellipse cx="100" cy="105" rx="3" ry="2" fill="#FFB74D"/>
+</svg>

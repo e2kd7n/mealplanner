@@ -11,9 +11,11 @@ import {
   visualLogin,
   deviceLogin,
   setupVisualPassword,
+  setupStockVisualPassword,
   getVisualPasswordStatus,
   deviceLogout,
   getVisualSetupImages,
+  getStockImages,
 } from '../controllers/visualAuth.controller';
 
 const router: Router = Router();
@@ -24,10 +26,12 @@ router.get('/visual-challenge/:userId', getVisualChallenge);
 router.post('/login/visual', visualLogin);
 router.post('/login/device', deviceLogin);
 router.post('/logout/device', deviceLogout);
+router.get('/visual-setup/stock-images', getStockImages);
 
 // ── Authenticated endpoints ───────────────────────────────────────────────
 router.get('/visual-password/status', authenticate, getVisualPasswordStatus);
 router.post('/visual-password/setup', authenticate, setupVisualPassword);
+router.post('/visual-password/setup-stock', authenticate, setupStockVisualPassword);
 router.get('/visual-setup/images', authenticate, getVisualSetupImages);
 
 export default router;
