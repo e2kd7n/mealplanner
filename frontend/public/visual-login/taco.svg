@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" width="200" height="200">
+  <rect width="200" height="200" rx="32" fill="#9B59B6"/>
+  <!-- Taco shell -->
+  <path d="M35 130 Q40 70 100 65 Q160 70 165 130 Z" fill="#F5D6A8"/>
+  <!-- Inner shell shadow -->
+  <path d="M42 125 Q47 78 100 73 Q153 78 158 125 Z" fill="#EDCA95"/>
+  <!-- Meat filling -->
+  <path d="M50 120 Q55 90 100 85 Q145 90 150 120 Z" fill="#A1887F"/>
+  <!-- Lettuce -->
+  <path d="M48 110 Q65 85 82 100 Q95 82 108 98 Q120 80 135 100 Q148 85 152 110" fill="#66BB6A"/>
+  <!-- Tomato chunks -->
+  <circle cx="75" cy="105" r="7" fill="#EF5350"/>
+  <circle cx="120" cy="100" r="6" fill="#EF5350"/>
+  <circle cx="100" cy="108" r="5" fill="#EF5350"/>
+  <!-- Cheese shreds -->
+  <path d="M70 95 L68 110" stroke="#FFC107" stroke-width="2.5" stroke-linecap="round"/>
+  <path d="M90 90 L88 108" stroke="#FFC107" stroke-width="2.5" stroke-linecap="round"/>
+  <path d="M110 92 L112 108" stroke="#FFC107" stroke-width="2.5" stroke-linecap="round"/>
+  <path d="M130 95 L132 110" stroke="#FFC107" stroke-width="2.5" stroke-linecap="round"/>
+  <!-- Sour cream dots -->
+  <circle cx="85" cy="98" r="3" fill="#FEFEFE" opacity="0.9"/>
+  <circle cx="108" cy="95" r="3.5" fill="#FEFEFE" opacity="0.9"/>
+</svg>

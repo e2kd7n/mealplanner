@@ -67,6 +67,19 @@ export default defineConfig({
         ...devices['Desktop Chrome'],
       },
     },
+
+    // FTUE design audit — screenshots every onboarding screen, validates known issues
+    // Run: BASE_URL=http://192.168.4.110 FTUE_EMAIL=... FTUE_PASSWORD=... npx playwright test --project=ftue-audit
+    // Skips globalSetup since FTUE tests handle their own auth and test pre-auth flows.
+    {
+      name: 'ftue-audit',
+      testMatch: /.*\/ftue\/.*\.spec\.ts/,
+      use: {
+        ...devices['Desktop Chrome'],
+        screenshot: 'on',
+        trace: 'on',
+      },
+    },
   ],
 });
 

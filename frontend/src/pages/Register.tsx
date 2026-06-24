@@ -141,7 +141,7 @@ const Register: React.FC = () => {
       >
         <Paper elevation={3} sx={{ p: 4, width: '100%' }}>
           <Typography component="h1" variant="h4" align="center" gutterBottom>
-            Meal Planner
+            Family Meal Planner
           </Typography>
           <Typography component="h2" variant="h6" align="center" color="text.secondary" gutterBottom>
             Create Account
