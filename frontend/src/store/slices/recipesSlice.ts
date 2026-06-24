@@ -25,8 +25,11 @@ export interface Recipe {
     name: string;
     quantity: number;
     unit: string;
+    notes?: string;
+    ingredient?: { name: string };
+    ingredientName?: string;
   }>;
-  instructions: unknown;
+  instructions: Array<string | { step?: string | number; instruction?: string; text?: string }>;
   kidFriendly: boolean;
   averageRating?: number;
   totalRatings?: number;

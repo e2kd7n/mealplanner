@@ -213,7 +213,7 @@ ${JSON.stringify(errorData.error.details || {}, null, 2)}
                     Page: {errorData.page}
                     {'\n'}Time: {new Date(errorData.timestamp).toLocaleString()}
                     {errorData.error.code && `\nCode: ${errorData.error.code}`}
-                    {errorData.error.details && `\n\nDetails:\n${JSON.stringify(errorData.error.details, null, 2)}`}
+                    {errorData.error.details ? `\n\nDetails:\n${JSON.stringify(errorData.error.details, null, 2)}` : null}
                   </Typography>
                 </Box>
               </Collapse>

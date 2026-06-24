@@ -402,7 +402,8 @@ export default function CreateRecipe() {
         navigate(`/recipes/${recipeId}`);
       }, 1500);
     } catch (err: unknown) {
-      setError(err.response?.data?.message || `Failed to ${isEditMode ? 'update' : 'create'} recipe`);
+      const axiosErr = err as { response?: { data?: { message?: string } } };
+      setError(axiosErr.response?.data?.message || `Failed to ${isEditMode ? 'update' : 'create'} recipe`);
     } finally {
       setLoading(false);
     }

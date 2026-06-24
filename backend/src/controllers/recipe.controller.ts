@@ -994,7 +994,7 @@ export async function importRecipe(
     let parsedUrl: URL;
     try {
       parsedUrl = new URL(url);
-    } catch (error) {
+    } catch (_error) {
       throw new AppError('Invalid URL format', 400);
     }
 

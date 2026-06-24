@@ -538,7 +538,7 @@ export function getSecretVersioned(secretName: string): VersionedSecret {
     try {
       previous = fs.readFileSync(previousPath, 'utf8').trim();
       logger.info(`Secret '${secretName}' has previous version available for rotation`);
-    } catch (error) {
+    } catch (_error) {
       logger.warn(`Could not load previous version of '${secretName}'`);
     }
   }
@@ -587,7 +587,7 @@ export function validateSecrets(secretNames: string[]): void {
   for (const secretName of secretNames) {
     try {
       getSecret(secretName);
-    } catch (error) {
+    } catch (_error) {
       missing.push(secretName);
     }
   }
