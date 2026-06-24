@@ -1,24 +1,38 @@
-# E2E Tests Temporarily Disabled - Investigation Required
+# E2E Tests - CI/CD Status
 
-**Date:** April 25, 2026  
-**Status:** 🔴 Disabled  
+**Date:** April 25, 2026 (updated June 24, 2026)  
+**Status:** Re-enabled (Issue #142)  
 **GitHub Actions Workflow:** `.github/workflows/e2e-tests.yml`  
-**Related Issue:** [Create GitHub issue to track this]
+**Related Issue:** #142
 
 ---
 
 ## Executive Summary
 
-GitHub Actions E2E tests have been temporarily disabled due to consistent failures in the CI/CD pipeline. While the test infrastructure is well-established (70-80% pass rate locally on Chromium), the tests are not stable enough for automated CI/CD execution. This document outlines the known issues, relevant logs, and the plan to resolve them before re-enabling automated testing.
+E2E tests are now re-enabled in GitHub Actions (PR for issue #142). The root cause of CI
+failures was identified: the backend's secrets utility (`secrets.ts`) only allowed env var
+fallback in `NODE_ENV=development`, but CI runs with `NODE_ENV=test`. This caused JWT
+token generation to fail with a 500 error on login, even though the health check passed.
+
+### Fixes Applied (June 2026)
+
+1. **Root cause fix:** `ALLOW_ENV_FALLBACK` in `secrets.ts` now includes `NODE_ENV=test`
+2. **Postgres version:** Bumped CI service from Postgres 15 to 16 (matches production)
+3. **Health check:** `pg_isready` now specifies `-U mealplanner` (was failing as `root`)
+4. **Login verification:** Workflow verifies the login endpoint works before running tests
+5. **Backend startup timeout:** Increased from 60s to 90s (45 attempts x 2s)
+6. **Global setup retries:** 3 retries with backoff in CI
+7. **Test summary:** Results posted to GitHub step summary
+8. **Cleanup robustness:** Graceful stop before SIGKILL, loop-based PID cleanup
 
 ---
 
 ## Current Status
 
-- ✅ **Local Testing:** 70-80% pass rate on Chromium (9-10 of 11 tests passing)
-- ❌ **CI/CD Testing:** Consistent failures in GitHub Actions
-- 🔴 **Workflow Status:** Disabled (manual trigger only via `workflow_dispatch`)
-- 📊 **Test Coverage:** 11 tests covering authentication and recipe browsing
+- **Local Testing:** 70-80% pass rate on Chromium (9-10 of 11 tests passing)
+- **CI/CD Testing:** Re-enabled with reliability fixes
+- **Workflow Status:** Active on push/PR to main
+- **Test Coverage:** 11 tests covering authentication and recipe browsing
 
 ---
 
