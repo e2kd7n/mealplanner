@@ -94,8 +94,9 @@ const ALLOWED_SECRET_PATTERNS = [
 /**
  * Allow environment variable fallback (disabled in production by default)
  */
-const ALLOW_ENV_FALLBACK = process.env.ALLOW_SECRET_ENV_FALLBACK === 'true' || 
-                           process.env.NODE_ENV === 'development';
+const ALLOW_ENV_FALLBACK = process.env.ALLOW_SECRET_ENV_FALLBACK === 'true' ||
+                           process.env.NODE_ENV === 'development' ||
+                           process.env.NODE_ENV === 'test';
 
 /**
  * Secret expiration settings
