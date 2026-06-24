@@ -1,6 +1,6 @@
 # Issue Prioritization
 
-**Last Updated:** 2026-06-22 14:19:03 UTC / 2026-06-22 14:19:03 GMT
+**Last Updated:** 2026-06-24 14:52:14 UTC / 2026-06-24 14:52:14 GMT
 
 This file reflects the current state of GitHub issues organized by milestone and priority within each milestone.
 
@@ -9,10 +9,10 @@ This file reflects the current state of GitHub issues organized by milestone and
 ## 🎯 Public Launch (due 2026-06-30)
 
 ### 🔴 P0 - CRITICAL
-- #206 - fix(nginx): add resolver directive to prevent stale DNS after backend restarts
+**No issues** ✅
 
 ### 🔴 P1 - HIGH
-- #194 - Pi deployment pre-flight: add secrets/redis_password.txt
+**No issues** ✅
 
 ### 🟡 P2 - MEDIUM
 - #142 - E2E Tests: Optimize GitHub Actions configuration for reliability
