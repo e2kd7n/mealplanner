@@ -3,7 +3,7 @@
  * All rights reserved.
  */
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import {
   Container,
@@ -49,6 +49,14 @@ interface Ingredient {
   name: string;
   category: string;
   unit: string;
+}
+
+interface SimilarIngredient {
+  id: string;
+  name: string;
+  category: string;
+  unit: string;
+  similarity: number;
 }
 
 interface RecipeIngredient {
@@ -147,6 +155,48 @@ export default function CreateRecipe() {
     unit: '',
     notes: '',
   });
+
+  const [similarIngredients, setSimilarIngredients] = useState<SimilarIngredient[]>([]);
+  const similarDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const fetchSimilarIngredients = useCallback(async (name: string) => {
+    if (name.length < 3) {
+      setSimilarIngredients([]);
+      return;
+    }
+    try {
+      const response = await api.get('/ingredients/similar', {
+        params: { name, threshold: 0.25, limit: 5 },
+      });
+      const data = response.data?.data || [];
+      setSimilarIngredients(data);
+    } catch {
+      setSimilarIngredients([]);
+    }
+  }, []);
+
+  useEffect(() => {
+    const name = newIngredient.ingredientName.trim();
+    const hasExactMatch = newIngredient.ingredientId !== '';
+
+    if (hasExactMatch || name.length < 3) {
+      setSimilarIngredients([]);
+      return;
+    }
+
+    if (similarDebounceRef.current) {
+      clearTimeout(similarDebounceRef.current);
+    }
+    similarDebounceRef.current = setTimeout(() => {
+      fetchSimilarIngredients(name);
+    }, 400);
+
+    return () => {
+      if (similarDebounceRef.current) {
+        clearTimeout(similarDebounceRef.current);
+      }
+    };
+  }, [newIngredient.ingredientName, newIngredient.ingredientId, fetchSimilarIngredients]);
 
   useEffect(() => {
     loadIngredients();
@@ -758,6 +808,35 @@ export default function CreateRecipe() {
           </IconButton>
         </Grid>
       </Grid>
+
+      {similarIngredients.length > 0 && !newIngredient.ingredientId && (
+        <Alert severity="warning" sx={{ mb: 2 }}>
+          <Typography variant="body2" sx={{ mb: 1 }}>
+            <strong>Similar ingredients already exist.</strong> Did you mean one of these?
+          </Typography>
+          <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
+            {similarIngredients.map((sim) => (
+              <Chip
+                key={sim.id}
+                label={`${sim.name} (${Math.round(sim.similarity * 100)}% match)`}
+                size="small"
+                color="warning"
+                variant="outlined"
+                clickable
+                onClick={() => {
+                  setNewIngredient({
+                    ...newIngredient,
+                    ingredientId: sim.id,
+                    ingredientName: sim.name,
+                    unit: sim.unit || newIngredient.unit,
+                  });
+                  setSimilarIngredients([]);
+                }}
+              />
+            ))}
+          </Box>
+        </Alert>
+      )}
 
       <Typography variant="subtitle1" gutterBottom>
         Ingredients List ({formData.ingredients.length})

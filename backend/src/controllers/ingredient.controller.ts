@@ -13,6 +13,14 @@ import logger from '../utils/logger';
 
 const INGREDIENT_CACHE_TTL = 3600; // 1 hour
 
+interface SimilarIngredientRow {
+  id: string;
+  name: string;
+  category: string;
+  unit: string;
+  sim_score: number;
+}
+
 /**
  * @route   GET /api/ingredients
  * @desc    Get all ingredients with optional filtering
@@ -152,12 +160,14 @@ export const createIngredient = async (
       allergens,
     } = req.body;
 
+    const { force } = req.query;
+
     // Validate required fields
     if (!name || !category || !unit || averagePrice === undefined) {
       throw new AppError('Name, category, unit, and average price are required', 400);
     }
 
-    // Check if ingredient already exists
+    // Check if ingredient already exists (exact match)
     const existing = await prisma.ingredient.findFirst({
       where: {
         name: {
@@ -169,6 +179,37 @@ export const createIngredient = async (
 
     if (existing) {
       throw new AppError('Ingredient with this name already exists', 409);
+    }
+
+    // Check for similar ingredients unless force=true
+    if (force !== 'true') {
+      const searchName = (name as string).trim().toLowerCase();
+      const similar = await prisma.$queryRaw<SimilarIngredientRow[]>`
+        SELECT id, name, category, unit,
+               similarity(lower(name), ${searchName}) as sim_score
+        FROM ingredients
+        WHERE similarity(lower(name), ${searchName}) > ${0.3}
+        ORDER BY sim_score DESC
+        LIMIT ${5}
+      `;
+
+      if (similar.length > 0) {
+        res.status(409).json({
+          success: false,
+          code: 'SIMILAR_EXISTS',
+          message: 'Similar ingredients already exist. Use force=true to create anyway.',
+          data: {
+            similar: similar.map((row: SimilarIngredientRow) => ({
+              id: row.id,
+              name: row.name,
+              category: row.category,
+              unit: row.unit,
+              similarity: parseFloat(Number(row.sim_score).toFixed(3)),
+            })),
+          },
+        });
+        return;
+      }
     }
 
     const ingredient = await prisma.ingredient.create({
@@ -435,6 +476,136 @@ export const getSearchSuggestions = async (
     await cacheSet(cacheKey, response, 300); // 5 min cache
 
     res.json(response);
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * @route   GET /api/ingredients/similar
+ * @desc    Find similar ingredients using trigram similarity
+ * @access  Public
+ */
+export const getSimilarIngredients = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void> => {
+  try {
+    const { name, threshold = '0.3', limit = '10' } = req.query;
+
+    if (!name || (name as string).length < 2) {
+      res.json({ success: true, data: [] });
+      return;
+    }
+
+    const searchName = (name as string).trim().toLowerCase();
+    const simThreshold = Math.max(0.1, Math.min(1, parseFloat(threshold as string)));
+    const limitNum = Math.min(20, Math.max(1, parseInt(limit as string)));
+
+    const cacheKey = `ingredient:similar:${searchName}:${simThreshold}:${limitNum}`;
+    const cached = await cacheGet(cacheKey);
+    if (cached) {
+      res.json(cached);
+      return;
+    }
+
+    const similar = await prisma.$queryRaw<SimilarIngredientRow[]>`
+      SELECT id, name, category, unit,
+             similarity(lower(name), ${searchName}) as sim_score
+      FROM ingredients
+      WHERE similarity(lower(name), ${searchName}) > ${simThreshold}
+        AND lower(name) != ${searchName}
+      ORDER BY sim_score DESC
+      LIMIT ${limitNum}
+    `;
+
+    const response = {
+      success: true,
+      data: similar.map((row: SimilarIngredientRow) => ({
+        id: row.id,
+        name: row.name,
+        category: row.category,
+        unit: row.unit,
+        similarity: parseFloat(Number(row.sim_score).toFixed(3)),
+      })),
+    };
+
+    await cacheSet(cacheKey, response, 300);
+
+    res.json(response);
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * @route   POST /api/ingredients/merge
+ * @desc    Merge a source ingredient into a target (reassign all references)
+ * @access  Private (Admin only)
+ */
+export const mergeIngredients = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void> => {
+  try {
+    const { sourceId, targetId } = req.body;
+
+    if (!sourceId || !targetId) {
+      throw new AppError('sourceId and targetId are required', 400);
+    }
+
+    if (sourceId === targetId) {
+      throw new AppError('Cannot merge an ingredient into itself', 400);
+    }
+
+    const [source, target] = await Promise.all([
+      prisma.ingredient.findUnique({ where: { id: sourceId } }),
+      prisma.ingredient.findUnique({ where: { id: targetId } }),
+    ]);
+
+    if (!source) throw new AppError('Source ingredient not found', 404);
+    if (!target) throw new AppError('Target ingredient not found', 404);
+
+    const result = await prisma.$transaction(async (tx) => {
+      const [recipes, grocery, pantry] = await Promise.all([
+        tx.recipeIngredient.updateMany({
+          where: { ingredientId: sourceId },
+          data: { ingredientId: targetId },
+        }),
+        tx.groceryListItem.updateMany({
+          where: { ingredientId: sourceId },
+          data: { ingredientId: targetId },
+        }),
+        tx.pantryInventory.updateMany({
+          where: { ingredientId: sourceId },
+          data: { ingredientId: targetId },
+        }),
+      ]);
+
+      await tx.ingredient.delete({ where: { id: sourceId } });
+
+      return {
+        recipesUpdated: recipes.count,
+        groceryItemsUpdated: grocery.count,
+        pantryItemsUpdated: pantry.count,
+      };
+    });
+
+    await cacheDelPattern('ingredient*');
+
+    logger.info(`Ingredient merged: ${source.name} (${sourceId}) → ${target.name} (${targetId})`, result);
+
+    res.json({
+      success: true,
+      message: `Merged "${source.name}" into "${target.name}"`,
+      data: {
+        source: { id: sourceId, name: source.name },
+        target: { id: targetId, name: target.name },
+        ...result,
+      },
+    });
   } catch (error) {
     next(error);
   }
