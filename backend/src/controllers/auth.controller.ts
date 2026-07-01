@@ -10,6 +10,7 @@ import prisma, { withRetry } from '../utils/prisma';
 import { generateTokenPair, verifyRefreshToken } from '../utils/jwt';
 import { AppError } from '../middleware/errorHandler';
 import { logger } from '../utils/logger';
+import { usersRegisteredTotal } from '../utils/prometheus';
 import {
   setAuthCookies,
   clearAuthCookies,
@@ -359,6 +360,8 @@ export async function register(
 
     // Generate auth response with cookies
     await generateAuthResponseWithCookies(user, res, req);
+
+    usersRegisteredTotal.inc();
 
     res.status(201).json({
       message: 'User registered successfully',

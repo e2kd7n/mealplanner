@@ -7,6 +7,7 @@ import { Request, Response } from 'express';
 import { recipeImportService } from '../services/recipeImport.service';
 import prisma from '../utils/prisma';
 import { logger } from '../utils/logger';
+import { recipesCreatedTotal, recipeImportsTotal } from '../utils/prometheus';
 import { sanitizeRecipeData } from '../utils/sanitize';
 
 /**
@@ -182,6 +183,8 @@ export const saveImportedRecipe = async (req: Request, res: Response) => {
     });
 
     logger.info(`Recipe imported and saved successfully: ${recipe.title} (${recipe.id})`);
+    recipesCreatedTotal.inc({ source: 'import' });
+    recipeImportsTotal.inc({ status: 'success' });
 
     return res.status(201).json({
       success: true,
@@ -189,6 +192,7 @@ export const saveImportedRecipe = async (req: Request, res: Response) => {
       data: completeRecipe,
     });
   } catch (error: any) {
+    recipeImportsTotal.inc({ status: 'failure' });
     logger.error(`Save imported recipe error: ${error.message}`, {
       stack: error.stack,
       userId: req.user?.id,

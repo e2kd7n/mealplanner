@@ -370,8 +370,7 @@ const Dashboard: React.FC = () => {
 
   const showProfileNudge =
     !profileNudgeDismissed &&
-    !!localStorage.getItem('onboardingCompleted') &&
-    !localStorage.getItem('profileNudgeDismissed');
+    !!localStorage.getItem('onboardingCompleted');
 
   const familyName = user?.name ?? 'Family';
   const greeting = `Good ${getTimeOfDayGreeting()}, ${familyName}`;

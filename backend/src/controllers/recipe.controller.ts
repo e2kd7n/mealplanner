@@ -8,6 +8,7 @@ import { Request, Response, NextFunction } from 'express';
 import prisma from '../utils/prisma';
 import { AppError } from '../middleware/errorHandler';
 import { logger } from '../utils/logger';
+import { recipesCreatedTotal } from '../utils/prometheus';
 import { cacheGet, cacheSet, cacheDelPattern } from '../utils/cache';
 import { calculateCleanupScore } from '../utils/cleanupScore';
 
@@ -505,6 +506,7 @@ export async function createRecipe(
     await invalidateRecipeListCache();
 
     logger.info('Recipe created', { recipeId: recipe.id, userId });
+    recipesCreatedTotal.inc({ source: 'manual' });
 
     res.status(201).json({
       message: 'Recipe created successfully',

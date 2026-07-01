@@ -9,6 +9,7 @@ import { Prisma } from '@prisma/client';
 import prisma from '../utils/prisma';
 import { AppError } from '../middleware/errorHandler';
 import logger from '../utils/logger';
+import { mealPlansCreatedTotal } from '../utils/prometheus';
 import { getWebSocketService } from '../services/websocket.service';
 import { cacheGet, cacheSet, cacheDelPattern } from '../utils/cache';
 
@@ -181,6 +182,7 @@ export const createMealPlan = async (
     });
 
     logger.info(`Meal plan created: ${mealPlan.id} by user ${userId}`);
+    mealPlansCreatedTotal.inc();
     await cacheDelPattern(`meal-plans:${userId}:*`);
 
     res.status(201).json({
