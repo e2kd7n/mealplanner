@@ -27,7 +27,15 @@
       "PowerShell(pnpm info socket.io version 2>&1)",
       "PowerShell(pnpm info socket.io-client version 2>&1)",
       "Skill(update-config)",
-      "Skill(update-config:*)"
+      "Skill(update-config:*)",
+      "Bash(ssh -o ConnectTimeout=10 admin@192.168.4.110 \"podman exec meals-nginx cat /var/log/nginx/error.log | tail -5\")",
+      "Bash(cd /c/Users/admin/dev/mealplanner/backend && npx prisma generate 2>&1)",
+      "Read(//c/Users/admin/dev/mealplanner/backend/**)",
+      "Bash(find /c/Users/admin/dev/mealplanner -type f -name \"*.ts\" -o -name \"*.tsx\" -o -name \"*.js\" -o -name \"*.json\" | head -20)",
+      "Read(//c/c/Users/admin/dev/mealplanner/**)",
+      "Bash(npm ls *)",
+      "Bash(node -e ' *)",
+      "Bash(git checkout *)"
     ]
   }
 }

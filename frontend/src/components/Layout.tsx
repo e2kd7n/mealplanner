@@ -140,7 +140,9 @@ const Layout: React.FC = () => {
     try {
       const { visualAuthAPI } = await import('../services/api');
       await visualAuthAPI.deviceLogout();
-    } catch {}
+    } catch {
+      // best-effort — device logout failure should not block user-initiated sign-out
+    }
     await dispatch(logout());
     navigate('/login');
   };
