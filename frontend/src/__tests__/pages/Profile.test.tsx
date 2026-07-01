@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
@@ -74,7 +75,7 @@ describe('Profile — Family Members tab', () => {
     it('shows all family members', async () => {
       setupApiMocks();
       await renderProfile();
-      const user = await goToFamilyTab();
+      await goToFamilyTab();
 
       expect(screen.getByText('Alice')).toBeInTheDocument();
       expect(screen.getByText('Bob')).toBeInTheDocument();

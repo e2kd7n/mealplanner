@@ -1,5 +1,6 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, waitFor, within } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
 import Setup from '../../pages/Setup';
@@ -80,12 +81,12 @@ describe('Setup Wizard', () => {
     }
 
     it('advances to family step on Get Started', async () => {
-      const user = await goToStep1();
+      await goToStep1();
       expect(screen.getByText(/who's in the family/i)).toBeInTheDocument();
     });
 
     it('has Back button (#240)', async () => {
-      const user = await goToStep1();
+      await goToStep1();
       expect(screen.getByRole('button', { name: /back/i })).toBeInTheDocument();
     });
 
@@ -111,7 +112,7 @@ describe('Setup Wizard', () => {
     });
 
     it('does not add empty name', async () => {
-      const user = await goToStep1();
+      await goToStep1();
       const addBtn = screen.getByRole('button', { name: /add/i });
       expect(addBtn).toBeDisabled();
     });

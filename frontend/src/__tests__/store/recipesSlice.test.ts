@@ -99,6 +99,7 @@ describe('recipesSlice', () => {
       };
       const state = recipesReducer(
         { ...initialState, loading: true },
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         fetchRecipes.fulfilled(payload as any, '', {})
       );
       expect(state.recipes).toEqual([mockRecipe]);
@@ -107,6 +108,7 @@ describe('recipesSlice', () => {
     it('handles array payload', () => {
       const state = recipesReducer(
         { ...initialState, loading: true },
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         fetchRecipes.fulfilled([mockRecipe] as any, '', {})
       );
       expect(state.recipes).toEqual([mockRecipe]);
@@ -115,6 +117,7 @@ describe('recipesSlice', () => {
     it('handles null payload', () => {
       const state = recipesReducer(
         { ...initialState, loading: true },
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         fetchRecipes.fulfilled(null as any, '', {})
       );
       expect(state.recipes).toEqual([]);
