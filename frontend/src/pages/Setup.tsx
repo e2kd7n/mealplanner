@@ -91,6 +91,7 @@ export default function Setup() {
   const [membersError, setMembersError] = useState('');
   const [stockImages, setStockImages] = useState<StockImage[]>([]);
   const [assigningMemberId, setAssigningMemberId] = useState<string | null>(null);
+  const [processedMemberIds, setProcessedMemberIds] = useState<Set<string>>(new Set());
 
   // Preferences step
   const [dietaryPreferences, setDietaryPreferences] = useState<string[]>([]);
@@ -176,19 +177,9 @@ export default function Setup() {
     setMembersLoading(false);
   };
 
-  const handleAssignVisualPassword = async (memberId: string, imageUrl: string) => {
-    try {
-      await visualAuthAPI.setupStockVisualPassword(memberId, imageUrl);
-      setSavedMembers((prev) =>
-        prev.map((m) => (m.id === memberId ? { ...m, visualPasswordImageUrl: imageUrl } : m))
-      );
-    } catch {
-      // Non-fatal — they can set it up later
-    }
-
-    // Move to next unassigned member or advance to next step
-    const unassigned = savedMembers.filter(
-      (m) => m.id !== memberId && !m.visualPasswordImageUrl
+  const advanceToNextMember = (currentId: string, updatedMembers: SavedMember[], newProcessed: Set<string>) => {
+    const unassigned = updatedMembers.filter(
+      (m) => !newProcessed.has(m.id) && !m.visualPasswordImageUrl
     );
     if (unassigned.length > 0) {
       setAssigningMemberId(unassigned[0].id);
@@ -198,16 +189,28 @@ export default function Setup() {
     }
   };
 
-  const handleSkipVisualPassword = () => {
-    const remaining = savedMembers.filter(
-      (m) => m.id !== assigningMemberId && !m.visualPasswordImageUrl
-    );
-    if (remaining.length > 0) {
-      setAssigningMemberId(remaining[0].id);
-    } else {
-      setAssigningMemberId(null);
-      setActiveStep(2);
+  const handleAssignVisualPassword = async (memberId: string, imageUrl: string) => {
+    const newProcessed = new Set(processedMemberIds).add(memberId);
+    setProcessedMemberIds(newProcessed);
+
+    let updated: SavedMember[] = savedMembers;
+    try {
+      await visualAuthAPI.setupStockVisualPassword(memberId, imageUrl);
+      updated = savedMembers.map((m) =>
+        m.id === memberId ? { ...m, visualPasswordImageUrl: imageUrl } : m
+      );
+      setSavedMembers(updated);
+    } catch {
+      // Non-fatal — they can set it up later
     }
+
+    advanceToNextMember(memberId, updated, newProcessed);
+  };
+
+  const handleSkipVisualPassword = () => {
+    const newProcessed = new Set(processedMemberIds).add(assigningMemberId!);
+    setProcessedMemberIds(newProcessed);
+    advanceToNextMember(assigningMemberId!, savedMembers, newProcessed);
   };
 
   const handleSavePreferences = async () => {
