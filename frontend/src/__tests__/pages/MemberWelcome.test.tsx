@@ -23,7 +23,7 @@ function createStore(authState = {}) {
       mealPlans: (s = {}) => s,
       groceryLists: (s = {}) => s,
       pantry: (s = {}) => s,
-    },
+    } as any,
     preloadedState: {
       auth: {
         user: { id: 'user-1', email: 'a@b.com', name: 'Tracy', role: 'user' },
@@ -32,7 +32,7 @@ function createStore(authState = {}) {
         error: null,
         ...authState,
       },
-    } as any,
+    },
   });
 }
 

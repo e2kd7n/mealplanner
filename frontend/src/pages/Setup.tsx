@@ -177,7 +177,7 @@ export default function Setup() {
     setMembersLoading(false);
   };
 
-  const advanceToNextMember = (currentId: string, updatedMembers: SavedMember[], newProcessed: Set<string>) => {
+  const advanceToNextMember = (_currentId: string, updatedMembers: SavedMember[], newProcessed: Set<string>) => {
     const unassigned = updatedMembers.filter(
       (m) => !newProcessed.has(m.id) && !m.visualPasswordImageUrl
     );

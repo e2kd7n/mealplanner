@@ -28,8 +28,8 @@ import { visualAuthAPI } from '../../services/api';
 
 function renderWithProviders(preloadedAuth = { user: null, isAuthenticated: false, loading: false, error: null }) {
   const store = configureStore({
-    reducer: { auth: authReducer, recipes: (s = {}) => s, recipeBrowse: (s = {}) => s, mealPlans: (s = {}) => s, groceryLists: (s = {}) => s, pantry: (s = {}) => s },
-    preloadedState: { auth: preloadedAuth } as any,
+    reducer: { auth: authReducer, recipes: (s = {}) => s, recipeBrowse: (s = {}) => s, mealPlans: (s = {}) => s, groceryLists: (s = {}) => s, pantry: (s = {}) => s } as any,
+    preloadedState: { auth: preloadedAuth },
   });
   return render(
     <Provider store={store}>
