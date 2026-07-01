@@ -48,7 +48,7 @@
   "dependencies": {
     "@prisma/client": "^6.19.3",
     "@rethora/url-recipe-scraper": "^1.1.0",
-    "axios": "^1.15.2",
+    "axios": "^1.18.1",
     "bcrypt": "^6.0.0",
     "cheerio": "^1.2.0",
     "cookie-parser": "^1.4.7",
