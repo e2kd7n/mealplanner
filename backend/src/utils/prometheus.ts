@@ -3,7 +3,7 @@
  * All rights reserved.
  */
 
-import { Registry, collectDefaultMetrics, Counter, Histogram } from 'prom-client';
+import { Registry, collectDefaultMetrics, Counter, Histogram, Gauge } from 'prom-client';
 
 export const promRegistry = new Registry();
 
@@ -30,5 +30,38 @@ export const dbQueryDurationSeconds = new Histogram({
   help: 'Database query duration in seconds',
   labelNames: ['result'] as const,
   buckets: [0.001, 0.005, 0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 1],
+  registers: [promRegistry],
+});
+
+// Business metrics
+export const recipesCreatedTotal = new Counter({
+  name: 'mealplanner_recipes_created_total',
+  help: 'Total number of recipes created',
+  labelNames: ['source'] as const,
+  registers: [promRegistry],
+});
+
+export const mealPlansCreatedTotal = new Counter({
+  name: 'mealplanner_meal_plans_created_total',
+  help: 'Total number of meal plans created',
+  registers: [promRegistry],
+});
+
+export const usersRegisteredTotal = new Counter({
+  name: 'mealplanner_users_registered_total',
+  help: 'Total number of user registrations',
+  registers: [promRegistry],
+});
+
+export const recipeImportsTotal = new Counter({
+  name: 'mealplanner_recipe_imports_total',
+  help: 'Total number of recipe imports attempted',
+  labelNames: ['status'] as const,
+  registers: [promRegistry],
+});
+
+export const activeUsersGauge = new Gauge({
+  name: 'mealplanner_active_sessions',
+  help: 'Number of active auth sessions (non-revoked)',
   registers: [promRegistry],
 });

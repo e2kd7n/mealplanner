@@ -1,6 +1,6 @@
 # Issue Prioritization
 
-**Last Updated:** 2026-06-24 15:10:21 UTC / 2026-06-24 15:10:21 GMT
+**Last Updated:** 2026-06-29 04:30:00 UTC
 
 This file reflects the current state of GitHub issues organized by milestone and priority within each milestone.
 
@@ -9,31 +9,26 @@ This file reflects the current state of GitHub issues organized by milestone and
 ## 🎯 Public Launch (due 2026-06-30)
 
 ### 🔴 P0 - CRITICAL
-**No issues** ✅
+- #246 - fix(ftue): MemberWelcome tour has no swipe/gesture support on mobile
+- #231 - FTUE design review — Tracy walkthrough (15 issues)
 
 ### 🔴 P1 - HIGH
-**No issues** ✅
+- #251 - FTUE cleanup: remaining work after initial deploy
+- #252 - fix: backend TypeScript build fails with ~109 type errors
 
 ### 🟡 P2 - MEDIUM
-- #142 - E2E Tests: Optimize GitHub Actions configuration for reliability
-- #83 - [Testing] Add automated accessibility and performance tests
+- #253 - security: weekly audit 2026-06-29 — 14 high vulns fixed, 3 low remain
 
 ### 🟢 P3 - LOW
 - #230 - chore: plan major dependency upgrades (MUI 9, Prisma 7, Express 5, TS 6)
 - #209 - fix(monitoring): repair Glances service and add ClusterHAT cluster-wide monitoring
 - #170 - ✨ Add photo capture and PDF upload for recipe creation
-- #45 - Achieve 70%+ Test Coverage
-- #43 - Implement Logging Aggregation
-- #42 - Add Monitoring and Alerting
-- #41 - No Automated Testing
 - #8 - Grocery List Optimization
 
 ### 📋 P4 - FUTURE
-- #171 - Upgrade npm to 11.13.0
 - #63 - Evaluate Scaling Strategy
 - #20 - Implement Pantry Integration with Grocery Lists
 - #19 - Implement Grocery List Regeneration and Sync Detection
-- #18 - Implement Ingredient Normalization and Variant System
 
 ---
 
@@ -42,24 +37,44 @@ This file reflects the current state of GitHub issues organized by milestone and
 These issues need to be assigned to a milestone and prioritized.
 
 ### 🟡 P2 - MEDIUM
-- #116 - [P2][UX] Add Cost Tracking for Budget-Conscious Users
+- #116 - [P2][UX] Add Cost Tracking for Budget-Conscious Users *(67d stale)*
 
 ### 🟢 P3 - LOW
-- #200 - Pi: move Postgres data volume to USB SSD
-- #84 - [P3][Feature] Add recipe document upload (PDF, images, DOCX)
-- #14 - Implement Nutrition Guideline Warnings
-- #13 - Implement Nutrition Dashboard
-- #12 - Integrate Nutrition Database for Auto-Population
-- #9 - MyFitnessPal Integration
+- #200 - Pi: move Postgres data volume to USB SSD *(43d stale)*
+- #84 - [P3][Feature] Add recipe document upload (PDF, images, DOCX) *(related to #170)*
+- #14 - Implement Nutrition Guideline Warnings *(67d stale)*
+- #13 - Implement Nutrition Dashboard *(67d stale)*
+- #12 - Integrate Nutrition Database for Auto-Population *(67d stale)*
+- #9 - MyFitnessPal Integration *(67d stale)*
 
 ### 📋 P4 - FUTURE
-- #66 - Publish Meals to ICS Calendar feed
-- #64 - Implement Advanced Features (Nutrition Tracking, etc.)
+- #66 - Publish Meals to ICS Calendar feed *(70d stale)*
+- #64 - Implement Advanced Features (Nutrition Tracking, etc.) *(97d stale)*
 
-## 📝 Workspace TODOs & Tasks
-Code comments and inline tasks found in the workspace that may need attention.
+## 📊 Weekly Maintenance Summary — 2026-06-29
 
-**No TODO/FIXME comments found in code** ✅
+### Closed since last update
+- #248, #247, #245, #244, #243, #242, #241, #240, #239, #238, #237, #236, #235, #234, #232 (FTUE overhaul batch)
+- #218 (ntfy.sh push notifications)
+- #213 (@types/node upgrade)
+- #212 (ESLint v10 upgrade)
+- #211 (Pi PSU upgrade)
+- #210 (replace csurf)
+- #142, #83, #45, #43, #42, #41, #171, #18 (removed from priorities — were stale/closed)
+
+### New issues filed
+- #252 - Backend TS build fails (~109 errors, pre-existing on main)
+- #253 - Security audit writeup (14 high vulns fixed, 3 low remain)
+
+### Build status
+- **Frontend:** ✅ builds and lints cleanly (7 warnings)
+- **Backend:** ❌ tsc fails (~109 errors); lint has 1 error + 132 warnings
+
+### Security
+- Backend: 2 low (cookie/csurf — needs csurf replacement)
+- Frontend: 1 low (esbuild — dev-only, needs breaking change)
+
+---
 
 ## Priority System (Milestone-Aware)
 

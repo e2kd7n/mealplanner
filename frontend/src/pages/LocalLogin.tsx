@@ -134,9 +134,9 @@ const LocalLogin: React.FC = () => {
   };
 
   return (
-    <Container maxWidth="sm" sx={{ py: 6 }}>
+    <Container component="main" maxWidth="sm" sx={{ py: 6 }}>
       <Box sx={{ textAlign: 'center', mb: 4 }}>
-        <Typography variant="h4" gutterBottom>
+        <Typography variant="h4" component="h1" gutterBottom>
           Family Meal Planner
         </Typography>
         <Typography variant="body2" color="text.secondary">
@@ -169,7 +169,7 @@ const LocalLogin: React.FC = () => {
         >
           {usersLoading
             ? Array.from({ length: 3 }).map((_, i) => (
-                <Skeleton key={i} variant="rectangular" height={120} sx={{ borderRadius: 2 }} />
+                <Skeleton key={i} variant="rectangular" height={120} sx={{ borderRadius: 2 }} aria-label="Loading family member" />
               ))
             : users.map((user) => (
                 <Card key={user.id} sx={{ textAlign: 'center' }}>
@@ -215,7 +215,7 @@ const LocalLogin: React.FC = () => {
           {challengeLoading ? (
             <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 2 }}>
               {Array.from({ length: 4 }).map((_, i) => (
-                <Skeleton key={i} variant="rectangular" height={160} sx={{ borderRadius: 2 }} />
+                <Skeleton key={i} variant="rectangular" height={160} sx={{ borderRadius: 2 }} aria-label="Loading login image" />
               ))}
             </Box>
           ) : (
@@ -233,7 +233,7 @@ const LocalLogin: React.FC = () => {
                     borderRadius: 2,
                   }}
                 >
-                  <CircularProgress />
+                  <CircularProgress aria-label="Verifying login" />
                 </Box>
               )}
               {challenge.map((img) => (

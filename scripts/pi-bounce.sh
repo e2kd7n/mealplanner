@@ -62,6 +62,15 @@ podman-compose $COMPOSE_FILES ps
 
 # Verify backend is running
 if podman ps | grep -q "meals-backend"; then
+    # Nginx caches backend DNS at startup — after down/up the backend container
+    # has a new IP, causing 502s until nginx is restarted (Podman 4.3.1 lacks
+    # working resolver directive support). See #206.
+    if podman ps | grep -q "meals-nginx"; then
+        echo -e "${YELLOW}🔄 Restarting nginx to refresh backend DNS...${NC}"
+        podman restart meals-nginx
+        echo -e "${GREEN}✓ Nginx restarted${NC}"
+    fi
+
     # Restart Zero W services now that Postgres/Redis are back
     clusterhat_restart_zeros
 

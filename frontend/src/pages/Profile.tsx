@@ -33,6 +33,11 @@ import {
   Stack,
   FormControlLabel,
   Checkbox,
+  Card,
+  CardActionArea,
+  CardMedia,
+  CardContent,
+  Tooltip,
 } from '@mui/material';
 import {
   Edit as EditIcon,
@@ -40,8 +45,9 @@ import {
   Add as AddIcon,
   Save as SaveIcon,
   Cancel as CancelIcon,
+  Image as ImageIcon,
 } from '@mui/icons-material';
-import { userAPI, familyMemberAPI } from '../services/api';
+import { userAPI, familyMemberAPI, visualAuthAPI } from '../services/api';
 import { DIETARY_PREFERENCES, COMMON_ALLERGENS, getDietaryLabel } from '../constants/dietaryOptions';
 import { isAxiosError } from 'axios';
 import { getApiErrorMessage } from '../utils/errorHandler';
@@ -87,6 +93,14 @@ interface FamilyMember {
   dietaryRestrictions?: string[];
   cookingSkillLevel?: string;
   avoidedIngredients?: string[];
+  visualPasswordImageUrl?: string | null;
+  visualPasswordRecipeId?: string | null;
+}
+
+interface StockImage {
+  id: string;
+  title: string;
+  imageUrl: string;
 }
 
 const skillLevels = ['beginner', 'intermediate', 'advanced'];
@@ -130,6 +144,12 @@ const Profile: React.FC = () => {
     avoidedIngredients: [] as string[],
   });
   const [memberNewIngredient, setMemberNewIngredient] = useState('');
+
+  // Visual password state
+  const [visualPickerOpen, setVisualPickerOpen] = useState(false);
+  const [visualPickerMember, setVisualPickerMember] = useState<FamilyMember | null>(null);
+  const [stockImages, setStockImages] = useState<StockImage[]>([]);
+  const [assigningVisual, setAssigningVisual] = useState(false);
 
   useEffect(() => {
     loadData();
@@ -298,6 +318,35 @@ const Profile: React.FC = () => {
       ...memberForm,
       avoidedIngredients: memberForm.avoidedIngredients.filter((i) => i !== ingredient),
     });
+  };
+
+  const handleOpenVisualPicker = async (member: FamilyMember) => {
+    setVisualPickerMember(member);
+    setVisualPickerOpen(true);
+    if (stockImages.length === 0) {
+      try {
+        const res = await visualAuthAPI.getStockImages();
+        setStockImages(res.data.images ?? []);
+      } catch {
+        showSnackbar('Failed to load login images', 'error');
+      }
+    }
+  };
+
+  const handleAssignVisualPassword = async (imageUrl: string) => {
+    if (!visualPickerMember) return;
+    try {
+      setAssigningVisual(true);
+      await visualAuthAPI.setupStockVisualPassword(visualPickerMember.id, imageUrl);
+      await refreshFamilyMembers();
+      setVisualPickerOpen(false);
+      setVisualPickerMember(null);
+      showSnackbar(`Login image assigned to ${visualPickerMember.name}`, 'success');
+    } catch (error: unknown) {
+      showSnackbar(getApiErrorMessage(error, 'Failed to assign login image'), 'error');
+    } finally {
+      setAssigningVisual(false);
+    }
   };
 
   if (loading) {
@@ -533,36 +582,53 @@ const Profile: React.FC = () => {
             </Button>
           </Box>
           <List>
-            {familyMembers.map((member) => (
-              <ListItem key={member.id} divider>
-                <ListItemText
-                  primary={member.name}
-                  secondary={
-                    <>
-                      <Typography component="span" variant="body2" color="text.primary">
-                        {member.ageGroup.charAt(0).toUpperCase() + member.ageGroup.slice(1)}
-                      </Typography>
-                      {member.cookingSkillLevel && ` • ${member.cookingSkillLevel}`}
-                      {member.dietaryRestrictions && member.dietaryRestrictions.length > 0 && (
-                        <Box component="span" sx={{ display: 'block', mt: 0.5 }}>
-                          {member.dietaryRestrictions.map((r) => (
-                            <Chip key={r} label={r} size="small" sx={{ mr: 0.5, mt: 0.5 }} />
-                          ))}
-                        </Box>
-                      )}
-                    </>
-                  }
-                />
-                <ListItemSecondaryAction>
-                  <IconButton edge="end" onClick={() => handleOpenMemberDialog(member)} sx={{ mr: 1 }}>
-                    <EditIcon />
-                  </IconButton>
-                  <IconButton edge="end" onClick={() => handleDeleteMember(member.id)}>
-                    <DeleteIcon />
-                  </IconButton>
-                </ListItemSecondaryAction>
-              </ListItem>
-            ))}
+            {familyMembers.map((member) => {
+              const hasVisualPassword = !!(member.visualPasswordImageUrl || member.visualPasswordRecipeId);
+              return (
+                <ListItem key={member.id} divider>
+                  <ListItemText
+                    primary={
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                        {member.name}
+                        {hasVisualPassword ? (
+                          <Chip label="Login image set" size="small" color="success" variant="outlined" />
+                        ) : (
+                          <Chip label="No login image" size="small" color="warning" variant="outlined" />
+                        )}
+                      </Box>
+                    }
+                    secondary={
+                      <>
+                        <Typography component="span" variant="body2" color="text.primary">
+                          {member.ageGroup.charAt(0).toUpperCase() + member.ageGroup.slice(1)}
+                        </Typography>
+                        {member.cookingSkillLevel && ` • ${member.cookingSkillLevel}`}
+                        {member.dietaryRestrictions && member.dietaryRestrictions.length > 0 && (
+                          <Box component="span" sx={{ display: 'block', mt: 0.5 }}>
+                            {member.dietaryRestrictions.map((r) => (
+                              <Chip key={r} label={r} size="small" sx={{ mr: 0.5, mt: 0.5 }} />
+                            ))}
+                          </Box>
+                        )}
+                      </>
+                    }
+                  />
+                  <ListItemSecondaryAction>
+                    <Tooltip title={hasVisualPassword ? 'Change login image' : 'Assign login image'}>
+                      <IconButton edge="end" onClick={() => handleOpenVisualPicker(member)} sx={{ mr: 1 }}>
+                        <ImageIcon color={hasVisualPassword ? 'success' : 'warning'} />
+                      </IconButton>
+                    </Tooltip>
+                    <IconButton edge="end" onClick={() => handleOpenMemberDialog(member)} sx={{ mr: 1 }}>
+                      <EditIcon />
+                    </IconButton>
+                    <IconButton edge="end" onClick={() => handleDeleteMember(member.id)}>
+                      <DeleteIcon />
+                    </IconButton>
+                  </ListItemSecondaryAction>
+                </ListItem>
+              );
+            })}
             {familyMembers.length === 0 && (
               <Typography variant="body2" color="text.secondary" sx={{ p: 2, textAlign: 'center' }}>
                 No family members added yet
@@ -708,6 +774,67 @@ const Profile: React.FC = () => {
           </Button>
           <Button onClick={handleSaveMember} variant="contained" disabled={saving || !memberForm.name.trim()}>
             {saving ? <CircularProgress size={24} /> : 'Save'}
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Visual Password Picker Dialog */}
+      <Dialog
+        open={visualPickerOpen}
+        onClose={() => { setVisualPickerOpen(false); setVisualPickerMember(null); }}
+        maxWidth="sm"
+        fullWidth
+      >
+        <DialogTitle>
+          {visualPickerMember?.visualPasswordImageUrl ? 'Change' : 'Assign'} login image for {visualPickerMember?.name}
+        </DialogTitle>
+        <DialogContent>
+          <Typography color="text.secondary" sx={{ mb: 2 }}>
+            {visualPickerMember?.name} will tap this image to sign in — no password needed.
+          </Typography>
+          {assigningVisual ? (
+            <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
+              <CircularProgress />
+            </Box>
+          ) : (
+            <Box
+              sx={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(4, 1fr)',
+                gap: 1.5,
+              }}
+            >
+              {stockImages.map((img) => (
+                <Card
+                  key={img.id}
+                  sx={{
+                    cursor: 'pointer',
+                    outline: visualPickerMember?.visualPasswordImageUrl === img.imageUrl
+                      ? '2px solid'
+                      : 'none',
+                    outlineColor: 'success.main',
+                  }}
+                >
+                  <CardActionArea onClick={() => handleAssignVisualPassword(img.imageUrl)}>
+                    <CardMedia
+                      component="img"
+                      height="80"
+                      image={img.imageUrl}
+                      alt={img.title}
+                      sx={{ objectFit: 'cover' }}
+                    />
+                    <CardContent sx={{ py: 0.5, px: 1 }}>
+                      <Typography variant="caption" noWrap>{img.title}</Typography>
+                    </CardContent>
+                  </CardActionArea>
+                </Card>
+              ))}
+            </Box>
+          )}
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => { setVisualPickerOpen(false); setVisualPickerMember(null); }}>
+            Cancel
           </Button>
         </DialogActions>
       </Dialog>

@@ -7,10 +7,12 @@
 import rateLimit from 'express-rate-limit';
 import { logger } from '../utils/logger';
 
+const isTestEnv = process.env.NODE_ENV === 'test' || process.env.E2E_TESTING === 'true';
+
 // Create rate limiter with Redis store
 const rateLimiter = rateLimit({
   windowMs: parseInt(process.env.RATE_LIMIT_WINDOW_MS || '60000'), // 1 minute
-  max: parseInt(process.env.RATE_LIMIT_MAX_REQUESTS || '100'), // 100 requests per window
+  max: parseInt(process.env.RATE_LIMIT_MAX_REQUESTS || (isTestEnv ? '1000' : '100')),
   message: 'Too many requests from this IP, please try again later.',
   standardHeaders: true, // Return rate limit info in the `RateLimit-*` headers
   legacyHeaders: false, // Disable the `X-RateLimit-*` headers
@@ -34,7 +36,6 @@ const rateLimiter = rateLimit({
 // Stricter rate limiter for authentication endpoints
 // Protects against brute force attacks
 // In development/test, use more lenient limits for E2E testing
-const isTestEnv = process.env.NODE_ENV === 'test' || process.env.E2E_TESTING === 'true';
 export const authRateLimiter = rateLimit({
   windowMs: isTestEnv ? 60 * 1000 : 15 * 60 * 1000, // 1 minute in test, 15 minutes in production
   max: isTestEnv ? 50 : 5, // 50 attempts in test, 5 in production
