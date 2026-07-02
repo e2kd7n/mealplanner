@@ -548,7 +548,7 @@ export default function CreateRecipe() {
             setFormData({ ...formData, prepTime: isNaN(value) ? 0 : value });
           }}
           onFocus={(e) => e.target.select()}
-          inputProps={{ min: 0 }}
+          slotProps={{ htmlInput: { min: 0 } }}
         />
       </Grid>
 
@@ -564,7 +564,7 @@ export default function CreateRecipe() {
             setFormData({ ...formData, cookTime: isNaN(value) ? 0 : value });
           }}
           onFocus={(e) => e.target.select()}
-          inputProps={{ min: 0 }}
+          slotProps={{ htmlInput: { min: 0 } }}
         />
       </Grid>
 
@@ -580,7 +580,7 @@ export default function CreateRecipe() {
             setFormData({ ...formData, servings: isNaN(value) ? 1 : value });
           }}
           onFocus={(e) => e.target.select()}
-          inputProps={{ min: 1 }}
+          slotProps={{ htmlInput: { min: 1 } }}
         />
       </Grid>
 
@@ -637,7 +637,7 @@ export default function CreateRecipe() {
           label="Estimated Cost ($)"
           value={formData.costEstimate}
           onChange={(e) => setFormData({ ...formData, costEstimate: parseFloat(e.target.value) || 0 })}
-          inputProps={{ min: 0, step: 0.01 }}
+          slotProps={{ htmlInput: { min: 0, step: 0.01 } }}
         />
       </Grid>
 
@@ -698,7 +698,7 @@ export default function CreateRecipe() {
 
   const renderIngredients = () => (
     <Box>
-      <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
         <Typography variant="h6">
           Add Ingredients
         </Typography>
@@ -715,7 +715,7 @@ export default function CreateRecipe() {
         Quantities will automatically scale when users adjust servings in the recipe view.
       </Alert>
       
-      <Grid container spacing={2} mb={3}>
+      <Grid container spacing={2} sx={{ mb: 3 }}>
         <Grid size={{ xs: 12, sm: 5 }}>
           <Autocomplete
             freeSolo
@@ -772,7 +772,7 @@ export default function CreateRecipe() {
               setNewIngredient({ ...newIngredient, quantity: isNaN(value) ? 0 : value });
             }}
             onFocus={(e) => e.target.select()}
-            inputProps={{ min: 0, step: 0.25 }}
+            slotProps={{ htmlInput: { min: 0, step: 0.25 } }}
             helperText="0.5 = ½, 0.25 = ¼"
           />
         </Grid>
@@ -916,7 +916,7 @@ export default function CreateRecipe() {
 
   const renderInstructions = () => (
     <Box>
-      <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
         <Typography variant="h6">
           Cooking Instructions
         </Typography>
@@ -960,8 +960,8 @@ export default function CreateRecipe() {
       ) : (
         <>
           {formData.instructions.map((instruction, index) => (
-        <Box key={index} mb={2}>
-          <Grid container spacing={2} alignItems="flex-start">
+        <Box key={index} sx={{ mb: 2 }}>
+          <Grid container spacing={2} sx={{ alignItems: 'flex-start' }}>
             <Grid size={{ xs: 11 }}>
               <TextField
                 fullWidth
@@ -998,7 +998,7 @@ export default function CreateRecipe() {
         </>
       )}
 
-      <Box mt={4}>
+      <Box sx={{ mt: 4 }}>
         <Typography variant="h6" gutterBottom>
           Nutrition Information (Optional)
         </Typography>
@@ -1076,16 +1076,16 @@ export default function CreateRecipe() {
 
       <Grid container spacing={2}>
         <Grid size={{ xs: 12 }}>
-          <Typography variant="subtitle1" fontWeight="bold">
+          <Typography variant="subtitle1" sx={{ fontWeight: 'bold' }}>
             {formData.title}
           </Typography>
-          <Typography variant="body2" color="text.secondary" paragraph>
+          <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
             {formData.description}
           </Typography>
         </Grid>
 
         <Grid size={{ xs: 12 }}>
-          <Box display="flex" gap={1} flexWrap="wrap">
+          <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
             <Chip label={`${formData.prepTime + formData.cookTime} min total`} size="small" />
             <Chip label={`${formData.servings} servings`} size="small" />
             <Chip label={formData.difficulty} size="small" color="primary" />
@@ -1170,7 +1170,7 @@ export default function CreateRecipe() {
         Back to Recipes
       </Button>
       
-      <Box mb={4}>
+      <Box sx={{ mb: 4 }}>
         <Typography variant="h4" gutterBottom>
           {isEditMode ? 'Edit Recipe' : 'Create New Recipe'}
         </Typography>
@@ -1200,9 +1200,9 @@ export default function CreateRecipe() {
           ))}
         </Stepper>
 
-        <Box mb={4}>{getStepContent(activeStep)}</Box>
+        <Box sx={{ mb: 4 }}>{getStepContent(activeStep)}</Box>
 
-        <Box display="flex" justifyContent="space-between">
+        <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
           <Button
             disabled={activeStep === 0}
             onClick={handleBack}

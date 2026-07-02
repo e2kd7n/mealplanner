@@ -130,7 +130,7 @@ class ErrorBoundary extends Component<Props, State> {
               <Typography variant="h4" gutterBottom>
                 Oops! Something went wrong
               </Typography>
-              <Typography variant="body1" color="text.secondary" paragraph>
+              <Typography variant="body1" color="text.secondary" sx={{ mb: 2 }}>
                 We're sorry for the inconvenience. An unexpected error has occurred.
               </Typography>
 

@@ -192,7 +192,7 @@ const FeedbackDialog: React.FC<FeedbackDialogProps> = ({ open, onClose, onSucces
       aria-labelledby="feedback-dialog-title"
     >
       <DialogTitle id="feedback-dialog-title">
-        <Box display="flex" alignItems="center" justifyContent="space-between">
+        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <Typography variant="h6">Share Your Feedback</Typography>
           <IconButton
             edge="end"
@@ -315,10 +315,7 @@ const FeedbackDialog: React.FC<FeedbackDialogProps> = ({ open, onClose, onSucces
             disabled={submitting}
             required
             fullWidth
-            inputProps={{
-              maxLength: 2000,
-              'aria-describedby': 'feedback-message-helper',
-            }}
+            slotProps={{ htmlInput: { maxLength: 2000, 'aria-describedby': 'feedback-message-helper' } }}
             helperText={`${message.length}/2000 characters`}
             aria-describedby="feedback-message-helper"
           />
@@ -346,8 +343,7 @@ const FeedbackDialog: React.FC<FeedbackDialogProps> = ({ open, onClose, onSucces
             {/* #155 — Privacy notice for screenshot feature */}
             <Typography
               variant="caption"
-              display="block"
-              sx={{ mt: 0.75, color: 'text.secondary' }}
+              sx={{ display: 'block', mt: 0.75, color: 'text.secondary' }}
             >
               Screenshots may include personal data visible on screen. Review before submitting.
             </Typography>
@@ -355,8 +351,7 @@ const FeedbackDialog: React.FC<FeedbackDialogProps> = ({ open, onClose, onSucces
             <Typography
               id="screenshot-helper"
               variant="caption"
-              display="block"
-              sx={{ mt: 0.5, color: 'text.primary' }}
+              sx={{ display: 'block', mt: 0.5, color: 'text.primary' }}
             >
               {screenshot
                 ? 'Screenshot will be included with your feedback'

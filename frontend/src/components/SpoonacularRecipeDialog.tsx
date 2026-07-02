@@ -140,7 +140,7 @@ const SpoonacularRecipeDialog: React.FC<SpoonacularRecipeDialogProps> = ({
             )}
 
             {/* Meta Information */}
-            <Stack direction="row" spacing={2} flexWrap="wrap" gap={1} sx={{ mb: 3 }}>
+            <Stack direction="row" spacing={2} sx={{ flexWrap: 'wrap', gap: 1, mb: 3 }}>
               {recipe.readyInMinutes && (
                 <Chip
                   icon={<TimeIcon />}
@@ -171,7 +171,7 @@ const SpoonacularRecipeDialog: React.FC<SpoonacularRecipeDialogProps> = ({
                 <Typography variant="subtitle2" gutterBottom>
                   Dietary Information
                 </Typography>
-                <Stack direction="row" spacing={1} flexWrap="wrap" gap={1}>
+                <Stack direction="row" spacing={1} sx={{ flexWrap: 'wrap', gap: 1 }}>
                   {recipe.diets.map((diet: string) => (
                     <Chip key={diet} label={diet} size="small" color="success" />
                   ))}
@@ -234,7 +234,7 @@ const SpoonacularRecipeDialog: React.FC<SpoonacularRecipeDialogProps> = ({
                 <Typography variant="h6" gutterBottom>
                   Nutrition (per serving)
                 </Typography>
-                <Stack direction="row" spacing={2} flexWrap="wrap" gap={1}>
+                <Stack direction="row" spacing={2} sx={{ flexWrap: 'wrap', gap: 1 }}>
                   {recipe.nutrition.nutrients.slice(0, 6).map((nutrient) => (
                     <Chip
                       key={nutrient.name}

@@ -100,9 +100,7 @@ const SearchSuggestions: React.FC<SearchSuggestionsProps> = ({
                   </ListItemIcon>
                   <ListItemText
                     primary={suggestion.text}
-                    primaryTypographyProps={{
-                      variant: 'body2',
-                    }}
+                    slotProps={{ primary: { variant: 'body2' } }}
                   />
                 </ListItemButton>
               );
@@ -181,16 +179,14 @@ const SearchSuggestions: React.FC<SearchSuggestionsProps> = ({
                 >
                   <ListItemIcon sx={{ minWidth: 36 }}>
                     {suggestion.icon ? (
-                      <Typography fontSize="1.2rem">{suggestion.icon}</Typography>
+                      <Typography sx={{ fontSize: '1.2rem' }}>{suggestion.icon}</Typography>
                     ) : (
                       getIcon(suggestion.type)
                     )}
                   </ListItemIcon>
                   <ListItemText
                     primary={suggestion.text}
-                    primaryTypographyProps={{
-                      variant: 'body2',
-                    }}
+                    slotProps={{ primary: { variant: 'body2' } }}
                   />
                 </ListItemButton>
               );
