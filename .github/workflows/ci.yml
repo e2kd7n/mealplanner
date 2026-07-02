@@ -50,6 +50,23 @@ jobs:
         working-directory: frontend
         run: pnpm exec tsc -b --noEmit
 
+      - name: Build and check bundle size
+        working-directory: frontend
+        run: |
+          pnpm run build
+          echo "## Bundle Size Report" >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+          du -sh dist/assets/*.js | sort -rh >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+          TOTAL=$(du -sb dist/ | cut -f1)
+          TOTAL_KB=$((TOTAL / 1024))
+          echo "Total bundle: ${TOTAL_KB}KB" >> $GITHUB_STEP_SUMMARY
+          MAX_CHUNK=$(du -b dist/assets/*.js | sort -rn | head -1 | cut -f1)
+          MAX_CHUNK_KB=$((MAX_CHUNK / 1024))
+          if [ "$MAX_CHUNK_KB" -gt 512 ]; then
+            echo "::warning::Largest JS chunk is ${MAX_CHUNK_KB}KB (exceeds 512KB limit)"
+          fi
+
   backend:
     name: Backend — Lint & Type Check
     runs-on: ubuntu-latest
