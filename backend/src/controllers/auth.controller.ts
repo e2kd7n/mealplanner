@@ -4,7 +4,7 @@
  */
 
 import { Request, Response, NextFunction } from 'express';
-import bcrypt from 'bcrypt';
+import bcrypt from 'bcryptjs';
 import { Prisma, UserRole } from '@prisma/client';
 import prisma, { withRetry } from '../utils/prisma';
 import { generateTokenPair, verifyRefreshToken } from '../utils/jwt';
