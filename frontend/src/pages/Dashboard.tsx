@@ -91,7 +91,7 @@ const TodayMeals = memo(({ loading, meals, onNavigate }: TodayMealsProps) => {
               </Typography>
               {meal ? (
                 <>
-                  <Typography variant="body2" fontWeight={500} noWrap>{meal.recipeName}</Typography>
+                  <Typography variant="body2" sx={{ fontWeight: 500 }} noWrap>{meal.recipeName}</Typography>
                   {meal.assignedCookName && (
                     <Typography variant="caption" color="text.secondary" noWrap>
                       {meal.assignedCookName}
@@ -228,7 +228,7 @@ const GroceryStatus = memo(({ loading, total, remaining, onNavigate }: GrocerySt
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
           <ShoppingCartIcon color="secondary" fontSize="small" />
-          <Typography variant="body2" fontWeight={500}>
+          <Typography variant="body2" sx={{ fontWeight: 500 }}>
             {remaining} of {total} items remaining
           </Typography>
         </Box>
@@ -261,12 +261,12 @@ const PantryAlerts = memo(({ loading, expiringCount, lowStockCount, alerts, onNa
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
           <WarningIcon color="warning" fontSize="small" />
-          <Typography variant="body2" fontWeight={500}>Pantry needs attention</Typography>
+          <Typography variant="body2" sx={{ fontWeight: 500 }}>Pantry needs attention</Typography>
         </Box>
         <Button size="small" onClick={onNavigate}>Check Pantry</Button>
       </Box>
       {alerts.slice(0, 3).map((alert, i) => (
-        <Typography key={i} variant="caption" display="block" color="text.secondary">
+        <Typography key={i} variant="caption" color="text.secondary" sx={{ display: 'block' }}>
           {alert.name} — {alert.status}
         </Typography>
       ))}

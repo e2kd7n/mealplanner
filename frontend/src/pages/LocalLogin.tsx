@@ -186,7 +186,7 @@ const LocalLogin: React.FC = () => {
                     >
                       {user.name.charAt(0).toUpperCase()}
                     </Avatar>
-                    <Typography variant="body1" fontWeight={500}>
+                    <Typography variant="body1" sx={{ fontWeight: 500 }}>
                       {user.name}
                     </Typography>
                   </CardActionArea>

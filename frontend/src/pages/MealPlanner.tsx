@@ -921,7 +921,7 @@ const MealPlanner: React.FC = () => {
               <Typography variant="subtitle2" color="text.secondary" align="center">
                 View Mode
               </Typography>
-              <Stack direction="row" spacing={2} justifyContent="center">
+              <Stack direction="row" spacing={2} sx={{ justifyContent: 'center' }}>
                 <Button
                   size="medium"
                   variant={viewMode === 'month' ? 'contained' : 'outlined'}
@@ -957,7 +957,7 @@ const MealPlanner: React.FC = () => {
         {/* Week Navigation */}
         <Card sx={{ mb: 3 }}>
           <CardContent>
-            <Stack direction="row" alignItems="center" justifyContent="space-between">
+            <Stack direction="row" sx={{ alignItems: 'center', justifyContent: 'space-between' }}>
               <IconButton onClick={handlePreviousWeek}>
                 <ChevronLeftIcon />
               </IconButton>
@@ -1097,7 +1097,7 @@ const MealPlanner: React.FC = () => {
                                     textAlign: 'center',
                                   }}
                                 >
-                                  <Stack direction="row" spacing={0.5} justifyContent="center">
+                                  <Stack direction="row" spacing={0.5} sx={{ justifyContent: 'center' }}>
                                     <Button
                                       size="small"
                                       onClick={() => handleOpenDialog(day, mealType)}
@@ -1203,14 +1203,17 @@ const MealPlanner: React.FC = () => {
                   placeholder="Search for a recipe..."
                   autoFocus
                   helperText="Select from existing recipes or type a custom name"
-                  InputProps={{
-                    ...params.InputProps,
-                    endAdornment: (
-                      <>
-                        {recipeSearchLoading ? <CircularProgress color="inherit" size={20} /> : null}
-                        {params.InputProps.endAdornment}
-                      </>
-                    ),
+                  slotProps={{
+                    ...params.slotProps,
+                    input: {
+                      ...params.slotProps?.input,
+                      endAdornment: (
+                        <>
+                          {recipeSearchLoading ? <CircularProgress color="inherit" size={20} /> : null}
+                          {(params.slotProps?.input as { endAdornment?: React.ReactNode })?.endAdornment}
+                        </>
+                      ),
+                    },
                   }}
                 />
               )}
@@ -1250,7 +1253,7 @@ const MealPlanner: React.FC = () => {
               fullWidth
               value={newMeal.servings}
               onChange={(e) => setNewMeal({ ...newMeal, servings: Number(e.target.value) })}
-              inputProps={{ min: 1, onFocus: (e: React.FocusEvent<HTMLInputElement>) => e.target.select() }}
+              slotProps={{ htmlInput: { min: 1, onFocus: (e: React.FocusEvent<HTMLInputElement>) => e.target.select() } }}
             />
           </Stack>
         </DialogContent>
@@ -1358,9 +1361,7 @@ const MealPlanner: React.FC = () => {
                       fullWidth
                       value={editDate ? formatDateForAPI(editDate) : ''}
                       onChange={(e) => setEditDate(new Date(e.target.value + 'T00:00:00'))}
-                      InputLabelProps={{
-                        shrink: true,
-                      }}
+                      slotProps={{ inputLabel: { shrink: true } }}
                     />
                   </Box>
                 </>
@@ -1545,7 +1546,7 @@ const MealPlanner: React.FC = () => {
                           <CardContent sx={{ py: 1.5, '&:last-child': { pb: 1.5 } }}>
                             <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                               <Box>
-                                <Typography variant="body1" fontWeight="medium">
+                                <Typography variant="body1" sx={{ fontWeight: 'medium' }}>
                                   {meal.recipeName}
                                 </Typography>
                                 <Typography variant="body2" color="text.secondary">
@@ -1597,7 +1598,7 @@ const MealPlanner: React.FC = () => {
 
               {/* Nutrition Summary Placeholder */}
               <Box>
-                <Typography variant="subtitle1" fontWeight="bold" gutterBottom>
+                <Typography variant="subtitle1" sx={{ fontWeight: 'bold' }} gutterBottom>
                   Daily Nutrition Summary
                 </Typography>
                 <Typography variant="body2" color="text.secondary">
