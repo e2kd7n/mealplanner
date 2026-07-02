@@ -5,6 +5,7 @@
 
 
 import { PrismaClient } from '@prisma/client';
+import { PrismaPg } from '@prisma/adapter-pg';
 import { logger } from './logger';
 import { getDatabaseUrl } from './secrets';
 
@@ -26,27 +27,26 @@ declare global {
   var __prisma: PrismaClient | undefined;
 }
 
-// Enhanced Prisma configuration with connection pooling and retry logic
+// Prisma 7 uses a driver adapter instead of a datasource URL in the schema.
 // Connection pool settings are configured via DATABASE_URL query parameters:
 // - connection_limit: Maximum number of connections in the pool (default: num_cpus * 2 + 1)
 // - pool_timeout: Seconds to wait for a connection from the pool (default: 10)
 // Example: postgresql://user:pass@host:5432/db?connection_limit=10&pool_timeout=30
-const prismaConfig = {
-  log: (process.env.NODE_ENV === 'production'
-    ? ['error', 'warn']
-    : ['query', 'error', 'warn']) as Array<'query' | 'info' | 'warn' | 'error'>,
-  datasources: {
-    db: {
-      url: process.env.DATABASE_URL,
-    },
-  },
-};
+function makePrisma(): PrismaClient {
+  const adapter = new PrismaPg({ connectionString: process.env.DATABASE_URL });
+  return new PrismaClient({
+    adapter,
+    log: (process.env.NODE_ENV === 'production'
+      ? ['error', 'warn']
+      : ['query', 'error', 'warn']) as Array<'query' | 'info' | 'warn' | 'error'>,
+  });
+}
 
 if (process.env.NODE_ENV === 'production') {
-  prisma = new PrismaClient(prismaConfig);
+  prisma = makePrisma();
 } else {
   if (!global.__prisma) {
-    global.__prisma = new PrismaClient(prismaConfig);
+    global.__prisma = makePrisma();
   }
   prisma = global.__prisma;
 }
