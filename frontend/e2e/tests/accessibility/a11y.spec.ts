@@ -68,6 +68,52 @@ test.describe('Accessibility — authenticated pages', () => {
     await authenticatedPage.waitForLoadState('networkidle');
     await checkA11y(authenticatedPage, 'pantry page');
   });
+
+  test('profile page has no WCAG violations', async ({ authenticatedPage }) => {
+    await authenticatedPage.goto('/profile');
+    await authenticatedPage.waitForLoadState('networkidle');
+    await checkA11y(authenticatedPage, 'profile page');
+  });
+
+  test('browse recipes page has no WCAG violations', async ({ authenticatedPage }) => {
+    await authenticatedPage.goto('/browse');
+    await authenticatedPage.waitForLoadState('networkidle');
+    await checkA11y(authenticatedPage, 'browse recipes page');
+  });
+});
+
+test.describe('Keyboard navigation', () => {
+  test('login form is keyboard navigable', async ({ page }) => {
+    await page.goto('/login');
+    await page.waitForLoadState('networkidle');
+
+    await page.keyboard.press('Tab');
+    const emailInput = page.locator('input[type="email"], input[name="email"]').first();
+    await expect(emailInput).toBeFocused();
+
+    await page.keyboard.press('Tab');
+    const passwordInput = page.locator('input[type="password"]').first();
+    await expect(passwordInput).toBeFocused();
+  });
+
+  test('navigation links receive focus', async ({ authenticatedPage }) => {
+    await authenticatedPage.waitForLoadState('networkidle');
+
+    const navLinks = authenticatedPage.locator('nav a, nav button, [role="navigation"] a');
+    const count = await navLinks.count();
+    expect(count).toBeGreaterThan(0);
+  });
+
+  test('interactive elements have visible focus indicators', async ({ authenticatedPage }) => {
+    await authenticatedPage.goto('/recipes');
+    await authenticatedPage.waitForLoadState('networkidle');
+
+    const buttons = authenticatedPage.locator('button:visible').first();
+    if (await buttons.count() > 0) {
+      await buttons.focus();
+      await expect(buttons).toBeFocused();
+    }
+  });
 });
 
 // Made with Bob

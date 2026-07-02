@@ -99,7 +99,7 @@ jobs:
           pnpm run dev > frontend.log 2>&1 &
           echo $! > frontend.pid
           for i in {1..30}; do
-            if curl -f -s http://127.0.0.1:5173 > /dev/null 2>&1; then
+            if curl -f -s http://localhost:5173 > /dev/null 2>&1; then
               echo "Frontend is ready!"
               break
             fi
