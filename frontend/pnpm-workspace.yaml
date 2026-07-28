@@ -1,2 +1,9 @@
 allowBuilds:
   esbuild: true
+minimumReleaseAgeExclude:
+  - ws@8.20.1
+  - ws@8.21.0
+  - '@babel/core@7.29.1'
+  - react-router@8.3.0
+  - postcss@8.5.18
+  - brace-expansion@5.0.8

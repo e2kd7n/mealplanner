@@ -1,78 +1,95 @@
 # Issue Prioritization
 
-**Last Updated:** 2026-06-29 04:30:00 UTC
+**Last Updated:** 2026-07-28 23:45:00 UTC
 
 This file reflects the current state of GitHub issues organized by milestone and priority within each milestone.
 
 **Priority is within a milestone** — P0/P1 issues in the active milestone take precedence over all issues in future milestones.
 
-## 🎯 Public Launch (due 2026-06-30)
+## No Active Milestone
+
+Public Launch (due 2026-06-30) closed with all 56 issues resolved. Nothing has been assigned to
+a new milestone yet — all open issues below are unassigned. The items surfaced by this week's
+maintenance run (logs + CI audit) are the most urgent work regardless of milestone.
 
 ### 🔴 P0 - CRITICAL
-- #246 - fix(ftue): MemberWelcome tour has no swipe/gesture support on mobile
-- #231 - FTUE design review — Tracy walkthrough (15 issues)
+- #281 - All 4 ClusterHAT Zero W backend nodes crash-looping (~76k restarts) — Prisma engine built for wrong architecture
 
 ### 🔴 P1 - HIGH
-- #251 - FTUE cleanup: remaining work after initial deploy
-- #252 - fix: backend TypeScript build fails with ~109 type errors
+- #286 - nginx resolver still hardcoded to Docker's 127.0.0.11 instead of Podman's 10.89.1.1 — breaks the Pi 4B fallback #281 currently depends on entirely
+- #282 - fix: backend/prisma/seed.ts still imports removed 'bcrypt' package, breaks e2e-tests DB seeding
 
 ### 🟡 P2 - MEDIUM
-- #253 - security: weekly audit 2026-06-29 — 14 high vulns fixed, 3 low remain
+- #285 - security: weekly audit 2026-07-28 — pnpm audit found 27 backend + 6 frontend vulns
+- #283 - ci: Dependabot PRs touching backend/ fail pnpm install with ERR_PNPM_LOCKFILE_CONFIG_MISMATCH
+- #284 - dx: fresh 'npm install && npm run build' fails on backend — Prisma Client never gets regenerated
+- #210 - security: replace csurf with modern CSRF middleware *(reopened — was falsely auto-closed 2026-05-26, never actually fixed)*
+- #116 - [P2][UX] Add Cost Tracking for Budget-Conscious Users *(97d stale)*
 
 ### 🟢 P3 - LOW
-- #230 - chore: plan major dependency upgrades (MUI 9, Prisma 7, Express 5, TS 6)
-- #209 - fix(monitoring): repair Glances service and add ClusterHAT cluster-wide monitoring
+- #200 - Pi: move Postgres data volume to USB SSD *(73d stale)*
 - #170 - ✨ Add photo capture and PDF upload for recipe creation
+- #84 - [P3][Feature] Add recipe document upload (PDF, images, DOCX) *(related to #170)*
+- #14 - Implement Nutrition Guideline Warnings *(97d stale)*
+- #13 - Implement Nutrition Dashboard *(97d stale)*
+- #12 - Integrate Nutrition Database for Auto-Population *(97d stale)*
+- #9 - MyFitnessPal Integration *(97d stale)*
 - #8 - Grocery List Optimization
 
 ### 📋 P4 - FUTURE
+- #66 - Publish Meals to ICS Calendar feed *(100d stale)*
+- #64 - Implement Advanced Features (Nutrition Tracking, etc.)
 - #63 - Evaluate Scaling Strategy
 - #20 - Implement Pantry Integration with Grocery Lists
 - #19 - Implement Grocery List Regeneration and Sync Detection
 
----
+### ⚠️ Needs a priority label
+- #261 - perf(e2e): use Playwright storageState to avoid per-test UI login in FTUE suite *(no priority/type labels — triage needed)*
 
-## ⚠️ Issues Without Milestone Assignment
+## 🔀 Open PRs (all stalled on CI, see #283/#282/#284 above for root causes)
+- #269 - chore(deps): MUI 7 → 9.1.2 *(open since 2026-07-02)*
+- #268 - chore(deps): Prisma 6 → 7.8.0 *(open since 2026-07-02)*
+- #267 - chore(deps): Express 4 → 5.2.1 *(open since 2026-07-02)*
+- #266 - chore(deps): TypeScript 5 → 6.0.3 *(open since 2026-07-02)*
+- #279 - chore(deps-dev): bump backend dev-deps group (8 updates) *(dependabot, open since 2026-07-27)*
+- #278 - chore(deps-dev): bump frontend dev-deps group (10 updates) *(dependabot, open since 2026-07-27)*
+- #277 - chore(deps): bump frontend prod-deps group (7 updates) *(dependabot, open since 2026-07-27)*
+- #276 - chore(deps): bump backend prod-deps group (3 updates) *(dependabot, open since 2026-07-20)*
 
-These issues need to be assigned to a milestone and prioritized.
+All 8 show at least one red CI check. Root causes are now understood (#282 breaks `e2e-tests`
+for everything; #283 breaks install for Dependabot's own backend PRs specifically) — these
+should largely go green once #282 lands, and the #266/#267/#268/#269 branches likely just need
+a rebase onto main afterward.
 
-### 🟡 P2 - MEDIUM
-- #116 - [P2][UX] Add Cost Tracking for Budget-Conscious Users *(67d stale)*
-
-### 🟢 P3 - LOW
-- #200 - Pi: move Postgres data volume to USB SSD *(43d stale)*
-- #84 - [P3][Feature] Add recipe document upload (PDF, images, DOCX) *(related to #170)*
-- #14 - Implement Nutrition Guideline Warnings *(67d stale)*
-- #13 - Implement Nutrition Dashboard *(67d stale)*
-- #12 - Integrate Nutrition Database for Auto-Population *(67d stale)*
-- #9 - MyFitnessPal Integration *(67d stale)*
-
-### 📋 P4 - FUTURE
-- #66 - Publish Meals to ICS Calendar feed *(70d stale)*
-- #64 - Implement Advanced Features (Nutrition Tracking, etc.) *(97d stale)*
-
-## 📊 Weekly Maintenance Summary — 2026-06-29
+## 📊 Weekly Maintenance Summary — 2026-07-28
 
 ### Closed since last update
-- #248, #247, #245, #244, #243, #242, #241, #240, #239, #238, #237, #236, #235, #234, #232 (FTUE overhaul batch)
-- #218 (ntfy.sh push notifications)
-- #213 (@types/node upgrade)
-- #212 (ESLint v10 upgrade)
-- #211 (Pi PSU upgrade)
-- #210 (replace csurf)
-- #142, #83, #45, #43, #42, #41, #171, #18 (removed from priorities — were stale/closed)
+- #252, #251, #246, #231, #230, #209 (closed 2026-07-01/07-02, before this run — carried over from last report's untracked gap)
+- #253 (superseded by #285 — was based on an incomplete npm-audit picture, see below)
 
 ### New issues filed
-- #252 - Backend TS build fails (~109 errors, pre-existing on main)
-- #253 - Security audit writeup (14 high vulns fixed, 3 low remain)
+- #281 - **P0** — All 4 Zero W nodes crash-looping since ~2026-07-01 on a Prisma binary-target mismatch; cluster has been silently down the whole time, all traffic falling back to the Pi 4B alone (confirmed live via SSH + journalctl)
+- #286 - **P1** — nginx resolver still hardcoded to Docker's 127.0.0.11 instead of Podman's 10.89.1.1; the fix exists on an orphaned local branch but never reached main — matters a lot right now since #281 means the Pi 4B fallback path this bug affects is the *only* path currently serving traffic
+- #282 - **P1** — `seed.ts` still imports removed `bcrypt`, breaking `e2e-tests` DB seed step on every CI run since 2026-07-01
+- #283 - **P2** — Dependabot PRs touching `backend/` fail `pnpm install --frozen-lockfile` (lockfile `overrides` drift specific to Dependabot's own regeneration)
+- #284 - **P2** — Documented `npm install && npm run build` workflow is broken on a fresh clone (npm blocks Prisma's postinstall; pnpm doesn't, which is why CI never caught it)
+- #285 - **P2** — Corrected security audit: `pnpm audit` (the real, deployed lockfile) found far more than `npm audit` had been reporting; fixed the great majority automatically this run
+- #210 reopened — falsely auto-closed 2026-05-26, csurf was never actually replaced
 
 ### Build status
-- **Frontend:** ✅ builds and lints cleanly (7 warnings)
-- **Backend:** ❌ tsc fails (~109 errors); lint has 1 error + 132 warnings
+- **Frontend:** ✅ builds and lints cleanly (0 errors, matches CI's `pnpm run lint`)
+- **Backend:** ✅ `pnpm exec tsc --noEmit` and `pnpm run lint` clean (0 errors, 261 warnings, all `no-explicit-any`) — **but only via `pnpm`, matching CI**; plain `npm install && npm run build` is currently broken, see #284
 
-### Security
-- Backend: 2 low (cookie/csurf — needs csurf replacement)
-- Frontend: 1 low (esbuild — dev-only, needs breaking change)
+### Security (via `pnpm audit`, the lockfile CI/deployment actually use — see #285)
+- Backend: 27 → 4 vulnerabilities after `pnpm audit --fix=update` (1 high, 2 moderate, 1 low remain: `ws`, `qs`, `cookie`/csurf)
+- Frontend: 6 → 3 vulnerabilities after `pnpm audit --fix=update` (1 high, 1 moderate, 1 low remain: `ws`, `react-router`)
+- Remaining items need breaking-change review (`socket.io` major bump for `ws`; `react-router-dom` downgrade or forward-fix for the CSRF bypass) — not auto-applied
+
+### Infrastructure (via live SSH to the Pi, new this week)
+- Pi 4B containers (postgres, redis, backend, nginx): all healthy, clean logs, no errors in 7 days
+- **Zero W cluster: all 4 nodes down** — see #281
+- nginx access log: 0 requests recorded in its full 4-day container uptime (only health-check traffic reaches the Pi 4B backend directly) — worth confirming real user traffic is reaching the site at all
+- Pi 4B memory: 119Mi free / 902Mi available of 1.8Gi — tight as expected, plus two unrelated containers (`ride-optimizer`, `jewel-coupon-clipper`) sharing the same box
 
 ---
 
