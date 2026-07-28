@@ -16,8 +16,11 @@ No equivalent incident has happened here — apply these preventively, not react
    `getSecret()`/`getSecretCached()` (`backend/src/utils/secrets.ts`), never `process.env`
    directly or a literal in source.
 2. **Debug/one-off scripts that touch real user data** (recipes, family member info, meal
-   plans) **must write output to a gitignored path** (e.g. under `data/` or a scratch dir
-   already covered by `.gitignore`) — never to a path that will be `git add`ed.
+   plans) **must write output to a genuinely gitignored path** — e.g. `logs/` (fully
+   ignored) or a `*.tmp`/`*.temp`-suffixed file. Note `.gitignore` only ignores specific
+   existing `data/` subdirectories (`data/uploads/`, `data/backups/`, `data/images/`,
+   `data/feedback-exports/`, `data/maintenance-logs/`) — a bare `data/<new-path>` is
+   **not** ignored and will get `git add`ed. Never write to a path that will be committed.
 3. **Security scaffolding must be verified as actually enforced, not just present.** If you
    wire up CSRF protection, `authenticate`/`requireAdmin` middleware, or a rate limiter,
    confirm it actually fires on the route you think it protects — don't assume the
@@ -26,7 +29,10 @@ No equivalent incident has happened here — apply these preventively, not react
    logs "generated a new secret," log the file path to retrieve it from, never the value.
 5. **Any server-side fetch of a user-supplied URL needs SSRF hardening checked at fetch
    time, not just when the URL is first saved** — DNS can rebind between save and use.
-   Applies to `recipeImport.service.ts` and the Spoonacular proxy.
+   Applies to `recipeImport.service.ts` and `image.controller.ts`'s `proxyImage`
+   (`GET /api/images/proxy?url=...`) — the two endpoints that fetch a caller-supplied URL.
+   `spoonacular.service.ts` only calls a hardcoded API base URL, not user input, so it's
+   out of scope for this rule.
 6. **Before marking any task complete that touched config, logging, caching, or
    URL-fetching code, ask: "would this diff be safe if the repo is public?"** — this repo
    is public on GitHub.
@@ -283,9 +289,10 @@ After completing and testing any work tied to an issue:
 
 ### Plans Directory Structure (MANDATORY)
 All implementation plans, epics, and technical planning documents MUST be stored in
-`/plans/` organized by milestone — see `plans/README.md`. **Never** store plans in
-`docs/plans/` (deprecated location). Determine the target milestone from
-`gh api repos/:owner/:repo/milestones` before creating a plan.
+`/plans/` organized by milestone — see `plans/README.md`. Prior planning docs in this
+repo were scattered ad hoc (e.g. under `docs/archive/`); `/plans/<milestone-slug>/`
+replaces that with one predictable location going forward. Determine the target
+milestone from `gh api repos/:owner/:repo/milestones` before creating a plan.
 
 ### Documentation Structure
 - `docs/development/` - Development setup, workflow, CI/CD
