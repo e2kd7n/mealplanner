@@ -2,6 +2,41 @@
 
 This file provides guidance to agents when working with code in this repository.
 
+Please also refer to CLAUDE.md for direction. In the event of a conflict, explain the
+conundrum and ask the user how to proceed.
+
+## Security & Privacy Guardrails (MANDATORY)
+
+Adapted from a coordinate/PII leak incident on the sibling `ride-optimizer` project
+(2026-07-07, real GPS coordinates and route traces sat in a public repo for months).
+No equivalent incident has happened here — apply these preventively, not reactively.
+
+1. **Never hardcode a real secret, token, or family member's PII into a tracked file** —
+   not even in a comment, example, or "temporary" debug script. Secrets go through
+   `getSecret()`/`getSecretCached()` (`backend/src/utils/secrets.ts`), never `process.env`
+   directly or a literal in source.
+2. **Debug/one-off scripts that touch real user data** (recipes, family member info, meal
+   plans) **must write output to a genuinely gitignored path** — e.g. `logs/` (fully
+   ignored) or a `*.tmp`/`*.temp`-suffixed file. Note `.gitignore` only ignores specific
+   existing `data/` subdirectories (`data/uploads/`, `data/backups/`, `data/images/`,
+   `data/feedback-exports/`, `data/maintenance-logs/`) — a bare `data/<new-path>` is
+   **not** ignored and will get `git add`ed. Never write to a path that will be committed.
+3. **Security scaffolding must be verified as actually enforced, not just present.** If you
+   wire up CSRF protection, `authenticate`/`requireAdmin` middleware, or a rate limiter,
+   confirm it actually fires on the route you think it protects — don't assume the
+   presence of the middleware/import means the protection is active.
+4. **Never log a generated secret/key value itself.** When `generate-secrets.sh` or similar
+   logs "generated a new secret," log the file path to retrieve it from, never the value.
+5. **Any server-side fetch of a user-supplied URL needs SSRF hardening checked at fetch
+   time, not just when the URL is first saved** — DNS can rebind between save and use.
+   Applies to `recipeImport.service.ts` and `image.controller.ts`'s `proxyImage`
+   (`GET /api/images/proxy?url=...`) — the two endpoints that fetch a caller-supplied URL.
+   `spoonacular.service.ts` only calls a hardcoded API base URL, not user input, so it's
+   out of scope for this rule.
+6. **Before marking any task complete that touched config, logging, caching, or
+   URL-fetching code, ask: "would this diff be safe if the repo is public?"** — this repo
+   is public on GitHub.
+
 ## Workflow & Task Management
 
 ### Parallel Operations
@@ -13,7 +48,7 @@ This file provides guidance to agents when working with code in this repository.
 ### Planning & Execution
 - Enter plan mode for ANY non-trivial task (3+ steps or architectural decisions)
 - If something goes sideways, STOP and re-plan immediately - don't keep pushing
-- Plans should be broken into sprintly phases of work
+- Plans should be broken into milestone-aligned phases of work
 - Never mark complete without testing to prove it works
 
 ### Autonomous Problem Solving
@@ -21,6 +56,15 @@ This file provides guidance to agents when working with code in this repository.
 - Point at logs, errors, failing tests - then resolve them
 - Zero context switching required from the user
 - Go fix failing CI tests without being told how
+
+### Post-Completion Checklist (MANDATORY)
+After marking any task complete:
+- [ ] Tests passing (e2e where applicable — see Testing section)
+- [ ] No real secrets/PII in the diff (see Security & Privacy Guardrails above)
+- [ ] Related GitHub issue(s) closed with a detailed comment (see Issue Closure Protocol)
+- [ ] ISSUE_PRIORITIES.md updated if issue state changed
+- [ ] Epic/parent issue checked for full closure, if applicable
+- [ ] Changes committed with proper message format
 
 ## Critical Non-Obvious Patterns
 
@@ -88,12 +132,31 @@ This file provides guidance to agents when working with code in this repository.
 
 ## Issue Management
 
-### Priority System
+### Priority System (Milestone-Aware)
+**Priority is within a milestone.** A P1 issue in the active milestone (e.g. "Public
+Launch") takes precedence over a P0 issue in a future milestone — finish the active
+milestone's priorities before starting future-milestone work, regardless of label.
+Milestones are named (`Beta Launch`, `Public Launch`, `v1.1`), not strictly semver.
+
+**Work Order Priority:**
+1. **Active Milestone P0** - Drop everything
+2. **Active Milestone P1** - Current focus
+3. **Active Milestone P2** - Next up within the milestone
+4. **Active Milestone P3** - Backlog for this milestone
+5. **Future Milestone P0** - Plan for future critical work
+6. **Future Milestone P1+** - Long-term planning
+
+**Priority Definitions (within a milestone):**
 - **P0-critical**: Drop everything - app down, data loss, security issues
-- **P1-high**: Current sprint (1-2 weeks) - core features broken
-- **P2-medium**: Next sprint (2-4 weeks) - feature improvements
-- **P3-low**: Backlog - minor UX improvements
-- **P4-future**: Long-term planning
+- **P1-high**: Must complete before the milestone ships - core features broken
+- **P2-medium**: Should complete for the milestone - feature improvements
+- **P3-low**: Can defer to next milestone - minor UX improvements
+- **P4-future**: Explicitly deferred to later milestones - long-term planning
+
+### GitHub Labels Cache
+Use `.bob/github_labels.md` for available labels - refreshed during weekly maintenance.
+**Do NOT query GitHub for labels ad hoc** - use the cache to avoid failed issue creation
+from typos or stale label names.
 
 ### Issue Workflow
 - All issues tracked in GitHub Issues with priority labels
@@ -101,6 +164,23 @@ This file provides guidance to agents when working with code in this repository.
 - Close issues via commit keywords: Fixes, Closes, Resolves
 - Weekly maintenance: review open issues, close completed, update priorities
 - Update ISSUE_PRIORITIES.md via `./scripts/update-issue-priorities.sh`
+
+### Issue Closure Protocol
+After completing and testing any work tied to an issue:
+1. Close it immediately — don't wait for weekly maintenance
+2. Use a detailed closure comment with commit reference and acceptance-criteria checklist:
+   ```
+   Completed in commit [hash] - [title]
+
+   ✅ [Acceptance criterion 1]
+   ✅ [Acceptance criterion 2]
+
+   Files modified: [list]
+   ```
+3. For issues with sub-issues (e.g. an FTUE-style epic), verify all child issues are
+   closed before closing the parent
+4. Update ISSUE_PRIORITIES.md via `./scripts/update-issue-priorities.sh`
+5. Verify closure by confirming the issue no longer appears in ISSUE_PRIORITIES.md
 
 ### Creating Issues
 - Use template with Description, Type, Priority, Technical Details, Acceptance Criteria
@@ -175,6 +255,7 @@ This file provides guidance to agents when working with code in this repository.
 - Review and close completed issues
 - Triage unprioritized issues
 - Update ISSUE_PRIORITIES.md
+- Refresh `.bob/github_labels.md` via `gh label list --limit 200` if labels changed
 
 ### Dependencies
 - Check for updates: `npm outdated` in frontend and backend
@@ -203,8 +284,16 @@ This file provides guidance to agents when working with code in this repository.
 - `ISSUE_PRIORITIES.md` - Current issue priorities
 - `docs/ARCHITECTURE.md` - System architecture
 - `docs/design/DESIGN_PRINCIPLES.md` - UX/UI design principles
+- `plans/README.md` - Index of implementation plans, organized by milestone
 - `/Users/erik/dev/workflow-guidelines.md` - Comprehensive workflow guide
 - `docs/releases/maintenance/WEEKLY_MAINTENANCE_CHECKLIST.md` - Maintenance procedures
+
+### Plans Directory Structure (MANDATORY)
+All implementation plans, epics, and technical planning documents MUST be stored in
+`/plans/` organized by milestone — see `plans/README.md`. Prior planning docs in this
+repo were scattered ad hoc (e.g. under `docs/archive/`); `/plans/<milestone-slug>/`
+replaces that with one predictable location going forward. Determine the target
+milestone from `gh api repos/:owner/:repo/milestones` before creating a plan.
 
 ### Documentation Structure
 - `docs/development/` - Development setup, workflow, CI/CD
