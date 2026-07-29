@@ -87,6 +87,10 @@ jobs:
         working-directory: backend
         run: pnpm install --frozen-lockfile
 
+      - name: Generate Prisma Client
+        working-directory: backend
+        run: pnpm exec prisma generate
+
       - name: Lint
         working-directory: backend
         run: pnpm run lint
@@ -146,6 +150,10 @@ jobs:
       - name: Install dependencies
         working-directory: backend
         run: pnpm install --frozen-lockfile
+
+      - name: Generate Prisma Client
+        working-directory: backend
+        run: pnpm exec prisma generate
 
       - name: Run unit tests
         working-directory: backend
