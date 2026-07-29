@@ -8,14 +8,15 @@ FROM --platform=linux/amd64 docker.io/library/node:22-alpine AS builder
 WORKDIR /app
 
 # Copy package files
-COPY package.json pnpm-lock.yaml ./
+# pnpm-workspace.yaml is required here too: pnpm 11 reads build-script
+# approvals (allowBuilds) from it, not from package.json's onlyBuiltDependencies.
+# Without it, esbuild's install script is silently ignored and pnpm exits 1.
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 
 # pnpm version must match local dev environment (lockfile was generated with pnpm@11)
 RUN npm install -g pnpm@11.1.2 --quiet
 
 # Install dependencies (build only, no dev dependencies needed in final image)
-# onlyBuiltDependencies in the lockfile settings allows esbuild to run its
-# install script; the setting propagates to all pnpm subprocess calls too.
 RUN pnpm install --no-frozen-lockfile --prod=false
 
 # Copy source code
