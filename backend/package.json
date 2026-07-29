@@ -57,9 +57,9 @@
     "csurf": "^1.11.0",
     "dompurify": "^3.4.12",
     "dotenv": "^16.6.1",
-    "express": "^4.22.1",
-    "express-rate-limit": "^8.5.2",
-    "helmet": "^8.1.0",
+    "express": "^4.22.2",
+    "express-rate-limit": "^8.6.1",
+    "helmet": "^8.3.0",
     "html-entities": "^2.6.0",
     "isomorphic-dompurify": "^2.36.0",
     "jsdom": "^25.0.1",
@@ -69,7 +69,7 @@
     "prom-client": "^15.1.3",
     "socket.io": "^4.8.3",
     "winston": "^3.19.0",
-    "zod": "^4.3.6"
+    "zod": "^4.4.3"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
