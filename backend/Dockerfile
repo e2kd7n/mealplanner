@@ -23,7 +23,7 @@ FROM --platform=linux/amd64 docker.io/library/node:22-alpine AS frontend-builder
 
 WORKDIR /frontend
 
-COPY frontend/package.json frontend/pnpm-lock.yaml ./
+COPY frontend/package.json frontend/pnpm-lock.yaml frontend/pnpm-workspace.yaml ./
 
 RUN npm install -g pnpm@11.1.2 --quiet
 
@@ -53,7 +53,7 @@ RUN apk add --no-cache python3 make g++ gcc
 
 WORKDIR /app
 
-COPY backend/package.json backend/pnpm-lock.yaml ./
+COPY backend/package.json backend/pnpm-lock.yaml backend/pnpm-workspace.yaml ./
 
 RUN npm install -g pnpm@11.1.2 --quiet
 

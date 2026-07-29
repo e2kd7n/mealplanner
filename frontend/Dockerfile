@@ -8,7 +8,7 @@ FROM --platform=linux/amd64 docker.io/library/node:22-alpine AS builder
 WORKDIR /app
 
 # Copy package files
-COPY package.json pnpm-lock.yaml ./
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 
 # pnpm version must match local dev environment (lockfile was generated with pnpm@11)
 RUN npm install -g pnpm@11.1.2 --quiet
