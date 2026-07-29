@@ -8,8 +8,8 @@ from typos or stale label names.
 
 ## Priority Labels
 - `P0-critical` - Critical priority - immediate attention
-- `P1-high` - High priority - next sprint
-- `P2-medium` - Medium priority - backlog
+- `P1-high` - High priority - must complete for the milestone
+- `P2-medium` - Medium priority - should complete for the milestone
 - `P3-low` - Low priority - nice to have
 - `P4-future` - Future consideration
 - `P1` - P1: Required before public release ⚠️ *legacy/duplicate of `P1-high` — same

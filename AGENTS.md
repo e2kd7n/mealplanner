@@ -48,7 +48,7 @@ No equivalent incident has happened here — apply these preventively, not react
 ### Planning & Execution
 - Enter plan mode for ANY non-trivial task (3+ steps or architectural decisions)
 - If something goes sideways, STOP and re-plan immediately - don't keep pushing
-- Plans should be broken into sprintly phases of work
+- Plans should be broken into milestone-aligned phases of work
 - Never mark complete without testing to prove it works
 
 ### Autonomous Problem Solving
@@ -255,6 +255,7 @@ After completing and testing any work tied to an issue:
 - Review and close completed issues
 - Triage unprioritized issues
 - Update ISSUE_PRIORITIES.md
+- Refresh `.bob/github_labels.md` via `gh label list --limit 200` if labels changed
 
 ### Dependencies
 - Check for updates: `npm outdated` in frontend and backend
