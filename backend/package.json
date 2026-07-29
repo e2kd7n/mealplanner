@@ -30,6 +30,7 @@
   ],
   "author": "",
   "license": "PROPRIETARY",
+  "packageManager": "pnpm@11.1.2",
   "pnpm": {
     "onlyBuiltDependencies": [
       "@prisma/client",
