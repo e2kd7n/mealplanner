@@ -1,6 +1,6 @@
 # Issue Prioritization
 
-**Last Updated:** 2026-07-28 23:45:00 UTC
+**Last Updated:** 2026-07-29 02:17:59 UTC / 2026-07-28 21:17:59 CDT
 
 This file reflects the current state of GitHub issues organized by milestone and priority within each milestone.
 
@@ -13,10 +13,10 @@ a new milestone yet — all open issues below are unassigned. The items surfaced
 maintenance run (logs + CI audit) are the most urgent work regardless of milestone.
 
 ### 🔴 P0 - CRITICAL
-- #281 - All 4 ClusterHAT Zero W backend nodes crash-looping (~76k restarts) — Prisma engine built for wrong architecture
+- #281 - All 4 ClusterHAT Zero W backend nodes crash-looping (~76k restarts) — Prisma engine built for wrong architecture. **The fix this issue itself proposes does not work** — see note below.
 
 ### 🔴 P1 - HIGH
-- #286 - nginx resolver still hardcoded to Docker's 127.0.0.11 instead of Podman's 10.89.1.1 — breaks the Pi 4B fallback #281 currently depends on entirely
+- #286 - nginx resolver still hardcoded to Docker's 127.0.0.11 instead of Podman's 10.89.1.1 — breaks the Pi 4B fallback #281 currently depends on entirely. **Fix open in PR #287, unmerged.**
 - #282 - fix: backend/prisma/seed.ts still imports removed 'bcrypt' package, breaks e2e-tests DB seeding
 
 ### 🟡 P2 - MEDIUM
@@ -46,20 +46,43 @@ maintenance run (logs + CI audit) are the most urgent work regardless of milesto
 ### ⚠️ Needs a priority label
 - #261 - perf(e2e): use Playwright storageState to avoid per-test UI login in FTUE suite *(no priority/type labels — triage needed)*
 
-## 🔀 Open PRs (all stalled on CI, see #283/#282/#284 above for root causes)
-- #269 - chore(deps): MUI 7 → 9.1.2 *(open since 2026-07-02)*
-- #268 - chore(deps): Prisma 6 → 7.8.0 *(open since 2026-07-02)*
-- #267 - chore(deps): Express 4 → 5.2.1 *(open since 2026-07-02)*
-- #266 - chore(deps): TypeScript 5 → 6.0.3 *(open since 2026-07-02)*
-- #279 - chore(deps-dev): bump backend dev-deps group (8 updates) *(dependabot, open since 2026-07-27)*
-- #278 - chore(deps-dev): bump frontend dev-deps group (10 updates) *(dependabot, open since 2026-07-27)*
-- #277 - chore(deps): bump frontend prod-deps group (7 updates) *(dependabot, open since 2026-07-27)*
-- #276 - chore(deps): bump backend prod-deps group (3 updates) *(dependabot, open since 2026-07-20)*
+## 🔀 Open PRs
+- #287 - fix(nginx): use Podman aardvark-dns resolver IP (#286) *(opened 2026-07-29, this session)* — clean, targeted one-liner; see investigation note below for why it no longer also carries a #281 fix
+- #269 - chore(deps): MUI 7 → 9.1.2 *(open since 2026-07-02, stalled on CI)*
+- #268 - chore(deps): Prisma 6 → 7.8.0 *(open since 2026-07-02, stalled on CI)* — **worth a look for #281**: this branch's history (commit `a08ea2b`) upgrades to Prisma 7 with a `pg` driver adapter, which would sidestep the native/WASM-engine-binary problem entirely. Bundled with an unrelated major-version bump though — don't merge as-is just to get the adapter change.
+- #267 - chore(deps): Express 4 → 5.2.1 *(open since 2026-07-02, stalled on CI)*
+- #266 - chore(deps): TypeScript 5 → 6.0.3 *(open since 2026-07-02, stalled on CI)*
+- #279 - chore(deps-dev): bump backend dev-deps group (8 updates) *(dependabot, open since 2026-07-27, stalled on CI)*
+- #278 - chore(deps-dev): bump frontend dev-deps group (10 updates) *(dependabot, open since 2026-07-27, stalled on CI)*
+- #277 - chore(deps): bump frontend prod-deps group (7 updates) *(dependabot, open since 2026-07-27, stalled on CI)*
+- #276 - chore(deps): bump backend prod-deps group (3 updates) *(dependabot, open since 2026-07-20, stalled on CI)*
 
-All 8 show at least one red CI check. Root causes are now understood (#282 breaks `e2e-tests`
-for everything; #283 breaks install for Dependabot's own backend PRs specifically) — these
-should largely go green once #282 lands, and the #266/#267/#268/#269 branches likely just need
-a rebase onto main afterward.
+The 8 dependency-bump PRs each show at least one red CI check. Root causes are now understood
+(#282 breaks `e2e-tests` for everything; #283 breaks install for Dependabot's own backend PRs
+specifically) — these should largely go green once #282 lands, and the #266/#267/#268/#269
+branches likely just need a rebase onto main afterward.
+
+### Investigation note — 2026-07-29: #281's proposed fix doesn't work
+Opened PR #287 to fix both #281 and #286 together, then discovered while chasing CI failures on
+that PR that #281's own prescribed fix (add `linux-arm-openssl-3.0.x` to `binaryTargets`) is
+wrong: **Prisma 6.19.3 has no published query-engine binary for that target at all** (confirmed
+404 from `binaries.prisma.sh` for every OpenSSL variant). Adding it doesn't fix the Zero Ws — it
+breaks `prisma generate` everywhere, which is exactly what PR #287's CI caught.
+
+Also tried the `engineType = "wasm"` workaround sitting on orphaned branch `feat/ftue-cleanup-251`
+(commit `953d8d8`, authored 2026-07-01, never merged). Confirmed by actually generating the
+client that this **does not change runtime behavior either** — the generated `index.js` still
+embeds `"engineType": "library"` and would still try to load a missing native ARMv6 binary. That
+orphaned commit's "verified working" status (see [[project_zero_w_deployment]] in memory) looks
+like it was never actually true — #281's ~76k restarts started right around when that commit was
+authored and never stopped.
+
+**Conclusion:** a real fix needs Prisma's driver-adapter architecture (`@prisma/adapter-pg`,
+`previewFeatures = ["driverAdapters"]`, reworking `PrismaClient` instantiation in
+`backend/src/utils/prisma.ts`) — see the #268 note above, which already has this half-built as
+part of an unrelated Prisma 7 upgrade. This is a bigger change to the DB connection path used by
+every deployment target (not just the Zero Ws) and needs real testing before it ships. #281
+remains open and P0; PR #287 now only carries the #286 nginx fix.
 
 ## 📊 Weekly Maintenance Summary — 2026-07-28
 
