@@ -92,7 +92,7 @@ jobs:
 
           echo "Verifying database seed..."
           echo "SELECT COUNT(*) as user_count FROM users; SELECT COUNT(*) as recipe_count FROM recipes;" \
-            | pnpm prisma db execute --stdin --url "$DATABASE_URL"
+            | pnpm prisma db execute --stdin
 
       - name: Start backend server
         working-directory: backend
