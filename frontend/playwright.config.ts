@@ -4,6 +4,7 @@
  */
 
 import { defineConfig, devices } from '@playwright/test';
+import { STORAGE_STATE_PATH } from './e2e/helpers/storage-state';
 
 /**
  * See https://playwright.dev/docs/test-configuration.
@@ -50,21 +51,39 @@ export default defineConfig({
 
   /* Configure projects for major browsers */
   projects: [
-    // Auth tests — run without saved session state (test the login flow itself)
+    // Auth tests — the login UI flow itself is under test here, so this
+    // project intentionally runs without a saved session state (real
+    // per-test login through the form). Low volume (a handful of tests),
+    // so it doesn't meaningfully contribute to authRateLimiter pressure.
     {
       name: 'auth-tests',
-      testMatch: /.*auth.*\.spec\.ts/,
+      testMatch: /.*\/auth\/login\.spec\.ts/,
       use: {
         ...devices['Desktop Chrome'],
       },
     },
 
-    // Authenticated tests — each test authenticates via API in its fixture/beforeEach
+    // Authenticated tests — session is authenticated ONCE in global-setup.ts
+    // and reused via storageState, instead of every test logging in
+    // independently (that per-test login volume is what tripped the
+    // authRateLimiter mid-suite — see issue #299). This also covers
+    // auth/logout.spec.ts: those tests need to START already authenticated
+    // (logging out is what's under test, not logging in), but their
+    // per-test API login is no longer necessary once storageState covers it.
+    // Specs/blocks that need to start unauthenticated despite living under
+    // this project (e.g. the "Unauthenticated" describe in
+    // browse-recipes.spec.ts, or the unauthenticated-page checks in
+    // a11y.spec.ts) opt out locally with
+    // `test.use({ storageState: { cookies: [], origins: [] } })`.
     {
       name: 'authenticated-tests',
-      testMatch: /.*\/(recipes|meal-plan|grocery|pantry|accessibility)\/.*\.spec\.ts/,
+      testMatch: [
+        /.*\/(recipes|meal-plan|grocery|pantry|accessibility)\/.*\.spec\.ts/,
+        /.*\/auth\/logout\.spec\.ts/,
+      ],
       use: {
         ...devices['Desktop Chrome'],
+        storageState: STORAGE_STATE_PATH,
       },
     },
 
