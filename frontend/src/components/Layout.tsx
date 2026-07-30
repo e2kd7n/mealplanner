@@ -43,7 +43,7 @@ import {
 } from '@mui/icons-material';
 import { useThemePreference } from '../contexts/ThemeContext';
 import { useAppDispatch, useAppSelector } from '../store/hooks';
-import { logout } from '../store/slices/authSlice';
+import { logout, getDisplayName } from '../store/slices/authSlice';
 import { fetchExpiringItems, fetchLowStockItems } from '../store/slices/pantrySlice';
 import { fetchGroceryLists } from '../store/slices/groceryListsSlice';
 import BackendStatusBanner from './BackendStatusBanner';
@@ -119,7 +119,7 @@ const Layout: React.FC = () => {
   const groceryUnchecked = activeGroceryList?.items.filter((i) => !i.isChecked).length ?? 0;
 
   // ── Family identity ──────────────────────────────────────────────────────
-  const familyName = user?.name ?? 'Family';
+  const familyName = getDisplayName(user, 'Family');
   const drawerTitle = `${familyName}'s Meal Planner`;
 
   const handleDrawerToggle = () => setMobileOpen(!mobileOpen);
@@ -316,7 +316,7 @@ const Layout: React.FC = () => {
               color="inherit"
             >
               <Avatar sx={{ width: 32, height: 32, bgcolor: 'secondary.main' }}>
-                {user?.name?.charAt(0).toUpperCase() || 'U'}
+                {getDisplayName(user, 'U').charAt(0).toUpperCase()}
               </Avatar>
             </IconButton>
           </Tooltip>
