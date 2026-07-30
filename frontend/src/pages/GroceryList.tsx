@@ -343,7 +343,7 @@ const GroceryList: React.FC = () => {
           <Typography variant="h4">
             Grocery List
           </Typography>
-          <Stack direction="row" spacing={1} flexWrap="wrap">
+          <Stack direction="row" spacing={1} sx={{ flexWrap: 'wrap' }}>
             <Button
               variant="outlined"
               size="small"
@@ -384,7 +384,7 @@ const GroceryList: React.FC = () => {
         {currentList && (
           <Card sx={{ mb: 3, bgcolor: 'primary.main', color: 'primary.contrastText' }}>
             <CardContent>
-              <Stack direction="row" alignItems="center" spacing={2}>
+              <Stack direction="row" spacing={2} sx={{ alignItems: 'center' }}>
                 <ShoppingCartIcon sx={{ fontSize: 40 }} />
                 <Box sx={{ flexGrow: 1 }}>
                   <Typography variant="h6">
@@ -425,7 +425,7 @@ const GroceryList: React.FC = () => {
           </Card>
         ) : (
           /* Grouped Items by Category */
-          <Box>
+          (<Box>
             {CATEGORY_CONFIG.map(categoryConfig => {
               const categoryItems = groupedItems[categoryConfig.key];
               if (!categoryItems || categoryItems.length === 0) return null;
@@ -459,7 +459,7 @@ const GroceryList: React.FC = () => {
                       aria-expanded={isExpanded}
                       aria-label={`${isExpanded ? 'Collapse' : 'Expand'} ${categoryConfig.label} category`}
                     >
-                      <Stack direction="row" spacing={2} alignItems="center">
+                      <Stack direction="row" spacing={2} sx={{ alignItems: 'center' }}>
                         <Avatar sx={{ bgcolor: categoryConfig.color, width: 40, height: 40 }}>
                           <CategoryIcon />
                         </Avatar>
@@ -473,7 +473,7 @@ const GroceryList: React.FC = () => {
                           </Typography>
                         </Box>
                       </Stack>
-                      <Stack direction="row" spacing={1} alignItems="center">
+                      <Stack direction="row" spacing={1} sx={{ alignItems: 'center' }}>
                         <Chip
                           label={`${categoryChecked}/${categoryTotal}`}
                           size="small"
@@ -525,9 +525,7 @@ const GroceryList: React.FC = () => {
                                   checked={item.isChecked}
                                   tabIndex={-1}
                                   disableRipple
-                                  inputProps={{
-                                    'aria-label': `${item.isChecked ? 'Uncheck' : 'Check'} ${item.ingredient.name}`,
-                                  }}
+                                  slotProps={{ input: { 'aria-label': `${item.isChecked ? 'Uncheck' : 'Check'} ${item.ingredient.name}` } }}
                                   sx={{
                                     color: categoryConfig.color,
                                     '&.Mui-checked': {
@@ -553,10 +551,9 @@ const GroceryList: React.FC = () => {
                 </Card>
               );
             })}
-          </Box>
+          </Box>)
         )}
       </Box>
-
       {/* Add Item Dialog (Disabled for now) */}
       <Dialog open={openDialog} onClose={() => setOpenDialog(false)} maxWidth="sm" fullWidth>
         <DialogTitle>Add Grocery Item</DialogTitle>
