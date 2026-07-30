@@ -118,6 +118,12 @@ COPY --from=backend-builder /app/dist ./dist
 # Prisma schema — needed for `prisma migrate deploy` at container startup
 COPY --from=backend-builder /app/prisma ./prisma
 
+# Prisma 7 reads the datasource URL and migration adapter exclusively from
+# this config file (no more `env("DATABASE_URL")` in schema.prisma for CLI
+# commands) — without it, `prisma migrate deploy` fails at container startup
+# with "the datasource.url property is required", crash-looping the container.
+COPY --from=backend-builder /app/prisma.config.ts ./prisma.config.ts
+
 # Regenerate the Prisma client natively for arm64.
 # pnpm prune --prod in stage 2 wipes .prisma/client (a side effect of the prisma
 # devDep), so we re-run generate here on the actual target platform. The prisma
