@@ -5,16 +5,15 @@
 
 import { test, expect } from '@playwright/test';
 import { mockSpoonacularAPI } from '../../mocks/spoonacular.mock';
-import { authenticatePage } from '../../helpers/api-auth';
 
-async function setupAuth(page: import('@playwright/test').Page, baseURL: string | undefined) {
-  const backendURL = (baseURL || 'http://localhost:5173').replace(':5173', ':3000');
-  await authenticatePage(page, backendURL);
-}
+// This file runs under the `authenticated-tests` Playwright project, which
+// supplies a pre-authenticated session via storageState (see
+// playwright.config.ts) — no per-test login is needed here anymore. The
+// "Unauthenticated" describe below opts back out of that shared session
+// since it specifically exercises the logged-out redirect.
 
 test.describe('Browse Recipes', () => {
-  test.beforeEach(async ({ page, baseURL }) => {
-    await setupAuth(page, baseURL);
+  test.beforeEach(async ({ page }) => {
     await mockSpoonacularAPI(page);
     await page.goto('/recipes/browse');
   });
@@ -171,10 +170,6 @@ test.describe('Browse Recipes', () => {
 });
 
 test.describe('Browse Recipes - Add to Box', () => {
-  test.beforeEach(async ({ page, baseURL }) => {
-    await setupAuth(page, baseURL);
-  });
-
   test('should add recipe to box', async ({ page }) => {
     // Mock Spoonacular API
     await mockSpoonacularAPI(page);
@@ -200,6 +195,10 @@ test.describe('Browse Recipes - Add to Box', () => {
 });
 
 test.describe('Browse Recipes - Unauthenticated', () => {
+  // Opt out of the project-level storageState — this test specifically
+  // needs to start with no session.
+  test.use({ storageState: { cookies: [], origins: [] } });
+
   test('should redirect to login when not authenticated', async ({ page }) => {
     // Mock API even for unauthenticated test
     await mockSpoonacularAPI(page);
