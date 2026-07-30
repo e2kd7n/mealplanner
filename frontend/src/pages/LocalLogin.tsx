@@ -59,7 +59,11 @@ const LocalLogin: React.FC = () => {
     visualAuthAPI.deviceLogin()
       .then((res) => {
         const { user, memberName } = res.data;
-        dispatch(setCredentials({ user: { ...user, name: memberName ?? user.name } }));
+        // `memberName` is the selected family member's own name, distinct from the
+        // household `familyName` the backend sends elsewhere on `user`. Track it
+        // separately so personalized UI (sidebar/avatar) can show the member without
+        // clobbering the account's actual family name (see issue #300).
+        dispatch(setCredentials({ user: { ...user, displayName: memberName ?? user.name } }));
         navigate('/dashboard', { replace: true });
       })
       .catch(() => {
@@ -117,7 +121,9 @@ const LocalLogin: React.FC = () => {
     try {
       const res = await visualAuthAPI.visualLogin({ memberId: selectedUser.id, recipeId: imageId });
       const { user, memberName } = res.data;
-      dispatch(setCredentials({ user: { ...user, name: memberName ?? user.name } }));
+      // See comment in the deviceLogin handler above — `displayName` tracks the
+      // individual member, keeping `familyName` (household name) untouched.
+      dispatch(setCredentials({ user: { ...user, displayName: memberName ?? user.name } }));
       const ftueDone = localStorage.getItem(`mealplanner_member_ftue_done_${selectedUser.id}`);
       navigate(ftueDone ? '/dashboard' : '/member-welcome', { replace: true });
     } catch {

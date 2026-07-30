@@ -12,10 +12,28 @@ import { getApiErrorMessage } from '../../utils/errorHandler';
 export interface User {
   id: string;
   email: string;
-  name: string;
+  /** Household/family name, as sent by the backend (`formatUserResponse`). */
+  familyName: string;
+  /**
+   * Individual family member's display name. Client-only — never sent by the
+   * classic login/register/session-bootstrap endpoints. Set by the visual
+   * "member tile" / device login flow (see `LocalLogin.tsx`) so personalized
+   * UI (sidebar brand, avatar initial, FTUE greeting) can show the selected
+   * member's name without overwriting the household `familyName`.
+   */
+  displayName?: string;
   role: string;
   createdAt: string;
   updatedAt: string;
+}
+
+/**
+ * Best available name for personalized UI: prefers the individual family
+ * member's name (set during the member-tile login flow) and falls back to
+ * the household family name, then to the caller-supplied default.
+ */
+export function getDisplayName(user: User | null | undefined, fallback: string): string {
+  return user?.displayName ?? user?.familyName ?? fallback;
 }
 
 interface AuthState {

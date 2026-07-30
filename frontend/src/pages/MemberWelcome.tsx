@@ -15,6 +15,7 @@ import {
   KeyboardArrowLeft,
 } from '@mui/icons-material';
 import { useAppSelector } from '../store/hooks';
+import { getDisplayName } from '../store/slices/authSlice';
 
 const FTUE_KEY_PREFIX = 'mealplanner_member_ftue_done';
 
@@ -29,7 +30,7 @@ interface Slide {
 export default function MemberWelcome() {
   const navigate = useNavigate();
   const theme = useTheme();
-  const userName = useAppSelector((s) => s.auth.user?.name ?? 'there');
+  const userName = useAppSelector((s) => getDisplayName(s.auth.user, 'there'));
   const userId = useAppSelector((s) => s.auth.user?.id);
   const [step, setStep] = useState(0);
 

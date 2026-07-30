@@ -30,6 +30,7 @@ import { useTheme } from '@mui/material/styles';
 import { format, startOfWeek, addDays, isSameDay } from 'date-fns';
 import { useAppDispatch, useAppSelector } from '../store/hooks';
 import { fetchCurrentMealPlan } from '../store/slices/mealPlansSlice';
+import { getDisplayName } from '../store/slices/authSlice';
 import { fetchGroceryLists } from '../store/slices/groceryListsSlice';
 import { fetchExpiringItems, fetchLowStockItems } from '../store/slices/pantrySlice';
 
@@ -372,7 +373,7 @@ const Dashboard: React.FC = () => {
     !profileNudgeDismissed &&
     !!localStorage.getItem('onboardingCompleted');
 
-  const familyName = user?.name ?? 'Family';
+  const familyName = getDisplayName(user, 'Family');
   const greeting = `Good ${getTimeOfDayGreeting()}, ${familyName}`;
 
   const quickActions = [
