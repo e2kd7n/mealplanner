@@ -109,7 +109,9 @@ test.describe('Welcome Screen (/welcome)', () => {
       await screenshot(page, '02-welcome-fresh-install');
 
       // #232 — Test disabled submit button with no explanation
-      const passwordInput = page.getByLabel(/^password$/i);
+      // Not /^password$/i: MUI9 renders the required-field asterisk as literal
+      // label text ("Password *"), which breaks a fully-anchored exact match.
+      const passwordInput = page.getByLabel(/^password/i);
       const submitBtn = page.getByRole('button', { name: /create admin account/i });
 
       if (await passwordInput.isVisible()) {

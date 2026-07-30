@@ -4,7 +4,9 @@
  */
 
 const { PrismaClient } = require('@prisma/client');
-const prisma = new PrismaClient();
+const { PrismaPg } = require('@prisma/adapter-pg');
+const adapter = new PrismaPg({ connectionString: process.env.DATABASE_URL });
+const prisma = new PrismaClient({ adapter });
 
 async function analyzeFeedbackAndLogs() {
   console.log('=== Analyzing User Feedback and System Logs ===\n');

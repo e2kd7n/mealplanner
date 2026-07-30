@@ -242,7 +242,7 @@ const Pantry: React.FC = () => {
           </Card>
         ) : (
           /* Items List */
-          <Card>
+          (<Card>
             <List>
               {filteredItems.map((item, index) => {
                 const isLowStock = item.quantity <= item.minQuantity;
@@ -311,10 +311,9 @@ const Pantry: React.FC = () => {
                 );
               })}
             </List>
-          </Card>
+          </Card>)
         )}
       </Box>
-
       {/* Add/Edit Item Dialog */}
       <Dialog open={openDialog} onClose={() => setOpenDialog(false)} maxWidth="sm" fullWidth>
         <DialogTitle>{editingItem ? 'Edit Item' : 'Add Pantry Item'}</DialogTitle>
@@ -379,7 +378,7 @@ const Pantry: React.FC = () => {
               fullWidth
               value={formData.expirationDate}
               onChange={(e) => setFormData({ ...formData, expirationDate: e.target.value })}
-              InputLabelProps={{ shrink: true }}
+              slotProps={{ inputLabel: { shrink: true } }}
             />
           </Stack>
         </DialogContent>
