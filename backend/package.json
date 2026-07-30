@@ -47,8 +47,8 @@
     }
   },
   "dependencies": {
-    "@prisma/adapter-pg": "^7.8.0",
-    "@prisma/client": "^7.8.0",
+    "@prisma/adapter-pg": "^7.9.1",
+    "@prisma/client": "^7.9.1",
     "@rethora/url-recipe-scraper": "^1.1.0",
     "axios": "^1.19.0",
     "bcryptjs": "^2.4.3",
@@ -90,7 +90,7 @@
     "globals": "^17.8.0",
     "nodemon": "^3.1.14",
     "prettier": "^3.9.6",
-    "prisma": "^7.8.0",
+    "prisma": "^7.9.1",
     "ts-node": "^10.9.2",
     "typescript": "^6.0.3",
     "typescript-eslint": "^8.65.0",
