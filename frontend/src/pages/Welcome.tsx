@@ -137,7 +137,7 @@ const Welcome: React.FC = () => {
 
   if (checking) {
     return (
-      <Box display="flex" justifyContent="center" alignItems="center" minHeight="100vh">
+      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '100vh' }}>
         <CircularProgress />
       </Box>
     );
@@ -157,9 +157,9 @@ const Welcome: React.FC = () => {
       <Container maxWidth="sm">
         <Paper elevation={3} sx={{ p: { xs: 3, sm: 5 }, borderRadius: 3 }}>
           {/* Header */}
-          <Box textAlign="center" mb={4}>
+          <Box sx={{ textAlign: 'center', mb: 4 }}>
             <RestaurantMenuIcon color="primary" sx={{ fontSize: 48, mb: 1 }} />
-            <Typography variant="h4" fontWeight={700} gutterBottom>
+            <Typography variant="h4" sx={{ fontWeight: 700 }} gutterBottom>
               Family Meal Planner
             </Typography>
             <Typography variant="body1" color="text.secondary">
@@ -169,8 +169,8 @@ const Welcome: React.FC = () => {
 
           <Divider sx={{ mb: 4 }} />
 
-          <Stack spacing={1} mb={4}>
-            <Typography variant="h6" fontWeight={600}>
+          <Stack spacing={1} sx={{ mb: 4 }}>
+            <Typography variant="h6" sx={{ fontWeight: 600 }}>
               Create your admin account
             </Typography>
             <Typography variant="body2" color="text.secondary">
@@ -232,19 +232,21 @@ const Welcome: React.FC = () => {
               onChange={(e) => handlePasswordChange(e.target.value)}
               disabled={loading}
               helperText="At least 8 characters with letters, numbers, and symbols"
-              InputProps={{
-                endAdornment: (
-                  <InputAdornment position="end">
-                    <IconButton
-                      onClick={() => setShowPassword((v) => !v)}
-                      onMouseDown={(e) => e.preventDefault()}
-                      edge="end"
-                      disabled={loading}
-                    >
-                      {showPassword ? <VisibilityOff /> : <Visibility />}
-                    </IconButton>
-                  </InputAdornment>
-                ),
+              slotProps={{
+                input: {
+                  endAdornment: (
+                    <InputAdornment position="end">
+                      <IconButton
+                        onClick={() => setShowPassword((v) => !v)}
+                        onMouseDown={(e) => e.preventDefault()}
+                        edge="end"
+                        disabled={loading}
+                      >
+                        {showPassword ? <VisibilityOff /> : <Visibility />}
+                      </IconButton>
+                    </InputAdornment>
+                  ),
+                },
               }}
             />
             {password && (
@@ -288,19 +290,21 @@ const Welcome: React.FC = () => {
                   ? 'Passwords do not match'
                   : 'Re-enter your password to confirm'
               }
-              InputProps={{
-                endAdornment: (
-                  <InputAdornment position="end">
-                    <IconButton
-                      onClick={() => setShowConfirmPassword((v) => !v)}
-                      onMouseDown={(e) => e.preventDefault()}
-                      edge="end"
-                      disabled={loading}
-                    >
-                      {showConfirmPassword ? <VisibilityOff /> : <Visibility />}
-                    </IconButton>
-                  </InputAdornment>
-                ),
+              slotProps={{
+                input: {
+                  endAdornment: (
+                    <InputAdornment position="end">
+                      <IconButton
+                        onClick={() => setShowConfirmPassword((v) => !v)}
+                        onMouseDown={(e) => e.preventDefault()}
+                        edge="end"
+                        disabled={loading}
+                      >
+                        {showConfirmPassword ? <VisibilityOff /> : <Visibility />}
+                      </IconButton>
+                    </InputAdornment>
+                  ),
+                },
               }}
             />
 

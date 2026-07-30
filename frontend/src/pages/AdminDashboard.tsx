@@ -295,7 +295,7 @@ export default function AdminDashboard() {
 
   if (loading && !users.length) {
     return (
-      <Box display="flex" justifyContent="center" alignItems="center" minHeight="80vh">
+      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '80vh' }}>
         <CircularProgress />
       </Box>
     );
@@ -303,7 +303,7 @@ export default function AdminDashboard() {
 
   return (
     <Container maxWidth="xl" sx={{ py: 4 }}>
-      <Box mb={3}>
+      <Box sx={{ mb: 3 }}>
         <Typography variant="h4" gutterBottom>
           Admin Dashboard
         </Typography>
@@ -338,7 +338,7 @@ export default function AdminDashboard() {
 
       {/* System Statistics */}
       {stats && (
-        <Grid container spacing={3} mb={4}>
+        <Grid container spacing={3} sx={{ mb: 4 }}>
           <Grid size={{ xs: 12, sm: 6, md: 2 }}>
             <Card>
               <CardContent>
@@ -408,7 +408,7 @@ export default function AdminDashboard() {
 
       {/* User Management */}
       <Paper sx={{ p: 3 }}>
-        <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
           <Typography variant="h5">User Management</Typography>
           <Button
             startIcon={<RefreshIcon />}
@@ -420,7 +420,7 @@ export default function AdminDashboard() {
         </Box>
 
         {/* Filters */}
-        <Grid container spacing={2} mb={3}>
+        <Grid container spacing={2} sx={{ mb: 3 }}>
           <Grid size={{ xs: 12, md: 6 }}>
             <TextField
               fullWidth
@@ -544,7 +544,7 @@ export default function AdminDashboard() {
         </TableContainer>
 
         {/* Pagination */}
-        <Box display="flex" justifyContent="center" mt={3}>
+        <Box sx={{ display: 'flex', justifyContent: 'center', mt: 3 }}>
           <Pagination
             count={totalPages}
             page={page}
@@ -622,7 +622,7 @@ export default function AdminDashboard() {
           )}
 
           <Paper sx={{ p: 3 }}>
-            <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
+            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
               <Box>
                 <Typography variant="h5" gutterBottom>
                   API Keys
@@ -638,7 +638,7 @@ export default function AdminDashboard() {
             </Box>
 
             {settingsLoading ? (
-              <Box display="flex" justifyContent="center" py={4}>
+              <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
                 <CircularProgress />
               </Box>
             ) : (
@@ -655,7 +655,7 @@ export default function AdminDashboard() {
                   {settings.map((setting) => (
                     <TableRow key={setting.key}>
                       <TableCell>
-                        <Typography fontWeight={500}>
+                        <Typography sx={{ fontWeight: 500 }}>
                           {SETTING_LABELS[setting.key] ?? setting.key}
                         </Typography>
                       </TableCell>
@@ -724,18 +724,20 @@ export default function AdminDashboard() {
                 }}
                 type={showEditValue ? 'text' : 'password'}
                 placeholder="Paste new key here"
-                InputProps={{
-                  endAdornment: (
-                    <InputAdornment position="end">
-                      <IconButton onClick={() => setShowEditValue((v) => !v)} edge="end">
-                        {showEditValue ? <VisibilityOff /> : <Visibility />}
-                      </IconButton>
-                    </InputAdornment>
-                  ),
+                slotProps={{
+                  input: {
+                    endAdornment: (
+                      <InputAdornment position="end">
+                        <IconButton onClick={() => setShowEditValue((v) => !v)} edge="end">
+                          {showEditValue ? <VisibilityOff /> : <Visibility />}
+                        </IconButton>
+                      </InputAdornment>
+                    ),
+                  },
                 }}
               />
               {editingKey === 'spoonacular_api_key' && (
-                <Box mt={1}>
+                <Box sx={{ mt: 1 }}>
                   <Button
                     size="small"
                     variant="outlined"
