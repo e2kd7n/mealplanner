@@ -27,13 +27,16 @@ declare global {
   var __prisma: PrismaClient | undefined;
 }
 
-// Prisma 7 uses a driver adapter instead of a datasource URL in the schema.
-// Connection pool settings are configured via DATABASE_URL query parameters:
-// - connection_limit: Maximum number of connections in the pool (default: num_cpus * 2 + 1)
-// - pool_timeout: Seconds to wait for a connection from the pool (default: 10)
-// Example: postgresql://user:pass@host:5432/db?connection_limit=10&pool_timeout=30
+// Driver-adapter Prisma configuration: the client talks to Postgres through
+// the `pg` driver instead of Prisma's own native query-engine binary, which
+// has no published build for the ClusterHAT Zero W's 32-bit ARMv6 (#281).
+// Pool sizing is now controlled by pg.Pool options (max/idleTimeoutMillis),
+// not the old `?connection_limit=&pool_timeout=` DATABASE_URL query params.
 function makePrisma(): PrismaClient {
-  const adapter = new PrismaPg({ connectionString: process.env.DATABASE_URL });
+  const adapter = new PrismaPg({
+    connectionString: process.env.DATABASE_URL,
+    max: 10,
+  });
   return new PrismaClient({
     adapter,
     log: (process.env.NODE_ENV === 'production'
