@@ -122,7 +122,7 @@ export default function MemberWelcome() {
         }}
       >
         <Box sx={{ opacity: 0.9 }}>{current.icon}</Box>
-        <Typography variant="h4" fontWeight={700} lineHeight={1.2}>
+        <Typography variant="h4" sx={{ fontWeight: 700, lineHeight: 1.2 }}>
           {current.heading}
         </Typography>
         <Typography variant="body1" sx={{ opacity: 0.85, fontSize: '1.1rem', lineHeight: 1.6 }}>

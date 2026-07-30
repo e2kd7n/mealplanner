@@ -121,8 +121,8 @@ ${JSON.stringify(errorData.error.details || {}, null, 2)}
       aria-labelledby="error-report-dialog-title"
     >
       <DialogTitle id="error-report-dialog-title">
-        <Box display="flex" alignItems="center" justifyContent="space-between">
-          <Box display="flex" alignItems="center" gap={1}>
+        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
             <BugIcon color="error" />
             <Typography variant="h6">Report Error</Typography>
           </Box>
@@ -183,9 +183,7 @@ ${JSON.stringify(errorData.error.details || {}, null, 2)}
               placeholder="Please describe what you were doing when this error occurred..."
               disabled={submitting}
               fullWidth
-              inputProps={{
-                maxLength: 1000,
-              }}
+              slotProps={{ htmlInput: { maxLength: 1000 } }}
               helperText={`${additionalInfo.length}/1000 characters`}
             />
 
