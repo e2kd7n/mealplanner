@@ -14,11 +14,13 @@
  */
 
 import { PrismaClient, Difficulty, MealType, RecipeSource } from '@prisma/client';
+import { PrismaPg } from '@prisma/adapter-pg';
 import axios from 'axios';
 import * as fs from 'fs';
 import * as path from 'path';
 
-const prisma = new PrismaClient();
+const adapter = new PrismaPg({ connectionString: process.env.DATABASE_URL });
+const prisma = new PrismaClient({ adapter });
 
 // Path to the shared data/images directory (two levels up from backend/prisma/)
 const IMAGES_DIR = path.join(__dirname, '../../data/images');
