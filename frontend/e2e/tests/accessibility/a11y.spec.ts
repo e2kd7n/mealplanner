@@ -1,4 +1,4 @@
-import { test } from '../../fixtures/auth.fixture';
+import { test, expect } from '../../fixtures/auth.fixture';
 import AxeBuilder from '@axe-core/playwright';
 
 // Violations to skip across all pages — known third-party component issues
@@ -26,6 +26,11 @@ async function checkA11y(
 }
 
 test.describe('Accessibility — unauthenticated pages', () => {
+  // This project (authenticated-tests) supplies a pre-authenticated session
+  // via storageState by default — opt out here since these checks
+  // specifically target the logged-out /login page.
+  test.use({ storageState: { cookies: [], origins: [] } });
+
   test('login page has no WCAG violations', async ({ page }) => {
     await page.goto('/login');
     await page.waitForLoadState('networkidle');
@@ -83,17 +88,23 @@ test.describe('Accessibility — authenticated pages', () => {
 });
 
 test.describe('Keyboard navigation', () => {
-  test('login form is keyboard navigable', async ({ page }) => {
-    await page.goto('/login');
-    await page.waitForLoadState('networkidle');
+  test.describe('unauthenticated', () => {
+    // Opt out of the shared session — the login form itself must be
+    // reachable unauthenticated for this check to be meaningful.
+    test.use({ storageState: { cookies: [], origins: [] } });
 
-    await page.keyboard.press('Tab');
-    const emailInput = page.locator('input[type="email"], input[name="email"]').first();
-    await expect(emailInput).toBeFocused();
+    test('login form is keyboard navigable', async ({ page }) => {
+      await page.goto('/login');
+      await page.waitForLoadState('networkidle');
 
-    await page.keyboard.press('Tab');
-    const passwordInput = page.locator('input[type="password"]').first();
-    await expect(passwordInput).toBeFocused();
+      await page.keyboard.press('Tab');
+      const emailInput = page.locator('input[type="email"], input[name="email"]').first();
+      await expect(emailInput).toBeFocused();
+
+      await page.keyboard.press('Tab');
+      const passwordInput = page.locator('input[type="password"]').first();
+      await expect(passwordInput).toBeFocused();
+    });
   });
 
   test('navigation links receive focus', async ({ authenticatedPage }) => {
