@@ -125,7 +125,7 @@ const BrowseRecipeCard = memo(({ recipe, onAddToBox, onViewDetails, isAdded }: B
         <Typography variant="h6" gutterBottom noWrap>
           {recipe.title}
         </Typography>
-        <Stack direction="row" spacing={1} flexWrap="wrap" gap={1} sx={{ mb: 1 }}>
+        <Stack direction="row" spacing={1} sx={{ flexWrap: 'wrap', gap: 1, mb: 1 }}>
           {recipe.readyInMinutes && (
             <Tooltip title={`Ready in ${recipe.readyInMinutes} minutes`} arrow>
               <Chip
@@ -434,7 +434,7 @@ const BrowseRecipes: React.FC = () => {
     <Container maxWidth="xl" sx={{ py: 4 }}>
       {/* Header */}
       <Box sx={{ mb: 4 }}>
-        <Stack direction="row" alignItems="center" spacing={2} sx={{ mb: 2 }}>
+        <Stack direction="row" spacing={2} sx={{ alignItems: 'center', mb: 2 }}>
           <ExploreIcon sx={{ fontSize: 40, color: 'primary.main' }} />
           <Typography variant="h4" component="h1">
             Browse Recipes
@@ -454,29 +454,29 @@ const BrowseRecipes: React.FC = () => {
               onChange={handleSearchChange}
               onFocus={handleSearchFocus}
               inputRef={searchInputRef}
-              InputProps={{
-                startAdornment: (
-                  <InputAdornment position="start">
-                    <SearchIcon />
-                  </InputAdornment>
-                ),
-              }}
               autoComplete="off"
-              inputProps={{
-                'aria-label': 'Search recipes with natural language',
-                'aria-describedby': 'search-help-text',
-                'aria-expanded': showSuggestions,
-                'aria-autocomplete': 'list',
-                'aria-controls': showSuggestions ? 'search-suggestions' : undefined,
+              slotProps={{
+                input: {
+                  startAdornment: (
+                    <InputAdornment position="start">
+                      <SearchIcon />
+                    </InputAdornment>
+                  ),
+                },
+                htmlInput: {
+                  'aria-label': 'Search recipes with natural language',
+                  'aria-describedby': 'search-help-text',
+                  'aria-expanded': showSuggestions,
+                  'aria-autocomplete': 'list',
+                  'aria-controls': showSuggestions ? 'search-suggestions' : undefined,
+                },
+                formHelperText: { id: 'search-help-text' },
               }}
               helperText={
                 parsedQueryInfo
                   ? `Press Ctrl+K to focus • Use ↑↓ to navigate • ${parsedQueryInfo}`
                   : "Press Ctrl+K to focus • Use ↑↓ to navigate suggestions • Enter to select"
               }
-              FormHelperTextProps={{
-                id: 'search-help-text',
-              }}
             />
             {showSuggestions && suggestions.length > 0 && (
               <SearchSuggestions
@@ -491,7 +491,7 @@ const BrowseRecipes: React.FC = () => {
 
         {/* D2-2 FIX: Enhanced filters section with visual indicators */}
         <Box sx={{ mb: 3 }}>
-          <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 2 }}>
+          <Stack direction="row" spacing={1} sx={{ alignItems: 'center', mb: 2 }}>
             <Badge badgeContent={activeFilterCount} color="primary">
               <FilterListIcon color={hasActiveFilters ? "primary" : "action"} />
             </Badge>
@@ -507,7 +507,7 @@ const BrowseRecipes: React.FC = () => {
           
           {/* Active Filter Chips */}
           {hasActiveFilters && (
-            <Stack direction="row" spacing={1} flexWrap="wrap" gap={1} sx={{ mb: 2 }}>
+            <Stack direction="row" spacing={1} sx={{ flexWrap: 'wrap', gap: 1, mb: 2 }}>
               {cuisine && (
                 <Chip
                   label={`Cuisine: ${cuisine}`}
@@ -551,7 +551,7 @@ const BrowseRecipes: React.FC = () => {
             </Stack>
           )}
           
-          <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} flexWrap="wrap">
+          <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} sx={{ flexWrap: 'wrap' }}>
             <FormControl sx={{ minWidth: 150 }}>
               <InputLabel>Cuisine</InputLabel>
               <Select value={cuisine} label="Cuisine" onChange={(e) => setCuisine(e.target.value)}>

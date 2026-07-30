@@ -95,7 +95,7 @@ const QuickRecipeCard: React.FC<RecipeCardProps> = ({ recipe, onAdd, onView, isA
         <Typography variant="h6" gutterBottom noWrap sx={{ fontSize: '1rem' }}>
           {recipe.title}
         </Typography>
-        <Stack direction="row" spacing={1} flexWrap="wrap" gap={0.5}>
+        <Stack direction="row" spacing={1} sx={{ flexWrap: 'wrap', gap: 0.5 }}>
           {recipe.readyInMinutes && (
             <Chip
               icon={<TimeIcon />}
@@ -222,7 +222,7 @@ const RecipeDiscoveryEmptyState: React.FC = () => {
           Start building your personalized recipe collection. Browse thousands of recipes, 
           import from your favorite sites, or create your own from scratch.
         </Typography>
-        <Stack direction="row" spacing={2} justifyContent="center" flexWrap="wrap" gap={2}>
+        <Stack direction="row" spacing={2} sx={{ justifyContent: 'center', flexWrap: 'wrap', gap: 2 }}>
           <Button
             variant="contained"
             size="large"

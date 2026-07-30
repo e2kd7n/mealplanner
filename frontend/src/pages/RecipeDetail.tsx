@@ -384,7 +384,7 @@ const RecipeDetail: React.FC = () => {
               <Typography variant="h3" gutterBottom>
                 {recipe.title}
               </Typography>
-              <Stack direction="row" spacing={1} flexWrap="wrap" gap={1}>
+              <Stack direction="row" spacing={1} sx={{ flexWrap: 'wrap', gap: 1 }}>
                 <Chip
                   label={recipe.difficulty}
                   color={getDifficultyColor(recipe.difficulty)}
@@ -541,13 +541,13 @@ const RecipeDetail: React.FC = () => {
                       setScaledServings(1);
                     }
                   }}
-                  inputProps={{
+                  slotProps={{ htmlInput: {
                     min: 1,
                     max: 99,
                     'aria-label': 'Number of servings',
                     style: { textAlign: 'center', padding: '4px 8px' },
                     onFocus: (e: React.FocusEvent<HTMLInputElement>) => e.target.select(),
-                  }}
+                  } }}
                   sx={{
                     width: '60px',
                     '& input': { fontWeight: 600 }
@@ -737,7 +737,7 @@ const RecipeDetail: React.FC = () => {
                 value={mealDate}
                 onChange={(e) => setMealDate(e.target.value)}
                 fullWidth
-                InputLabelProps={{ shrink: true }}
+                slotProps={{ inputLabel: { shrink: true } }}
               />
 
               <FormControl fullWidth>
@@ -760,7 +760,7 @@ const RecipeDetail: React.FC = () => {
                 value={mealServings}
                 onChange={(e) => setMealServings(parseInt(e.target.value) || 1)}
                 fullWidth
-                inputProps={{ min: 1, max: 20 }}
+                slotProps={{ htmlInput: { min: 1, max: 20 } }}
               />
             </Stack>
           )}

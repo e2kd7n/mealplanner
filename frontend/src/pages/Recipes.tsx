@@ -132,7 +132,7 @@ const RecipeCard = memo(({ recipe, onNavigate }: RecipeCardProps) => {
         >
           {recipe.description || 'No description available'}
         </Typography>
-        <Stack direction="row" spacing={1} flexWrap="wrap" gap={1}>
+        <Stack direction="row" spacing={1} sx={{ flexWrap: 'wrap', gap: 1 }}>
           <Tooltip title={`Difficulty: ${recipe.difficulty}`} arrow>
             <Chip label={recipe.difficulty} size="small" color={getDifficultyColor(recipe.difficulty)} />
           </Tooltip>
@@ -320,29 +320,31 @@ const Recipes: React.FC = () => {
           {/* Search + Filters */}
           <Box sx={{ mb: 2 }}>
             {/* Row 1: Search + Filters button + Sort */}
-            <Stack direction="row" spacing={1} alignItems="center">
+            <Stack direction="row" spacing={1} sx={{ alignItems: 'center' }}>
               <TextField
                 fullWidth
                 placeholder="Search my recipes..."
                 value={searchInput}
                 onChange={(e) => handleSearchInput(e.target.value)}
-                InputProps={{
-                  startAdornment: (
-                    <InputAdornment position="start">
-                      <SearchIcon />
-                    </InputAdornment>
-                  ),
-                  endAdornment: searchInput ? (
-                    <InputAdornment position="end">
-                      <IconButton
-                        size="small"
-                        onClick={() => { handleSearchInput(''); setCurrentPage(1); }}
-                        aria-label="Clear search"
-                      >
-                        <ClearIcon fontSize="small" />
-                      </IconButton>
-                    </InputAdornment>
-                  ) : null,
+                slotProps={{
+                  input: {
+                    startAdornment: (
+                      <InputAdornment position="start">
+                        <SearchIcon />
+                      </InputAdornment>
+                    ),
+                    endAdornment: searchInput ? (
+                      <InputAdornment position="end">
+                        <IconButton
+                          size="small"
+                          onClick={() => { handleSearchInput(''); setCurrentPage(1); }}
+                          aria-label="Clear search"
+                        >
+                          <ClearIcon fontSize="small" />
+                        </IconButton>
+                      </InputAdornment>
+                    ) : null,
+                  },
                 }}
                 aria-label="Search my recipes"
               />

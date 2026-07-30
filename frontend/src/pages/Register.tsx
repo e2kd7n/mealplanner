@@ -206,20 +206,22 @@ const Register: React.FC = () => {
               onChange={(e) => handlePasswordChange(e.target.value)}
               disabled={loading}
               helperText="At least 8 characters with mix of letters, numbers, and symbols"
-              InputProps={{
-                endAdornment: (
-                  <InputAdornment position="end">
-                    <IconButton
-                      aria-label="toggle password visibility"
-                      onClick={togglePasswordVisibility}
-                      onMouseDown={(e) => e.preventDefault()}
-                      edge="end"
-                      disabled={loading}
-                    >
-                      {showPassword ? <VisibilityOff /> : <Visibility />}
-                    </IconButton>
-                  </InputAdornment>
-                ),
+              slotProps={{
+                input: {
+                  endAdornment: (
+                    <InputAdornment position="end">
+                      <IconButton
+                        aria-label="toggle password visibility"
+                        onClick={togglePasswordVisibility}
+                        onMouseDown={(e) => e.preventDefault()}
+                        edge="end"
+                        disabled={loading}
+                      >
+                        {showPassword ? <VisibilityOff /> : <Visibility />}
+                      </IconButton>
+                    </InputAdornment>
+                  ),
+                },
               }}
             />
             {password && (
@@ -258,20 +260,22 @@ const Register: React.FC = () => {
                   ? 'Passwords do not match'
                   : 'Re-enter your password to confirm'
               }
-              InputProps={{
-                endAdornment: (
-                  <InputAdornment position="end">
-                    <IconButton
-                      aria-label="toggle confirm password visibility"
-                      onClick={toggleConfirmPasswordVisibility}
-                      onMouseDown={(e) => e.preventDefault()}
-                      edge="end"
-                      disabled={loading}
-                    >
-                      {showConfirmPassword ? <VisibilityOff /> : <Visibility />}
-                    </IconButton>
-                  </InputAdornment>
-                ),
+              slotProps={{
+                input: {
+                  endAdornment: (
+                    <InputAdornment position="end">
+                      <IconButton
+                        aria-label="toggle confirm password visibility"
+                        onClick={toggleConfirmPasswordVisibility}
+                        onMouseDown={(e) => e.preventDefault()}
+                        edge="end"
+                        disabled={loading}
+                      >
+                        {showConfirmPassword ? <VisibilityOff /> : <Visibility />}
+                      </IconButton>
+                    </InputAdornment>
+                  ),
+                },
               }}
             />
             <Button

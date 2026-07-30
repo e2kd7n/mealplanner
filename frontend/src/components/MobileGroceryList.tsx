@@ -184,11 +184,7 @@ const MobileGroceryList: React.FC<MobileGroceryListProps> = ({
                             minWidth: 44,
                             minHeight: 44,
                           }}
-                          inputProps={{
-                            'aria-label': `Mark ${item.name} as ${
-                              item.checked ? 'unchecked' : 'checked'
-                            }`,
-                          }}
+                          slotProps={{ input: { 'aria-label': `Mark ${item.name} as ${item.checked ? 'unchecked' : 'checked'}` } }}
                         />
                       </Box>
                     }

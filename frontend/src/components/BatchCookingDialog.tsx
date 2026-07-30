@@ -119,8 +119,8 @@ const BatchCookingDialog: React.FC<BatchCookingDialogProps> = ({
   return (
     <Dialog open={open} onClose={handleClose} maxWidth="md" fullWidth>
       <DialogTitle>
-        <Box display="flex" alignItems="center" justifyContent="space-between">
-          <Box display="flex" alignItems="center" gap={1}>
+        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
             <ContentCopyIcon color="primary" />
             <Typography variant="h6">Batch Cook: {meal.recipeName}</Typography>
           </Box>
@@ -142,7 +142,7 @@ const BatchCookingDialog: React.FC<BatchCookingDialogProps> = ({
             <Typography variant="subtitle2" color="text.secondary" gutterBottom>
               Original Meal
             </Typography>
-            <Box display="flex" gap={1} flexWrap="wrap">
+            <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
               <Chip
                 icon={<CalendarIcon />}
                 label={format(originalMealDate, 'EEE, MMM d')}
@@ -170,7 +170,7 @@ const BatchCookingDialog: React.FC<BatchCookingDialogProps> = ({
               type="number"
               value={servingsMultiplier}
               onChange={(e) => setServingsMultiplier(Math.max(1, parseInt(e.target.value) || 1))}
-              inputProps={{ min: 1, max: 10, step: 0.5, onFocus: (e: React.FocusEvent<HTMLInputElement>) => e.target.select() }}
+              slotProps={{ htmlInput: { min: 1, max: 10, step: 0.5, onFocus: (e: React.FocusEvent<HTMLInputElement>) => e.target.select() } }}
               size="small"
               sx={{ width: 150 }}
               helperText={`${meal.servings} × ${servingsMultiplier} = ${meal.servings * servingsMultiplier} servings per meal`}
@@ -179,7 +179,7 @@ const BatchCookingDialog: React.FC<BatchCookingDialogProps> = ({
 
           {/* Date Selection */}
           <Box>
-            <Box display="flex" justifyContent="space-between" alignItems="center" mb={1}>
+            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
               <Typography variant="subtitle2">
                 Select Days to Schedule ({selectedDates.length} selected)
               </Typography>
@@ -187,7 +187,7 @@ const BatchCookingDialog: React.FC<BatchCookingDialogProps> = ({
                 {selectedDates.length === availableDates.length ? 'Deselect All' : 'Select All'}
               </Button>
             </Box>
-            <Box display="flex" flexWrap="wrap" gap={1}>
+            <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
               {availableDates.map((date) => {
                 const isSelected = selectedDates.some((d) => isSameDay(d, date));
                 const isOriginal = isSameDay(date, originalMealDate);

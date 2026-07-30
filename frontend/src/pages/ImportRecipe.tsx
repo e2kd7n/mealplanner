@@ -131,7 +131,7 @@ export default function ImportRecipe() {
       <Typography variant="h4" gutterBottom>
         Import Recipe from URL
       </Typography>
-      <Typography variant="body1" color="text.secondary" paragraph>
+      <Typography variant="body1" color="text.secondary" sx={{ mb: 2 }}>
         Enter a recipe URL to automatically import the recipe details
       </Typography>
 
@@ -146,8 +146,8 @@ export default function ImportRecipe() {
             disabled={loading || !!parsedRecipe}
             error={!!error && !parsedRecipe}
             helperText={error && !parsedRecipe ? error : 'Paste a link to a recipe from any website'}
-            InputProps={{
-              startAdornment: <LinkIcon sx={{ mr: 1, color: 'text.secondary' }} />,
+            slotProps={{
+              input: { startAdornment: <LinkIcon sx={{ mr: 1, color: 'text.secondary' }} /> },
             }}
           />
           <Button
@@ -229,7 +229,7 @@ export default function ImportRecipe() {
               <Typography variant="h6" gutterBottom>
                 {parsedRecipe.title}
               </Typography>
-              <Typography variant="body2" color="text.secondary" paragraph>
+              <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
                 {parsedRecipe.description}
               </Typography>
 

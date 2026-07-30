@@ -6,7 +6,7 @@
 import React, { useState } from 'react';
 import { Fab, Tooltip, useTheme, useMediaQuery, Box, Snackbar, Alert } from '@mui/material';
 import type { SnackbarCloseReason } from '@mui/material';
-import { ChatBubbleOutline as FeedbackIcon } from '@mui/icons-material';
+import { ChatBubbleOutlined as FeedbackIcon } from '@mui/icons-material';
 import FeedbackDialog from './FeedbackDialog';
 
 const FeedbackButton: React.FC = () => {
