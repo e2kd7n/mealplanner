@@ -71,35 +71,42 @@ deploy_to_zero() {
     ssh $ssh_opts "${ZERO_USER}@${ip}" \
         'sudo mkdir -p /opt/mealplanner && sudo chown "$(id -u):$(id -g)" /opt/mealplanner'
 
-    # Sync compiled backend + prisma schema + package manifest
+    # Sync compiled backend + prisma schema + package manifests. pnpm-lock.yaml
+    # and pnpm-workspace.yaml replace package-lock.json (see #288) — this is
+    # the same install path the backend Docker build already uses, and it
+    # picks up pnpm-workspace.yaml's onlyBuiltDependencies allowlist so
+    # Prisma's own postinstall (and backend/package.json's root-level
+    # "postinstall": "prisma generate", added for #284) run automatically.
     echo -e "    Syncing backend to p${slot}..."
     rsync -az --delete \
         backend/dist/ "${ZERO_USER}@${ip}:/opt/mealplanner/dist/"
     rsync -az \
         backend/prisma/ "${ZERO_USER}@${ip}:/opt/mealplanner/prisma/"
     rsync -az \
-        backend/package.json "${ZERO_USER}@${ip}:/opt/mealplanner/"
-    # Include lockfile if present (enables npm ci)
-    if [ -f backend/package-lock.json ]; then
-        rsync -az backend/package-lock.json "${ZERO_USER}@${ip}:/opt/mealplanner/"
-    fi
+        backend/package.json backend/pnpm-lock.yaml backend/pnpm-workspace.yaml \
+        "${ZERO_USER}@${ip}:/opt/mealplanner/"
 
-    # Install production dependencies directly on the Zero W so npm fetches
-    # the correct armhf native binaries (Prisma, bufferutil, etc.)
-    echo -e "    ${YELLOW}Installing production deps on p${slot} (slow on first run)...${NC}"
-    if ssh $ssh_opts "${ZERO_USER}@${ip}" 'test -f /opt/mealplanner/package-lock.json' 2>/dev/null; then
-        ssh $ssh_opts "${ZERO_USER}@${ip}" \
-            'cd /opt/mealplanner && npm ci --production --no-audit --no-fund 2>&1 | tail -5'
-    else
-        ssh $ssh_opts "${ZERO_USER}@${ip}" \
-            'cd /opt/mealplanner && npm install --production --no-audit --no-fund 2>&1 | tail -5'
-    fi
-
-    # Regenerate Prisma query engine for linux-arm-openssl (armhf)
-    echo -e "    Generating Prisma client for armhf on p${slot}..."
+    # Ensure pnpm is available on the Zero W via corepack (bundled with
+    # Node since v16.9). Pin matches backend/package.json's "packageManager"
+    # field and backend/Dockerfile's pnpm install — keep all three in sync.
+    # shellcheck disable=SC2029
     ssh $ssh_opts "${ZERO_USER}@${ip}" \
-        'cd /opt/mealplanner && npx prisma generate 2>&1 | tail -3' \
-        || echo -e "    ${YELLOW}⚠  Prisma generate failed on p${slot} — check internet access${NC}"
+        'command -v pnpm >/dev/null 2>&1 || (sudo corepack enable && sudo corepack prepare pnpm@11.1.2 --activate)'
+
+    # Install deps directly on the Zero W so pnpm fetches the correct armhf
+    # native binaries (Prisma engine, etc.). Deliberately NOT --prod: the
+    # "prisma" CLI itself is a devDependency, and the root postinstall hook
+    # (prisma generate) needs it present to produce the armv6l query engine.
+    # Also deliberately not followed by `pnpm prune --prod` — pruning is
+    # known to wipe the generated .prisma/client as a side effect (see
+    # backend/Dockerfile's production-stage comment on the same issue),
+    # which would just reintroduce a manual regenerate step. `set -o
+    # pipefail` ensures a failed install actually fails this SSH command
+    # (and thus the script's `set -e`) instead of the exit status coming
+    # from `tail` — see #288.
+    echo -e "    ${YELLOW}Installing deps on p${slot} (slow on first run)...${NC}"
+    ssh $ssh_opts "${ZERO_USER}@${ip}" \
+        'set -o pipefail; cd /opt/mealplanner && pnpm install --frozen-lockfile 2>&1 | tail -5'
 
     # Write .env via a local temp file so secrets never appear in argv/SSH args
     local tmp_env
