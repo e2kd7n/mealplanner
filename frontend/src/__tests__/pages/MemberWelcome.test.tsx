@@ -26,7 +26,7 @@ function createStore(authState = {}) {
     } as any,
     preloadedState: {
       auth: {
-        user: { id: 'user-1', email: 'a@b.com', name: 'Tracy', role: 'user' },
+        user: { id: 'user-1', email: 'a@b.com', familyName: 'Smith', displayName: 'Tracy', role: 'user' },
         isAuthenticated: true,
         loading: false,
         error: null,
