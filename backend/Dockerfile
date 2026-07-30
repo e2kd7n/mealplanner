@@ -74,6 +74,13 @@ COPY backend/package.json backend/pnpm-lock.yaml backend/pnpm-workspace.yaml ./
 # release with different build-script enforcement behavior (see #290).
 RUN npm install -g pnpm@11.1.2 --quiet
 
+# package.json's postinstall runs `prisma generate`, which needs the schema
+# and config present *before* `pnpm install` executes it — copy them ahead
+# of the install step or postinstall fails with "schema.prisma: file not
+# found" even though both files exist later in the build context.
+COPY backend/prisma ./prisma
+COPY backend/prisma.config.ts ./prisma.config.ts
+
 RUN pnpm install --no-frozen-lockfile
 
 COPY backend .
@@ -84,9 +91,14 @@ ENV PRISMA_ENGINES_CHECKSUM_IGNORE_MISSING=1
 ENV DATABASE_URL="postgresql://dummy:dummy@localhost:5432/dummy"
 
 # Generate Prisma client, compile TypeScript, strip devDeps.
+# --ignore-scripts on prune: pruning removes the `prisma` devDependency
+# itself, and pnpm re-fires the root package.json's postinstall
+# (`prisma generate`) as part of that lifecycle — failing with "prisma:
+# not found" since the binary was just pruned. The client is already
+# generated above, so lifecycle scripts aren't needed here.
 RUN pnpm prisma generate && \
     pnpm build && \
-    pnpm prune --prod && \
+    pnpm prune --prod --ignore-scripts && \
     pnpm store prune && \
     rm -rf /root/.local/share/pnpm/store /tmp/* /root/.cache /root/.npm
 
