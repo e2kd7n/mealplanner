@@ -21,7 +21,9 @@ export class LoginPage {
   constructor(page: Page) {
     this.page = page;
     this.emailInput = page.getByLabel(/email/i);
-    this.passwordInput = page.getByLabel('Password', { exact: true });
+    // Not getByLabel('Password', { exact: true }): MUI9 renders the required-field
+    // asterisk as literal label text ("Password *"), which breaks exact matching.
+    this.passwordInput = page.locator('#password');
     this.loginButton = page.getByRole('button', { name: /sign in/i });
     this.errorMessage = page.getByRole('alert');
     this.registerLink = page.getByRole('link', { name: /don't have an account\? sign up/i });

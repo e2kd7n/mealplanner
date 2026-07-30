@@ -9,10 +9,11 @@
 # Stages 1 and 2 run on the native amd64 GitHub runner (no QEMU). Stage 3
 # inherits the target platform from `docker buildx --platform linux/arm64`.
 #
-# pnpm@11 blocks build scripts by default. onlyBuiltDependencies in the lockfile
-# settings section explicitly approves the packages that need native compilation
-# or postinstall hooks (bcrypt, Prisma). This setting is read by every pnpm
-# invocation including subprocess calls from prisma generate.
+# pnpm@10+ blocks build scripts by default. allowBuilds in pnpm-workspace.yaml
+# explicitly approves the packages that need native compilation or postinstall
+# hooks (Prisma). This setting is read by every pnpm invocation including
+# subprocess calls from prisma generate — but only if pnpm-workspace.yaml is
+# actually present in the build context (see the COPY steps below, #290).
 
 # ============================================================================
 # STAGE 1/3: Frontend Builder  [BUILD ARCH: amd64]
@@ -23,9 +24,17 @@ FROM --platform=linux/amd64 docker.io/library/node:22-alpine AS frontend-builder
 
 WORKDIR /frontend
 
-COPY frontend/package.json frontend/pnpm-lock.yaml ./
+# pnpm-workspace.yaml carries the allowBuilds allow-list (pnpm 10+ requires
+# explicit build-script approval and treats a missing approval as a hard
+# error with no TTY to prompt in); omitting it from the build context fails
+# `pnpm install` with ERR_PNPM_IGNORED_BUILDS even though esbuild is
+# allow-listed in package.json (see #290).
+COPY frontend/package.json frontend/pnpm-lock.yaml frontend/pnpm-workspace.yaml ./
 
-RUN npm install -g pnpm@10 --quiet
+# Version pinned to match packageManager in frontend/package.json — a
+# floating major tag (pnpm@10) can silently re-resolve to a newer patch
+# release with different build-script enforcement behavior (see #290).
+RUN npm install -g pnpm@11.1.2 --quiet
 
 RUN pnpm install --no-frozen-lockfile --prod=false
 
@@ -53,12 +62,18 @@ RUN apk add --no-cache python3 make g++ gcc
 
 WORKDIR /app
 
-COPY backend/package.json backend/pnpm-lock.yaml ./
+# pnpm-workspace.yaml carries the allowBuilds allow-list (pnpm 10+ requires
+# explicit build-script approval and treats a missing approval as a hard
+# error with no TTY to prompt in); omitting it from the build context fails
+# `pnpm install` with ERR_PNPM_IGNORED_BUILDS even though Prisma is
+# allow-listed in package.json (see #290).
+COPY backend/package.json backend/pnpm-lock.yaml backend/pnpm-workspace.yaml ./
 
-RUN npm install -g pnpm@10 --quiet
+# Version pinned to match packageManager in backend/package.json — a
+# floating major tag (pnpm@10) can silently re-resolve to a newer patch
+# release with different build-script enforcement behavior (see #290).
+RUN npm install -g pnpm@11.1.2 --quiet
 
-# onlyBuiltDependencies in the lockfile settings allows bcrypt and Prisma
-# packages to run their install scripts; all others remain blocked.
 RUN pnpm install --no-frozen-lockfile
 
 COPY backend .

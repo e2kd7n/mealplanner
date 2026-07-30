@@ -302,8 +302,8 @@ export default function Setup() {
     >
       <Container maxWidth="sm">
         <Paper sx={{ p: { xs: 3, sm: 5 }, borderRadius: 3 }} elevation={3}>
-          <Box textAlign="center" mb={4}>
-            <Typography variant="h4" fontWeight={700} gutterBottom>
+          <Box sx={{ textAlign: 'center', mb: 4 }}>
+            <Typography variant="h4" sx={{ fontWeight: 700 }} gutterBottom>
               Family Meal Planner
             </Typography>
             <Typography variant="body1" color="text.secondary">
@@ -325,14 +325,14 @@ export default function Setup() {
               <Typography variant="h6" gutterBottom>
                 Welcome!
               </Typography>
-              <Typography color="text.secondary" paragraph>
+              <Typography color="text.secondary" sx={{ mb: 2 }}>
                 This wizard will walk you through setting up your family, preferences,
                 and optional integrations.
               </Typography>
               <Typography color="text.secondary">
                 You can skip any step and configure it later from settings.
               </Typography>
-              <Box mt={4} display="flex" justifyContent="flex-end">
+              <Box sx={{ mt: 4, display: 'flex', justifyContent: 'flex-end' }}>
                 <Button variant="contained" size="large" onClick={() => setActiveStep(1)}>
                   Get Started
                 </Button>
@@ -346,7 +346,7 @@ export default function Setup() {
               <Typography variant="h6" gutterBottom>
                 Who's in the family?
               </Typography>
-              <Typography color="text.secondary" paragraph>
+              <Typography color="text.secondary" sx={{ mb: 2 }}>
                 Add everyone who'll use the app. After saving, you'll pick a login
                 image for each person — no passwords needed.
               </Typography>
@@ -414,7 +414,7 @@ export default function Setup() {
                 </Alert>
               )}
 
-              <Box display="flex" justifyContent="space-between" alignItems="center" mt={3}>
+              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mt: 3 }}>
                 <Button variant="text" color="inherit" onClick={handleBack}>
                   Back
                 </Button>
@@ -447,7 +447,7 @@ export default function Setup() {
               <Typography variant="h6" gutterBottom>
                 Pick a login image for {currentMemberName}
               </Typography>
-              <Typography color="text.secondary" paragraph>
+              <Typography color="text.secondary" sx={{ mb: 2 }}>
                 {currentMemberName} will tap this image to sign in — no password needed.
               </Typography>
 
@@ -477,7 +477,7 @@ export default function Setup() {
                 ))}
               </Box>
 
-              <Box display="flex" justifyContent="space-between">
+              <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
                 <Button variant="text" color="inherit" onClick={handleBack} startIcon={<ArrowBackIcon />}>
                   Back
                 </Button>
@@ -494,7 +494,7 @@ export default function Setup() {
               <Typography variant="h6" gutterBottom>
                 Your preferences
               </Typography>
-              <Typography color="text.secondary" paragraph>
+              <Typography color="text.secondary" sx={{ mb: 2 }}>
                 Help us personalise recipes and meal plans. All optional.
               </Typography>
 
@@ -581,7 +581,7 @@ export default function Setup() {
                 </RadioGroup>
               </FormControl>
 
-              <Box display="flex" justifyContent="space-between" alignItems="center" mt={3}>
+              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mt: 3 }}>
                 <Button variant="text" color="inherit" onClick={handleBack}>
                   Back
                 </Button>
@@ -609,11 +609,11 @@ export default function Setup() {
               <Typography variant="h6" gutterBottom>
                 Spoonacular API Key
               </Typography>
-              <Typography color="text.secondary" paragraph>
+              <Typography color="text.secondary" sx={{ mb: 2 }}>
                 Spoonacular provides access to a database of 5,000+ recipes with
                 nutrition data. A free tier is available with 150 points/day.
               </Typography>
-              <Typography color="text.secondary" paragraph>
+              <Typography color="text.secondary" sx={{ mb: 2 }}>
                 Get a free key at{' '}
                 <Link
                   href="https://spoonacular.com/food-api/console#Dashboard"
@@ -636,14 +636,16 @@ export default function Setup() {
                 type={showKey ? 'text' : 'password'}
                 placeholder="Paste your API key here"
                 sx={{ mb: 2 }}
-                InputProps={{
-                  endAdornment: (
-                    <InputAdornment position="end">
-                      <IconButton onClick={() => setShowKey((v) => !v)} edge="end">
-                        {showKey ? <VisibilityOff /> : <Visibility />}
-                      </IconButton>
-                    </InputAdornment>
-                  ),
+                slotProps={{
+                  input: {
+                    endAdornment: (
+                      <InputAdornment position="end">
+                        <IconButton onClick={() => setShowKey((v) => !v)} edge="end">
+                          {showKey ? <VisibilityOff /> : <Visibility />}
+                        </IconButton>
+                      </InputAdornment>
+                    ),
+                  },
                 }}
               />
 
@@ -663,7 +665,7 @@ export default function Setup() {
                 </Alert>
               )}
 
-              <Box display="flex" gap={1} mb={3}>
+              <Box sx={{ display: 'flex', gap: 1, mb: 3 }}>
                 <Button
                   variant="outlined"
                   onClick={handleTestKey}
@@ -677,7 +679,7 @@ export default function Setup() {
                 )}
               </Box>
 
-              <Box display="flex" justifyContent="space-between" alignItems="center">
+              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <Button variant="text" color="inherit" onClick={handleBack}>
                   Back
                 </Button>
@@ -701,12 +703,12 @@ export default function Setup() {
 
           {/* Step 4: Done */}
           {activeStep === 4 && (
-            <Box textAlign="center">
+            <Box sx={{ textAlign: 'center' }}>
               <CheckCircleIcon color="success" sx={{ fontSize: 64, mb: 2 }} />
               <Typography variant="h6" gutterBottom>
                 You're all set!
               </Typography>
-              <Typography color="text.secondary" paragraph>
+              <Typography color="text.secondary" sx={{ mb: 2 }}>
                 Setup is complete. You can update preferences and API keys any time
                 from the <strong>Profile</strong> and <strong>Admin</strong> pages.
               </Typography>
