@@ -13,6 +13,7 @@
  * Idempotent: skips recipes and images that already exist.
  */
 
+import 'dotenv/config';
 import { PrismaClient, Difficulty, MealType, RecipeSource } from '@prisma/client';
 import { PrismaPg } from '@prisma/adapter-pg';
 import axios from 'axios';
