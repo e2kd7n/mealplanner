@@ -101,6 +101,11 @@ jobs:
           JWT_SECRET: test-jwt-secret-for-ci
           JWT_REFRESH_SECRET: test-jwt-refresh-secret-for-ci
           SESSION_SECRET: test-session-secret-for-ci
+          # Default 10m access-token lifetime is shorter than a full e2e run
+          # (~25min). Once the cookie carrying it expired mid-suite, every
+          # subsequent test fell back to a fresh /api/auth/login call and
+          # quickly tripped the rate limiter — see #210 investigation.
+          JWT_EXPIRES_IN: 60m
           NODE_ENV: test
           E2E_TESTING: 'true'
           PORT: 3000
