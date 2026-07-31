@@ -19,9 +19,10 @@ const BASE_RECIPE = {
 
 /**
  * Fetch a CSRF token from the backend.
- * csurf uses a double-submit cookie pattern: GET /api/csrf-token sets the
- * _csrf cookie in the request context and returns the matching token value.
- * Pass that value as X-CSRF-Token on subsequent state-changing requests.
+ * The backend uses a double-submit cookie pattern: GET /api/csrf-token sets
+ * the csrf-token cookie in the request context and returns the matching
+ * token value. Pass that value as X-CSRF-Token on subsequent state-changing
+ * requests.
  */
 async function fetchCsrfToken(api: APIRequestContext): Promise<string> {
   const resp = await api.get('/api/csrf-token');

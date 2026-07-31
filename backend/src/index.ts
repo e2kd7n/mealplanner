@@ -44,7 +44,7 @@ import visualAuthRoutes from './routes/visualAuth.routes';
 import { errorHandler } from './middleware/errorHandler';
 import { requestLogger } from './middleware/logger';
 import rateLimiter from './middleware/rateLimiter';
-import { conditionalCsrfProtection, csrfProtection, getCsrfToken, csrfErrorHandler } from './middleware/csrf';
+import { ensureCsrfSessionId, conditionalCsrfProtection, csrfProtection, getCsrfToken, csrfErrorHandler } from './middleware/csrf';
 
 // Import utilities
 import { logger } from './utils/logger';
@@ -89,6 +89,7 @@ app.use(metricsMiddleware);
 app.use('/api/', rateLimiter);
 
 // CSRF protection for API routes (conditionally applied)
+app.use('/api/', ensureCsrfSessionId);
 app.use('/api/', conditionalCsrfProtection);
 
 // Welcome endpoint - minimal information disclosure

@@ -3,40 +3,63 @@
  * All rights reserved.
  */
 
-import csrf from 'csurf';
+import { randomUUID } from 'crypto';
+import { doubleCsrf } from 'csrf-csrf';
 import { Request, Response, NextFunction } from 'express';
 import { logger } from '../utils/logger';
+import { getSessionSecret } from '../utils/secrets';
 
 /**
  * CSRF Protection Middleware
- * 
+ *
  * Protects against Cross-Site Request Forgery attacks by requiring
  * a valid CSRF token for state-changing operations (POST, PUT, DELETE, PATCH).
- * 
- * Security Features:
- * - Double-submit cookie pattern
- * - Secure cookie settings in production
- * - SameSite protection
- * - Token validation on all state-changing requests
+ *
+ * Uses csrf-csrf's signed double-submit cookie pattern rather than the
+ * deprecated/archived `csurf` package. The app has no server-side session
+ * store (auth is JWT-in-header, not cookie-based), so csrf-csrf's required
+ * `getSessionIdentifier` is satisfied by an anonymous per-browser identifier
+ * cookie (`ensureCsrfSessionId` below) rather than a real session id.
  */
 
-// Configure CSRF protection
-const csrfProtection: any = csrf({
-  cookie: {
-    httpOnly: true,
-    secure: process.env.COOKIE_SECURE === 'true',
-    sameSite: 'strict',
-    path: '/',
-  },
-  // Ignore CSRF for GET, HEAD, OPTIONS (safe methods)
-  ignoreMethods: ['GET', 'HEAD', 'OPTIONS'],
+const CSRF_SESSION_COOKIE = 'csrf-session-id';
+
+const cookieOptions = {
+  httpOnly: true,
+  secure: process.env.COOKIE_SECURE === 'true',
+  sameSite: 'strict' as const,
+  path: '/',
+};
+
+/**
+ * Ensures every client has a stable anonymous identifier cookie, used only
+ * to bind CSRF tokens to a browser (not real session/auth state). Mutates
+ * `req.cookies` directly so a freshly-issued id is visible to the CSRF
+ * middleware within the same request, before the Set-Cookie header takes
+ * effect on the client's next request.
+ */
+function ensureCsrfSessionId(req: Request, res: Response, next: NextFunction): void {
+  if (!req.cookies?.[CSRF_SESSION_COOKIE]) {
+    const sessionId = randomUUID();
+    res.cookie(CSRF_SESSION_COOKIE, sessionId, cookieOptions);
+    req.cookies[CSRF_SESSION_COOKIE] = sessionId;
+  }
+  next();
+}
+
+const { generateCsrfToken, doubleCsrfProtection } = doubleCsrf({
+  getSecret: () => getSessionSecret(),
+  getSessionIdentifier: (req: Request) => req.cookies?.[CSRF_SESSION_COOKIE] ?? '',
+  cookieName: 'csrf-token',
+  cookieOptions,
   // Accept CSRF token from X-CSRF-Token header (frontend sends this)
-  value: (req: Request) => {
-    return req.headers['x-csrf-token'] as string ||
-           req.body?._csrf ||
-           req.query?._csrf as string;
-  },
+  getCsrfTokenFromRequest: (req: Request) => req.headers['x-csrf-token'] as string,
+  // Ignore CSRF for GET, HEAD, OPTIONS (safe methods)
+  ignoredMethods: ['GET', 'HEAD', 'OPTIONS'],
 });
+
+// Alias kept for parity with the previous csurf-based export name.
+const csrfProtection = doubleCsrfProtection;
 
 /**
  * CSRF token endpoint handler
@@ -44,7 +67,7 @@ const csrfProtection: any = csrf({
  */
 function getCsrfToken(req: Request, res: Response): void {
   res.json({
-    csrfToken: req.csrfToken(),
+    csrfToken: generateCsrfToken(req, res),
   });
 }
 
@@ -64,7 +87,7 @@ function csrfErrorHandler(
       path: req.path,
       method: req.method,
     });
-    
+
     res.status(403).json({
       code: 'EBADCSRFTOKEN',
       error: 'Invalid CSRF Token',
@@ -88,26 +111,26 @@ function conditionalCsrfProtection(
   if (req.path === '/health' || req.path === '/health/live' || req.path === '/metrics') {
     return next();
   }
-  
+
   // Skip CSRF validation for the token endpoint itself (it generates tokens)
   // The endpoint still needs the middleware to generate tokens, but shouldn't validate them
   // Note: Endpoint is mounted at /api/csrf-token, so check for that path
   if (req.path === '/csrf-token' || req.path === '/api/csrf-token') {
     return next();
   }
-  
+
   // Skip CSRF for auth endpoints that use rate limiting as primary protection
   // Note: This is a trade-off. For maximum security, enable CSRF on auth too.
   // When mounted at /api/, the path will be /auth/... not /api/auth/...
   if (req.path.startsWith('/auth/')) {
     return next();
   }
-  
+
   // Apply CSRF protection to all other routes
   csrfProtection(req, res, next);
 }
 
 // Export individual functions (no default export to avoid type inference issues)
-export { csrfProtection, conditionalCsrfProtection, getCsrfToken, csrfErrorHandler };
+export { ensureCsrfSessionId, csrfProtection, conditionalCsrfProtection, getCsrfToken, csrfErrorHandler };
 
 // Made with Bob
