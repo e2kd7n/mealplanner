@@ -25,7 +25,11 @@ env:
 jobs:
   e2e-tests:
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    # Previously the 429 rate-limit cascade (see prior commit) made most
+    # tests fail fast, so 30min was enough by accident. Now that logins
+    # actually succeed for the whole run, the full 71-test sequential suite
+    # needs more real wall-clock time to finish and produce a usable report.
+    timeout-minutes: 50
 
     services:
       postgres:
