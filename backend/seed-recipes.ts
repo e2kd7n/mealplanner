@@ -1,3 +1,4 @@
+import 'dotenv/config';
 import { PrismaClient, Difficulty, MealType } from '@prisma/client';
 import { PrismaPg } from '@prisma/adapter-pg';
 
