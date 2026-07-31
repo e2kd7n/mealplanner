@@ -3,38 +3,49 @@
  * All rights reserved.
  */
 
-import csrf from 'csurf';
+import { doubleCsrf } from 'csrf-csrf';
 import { Request, Response, NextFunction } from 'express';
 import { logger } from '../utils/logger';
+import { getSessionSecret } from '../utils/secrets';
+import { getAccessTokenFromRequest, hashSessionToken } from '../utils/authCookies';
 
 /**
  * CSRF Protection Middleware
- * 
+ *
  * Protects against Cross-Site Request Forgery attacks by requiring
  * a valid CSRF token for state-changing operations (POST, PUT, DELETE, PATCH).
- * 
+ *
  * Security Features:
- * - Double-submit cookie pattern
+ * - Signed double-submit cookie pattern (csrf-csrf)
  * - Secure cookie settings in production
  * - SameSite protection
- * - Token validation on all state-changing requests
+ * - Token bound to the caller's access token, so a token generated for one
+ *   session can't be replayed by another
  */
 
 // Configure CSRF protection
-const csrfProtection: any = csrf({
-  cookie: {
+const { doubleCsrfProtection, generateCsrfToken, invalidCsrfTokenError } = doubleCsrf({
+  getSecret: () => getSessionSecret(),
+  // Binds the CSRF token to the caller's access token (cookie or Authorization
+  // header — see getAccessTokenFromRequest). Falls back to a constant for
+  // unauthenticated callers; safe because CSRF is never enforced on /auth/*
+  // routes (see conditionalCsrfProtection below), and every other protected
+  // route requires a valid access token anyway.
+  getSessionIdentifier: (req: Request) => hashSessionToken(getAccessTokenFromRequest(req) || 'anonymous'),
+  cookieName: 'mealplanner_csrf',
+  cookieOptions: {
     httpOnly: true,
     secure: process.env.COOKIE_SECURE === 'true',
     sameSite: 'strict',
     path: '/',
   },
   // Ignore CSRF for GET, HEAD, OPTIONS (safe methods)
-  ignoreMethods: ['GET', 'HEAD', 'OPTIONS'],
+  ignoredMethods: ['GET', 'HEAD', 'OPTIONS'],
   // Accept CSRF token from X-CSRF-Token header (frontend sends this)
-  value: (req: Request) => {
-    return req.headers['x-csrf-token'] as string ||
+  getCsrfTokenFromRequest: (req: Request) => {
+    return (req.headers['x-csrf-token'] as string) ||
            req.body?._csrf ||
-           req.query?._csrf as string;
+           (req.query?._csrf as string);
   },
 });
 
@@ -44,7 +55,7 @@ const csrfProtection: any = csrf({
  */
 function getCsrfToken(req: Request, res: Response): void {
   res.json({
-    csrfToken: req.csrfToken(),
+    csrfToken: generateCsrfToken(req, res),
   });
 }
 
@@ -58,13 +69,13 @@ function csrfErrorHandler(
   res: Response,
   next: NextFunction
 ): void {
-  if (err.code === 'EBADCSRFTOKEN') {
+  if (err === invalidCsrfTokenError || err?.code === 'EBADCSRFTOKEN') {
     logger.warn('CSRF token validation failed', {
       ip: req.ip,
       path: req.path,
       method: req.method,
     });
-    
+
     res.status(403).json({
       code: 'EBADCSRFTOKEN',
       error: 'Invalid CSRF Token',
@@ -88,26 +99,23 @@ function conditionalCsrfProtection(
   if (req.path === '/health' || req.path === '/health/live' || req.path === '/metrics') {
     return next();
   }
-  
+
   // Skip CSRF validation for the token endpoint itself (it generates tokens)
-  // The endpoint still needs the middleware to generate tokens, but shouldn't validate them
   // Note: Endpoint is mounted at /api/csrf-token, so check for that path
   if (req.path === '/csrf-token' || req.path === '/api/csrf-token') {
     return next();
   }
-  
+
   // Skip CSRF for auth endpoints that use rate limiting as primary protection
   // Note: This is a trade-off. For maximum security, enable CSRF on auth too.
   // When mounted at /api/, the path will be /auth/... not /api/auth/...
   if (req.path.startsWith('/auth/')) {
     return next();
   }
-  
+
   // Apply CSRF protection to all other routes
-  csrfProtection(req, res, next);
+  doubleCsrfProtection(req, res, next);
 }
 
 // Export individual functions (no default export to avoid type inference issues)
-export { csrfProtection, conditionalCsrfProtection, getCsrfToken, csrfErrorHandler };
-
-// Made with Bob
+export { doubleCsrfProtection, conditionalCsrfProtection, getCsrfToken, csrfErrorHandler };
