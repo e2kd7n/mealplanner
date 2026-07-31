@@ -52,6 +52,8 @@ import { useNavigate } from 'react-router-dom';
 import api from '../services/api';
 import { isAxiosError } from 'axios';
 import { getApiErrorMessage } from '../utils/errorHandler';
+import ConfirmDialog from '../components/ConfirmDialog';
+import { useConfirmDialog } from '../hooks/useConfirmDialog';
 
 interface AppSetting {
   key: string;
@@ -90,6 +92,7 @@ interface SystemStats {
 
 export default function AdminDashboard() {
   const navigate = useNavigate();
+  const { confirm, confirmDialogProps } = useConfirmDialog();
   const [activeTab, setActiveTab] = useState(0);
 
   // Users tab state
@@ -194,9 +197,11 @@ export default function AdminDashboard() {
   };
 
   const handleDeleteUser = async (userId: string) => {
-    if (!window.confirm('Are you sure you want to delete this user? This action cannot be undone.')) {
-      return;
-    }
+    const confirmed = await confirm({
+      title: 'Delete User',
+      message: 'Are you sure you want to delete this user? This action cannot be undone.',
+    });
+    if (!confirmed) return;
     try {
       await api.delete(`/admin/users/${userId}`);
       setSuccess('User deleted successfully');
@@ -779,6 +784,7 @@ export default function AdminDashboard() {
           </Dialog>
         </Box>
       )}
+      <ConfirmDialog {...confirmDialogProps} />
     </Container>
   );
 }
