@@ -33,6 +33,7 @@ import {
   CameraAlt as CameraIcon,
 } from '@mui/icons-material';
 import { useLocation } from 'react-router-dom';
+import { useTheme } from '@mui/material/styles';
 import type { Options as Html2CanvasOptions } from 'html2canvas';
 import api from '../services/api';
 import { isAxiosError } from 'axios';
@@ -58,6 +59,7 @@ interface RateLimitInfo {
 }
 
 const FeedbackDialog: React.FC<FeedbackDialogProps> = ({ open, onClose, onSuccess }) => {
+  const theme = useTheme();
   const location = useLocation();
   const isLandscape = useMediaQuery('(orientation: landscape) and (max-height: 500px)');
   const isIOS = /iPhone|iPad|iPod/i.test(navigator.userAgent);
@@ -120,7 +122,7 @@ const FeedbackDialog: React.FC<FeedbackDialogProps> = ({ open, onClose, onSucces
         allowTaint: true,
         useCORS: true,
         logging: false,
-        backgroundColor: '#ffffff',
+        backgroundColor: theme.palette.background.default,
         scale: 1,
       });
       const dataUrl = canvas.toDataURL('image/png');
