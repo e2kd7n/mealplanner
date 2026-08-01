@@ -11,8 +11,28 @@ const ACCESS_COOKIE_NAME = 'mealplanner_access';
 const REFRESH_COOKIE_NAME = 'mealplanner_refresh';
 
 const isProduction = process.env.NODE_ENV === 'production';
-const accessTokenMaxAgeMs = 10 * 60 * 1000;
-const refreshTokenMaxAgeMs = 24 * 60 * 60 * 1000;
+
+// Cookie maxAge must mirror the actual signed lifetime of the JWT it carries
+// (see getJwtConfig in utils/secrets.ts) — otherwise the cookie can outlive
+// or, worse, expire before the token it's meant to carry, causing spurious
+// re-auths. Parses the same duration strings jsonwebtoken's `expiresIn`
+// accepts (a bare number of seconds, or `<number><s|m|h|d>`).
+function parseDurationMs(value: string, fallbackMs: number): number {
+  const match = /^(\d+(?:\.\d+)?)(ms|s|m|h|d)?$/.exec(value.trim());
+  if (!match) return fallbackMs;
+  const amount = parseFloat(match[1]);
+  const unitMs: Record<string, number> = {
+    ms: 1,
+    s: 1000,
+    m: 60 * 1000,
+    h: 60 * 60 * 1000,
+    d: 24 * 60 * 60 * 1000,
+  };
+  return amount * unitMs[match[2] || 's'];
+}
+
+const accessTokenMaxAgeMs = parseDurationMs(process.env.JWT_EXPIRES_IN || '10m', 10 * 60 * 1000);
+const refreshTokenMaxAgeMs = parseDurationMs(process.env.JWT_REFRESH_EXPIRES_IN || '1d', 24 * 60 * 60 * 1000);
 
 function getCookieSecure(): boolean {
   if (process.env.COOKIE_SECURE === 'false') return false;
