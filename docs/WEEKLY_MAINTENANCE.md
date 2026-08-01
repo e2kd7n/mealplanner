@@ -95,6 +95,8 @@ ls -lh data/backups/
 - [ ] Review access logs for suspicious activity
 - [ ] Verify SSL certificates are valid (if using HTTPS)
 - [ ] Check for exposed secrets in logs
+- [ ] Scan recent commits for accidentally-committed credentials
+- [ ] Check Podman/Pi secret rotation status and rotate when applicable (see below)
 - [ ] Review user access and permissions
 
 **Commands:**
@@ -111,7 +113,66 @@ npm outdated
 
 # Update specific packages
 npm update <package-name>
+
+# Scan this week's commits for likely credential leaks (AWS keys, private
+# keys, JWTs, generic high-entropy assignments to *_SECRET/*_KEY/*_PASSWORD)
+git log --since="7 days ago" -p -- . ':(exclude)*.lock' \
+  | grep -EnI "AKIA[0-9A-Z]{16}|-----BEGIN [A-Z ]*PRIVATE KEY-----|(SECRET|TOKEN|PASSWORD|API_KEY)[[:space:]]*[:=][[:space:]]*['\"][^'\"]{12,}"
 ```
+
+**Secret Rotation (when applicable):**
+
+Rotation happens in two halves, split by where each piece can actually run:
+
+1. **Execution — `scripts/rotate-secrets-if-due.sh`, runs ON the Pi via its
+   own weekly cron entry.** This is the piece that can actually touch
+   `secrets/*.txt` and the running containers, so it's the only piece that
+   can *execute* a rotation, not just flag one. It's a no-op most weeks:
+   - Checks each `secrets/*.txt.metadata`'s `rotationDue` date; exits
+     immediately if nothing is due (this is the "not every week" part —
+     cron fires weekly, the script only acts every ~90 days).
+   - When something is due: verifies it can authenticate to Postgres with
+     the *current* password first (aborts before touching anything if not),
+     runs `./scripts/generate-secrets.sh --yes` (non-interactive), issues
+     `ALTER USER mealplanner WITH PASSWORD ...` against the live DB (the
+     Postgres image only reads `POSTGRES_PASSWORD_FILE` on first init of an
+     empty volume — swapping the secret file alone does **not** change the
+     already-initialized role's password), force-recreates postgres/redis/backend,
+     and health-checks the result.
+   - If the health check fails, it automatically rolls back to the
+     `.previous` secret files and the old DB password, re-verifies health,
+     and alerts (`send-notification.sh`) either way.
+   - Rotating `jwt_secret`/`jwt_refresh_secret`/`session_secret` invalidates
+     every active session — expected, not a bug; everyone gets logged out.
+   - Install it once with a crontab entry (adjust time to taste, ideally
+     the same night as the weekly maintenance routine):
+     ```bash
+     # crontab -e on the Pi
+     15 3 * * 0  cd /path/to/mealplanner && ./scripts/rotate-secrets-if-due.sh >> data/maintenance-logs/cron-secret-rotation.log 2>&1
+     ```
+   - It commits/pushes the updated `docs/SECRET_ROTATION_STATUS.json` after
+     a successful rotation (best-effort — a failed push is logged, not fatal).
+
+2. **Verification — the cloud maintenance routine**, which never has
+   filesystem access to `secrets/` (same constraint as DB backups). Its job
+   is to cross-check that rotation is *actually happening* on the Pi, using
+   only what's visible from the git history:
+   - [ ] Read `docs/SECRET_ROTATION_STATUS.json`.
+   - [ ] **File missing** — no baseline yet; open/update a `security` issue
+     asking a human to run `./scripts/generate-secrets.sh` once on the Pi.
+   - [ ] **Any secret's `dueBy` is more than ~7 days in the past** — this
+     means the Pi cron job itself is silent (not running, host down, script
+     erroring before it can push). Open/update a `security` issue saying so
+     explicitly — the fix is diagnosing the Pi's cron/script, not manually
+     rotating from the cloud routine (it has no way to).
+   - [ ] **Nothing overdue** — no action; note the next `dueBy` date in the
+     report.
+   - [ ] **If the commit-scan step above finds a plausible leaked
+     credential** — treat as immediate/critical regardless of the 90-day
+     schedule, per the existing "alert user to critical vulnerabilities and
+     offer to fix them immediately" policy. This can't wait for the weekly
+     Pi cron; also check whether the leak needs purging from git history
+     (see #329-style leaks).
 
 ---
 
@@ -316,6 +377,11 @@ Consider automating these tasks:
 3. **Performance Monitoring** - Application monitoring tools
 4. **Issue Stale Bot** - GitHub Actions for stale issues
 5. **Dependency Updates** - Renovate or Dependabot
+6. **Secret Rotation** - Fully automated: `scripts/rotate-secrets-if-due.sh`
+   runs weekly on the Pi via cron and rotates (with health-checked rollback)
+   only when a secret is actually due; the cloud routine cross-checks it
+   actually ran via `docs/SECRET_ROTATION_STATUS.json`. See Security Updates
+   above.
 
 ---
 
@@ -329,5 +395,5 @@ Consider automating these tasks:
 
 ---
 
-**Last Updated:** 2026-03-23  
+**Last Updated:** 2026-08-01  
 **Maintained By:** Development Team
