@@ -21,7 +21,9 @@ const mockUser: User = {
 const initialState = {
   user: null,
   isAuthenticated: false,
-  loading: false,
+  // Starts true — PrivateRoute waits for bootstrapAuth() to resolve before
+  // redirecting, instead of racing ahead on the pre-effect default (#321).
+  loading: true,
   error: null,
 };
 
