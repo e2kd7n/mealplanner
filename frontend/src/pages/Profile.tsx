@@ -51,6 +51,8 @@ import { userAPI, familyMemberAPI, visualAuthAPI } from '../services/api';
 import { DIETARY_PREFERENCES, COMMON_ALLERGENS, getDietaryLabel } from '../constants/dietaryOptions';
 import { isAxiosError } from 'axios';
 import { getApiErrorMessage } from '../utils/errorHandler';
+import ConfirmDialog from '../components/ConfirmDialog';
+import { useConfirmDialog } from '../hooks/useConfirmDialog';
 
 interface TabPanelProps {
   children?: React.ReactNode;
@@ -107,6 +109,7 @@ const skillLevels = ['beginner', 'intermediate', 'advanced'];
 const ageGroups = ['child', 'teen', 'adult'];
 
 const Profile: React.FC = () => {
+  const { confirm, confirmDialogProps } = useConfirmDialog();
   const [tabValue, setTabValue] = useState(0);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -292,7 +295,11 @@ const Profile: React.FC = () => {
   };
 
   const handleDeleteMember = async (id: string) => {
-    if (!window.confirm('Are you sure you want to delete this family member?')) return;
+    const confirmed = await confirm({
+      title: 'Delete Family Member',
+      message: 'Are you sure you want to delete this family member? This action cannot be undone.',
+    });
+    if (!confirmed) return;
 
     try {
       await familyMemberAPI.delete(id);
@@ -850,6 +857,7 @@ const Profile: React.FC = () => {
           {snackbar.message}
         </Alert>
       </Snackbar>
+      <ConfirmDialog {...confirmDialogProps} />
     </Container>
   );
 };

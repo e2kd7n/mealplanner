@@ -53,6 +53,8 @@ import {
 import type { PantryItem } from '../store/slices/pantrySlice';
 import { ingredientAPI } from '../services/api';
 import { getApiErrorMessage } from '../utils/errorHandler';
+import ConfirmDialog from '../components/ConfirmDialog';
+import { useConfirmDialog } from '../hooks/useConfirmDialog';
 
 interface IngredientOption {
   id: string;
@@ -105,6 +107,7 @@ const emptyFormData: PantryFormData = {
 };
 
 const Pantry: React.FC = () => {
+  const { confirm, confirmDialogProps } = useConfirmDialog();
   const dispatch = useAppDispatch();
   const { items, lowStockItems, expiringItems, loading, error } = useAppSelector(
     (state) => state.pantry
@@ -246,7 +249,13 @@ const Pantry: React.FC = () => {
     }
   };
 
-  const handleDeleteItem = async (id: string) => {
+  const handleDeleteItem = async (id: string, itemName: string) => {
+    const confirmed = await confirm({
+      title: 'Delete Pantry Item',
+      message: `Are you sure you want to delete "${itemName}"? This action cannot be undone.`,
+    });
+    if (!confirmed) return;
+
     try {
       await dispatch(deletePantryItem(id)).unwrap();
     } catch {
@@ -375,7 +384,7 @@ const Pantry: React.FC = () => {
                           <IconButton
                             edge="end"
                             aria-label={`Delete ${itemName}`}
-                            onClick={() => handleDeleteItem(item.id)}
+                            onClick={() => handleDeleteItem(item.id, itemName)}
                           >
                             <DeleteIcon />
                           </IconButton>
@@ -534,6 +543,7 @@ const Pantry: React.FC = () => {
           </Button>
         </DialogActions>
       </Dialog>
+      <ConfirmDialog {...confirmDialogProps} />
     </Container>
   );
 };
