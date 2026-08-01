@@ -57,6 +57,9 @@ export const test = base.extend<AuthFixtures>({
       await authenticatePage(page, backendURL);
     }
     await page.goto('/dashboard');
+    // PrivateRoute shows a spinner until bootstrapAuth() resolves (#321) —
+    // wait it out so callers don't assert against the pre-content state.
+    await page.getByRole('progressbar').waitFor({ state: 'hidden' });
     await use(page);
   },
 });

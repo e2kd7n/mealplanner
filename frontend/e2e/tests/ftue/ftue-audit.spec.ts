@@ -219,6 +219,9 @@ test.describe('Dashboard (/dashboard)', () => {
     }
 
     await page.goto('/dashboard');
+    // PrivateRoute shows a spinner until bootstrapAuth() resolves (#321) —
+    // networkidle alone doesn't guarantee that repaint has happened.
+    await page.getByRole('progressbar').waitFor({ state: 'hidden' });
     await page.waitForLoadState('networkidle');
   });
 

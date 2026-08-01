@@ -46,7 +46,10 @@ interface AuthState {
 const initialState: AuthState = {
   user: null,
   isAuthenticated: false,
-  loading: false,
+  // Starts true so PrivateRoute shows its spinner until the initial
+  // bootstrapAuth() (dispatched on mount by AuthContext) resolves, instead
+  // of racing ahead on this pre-effect default and redirecting to /login.
+  loading: true,
   error: null,
 };
 
