@@ -140,8 +140,8 @@ generate_secret_with_metadata "jwt_secret" 64 "JWT access token signing secret"
 # Generate JWT refresh secret
 generate_secret_with_metadata "jwt_refresh_secret" 64 "JWT refresh token signing secret"
 
-# Generate session secret
-generate_secret_with_metadata "session_secret" 48 "Express session secret"
+# Generate session secret (also used as the CSRF token HMAC secret)
+generate_secret_with_metadata "session_secret" 48 "Session / CSRF signing secret"
 
 # Generate Redis password (required for Pi production compose)
 generate_secret_with_metadata "redis_password" 32 "Redis authentication password"

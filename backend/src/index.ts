@@ -44,7 +44,7 @@ import visualAuthRoutes from './routes/visualAuth.routes';
 import { errorHandler } from './middleware/errorHandler';
 import { requestLogger } from './middleware/logger';
 import rateLimiter from './middleware/rateLimiter';
-import { conditionalCsrfProtection, csrfProtection, getCsrfToken, csrfErrorHandler } from './middleware/csrf';
+import { conditionalCsrfProtection, getCsrfToken, csrfErrorHandler } from './middleware/csrf';
 
 // Import utilities
 import { logger } from './utils/logger';
@@ -131,9 +131,8 @@ app.get('/metrics', async (_req, res) => {
   }
 });
 
-// CSRF token endpoint (needs CSRF middleware but doesn't validate token)
-// Apply csrfProtection directly here so it initializes but doesn't validate
-app.get('/api/csrf-token', csrfProtection, getCsrfToken);
+// CSRF token endpoint
+app.get('/api/csrf-token', getCsrfToken);
 
 // API routes
 app.use('/api/auth', authRoutes);

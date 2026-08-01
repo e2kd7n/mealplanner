@@ -32,7 +32,7 @@ const ENV_VARS: EnvVar[] = [
   {
     name: 'SESSION_SECRET',
     required: true,
-    description: 'Secret key for session management',
+    description: 'Secret key for session management and CSRF token signing',
   },
   
   // Important - Application will use defaults but should be configured

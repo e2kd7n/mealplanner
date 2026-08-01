@@ -25,7 +25,11 @@ env:
 jobs:
   e2e-tests:
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    # Previously the 429 rate-limit cascade (see prior commit) made most
+    # tests fail fast, so 30min was enough by accident. Now that logins
+    # actually succeed for the whole run, the full 71-test sequential suite
+    # needs more real wall-clock time to finish and produce a usable report.
+    timeout-minutes: 50
 
     services:
       postgres:
@@ -101,6 +105,11 @@ jobs:
           JWT_SECRET: test-jwt-secret-for-ci
           JWT_REFRESH_SECRET: test-jwt-refresh-secret-for-ci
           SESSION_SECRET: test-session-secret-for-ci
+          # Default 10m access-token lifetime is shorter than a full e2e run
+          # (~25min). Once the cookie carrying it expired mid-suite, every
+          # subsequent test fell back to a fresh /api/auth/login call and
+          # quickly tripped the rate limiter — see #210 investigation.
+          JWT_EXPIRES_IN: 60m
           NODE_ENV: test
           E2E_TESTING: 'true'
           PORT: 3000
