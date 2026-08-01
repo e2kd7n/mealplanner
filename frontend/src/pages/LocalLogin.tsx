@@ -26,7 +26,7 @@ import { ArrowBack as ArrowBackIcon } from '@mui/icons-material';
 import { useAppDispatch } from '../store/hooks';
 import { setCredentials } from '../store/slices/authSlice';
 import api, { visualAuthAPI } from '../services/api';
-import { useTheme } from '@mui/material/styles';
+import { useTheme, alpha } from '@mui/material/styles';
 
 interface UserEntry {
   id: string;
@@ -234,7 +234,7 @@ const LocalLogin: React.FC = () => {
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
-                    bgcolor: 'rgba(255,255,255,0.7)',
+                    bgcolor: alpha(theme.palette.background.paper, 0.7),
                     zIndex: 1,
                     borderRadius: 2,
                   }}
