@@ -48,6 +48,8 @@ import {
   Fastfood as SnacksIcon,
   Category as OtherIcon,
 } from '@mui/icons-material';
+import ConfirmDialog from '../components/ConfirmDialog';
+import { useConfirmDialog } from '../hooks/useConfirmDialog';
 
 interface Ingredient {
   id: string;
@@ -108,6 +110,7 @@ const mapIngredientCategoryToStore = (ingredientCategory: string): string => {
 };
 
 const GroceryList: React.FC = () => {
+  const { confirm, confirmDialogProps } = useConfirmDialog();
   const [, setGroceryLists] = useState<GroceryList[]>([]);
   const [currentList, setCurrentList] = useState<GroceryList | null>(null);
   const [loading, setLoading] = useState(true);
@@ -236,6 +239,13 @@ const GroceryList: React.FC = () => {
 
   const handleDeleteItem = async (itemId: string) => {
     if (!currentList) return;
+
+    const itemName = currentList.items.find((i) => i.id === itemId)?.ingredient?.name ?? 'this item';
+    const confirmed = await confirm({
+      title: 'Delete Grocery Item',
+      message: `Are you sure you want to delete "${itemName}"? This action cannot be undone.`,
+    });
+    if (!confirmed) return;
 
     try {
       const token = localStorage.getItem('accessToken');
@@ -566,6 +576,7 @@ const GroceryList: React.FC = () => {
           <Button onClick={() => setOpenDialog(false)}>Close</Button>
         </DialogActions>
       </Dialog>
+      <ConfirmDialog {...confirmDialogProps} />
     </Container>
   );
 };
