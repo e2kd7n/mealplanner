@@ -49,6 +49,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAppDispatch, useAppSelector } from '../store/hooks';
 import { fetchRecipes } from '../store/slices/recipesSlice';
 import type { Recipe } from '../store/slices/recipesSlice';
+import { fetchMealTypeOptions } from '../store/slices/mealTypeOptionsSlice';
 
 type FetchRecipesParams = Parameters<typeof fetchRecipes>[0];
 import { useDebounce } from '../hooks/useDebounce';
@@ -183,6 +184,7 @@ const Recipes: React.FC = () => {
   const navigate = useNavigate();
   const dispatch = useAppDispatch();
   const { recipes, loading, error, pagination } = useAppSelector((state) => state.recipes);
+  const { options: mealTypeOptions } = useAppSelector((state) => state.mealTypeOptions);
   const [searchParams, setSearchParams] = useSearchParams();
 
   const [activeTab, setActiveTab] = useState(Number(searchParams.get('tab')) || 0);
@@ -211,6 +213,10 @@ const Recipes: React.FC = () => {
   }, [recipes, debouncedSearch]);
 
   const activeFilterCount = [difficulty, mealType, cleanupScore].filter(Boolean).length;
+
+  useEffect(() => {
+    dispatch(fetchMealTypeOptions());
+  }, [dispatch]);
 
   useEffect(() => {
     const params = new URLSearchParams();
@@ -410,11 +416,11 @@ const Recipes: React.FC = () => {
                     onChange={(e) => { setMealType(e.target.value); setCurrentPage(1); }}
                   >
                     <MenuItem value="">All</MenuItem>
-                    <MenuItem value="breakfast">Breakfast</MenuItem>
-                    <MenuItem value="lunch">Lunch</MenuItem>
-                    <MenuItem value="dinner">Dinner</MenuItem>
-                    <MenuItem value="snack">Snack</MenuItem>
-                    <MenuItem value="dessert">Dessert</MenuItem>
+                    {mealTypeOptions.map((option) => (
+                      <MenuItem key={option.id} value={option.name}>
+                        {option.name.charAt(0).toUpperCase() + option.name.slice(1)}
+                      </MenuItem>
+                    ))}
                   </Select>
                 </FormControl>
 

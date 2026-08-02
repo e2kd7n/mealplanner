@@ -47,7 +47,7 @@ import {
   Cancel as CancelIcon,
   Image as ImageIcon,
 } from '@mui/icons-material';
-import { userAPI, familyMemberAPI, visualAuthAPI } from '../services/api';
+import { userAPI, familyMemberAPI, visualAuthAPI, mealTypeOptionsAPI } from '../services/api';
 import { DIETARY_PREFERENCES, COMMON_ALLERGENS, getDietaryLabel } from '../constants/dietaryOptions';
 import { isAxiosError } from 'axios';
 import { getApiErrorMessage } from '../utils/errorHandler';
@@ -105,6 +105,12 @@ interface StockImage {
   imageUrl: string;
 }
 
+interface MealTypeOption {
+  id: string;
+  name: string;
+  sortOrder: number;
+}
+
 const skillLevels = ['beginner', 'intermediate', 'advanced'];
 const ageGroups = ['child', 'teen', 'adult'];
 
@@ -148,6 +154,12 @@ const Profile: React.FC = () => {
   });
   const [memberNewIngredient, setMemberNewIngredient] = useState('');
 
+  // Meal type categories state (issue #327)
+  const [mealTypeOptions, setMealTypeOptions] = useState<MealTypeOption[]>([]);
+  const [newCategoryName, setNewCategoryName] = useState('');
+  const [editingCategoryId, setEditingCategoryId] = useState<string | null>(null);
+  const [editingCategoryName, setEditingCategoryName] = useState('');
+
   // Visual password state
   const [visualPickerOpen, setVisualPickerOpen] = useState(false);
   const [visualPickerMember, setVisualPickerMember] = useState<FamilyMember | null>(null);
@@ -161,10 +173,11 @@ const Profile: React.FC = () => {
   const loadData = async () => {
     try {
       setLoading(true);
-      const [profileRes, preferencesRes, membersRes] = await Promise.all([
+      const [profileRes, preferencesRes, membersRes, mealTypesRes] = await Promise.all([
         userAPI.getProfile(),
         userAPI.getPreferences(),
         familyMemberAPI.getAll(),
+        mealTypeOptionsAPI.getAll(),
       ]);
 
       setProfile(profileRes.data.data);
@@ -180,6 +193,7 @@ const Profile: React.FC = () => {
       setPreferencesForm(prefsData);
 
       setFamilyMembers(membersRes.data.data);
+      setMealTypeOptions(mealTypesRes.data.data);
     } catch (error: unknown) {
       // Only show error if it's not a 401 (which means user needs to login)
       if (!isAxiosError(error) || error.response?.status !== 401) {
@@ -327,6 +341,62 @@ const Profile: React.FC = () => {
     });
   };
 
+  const refreshMealTypeOptions = async () => {
+    const res = await mealTypeOptionsAPI.getAll();
+    setMealTypeOptions(res.data.data);
+  };
+
+  const handleAddMealTypeOption = async () => {
+    if (!newCategoryName.trim()) return;
+    try {
+      await mealTypeOptionsAPI.create({ name: newCategoryName.trim() });
+      setNewCategoryName('');
+      await refreshMealTypeOptions();
+      showSnackbar('Meal category added', 'success');
+    } catch (error: unknown) {
+      showSnackbar(getApiErrorMessage(error, 'Failed to add meal category'), 'error');
+    }
+  };
+
+  const handleStartEditMealTypeOption = (option: MealTypeOption) => {
+    setEditingCategoryId(option.id);
+    setEditingCategoryName(option.name);
+  };
+
+  const handleCancelEditMealTypeOption = () => {
+    setEditingCategoryId(null);
+    setEditingCategoryName('');
+  };
+
+  const handleSaveMealTypeOption = async (id: string) => {
+    if (!editingCategoryName.trim()) return;
+    try {
+      await mealTypeOptionsAPI.update(id, { name: editingCategoryName.trim() });
+      setEditingCategoryId(null);
+      setEditingCategoryName('');
+      await refreshMealTypeOptions();
+      showSnackbar('Meal category renamed', 'success');
+    } catch (error: unknown) {
+      showSnackbar(getApiErrorMessage(error, 'Failed to rename meal category'), 'error');
+    }
+  };
+
+  const handleDeleteMealTypeOption = async (option: MealTypeOption) => {
+    const confirmed = await confirm({
+      title: 'Delete Meal Category',
+      message: `Are you sure you want to delete "${option.name}"? Recipes using it must be reassigned first.`,
+    });
+    if (!confirmed) return;
+
+    try {
+      await mealTypeOptionsAPI.delete(option.id);
+      await refreshMealTypeOptions();
+      showSnackbar('Meal category deleted', 'success');
+    } catch (error: unknown) {
+      showSnackbar(getApiErrorMessage(error, 'Failed to delete meal category'), 'error');
+    }
+  };
+
   const handleOpenVisualPicker = async (member: FamilyMember) => {
     setVisualPickerMember(member);
     setVisualPickerOpen(true);
@@ -382,6 +452,7 @@ const Profile: React.FC = () => {
           <Tab label="Profile Information" />
           <Tab label="Preferences" />
           <Tab label="Family Members" />
+          <Tab label="Meal Categories" />
         </Tabs>
 
         {/* Profile Information Tab */}
@@ -639,6 +710,73 @@ const Profile: React.FC = () => {
             {familyMembers.length === 0 && (
               <Typography variant="body2" color="text.secondary" sx={{ p: 2, textAlign: 'center' }}>
                 No family members added yet
+              </Typography>
+            )}
+          </List>
+        </TabPanel>
+
+        {/* Meal Categories Tab */}
+        <TabPanel value={tabValue} index={3}>
+          <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+            These categories are shared by everyone in the household and are used when
+            tagging recipes and quick-adding staple meals.
+          </Typography>
+          <Box sx={{ display: 'flex', gap: 1, mb: 2 }}>
+            <TextField
+              size="small"
+              placeholder="New category name"
+              value={newCategoryName}
+              onChange={(e) => setNewCategoryName(e.target.value)}
+              onKeyPress={(e) => e.key === 'Enter' && handleAddMealTypeOption()}
+            />
+            <Button
+              variant="outlined"
+              startIcon={<AddIcon />}
+              onClick={handleAddMealTypeOption}
+              disabled={!newCategoryName.trim()}
+            >
+              Add
+            </Button>
+          </Box>
+          <List>
+            {mealTypeOptions.map((option) => (
+              <ListItem key={option.id} divider>
+                {editingCategoryId === option.id ? (
+                  <>
+                    <TextField
+                      size="small"
+                      value={editingCategoryName}
+                      onChange={(e) => setEditingCategoryName(e.target.value)}
+                      onKeyPress={(e) => e.key === 'Enter' && handleSaveMealTypeOption(option.id)}
+                      autoFocus
+                    />
+                    <ListItemSecondaryAction>
+                      <IconButton edge="end" onClick={() => handleSaveMealTypeOption(option.id)} sx={{ mr: 1 }}>
+                        <SaveIcon />
+                      </IconButton>
+                      <IconButton edge="end" onClick={handleCancelEditMealTypeOption}>
+                        <CancelIcon />
+                      </IconButton>
+                    </ListItemSecondaryAction>
+                  </>
+                ) : (
+                  <>
+                    <ListItemText primary={option.name.charAt(0).toUpperCase() + option.name.slice(1)} />
+                    <ListItemSecondaryAction>
+                      <IconButton edge="end" onClick={() => handleStartEditMealTypeOption(option)} sx={{ mr: 1 }}>
+                        <EditIcon />
+                      </IconButton>
+                      <IconButton edge="end" onClick={() => handleDeleteMealTypeOption(option)}>
+                        <DeleteIcon />
+                      </IconButton>
+                    </ListItemSecondaryAction>
+                  </>
+                )}
+              </ListItem>
+            ))}
+            {mealTypeOptions.length === 0 && (
+              <Typography variant="body2" color="text.secondary" sx={{ p: 2, textAlign: 'center' }}>
+                No meal categories yet
               </Typography>
             )}
           </List>
