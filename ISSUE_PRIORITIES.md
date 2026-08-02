@@ -1,120 +1,74 @@
 # Issue Prioritization
 
-**Last Updated:** 2026-07-29 02:17:59 UTC / 2026-07-28 21:17:59 CDT
+**Last Updated:** 2026-08-02 18:57:28 UTC / 2026-08-02 13:57:28 CDT
 
 This file reflects the current state of GitHub issues organized by milestone and priority within each milestone.
 
 **Priority is within a milestone** — P0/P1 issues in the active milestone take precedence over all issues in future milestones.
 
-## No Active Milestone
-
-Public Launch (due 2026-06-30) closed with all 56 issues resolved. Nothing has been assigned to
-a new milestone yet — all open issues below are unassigned. The items surfaced by this week's
-maintenance run (logs + CI audit) are the most urgent work regardless of milestone.
+## 🎯 August 2026 (due 2026-08-30)
 
 ### 🔴 P0 - CRITICAL
-- #281 - All 4 ClusterHAT Zero W backend nodes crash-looping (~76k restarts) — Prisma engine built for wrong architecture. **The fix this issue itself proposes does not work** — see note below.
+**No issues** ✅
 
 ### 🔴 P1 - HIGH
-- #286 - nginx resolver still hardcoded to Docker's 127.0.0.11 instead of Podman's 10.89.1.1 — breaks the Pi 4B fallback #281 currently depends on entirely. **Fix open in PR #287, unmerged.**
-- #282 - fix: backend/prisma/seed.ts still imports removed 'bcrypt' package, breaks e2e-tests DB seeding
+- #341 - e2e suite broadly failing on main — Postgres duplicate-key on user_preferences + widespread timeouts
+- #328 - Quick-add staple meals to the meal plan
 
 ### 🟡 P2 - MEDIUM
-- #285 - security: weekly audit 2026-07-28 — pnpm audit found 27 backend + 6 frontend vulns
-- #283 - ci: Dependabot PRs touching backend/ fail pnpm install with ERR_PNPM_LOCKFILE_CONFIG_MISMATCH
-- #284 - dx: fresh 'npm install && npm run build' fails on backend — Prisma Client never gets regenerated
-- #210 - security: replace csurf with modern CSRF middleware *(reopened — was falsely auto-closed 2026-05-26, never actually fixed)*
-- #116 - [P2][UX] Add Cost Tracking for Budget-Conscious Users *(97d stale)*
+**No issues** ✅
 
 ### 🟢 P3 - LOW
-- #200 - Pi: move Postgres data volume to USB SSD *(73d stale)*
+- #315 - [Product Decision] Is Pantry a committed real feature for this milestone?
+- #313 - docs: design documentation is stale and cross-references are broken after the archive reorganization
+- #308 - ux: keyboard shortcuts are fully implemented but completely undiscoverable
+- #307 - accessibility: missing aria-labels on icon-only buttons in CreateRecipe and Profile (one destructive)
+- #305 - ux: native alert()/window.confirm() used instead of the app's Alert/Snackbar/Dialog system
+- #303 - bug: Grocery List shows an error banner instead of an empty state for a user with no list yet
+- #301 - bug: AppBar page title falls back to brand name on Profile and Admin pages
+- #200 - Pi: move Postgres data volume to USB SSD
+
+### 📋 P4 - FUTURE
+- #317 - [Product Decision] Clarify the intended distinction between /register and the FTUE /welcome flow
+- #316 - [Product Decision] Should Grocery List support ad-hoc custom items?
+- #314 - design: MemberWelcome onboarding slides use hardcoded hex instead of theme tokens (3 of 4 slides)
+- #312 - bug: Grocery List empty-state CTA does a full page reload instead of SPA navigation
+- #311 - ux: form validation timing/feedback is inconsistent across Register, Welcome, CreateRecipe, Pantry, Setup
+- #310 - cleanup: dead 'Add Grocery Item' dialog is unreachable and admits the feature isn't supported
+- #309 - ux: loading-state pattern is inconsistent — Skeleton on 5 pages, bare CircularProgress spinner elsewhere
+
+### ⚠️ Unprioritized (need P-label)
+- #261 - perf(e2e): use Playwright storageState to avoid per-test UI login in FTUE suite
+
+---
+
+## ⚠️ Issues Without Milestone Assignment
+
+These issues need to be assigned to a milestone and prioritized.
+
+### 🟡 P2 - MEDIUM
+- #116 - [P2][UX] Add Cost Tracking for Budget-Conscious Users
+
+### 🟢 P3 - LOW
 - #170 - ✨ Add photo capture and PDF upload for recipe creation
-- #84 - [P3][Feature] Add recipe document upload (PDF, images, DOCX) *(related to #170)*
-- #14 - Implement Nutrition Guideline Warnings *(97d stale)*
-- #13 - Implement Nutrition Dashboard *(97d stale)*
-- #12 - Integrate Nutrition Database for Auto-Population *(97d stale)*
-- #9 - MyFitnessPal Integration *(97d stale)*
+- #84 - [P3][Feature] Add recipe document upload (PDF, images, DOCX)
+- #14 - Implement Nutrition Guideline Warnings
+- #13 - Implement Nutrition Dashboard
+- #12 - Integrate Nutrition Database for Auto-Population
+- #9 - MyFitnessPal Integration
 - #8 - Grocery List Optimization
 
 ### 📋 P4 - FUTURE
-- #66 - Publish Meals to ICS Calendar feed *(100d stale)*
+- #66 - Publish Meals to ICS Calendar feed
 - #64 - Implement Advanced Features (Nutrition Tracking, etc.)
 - #63 - Evaluate Scaling Strategy
 - #20 - Implement Pantry Integration with Grocery Lists
 - #19 - Implement Grocery List Regeneration and Sync Detection
 
-### ⚠️ Needs a priority label
-- #261 - perf(e2e): use Playwright storageState to avoid per-test UI login in FTUE suite *(no priority/type labels — triage needed)*
+## 📝 Workspace TODOs & Tasks
+Code comments and inline tasks found in the workspace that may need attention.
 
-## 🔀 Open PRs
-- #287 - fix(nginx): use Podman aardvark-dns resolver IP (#286) *(opened 2026-07-29, this session)* — clean, targeted one-liner; see investigation note below for why it no longer also carries a #281 fix
-- #269 - chore(deps): MUI 7 → 9.1.2 *(open since 2026-07-02, stalled on CI)*
-- #268 - chore(deps): Prisma 6 → 7.8.0 *(open since 2026-07-02, stalled on CI)* — **worth a look for #281**: this branch's history (commit `a08ea2b`) upgrades to Prisma 7 with a `pg` driver adapter, which would sidestep the native/WASM-engine-binary problem entirely. Bundled with an unrelated major-version bump though — don't merge as-is just to get the adapter change.
-- #267 - chore(deps): Express 4 → 5.2.1 *(open since 2026-07-02, stalled on CI)*
-- #266 - chore(deps): TypeScript 5 → 6.0.3 *(open since 2026-07-02, stalled on CI)*
-- #279 - chore(deps-dev): bump backend dev-deps group (8 updates) *(dependabot, open since 2026-07-27, stalled on CI)*
-- #278 - chore(deps-dev): bump frontend dev-deps group (10 updates) *(dependabot, open since 2026-07-27, stalled on CI)*
-- #277 - chore(deps): bump frontend prod-deps group (7 updates) *(dependabot, open since 2026-07-27, stalled on CI)*
-- #276 - chore(deps): bump backend prod-deps group (3 updates) *(dependabot, open since 2026-07-20, stalled on CI)*
-
-The 8 dependency-bump PRs each show at least one red CI check. Root causes are now understood
-(#282 breaks `e2e-tests` for everything; #283 breaks install for Dependabot's own backend PRs
-specifically) — these should largely go green once #282 lands, and the #266/#267/#268/#269
-branches likely just need a rebase onto main afterward.
-
-### Investigation note — 2026-07-29: #281's proposed fix doesn't work
-Opened PR #287 to fix both #281 and #286 together, then discovered while chasing CI failures on
-that PR that #281's own prescribed fix (add `linux-arm-openssl-3.0.x` to `binaryTargets`) is
-wrong: **Prisma 6.19.3 has no published query-engine binary for that target at all** (confirmed
-404 from `binaries.prisma.sh` for every OpenSSL variant). Adding it doesn't fix the Zero Ws — it
-breaks `prisma generate` everywhere, which is exactly what PR #287's CI caught.
-
-Also tried the `engineType = "wasm"` workaround sitting on orphaned branch `feat/ftue-cleanup-251`
-(commit `953d8d8`, authored 2026-07-01, never merged). Confirmed by actually generating the
-client that this **does not change runtime behavior either** — the generated `index.js` still
-embeds `"engineType": "library"` and would still try to load a missing native ARMv6 binary. That
-orphaned commit's "verified working" status (see [[project_zero_w_deployment]] in memory) looks
-like it was never actually true — #281's ~76k restarts started right around when that commit was
-authored and never stopped.
-
-**Conclusion:** a real fix needs Prisma's driver-adapter architecture (`@prisma/adapter-pg`,
-`previewFeatures = ["driverAdapters"]`, reworking `PrismaClient` instantiation in
-`backend/src/utils/prisma.ts`) — see the #268 note above, which already has this half-built as
-part of an unrelated Prisma 7 upgrade. This is a bigger change to the DB connection path used by
-every deployment target (not just the Zero Ws) and needs real testing before it ships. #281
-remains open and P0; PR #287 now only carries the #286 nginx fix.
-
-## 📊 Weekly Maintenance Summary — 2026-07-28
-
-### Closed since last update
-- #252, #251, #246, #231, #230, #209 (closed 2026-07-01/07-02, before this run — carried over from last report's untracked gap)
-- #253 (superseded by #285 — was based on an incomplete npm-audit picture, see below)
-
-### New issues filed
-- #281 - **P0** — All 4 Zero W nodes crash-looping since ~2026-07-01 on a Prisma binary-target mismatch; cluster has been silently down the whole time, all traffic falling back to the Pi 4B alone (confirmed live via SSH + journalctl)
-- #286 - **P1** — nginx resolver still hardcoded to Docker's 127.0.0.11 instead of Podman's 10.89.1.1; the fix exists on an orphaned local branch but never reached main — matters a lot right now since #281 means the Pi 4B fallback path this bug affects is the *only* path currently serving traffic
-- #282 - **P1** — `seed.ts` still imports removed `bcrypt`, breaking `e2e-tests` DB seed step on every CI run since 2026-07-01
-- #283 - **P2** — Dependabot PRs touching `backend/` fail `pnpm install --frozen-lockfile` (lockfile `overrides` drift specific to Dependabot's own regeneration)
-- #284 - **P2** — Documented `npm install && npm run build` workflow is broken on a fresh clone (npm blocks Prisma's postinstall; pnpm doesn't, which is why CI never caught it)
-- #285 - **P2** — Corrected security audit: `pnpm audit` (the real, deployed lockfile) found far more than `npm audit` had been reporting; fixed the great majority automatically this run
-- #210 reopened — falsely auto-closed 2026-05-26, csurf was never actually replaced
-
-### Build status
-- **Frontend:** ✅ builds and lints cleanly (0 errors, matches CI's `pnpm run lint`)
-- **Backend:** ✅ `pnpm exec tsc --noEmit` and `pnpm run lint` clean (0 errors, 261 warnings, all `no-explicit-any`) — **but only via `pnpm`, matching CI**; plain `npm install && npm run build` is currently broken, see #284
-
-### Security (via `pnpm audit`, the lockfile CI/deployment actually use — see #285)
-- Backend: 27 → 4 vulnerabilities after `pnpm audit --fix=update` (1 high, 2 moderate, 1 low remain: `ws`, `qs`, `cookie`/csurf)
-- Frontend: 6 → 3 vulnerabilities after `pnpm audit --fix=update` (1 high, 1 moderate, 1 low remain: `ws`, `react-router`)
-- Remaining items need breaking-change review (`socket.io` major bump for `ws`; `react-router-dom` downgrade or forward-fix for the CSRF bypass) — not auto-applied
-
-### Infrastructure (via live SSH to the Pi, new this week)
-- Pi 4B containers (postgres, redis, backend, nginx): all healthy, clean logs, no errors in 7 days
-- **Zero W cluster: all 4 nodes down** — see #281
-- nginx access log: 0 requests recorded in its full 4-day container uptime (only health-check traffic reaches the Pi 4B backend directly) — worth confirming real user traffic is reaching the site at all
-- Pi 4B memory: 119Mi free / 902Mi available of 1.8Gi — tight as expected, plus two unrelated containers (`ride-optimizer`, `jewel-coupon-clipper`) sharing the same box
-
----
+**No TODO/FIXME comments found in code** ✅
 
 ## Priority System (Milestone-Aware)
 
