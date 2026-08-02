@@ -11,6 +11,7 @@ import recipeBrowseReducer from './slices/recipeBrowseSlice';
 import mealPlansReducer from './slices/mealPlansSlice';
 import groceryListsReducer from './slices/groceryListsSlice';
 import pantryReducer from './slices/pantrySlice';
+import mealTypeOptionsReducer from './slices/mealTypeOptionsSlice';
 
 export const store = configureStore({
   reducer: {
@@ -20,6 +21,7 @@ export const store = configureStore({
     mealPlans: mealPlansReducer,
     groceryLists: groceryListsReducer,
     pantry: pantryReducer,
+    mealTypeOptions: mealTypeOptionsReducer,
   },
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware({

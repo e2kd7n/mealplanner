@@ -107,7 +107,7 @@ model Recipe {
   createdAt     DateTime           @default(now()) @map("created_at")
   updatedAt     DateTime           @updatedAt @map("updated_at")
   sourceUrl     String?            @map("source_url")
-  mealTypes     MealType[]         @map("meal_types")
+  mealTypes     String[]           @map("meal_types")
   cleanupScore  Int?               @map("cleanup_score")
   plannedMeals  PlannedMeal[]
   ingredients   RecipeIngredient[]
@@ -362,6 +362,26 @@ enum Difficulty {
   easy
   medium
   hard
+}
+
+// Household-wide, user-editable set of Recipe.mealTypes category values
+// (issue #327). Recipe.mealTypes stays a plain text[] (not a relation) so
+// existing array-based filtering (`{ has: mealType }`) keeps working —
+// this table is the managed source of truth for which values are valid,
+// not a foreign key target. Renaming/deleting an option cascades into
+// every recipe's mealTypes array (see meal-type-options controller).
+//
+// PlannedMeal.mealType intentionally still uses the fixed MealType enum
+// below — that's the weekly planner's day/slot structure, a different
+// concept from a recipe's category tags, and out of scope for #327.
+model MealTypeOption {
+  id        String   @id @default(uuid())
+  name      String   @unique
+  sortOrder Int      @default(0) @map("sort_order")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("meal_type_options")
 }
 
 enum MealType {

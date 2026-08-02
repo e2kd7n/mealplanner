@@ -79,7 +79,8 @@ interface RecipeFormData {
   cookTime: number;
   servings: number;
   difficulty: 'easy' | 'medium' | 'hard';
-  mealTypes: ('breakfast' | 'lunch' | 'dinner' | 'snack' | 'dessert')[];
+  // User-editable categories (issue #327) — sourced from GET /api/meal-type-options.
+  mealTypes: string[];
   cuisineType: string;
   kidFriendly: boolean;
   isPublic: boolean;
@@ -124,6 +125,7 @@ export default function CreateRecipe() {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [availableIngredients, setAvailableIngredients] = useState<Ingredient[]>([]);
+  const [mealTypeOptions, setMealTypeOptions] = useState<string[]>([]);
   const [instructionMode, setInstructionMode] = useState<'bulk' | 'manual'>('bulk');
   const [uploadingImage, setUploadingImage] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -200,6 +202,7 @@ export default function CreateRecipe() {
 
   useEffect(() => {
     loadIngredients();
+    loadMealTypeOptions();
     if (isEditMode && id) {
       loadRecipe(id);
     }
@@ -261,6 +264,16 @@ export default function CreateRecipe() {
     } catch (err) {
       if (import.meta.env.DEV) console.error('Failed to load ingredients:', err);
       setAvailableIngredients([]); // Set empty array on error
+    }
+  };
+
+  const loadMealTypeOptions = async () => {
+    try {
+      const response = await api.get('/meal-type-options');
+      setMealTypeOptions((response.data.data || []).map((o: { name: string }) => o.name));
+    } catch (err) {
+      if (import.meta.env.DEV) console.error('Failed to load meal type categories:', err);
+      setMealTypeOptions([]);
     }
   };
 
@@ -602,9 +615,9 @@ export default function CreateRecipe() {
       <Grid size={{ xs: 12, sm: 6 }}>
         <Autocomplete
           multiple
-          options={['breakfast', 'lunch', 'dinner', 'snack', 'dessert']}
+          options={mealTypeOptions}
           value={formData.mealTypes}
-          onChange={(_, value) => setFormData({ ...formData, mealTypes: value as ('breakfast' | 'lunch' | 'dinner' | 'snack' | 'dessert')[] })}
+          onChange={(_, value) => setFormData({ ...formData, mealTypes: value as string[] })}
           renderInput={(params) => (
             <TextField
               {...params}
