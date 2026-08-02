@@ -41,9 +41,12 @@ export const createRecipeSchema = z.object({
   difficulty: z.enum(['easy', 'medium', 'hard'], {
     message: 'Difficulty must be easy, medium, or hard',
   }),
-  mealTypes: z.array(z.enum(['breakfast', 'lunch', 'dinner', 'snack', 'dessert'], {
-    message: 'Invalid meal type',
-  })).min(1, 'At least one meal type is required'),
+  // Meal type categories are a user-editable list (issue #327), not a
+  // fixed enum — validated against the current MealTypeOption set isn't
+  // enforced here (same posture as other array/text fields under
+  // relationMode = "prisma"); the UI sources choices from GET
+  // /api/meal-type-options.
+  mealTypes: z.array(z.string().trim().min(1, 'Meal type cannot be empty')).min(1, 'At least one meal type is required'),
   cuisineType: z.string().optional(),
   kidFriendly: z.boolean().default(false),
   ingredients: z.array(z.object({
@@ -66,7 +69,7 @@ export const recipeQuerySchema = z.object({
   page: z.string().optional().transform((val) => (val ? parseInt(val, 10) : 1)),
   limit: z.string().optional().transform((val) => (val ? parseInt(val, 10) : 12)),
   search: z.string().optional(),
-  mealType: z.enum(['breakfast', 'lunch', 'dinner', 'snack', 'dessert']).optional(),
+  mealType: z.string().trim().min(1).optional(),
   difficulty: z.enum(['easy', 'medium', 'hard']).optional(),
   maxPrepTime: z.string().optional().transform((val) => (val ? parseInt(val, 10) : undefined)),
   kidFriendly: z.string().optional().transform((val) => val === 'true'),
@@ -182,9 +185,12 @@ export const saveImportedRecipeSchema = z.object({
   difficulty: z.enum(['easy', 'medium', 'hard'], {
     message: 'Difficulty must be easy, medium, or hard',
   }),
-  mealTypes: z.array(z.enum(['breakfast', 'lunch', 'dinner', 'snack', 'dessert'], {
-    message: 'Invalid meal type',
-  })).min(1, 'At least one meal type is required'),
+  // Meal type categories are a user-editable list (issue #327), not a
+  // fixed enum — validated against the current MealTypeOption set isn't
+  // enforced here (same posture as other array/text fields under
+  // relationMode = "prisma"); the UI sources choices from GET
+  // /api/meal-type-options.
+  mealTypes: z.array(z.string().trim().min(1, 'Meal type cannot be empty')).min(1, 'At least one meal type is required'),
   cuisineType: z.string().nullable().optional(),
   imageUrl: z.string().nullable().optional(),
   ingredients: z.array(z.object({

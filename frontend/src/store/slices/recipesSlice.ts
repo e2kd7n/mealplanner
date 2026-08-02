@@ -17,7 +17,9 @@ export interface Recipe {
   cookTime: number;
   servings: number;
   difficulty: 'easy' | 'medium' | 'hard';
-  mealTypes: ('breakfast' | 'lunch' | 'dinner' | 'snack' | 'dessert')[];
+  // User-editable categories (issue #327) — no longer a fixed set. The
+  // canonical list of currently-valid names lives in mealTypeOptionsSlice.
+  mealTypes: string[];
   cuisineType?: string;
   imageUrl?: string;
   ingredients: Array<{

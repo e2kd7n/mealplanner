@@ -310,6 +310,21 @@ export const ingredientAPI = {
     api.get('/ingredients/search', { params: { q: query } }),
 };
 
+// Meal Type Options API (issue #327 — user-editable Recipe.mealTypes categories)
+export const mealTypeOptionsAPI = {
+  getAll: () =>
+    api.get('/meal-type-options'),
+
+  create: (data: { name: string; sortOrder?: number }) =>
+    api.post('/meal-type-options', data),
+
+  update: (id: string, data: { name?: string; sortOrder?: number }) =>
+    api.put(`/meal-type-options/${id}`, data),
+
+  delete: (id: string) =>
+    api.delete(`/meal-type-options/${id}`),
+};
+
 // User API
 export const userAPI = {
   getProfile: () =>
