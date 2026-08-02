@@ -205,7 +205,17 @@ export const mealPlanAPI = {
     assignedCookId?: string;
     notes?: string;
   }) => api.post(`/meal-plans/${id}/meals`, data),
-  
+
+  quickAddMeal: (id: string, data: {
+    title: string;
+    mealTypes: string[];
+    date: string;
+    mealType: string;
+    servings?: number;
+    assignedCookId?: string;
+    notes?: string;
+  }) => api.post(`/meal-plans/${id}/meals/quick-add`, data),
+
   updateMeal: (planId: string, mealId: string, data: Record<string, unknown>) =>
     api.put(`/meal-plans/${planId}/meals/${mealId}`, data),
   

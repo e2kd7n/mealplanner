@@ -30,6 +30,7 @@ import {
   CircularProgress,
   Link,
   Tooltip,
+  Alert,
 } from '@mui/material';
 import {
   Add as AddIcon,
@@ -53,7 +54,7 @@ import { DndContext, DragOverlay, PointerSensor, useSensor, useSensors, useDragg
 import { mealPlanAPI } from '../services/api';
 import type { MealPlan, PlannedMeal } from '../store/slices/mealPlansSlice';
 import type { DragEndEvent, DragStartEvent } from '@dnd-kit/core';
-import { recipeAPI, familyMemberAPI, groceryListAPI } from '../services/api';
+import { recipeAPI, familyMemberAPI, groceryListAPI, mealTypeOptionsAPI } from '../services/api';
 import BatchCookingDialog from '../components/BatchCookingDialog';
 import { websocketService } from '../services/websocket.service';
 import type { MealPlanUpdate } from '../services/websocket.service';
@@ -137,6 +138,15 @@ const MealPlanner: React.FC = () => {
   const [recipeSearchInput, setRecipeSearchInput] = useState('');
   const searchTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  // Quick-add staple meal state (issue #328) — when the recipe search comes
+  // up empty and the user typed a custom name, offer to quick-add it as a
+  // minimal recipe (no ingredients/instructions required) and schedule it
+  // in one step. The one required follow-up is a category, sourced from
+  // the household's user-editable meal type list (issue #327).
+  const [mealTypeOptions, setMealTypeOptions] = useState<string[]>([]);
+  const [quickAddCategories, setQuickAddCategories] = useState<string[]>([]);
+  const [quickAdding, setQuickAdding] = useState(false);
+
   // Meal detail dialog state
   const [openMealDetail, setOpenMealDetail] = useState(false);
   const [selectedMeal, setSelectedMeal] = useState<Meal | null>(null);
@@ -181,7 +191,8 @@ const MealPlanner: React.FC = () => {
   useEffect(() => {
     loadRecipes('');
     loadFamilyMembers();
-    
+    loadMealTypeOptions();
+
     // Cleanup timeout on unmount
     return () => {
       if (searchTimeoutRef.current) {
@@ -382,7 +393,17 @@ const MealPlanner: React.FC = () => {
       setFamilyMembersLoading(false);
     }
   };
-  
+
+  const loadMealTypeOptions = async () => {
+    try {
+      const response = await mealTypeOptionsAPI.getAll();
+      setMealTypeOptions((response.data.data || []).map((o: { name: string }) => o.name));
+    } catch (error) {
+      if (import.meta.env.DEV) console.error('Failed to load meal type categories:', error);
+      setMealTypeOptions([]);
+    }
+  };
+
   const ensureMealPlanExists = async (): Promise<string> => {
     if (currentMealPlanId) {
       return currentMealPlanId;
@@ -420,6 +441,7 @@ const MealPlanner: React.FC = () => {
     setSelectedMealType(mealType);
     setNewMeal({ recipeId: '', recipeName: '', servings: 4, assignedCookId: '' });
     setRecipeSearchInput('');
+    setQuickAddCategories([]);
     // Load initial recipes when opening dialog
     loadRecipes('');
     setOpenDialog(true);
@@ -430,7 +452,7 @@ const MealPlanner: React.FC = () => {
 
     try {
       const mealPlanId = await ensureMealPlanExists();
-      
+
       await mealPlanAPI.addMeal(mealPlanId, {
         recipeId: newMeal.recipeId,
         date: formatDateForAPI(selectedDate),
@@ -441,13 +463,47 @@ const MealPlanner: React.FC = () => {
 
       // Reload meals from server to ensure consistency
       await loadMealsForWeek();
-      
+
       setOpenDialog(false);
       setIsEditingMeal(false);
       setEditingMealId(null);
     } catch (error) {
       if (import.meta.env.DEV) console.error('Failed to add meal:', error);
       alert('Failed to add meal. Please try again.');
+    }
+  };
+
+  // Quick-add a staple meal (issue #328): the recipe search came up empty,
+  // the user typed a custom name instead, and picked at least one category.
+  const handleQuickAddMeal = async () => {
+    if (!selectedDate || !newMeal.recipeName.trim() || quickAddCategories.length === 0) return;
+
+    try {
+      setQuickAdding(true);
+      const mealPlanId = await ensureMealPlanExists();
+
+      await mealPlanAPI.quickAddMeal(mealPlanId, {
+        title: newMeal.recipeName.trim(),
+        mealTypes: quickAddCategories,
+        date: formatDateForAPI(selectedDate),
+        mealType: selectedMealType.toLowerCase(),
+        servings: newMeal.servings,
+        assignedCookId: newMeal.assignedCookId || undefined,
+      });
+
+      // Reload meals and the recipe list so the new staple recipe is
+      // findable next time without another quick-add.
+      await Promise.all([loadMealsForWeek(), loadRecipes('')]);
+
+      setOpenDialog(false);
+      setIsEditingMeal(false);
+      setEditingMealId(null);
+      setQuickAddCategories([]);
+    } catch (error) {
+      if (import.meta.env.DEV) console.error('Failed to quick-add meal:', error);
+      alert('Failed to quick-add meal. Please try again.');
+    } finally {
+      setQuickAdding(false);
     }
   };
 
@@ -1193,6 +1249,7 @@ const MealPlanner: React.FC = () => {
                     recipeName: value.title,
                     servings: value.servings
                   });
+                  setQuickAddCategories([]);
                 }
               }}
               loading={recipeSearchLoading}
@@ -1228,6 +1285,29 @@ const MealPlanner: React.FC = () => {
                 </li>
               )}
             />
+            {!isEditingMeal && !newMeal.recipeId && newMeal.recipeName.trim() && (
+              <Box>
+                <Alert severity="info" sx={{ mb: 1.5 }}>
+                  No recipe found for "{newMeal.recipeName.trim()}". Quick-add it as a staple meal —
+                  you can add ingredients later so it shows up in your grocery list.
+                </Alert>
+                <Autocomplete
+                  multiple
+                  options={mealTypeOptions}
+                  value={quickAddCategories}
+                  onChange={(_, value) => setQuickAddCategories(value)}
+                  renderInput={(params) => (
+                    <TextField
+                      {...params}
+                      label="Category"
+                      required
+                      error={quickAddCategories.length === 0}
+                      helperText={quickAddCategories.length === 0 ? 'Pick at least one category' : ''}
+                    />
+                  )}
+                />
+              </Box>
+            )}
             <TextField
               select
               label="Assigned Cook"
@@ -1259,13 +1339,30 @@ const MealPlanner: React.FC = () => {
         </DialogContent>
         <DialogActions>
           <Button onClick={() => { setOpenDialog(false); setIsEditingMeal(false); setEditingMealId(null); }}>Cancel</Button>
-          <Button
-            onClick={isEditingMeal ? handleUpdateMeal : handleAddMeal}
-            variant="contained"
-            disabled={!newMeal.recipeId || !newMeal.recipeName}
-          >
-            {isEditingMeal ? 'Update Meal' : 'Add Meal'}
-          </Button>
+          {(() => {
+            const isQuickAdd = !isEditingMeal && !newMeal.recipeId && newMeal.recipeName.trim().length > 0;
+            if (isQuickAdd) {
+              return (
+                <Button
+                  onClick={handleQuickAddMeal}
+                  variant="contained"
+                  disabled={quickAddCategories.length === 0 || quickAdding}
+                  startIcon={quickAdding ? <CircularProgress size={16} color="inherit" /> : undefined}
+                >
+                  Quick-Add & Schedule
+                </Button>
+              );
+            }
+            return (
+              <Button
+                onClick={isEditingMeal ? handleUpdateMeal : handleAddMeal}
+                variant="contained"
+                disabled={!newMeal.recipeId || !newMeal.recipeName}
+              >
+                {isEditingMeal ? 'Update Meal' : 'Add Meal'}
+              </Button>
+            );
+          })()}
         </DialogActions>
       </Dialog>
 
