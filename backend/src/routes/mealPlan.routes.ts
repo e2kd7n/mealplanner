@@ -13,6 +13,7 @@ import {
   updateMealPlan,
   deleteMealPlan,
   addMealToPlan,
+  quickAddMealToPlan,
   updateMeal,
   removeMealFromPlan,
   batchCookMeal,
@@ -65,6 +66,14 @@ router.delete('/:id', deleteMealPlan);
  * @access  Private
  */
 router.post('/:id/meals', addMealToPlan);
+
+/**
+ * @route   POST /api/meal-plans/:id/meals/quick-add
+ * @desc    Quick-add a staple meal (creates a minimal Recipe + assigns it
+ *          to the slot in one step) — issue #328
+ * @access  Private
+ */
+router.post('/:id/meals/quick-add', quickAddMealToPlan);
 
 /**
  * @route   PUT /api/meal-plans/:planId/meals/:mealId

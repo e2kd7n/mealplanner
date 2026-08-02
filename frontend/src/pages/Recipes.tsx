@@ -44,6 +44,7 @@ import {
   Info as InfoIcon,
   CleaningServices as CleaningServicesIcon,
   Clear as ClearIcon,
+  ShoppingCart as ShoppingCartIcon,
 } from '@mui/icons-material';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAppDispatch, useAppSelector } from '../store/hooks';
@@ -61,10 +62,12 @@ import RecipeDiscoveryEmptyState from '../components/RecipeDiscoveryEmptyState';
 interface RecipeCardProps {
   recipe: Recipe;
   onNavigate: (id: string) => void;
+  onEditIngredients: (id: string) => void;
 }
 
-const RecipeCard = memo(({ recipe, onNavigate }: RecipeCardProps) => {
+const RecipeCard = memo(({ recipe, onNavigate, onEditIngredients }: RecipeCardProps) => {
   const { src: imageSrc, isLoading: imageLoading } = useCachedImage(recipe.imageUrl);
+  const needsIngredients = recipe.ingredients.length === 0;
 
   const getDifficultyColor = (diff: string) => {
     switch (diff.toLowerCase()) {
@@ -134,6 +137,11 @@ const RecipeCard = memo(({ recipe, onNavigate }: RecipeCardProps) => {
           {recipe.description || 'No description available'}
         </Typography>
         <Stack direction="row" spacing={1} sx={{ flexWrap: 'wrap', gap: 1 }}>
+          {needsIngredients && (
+            <Tooltip title="Quick-added without ingredients — add them so this shows up in your grocery list" arrow>
+              <Chip icon={<ShoppingCartIcon />} label="Needs ingredients" size="small" color="primary" />
+            </Tooltip>
+          )}
           <Tooltip title={`Difficulty: ${recipe.difficulty}`} arrow>
             <Chip label={recipe.difficulty} size="small" color={getDifficultyColor(recipe.difficulty)} />
           </Tooltip>
@@ -148,13 +156,25 @@ const RecipeCard = memo(({ recipe, onNavigate }: RecipeCardProps) => {
         </Stack>
       </CardContent>
       <CardActions>
-        <Button
-          size="small"
-          onClick={(e) => { e.stopPropagation(); onNavigate(recipe.id); }}
-          aria-label={`View ${recipe.title} recipe`}
-        >
-          View Recipe
-        </Button>
+        {needsIngredients ? (
+          <Button
+            size="small"
+            color="primary"
+            startIcon={<ShoppingCartIcon />}
+            onClick={(e) => { e.stopPropagation(); onEditIngredients(recipe.id); }}
+            aria-label={`Add ingredients to ${recipe.title} so it shows up in your grocery list`}
+          >
+            Add ingredients for grocery list
+          </Button>
+        ) : (
+          <Button
+            size="small"
+            onClick={(e) => { e.stopPropagation(); onNavigate(recipe.id); }}
+            aria-label={`View ${recipe.title} recipe`}
+          >
+            View Recipe
+          </Button>
+        )}
       </CardActions>
     </Card>
   );
@@ -199,18 +219,32 @@ const Recipes: React.FC = () => {
   // Filter panel open/closed
   const [filtersOpen, setFiltersOpen] = useState(false);
 
+  // "My Staples" view (issue #328) — quick-added staple meals are just
+  // recipes with no ingredients yet. Not a separate page, a filter here.
+  const [needsIngredientsOnly, setNeedsIngredientsOnly] = useState(false);
+  const staplesNeedingIngredientsCount = useMemo(
+    () => recipes.filter((r) => r.ingredients.length === 0).length,
+    [recipes]
+  );
+
   const debouncedSearch = useDebounce(searchInput, 300);
 
   // Client-side filter of already-loaded recipes by search text
   const displayedRecipes = useMemo(() => {
-    if (!debouncedSearch.trim()) return recipes;
-    const term = debouncedSearch.trim().toLowerCase();
-    return recipes.filter(
-      (r) =>
-        r.title.toLowerCase().includes(term) ||
-        (r.description && r.description.toLowerCase().includes(term))
-    );
-  }, [recipes, debouncedSearch]);
+    let result = recipes;
+    if (needsIngredientsOnly) {
+      result = result.filter((r) => r.ingredients.length === 0);
+    }
+    if (debouncedSearch.trim()) {
+      const term = debouncedSearch.trim().toLowerCase();
+      result = result.filter(
+        (r) =>
+          r.title.toLowerCase().includes(term) ||
+          (r.description && r.description.toLowerCase().includes(term))
+      );
+    }
+    return result;
+  }, [recipes, debouncedSearch, needsIngredientsOnly]);
 
   const activeFilterCount = [difficulty, mealType, cleanupScore].filter(Boolean).length;
 
@@ -253,6 +287,7 @@ const Recipes: React.FC = () => {
   }, []);
 
   const handleNavigate = useCallback((id: string) => navigate(`/recipes/${id}`), [navigate]);
+  const handleEditIngredients = useCallback((id: string) => navigate(`/recipes/${id}/edit`), [navigate]);
 
   const handleTabChange = (_event: React.SyntheticEvent, newValue: number) => setActiveTab(newValue);
 
@@ -366,6 +401,18 @@ const Recipes: React.FC = () => {
                   Filters
                 </Button>
               </Badge>
+              {staplesNeedingIngredientsCount > 0 && (
+                <Tooltip title="Staple meals you quick-added without ingredients — add them so they show up in your grocery list" arrow>
+                  <Chip
+                    icon={<ShoppingCartIcon />}
+                    label={`Needs Ingredients (${staplesNeedingIngredientsCount})`}
+                    color={needsIngredientsOnly ? 'primary' : 'default'}
+                    variant={needsIngredientsOnly ? 'filled' : 'outlined'}
+                    onClick={() => { setNeedsIngredientsOnly((v) => !v); setCurrentPage(1); }}
+                    sx={{ whiteSpace: 'nowrap' }}
+                  />
+                </Tooltip>
+              )}
               <FormControl sx={{ minWidth: 180 }}>
                 <InputLabel>Sort By</InputLabel>
                 <Select
@@ -500,7 +547,7 @@ const Recipes: React.FC = () => {
               {[...Array(8)].map((_, index) => <RecipeCardSkeleton key={index} />)}
             </Box>
           ) : displayedRecipes.length === 0 ? (
-            !searchInput && !difficulty && !mealType && !cleanupScore ? (
+            !searchInput && !difficulty && !mealType && !cleanupScore && !needsIngredientsOnly ? (
               <RecipeDiscoveryEmptyState />
             ) : (
               <Box sx={{ textAlign: 'center', py: 8 }}>
@@ -522,7 +569,7 @@ const Recipes: React.FC = () => {
                 }}
               >
                 {displayedRecipes.map((recipe) => (
-                  <RecipeCard key={recipe.id} recipe={recipe} onNavigate={handleNavigate} />
+                  <RecipeCard key={recipe.id} recipe={recipe} onNavigate={handleNavigate} onEditIngredients={handleEditIngredients} />
                 ))}
               </Box>
 

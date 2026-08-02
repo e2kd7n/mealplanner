@@ -390,6 +390,105 @@ export const addMealToPlan = async (
 };
 
 /**
+ * @route   POST /api/meal-plans/:id/meals/quick-add
+ * @desc    Quick-add a staple meal: creates a minimally-filled-in Recipe
+ *          (no ingredients/instructions required) and assigns it to a
+ *          meal plan slot in one step (issue #328). Ingredients can be
+ *          filled in later via the normal recipe edit flow.
+ * @access  Private
+ */
+export const quickAddMealToPlan = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void> => {
+  try {
+    const userId = req.user?.userId || req.user?.id;
+    if (!userId) {
+      throw new AppError('User not authenticated', 401);
+    }
+
+    const { id } = req.params as { id: string };
+    const { title, mealTypes, date, mealType, servings, notes, assignedCookId } = req.body;
+
+    if (!title || typeof title !== 'string' || !title.trim()) {
+      throw new AppError('Title is required', 400);
+    }
+    if (!Array.isArray(mealTypes) || mealTypes.length === 0) {
+      throw new AppError('At least one meal type category is required', 400);
+    }
+    if (!date || !mealType) {
+      throw new AppError('Date and meal type are required', 400);
+    }
+
+    const mealPlan = await prisma.mealPlan.findFirst({
+      where: { id, userId },
+    });
+    if (!mealPlan) {
+      throw new AppError('Meal plan not found', 404);
+    }
+
+    const resolvedServings = servings || 4;
+
+    const meal = await prisma.$transaction(async (tx) => {
+      const recipe = await tx.recipe.create({
+        data: {
+          userId,
+          title: title.trim(),
+          source: 'custom',
+          prepTime: 0,
+          cookTime: 0,
+          servings: resolvedServings,
+          difficulty: 'easy',
+          mealTypes,
+          instructions: [],
+          kidFriendly: false,
+        },
+      });
+
+      return tx.plannedMeal.create({
+        data: {
+          mealPlanId: id,
+          recipeId: recipe.id,
+          date: new Date(date),
+          mealType,
+          servings: resolvedServings,
+          notes,
+          assignedCookId,
+        },
+        include: {
+          recipe: true,
+          assignedCook: true,
+        },
+      });
+    });
+
+    logger.info(`Staple meal quick-added to plan ${id}: ${meal.id} by user ${userId}`);
+    await cacheDelPattern(`meal-plans:${userId}:*`);
+
+    try {
+      const wsService = getWebSocketService();
+      wsService.broadcastMealPlanUpdate({
+        type: 'meal_added',
+        mealPlanId: id,
+        data: meal,
+        userId,
+        timestamp: new Date().toISOString(),
+      }, userId);
+    } catch (error) {
+      logger.warn('Failed to broadcast meal plan update:', error);
+    }
+
+    res.status(201).json({
+      success: true,
+      data: meal,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
  * @route   PUT /api/meal-plans/:planId/meals/:mealId
  * @desc    Update meal in meal plan
  * @access  Private
