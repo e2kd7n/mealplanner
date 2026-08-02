@@ -221,7 +221,12 @@ const pantrySlice = createSlice({
       })
       .addCase(addPantryItem.fulfilled, (state, action) => {
         state.loading = false;
-        state.items.unshift(action.payload);
+        const index = state.items.findIndex(item => item.id === action.payload.id);
+        if (index !== -1) {
+          state.items[index] = action.payload;
+        } else {
+          state.items.unshift(action.payload);
+        }
       })
       .addCase(addPantryItem.rejected, (state, action) => {
         state.loading = false;
