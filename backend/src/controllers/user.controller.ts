@@ -124,47 +124,29 @@ export async function getPreferences(
   try {
     const userId = getUserId(req);
 
-    let preferences = await prisma.userPreferences.findUnique({
+    // Upsert instead of findUnique-then-create: two concurrent first-load
+    // requests for a user with no preferences row yet would otherwise both
+    // see `null` and both attempt a create, and the loser throws a unique
+    // constraint violation on userId (see #341).
+    const preferences = await prisma.userPreferences.upsert({
       where: { userId },
-      include: {
-        avoidedIngredients: {
-          select: {
-            id: true,
-            name: true,
-            category: true,
-          },
+      update: {},
+      create: {
+        userId,
+        weeklyBudget: null,
+        preferredCuisines: [],
+        cookingSkillLevel: 'beginner',
+        maxPrepTimeWeeknight: 45,
+        maxPrepTimeWeekend: 90,
+        dietaryPreferences: {},
+        notificationSettings: {
+          mealReminders: true,
+          groceryReminders: true,
+          expirationAlerts: true,
         },
       },
+      include: PREFERENCES_INCLUDE,
     });
-
-    // Create default preferences if they don't exist
-    if (!preferences) {
-      preferences = await prisma.userPreferences.create({
-        data: {
-          userId,
-          weeklyBudget: null,
-          preferredCuisines: [],
-          cookingSkillLevel: 'beginner',
-          maxPrepTimeWeeknight: 45,
-          maxPrepTimeWeekend: 90,
-          dietaryPreferences: {},
-          notificationSettings: {
-            mealReminders: true,
-            groceryReminders: true,
-            expirationAlerts: true,
-          },
-        },
-        include: {
-          avoidedIngredients: {
-            select: {
-              id: true,
-              name: true,
-              category: true,
-            },
-          },
-        },
-      });
-    }
 
     res.json({
       data: preferences,
