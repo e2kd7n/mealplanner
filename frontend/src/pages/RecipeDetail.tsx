@@ -381,7 +381,7 @@ const RecipeDetail: React.FC = () => {
           </Button>
           <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
             <Box>
-              <Typography variant="h3" gutterBottom>
+              <Typography variant="h3" component="h1" gutterBottom>
                 {recipe.title}
               </Typography>
               <Stack direction="row" spacing={1} sx={{ flexWrap: 'wrap', gap: 1 }}>

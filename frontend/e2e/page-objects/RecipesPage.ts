@@ -23,7 +23,7 @@ export class RecipesPage {
 
   constructor(page: Page) {
     this.page = page;
-    this.searchInput = page.getByPlaceholder(/search recipes/i);
+    this.searchInput = page.getByPlaceholder(/search (my )?recipes/i);
     this.filterButton = page.getByRole('button', { name: /filter/i });
     // Issue #138: Fixed sort dropdown selector to work with MUI Select component
     // Use a more robust selector that finds the Select by its label

@@ -55,7 +55,7 @@ const TodayMeals = memo(({ loading, meals, onNavigate }: TodayMealsProps) => {
   if (loading) {
     return (
       <Box>
-        <Typography variant="h6" gutterBottom>Today's Meals</Typography>
+        <Typography variant="h6" component="h2" gutterBottom>Today's Meals</Typography>
         <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
           {MEAL_SLOTS.map((slot) => (
             <Skeleton key={slot} variant="rectangular" width={160} height={56} sx={{ borderRadius: 1 }} />
@@ -68,7 +68,7 @@ const TodayMeals = memo(({ loading, meals, onNavigate }: TodayMealsProps) => {
   return (
     <Box>
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
-        <Typography variant="h6">Today's Meals</Typography>
+        <Typography variant="h6" component="h2">Today's Meals</Typography>
         <Button size="small" onClick={onNavigate}>Open Planner</Button>
       </Box>
       <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
@@ -142,7 +142,7 @@ const WeekGlance = memo(({ loading, mealsForWeek, onDayClick }: WeekGlanceProps)
   if (loading) {
     return (
       <Box>
-        <Typography variant="h6" gutterBottom>This Week</Typography>
+        <Typography variant="h6" component="h2" gutterBottom>This Week</Typography>
         <Box sx={{ display: 'flex', gap: 1 }}>
           {days.map((_, i) => <Skeleton key={i} variant="circular" width={36} height={36} />)}
         </Box>
@@ -152,7 +152,7 @@ const WeekGlance = memo(({ loading, mealsForWeek, onDayClick }: WeekGlanceProps)
 
   return (
     <Box>
-      <Typography variant="h6" gutterBottom>This Week</Typography>
+      <Typography variant="h6" component="h2" gutterBottom>This Week</Typography>
       <Box sx={{ display: 'flex', gap: 0.5 }}>
         {days.map((day, i) => {
           const isToday = isSameDay(day, new Date());
@@ -301,7 +301,7 @@ const QuickActionCard = memo(({ title, description, icon, iconColor, ctaLabel, o
     }}
   >
     <Box sx={{ color: iconColor, mb: 1.5 }}>{icon}</Box>
-    <Typography variant="h6" gutterBottom>{title}</Typography>
+    <Typography variant="h6" component="h2" gutterBottom>{title}</Typography>
     <Typography variant="body2" color="text.secondary" sx={{ flexGrow: 1 }}>{description}</Typography>
     <Button
       size="small"
@@ -421,7 +421,7 @@ const Dashboard: React.FC = () => {
           {dataLoading ? (
             <Skeleton variant="text" width={300} height={40} />
           ) : (
-            <Typography variant="h4" gutterBottom>{greeting}</Typography>
+            <Typography variant="h4" component="h1" gutterBottom>{greeting}</Typography>
           )}
           <Typography variant="body1" color="text.secondary">
             Plan your meals, manage your grocery list, and track your pantry.
@@ -490,7 +490,7 @@ const Dashboard: React.FC = () => {
         </Box>
 
         {/* Quick Actions */}
-        <Typography variant="h5" gutterBottom>Quick Actions</Typography>
+        <Typography variant="h5" component="h2" gutterBottom>Quick Actions</Typography>
         <Grid container spacing={3}>
           {quickActions.map((action) => (
             <Grid size={{ xs: 12, sm: 6, md: 3 }} key={action.title}>

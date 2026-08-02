@@ -16,6 +16,15 @@ test.describe('Delete Recipe', () => {
   test('should delete a recipe with confirmation', async ({ authenticatedPage }) => {
     await authenticatedPage.goto(`/recipes/${testRecipe.id}`);
 
+    // The success message is a native alert(), not DOM text — Playwright
+    // auto-dismisses dialogs unless a handler is registered, so capture and
+    // accept it here to both verify the message and let navigation proceed.
+    let dialogMessage = '';
+    authenticatedPage.once('dialog', async (dialog) => {
+      dialogMessage = dialog.message();
+      await dialog.accept();
+    });
+
     // Click delete button
     await authenticatedPage.getByRole('button', { name: /delete/i }).click();
 
@@ -26,10 +35,9 @@ test.describe('Delete Recipe', () => {
     await authenticatedPage.getByRole('button', { name: /confirm|yes|delete/i }).click();
 
     // Should redirect to recipes list
-    await expect(authenticatedPage).toHaveURL('/recipes');
+    await expect(authenticatedPage).toHaveURL('/recipes', { timeout: 5000 });
 
-    // Should show success message
-    await expect(authenticatedPage.getByText(/recipe deleted successfully/i)).toBeVisible();
+    expect(dialogMessage).toMatch(/successfully deleted/i);
   });
 
   test('should cancel recipe deletion', async ({ authenticatedPage }) => {

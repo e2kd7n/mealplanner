@@ -51,7 +51,7 @@ test.describe('Visual Login Screen (/login)', () => {
   });
 
   test('#235 — branding should be consistent, not "Family Kitchen" vs "Family Meal Planner"', async ({ page }) => {
-    const heading = page.locator('h4, h3, h2').first();
+    const heading = page.locator('h1, h4, h3, h2').first();
     const text = await heading.textContent();
     // Document what the heading actually says
     console.log(`Login heading text: "${text}"`);

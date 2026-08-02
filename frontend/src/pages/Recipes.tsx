@@ -121,7 +121,7 @@ const RecipeCard = memo(({ recipe, onNavigate, onEditIngredients }: RecipeCardPr
         )}
       </Box>
       <CardContent sx={{ flexGrow: 1 }}>
-        <Typography variant="h6" gutterBottom noWrap>{recipe.title}</Typography>
+        <Typography variant="h6" component="h2" gutterBottom noWrap>{recipe.title}</Typography>
         <Typography
           variant="body2"
           color="text.secondary"
@@ -303,7 +303,7 @@ const Recipes: React.FC = () => {
       <Box sx={{ mb: 4 }}>
         {/* Header */}
         <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
-          <Typography variant="h4">Recipes</Typography>
+          <Typography variant="h4" component="h1">Recipes</Typography>
           <Box sx={{ display: 'flex', gap: 2 }}>
             <Tooltip title="Paste any recipe URL — we'll extract the ingredients and steps automatically." arrow>
               <Button
@@ -320,7 +320,6 @@ const Recipes: React.FC = () => {
                 variant="contained"
                 startIcon={<AddIcon />}
                 onClick={() => navigate('/recipes/create')}
-                aria-label="Create new recipe"
               >
                 Create Recipe
               </Button>
@@ -414,8 +413,9 @@ const Recipes: React.FC = () => {
                 </Tooltip>
               )}
               <FormControl sx={{ minWidth: 180 }}>
-                <InputLabel>Sort By</InputLabel>
+                <InputLabel id="recipes-sort-by-label">Sort By</InputLabel>
                 <Select
+                  labelId="recipes-sort-by-label"
                   value={sortBy}
                   label="Sort By"
                   onChange={(e) => { setSortBy(e.target.value); setCurrentPage(1); }}
@@ -442,8 +442,9 @@ const Recipes: React.FC = () => {
                 sx={{ mt: 2, p: 2, bgcolor: 'background.default', borderRadius: 1 }}
               >
                 <FormControl sx={{ minWidth: 150 }}>
-                  <InputLabel>Difficulty</InputLabel>
+                  <InputLabel id="recipes-difficulty-label">Difficulty</InputLabel>
                   <Select
+                    labelId="recipes-difficulty-label"
                     value={difficulty}
                     label="Difficulty"
                     onChange={(e) => { setDifficulty(e.target.value); setCurrentPage(1); }}
@@ -456,8 +457,9 @@ const Recipes: React.FC = () => {
                 </FormControl>
 
                 <FormControl sx={{ minWidth: 150 }}>
-                  <InputLabel>Meal Type</InputLabel>
+                  <InputLabel id="recipes-meal-type-label">Meal Type</InputLabel>
                   <Select
+                    labelId="recipes-meal-type-label"
                     value={mealType}
                     label="Meal Type"
                     onChange={(e) => { setMealType(e.target.value); setCurrentPage(1); }}
@@ -552,7 +554,7 @@ const Recipes: React.FC = () => {
             ) : (
               <Box sx={{ textAlign: 'center', py: 8 }}>
                 <RestaurantIcon sx={{ fontSize: 64, color: 'text.secondary', mb: 2 }} />
-                <Typography variant="h6" color="text.secondary">No recipes found</Typography>
+                <Typography variant="h6" component="h2" color="text.secondary">No recipes found</Typography>
                 <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
                   Try adjusting your search or filters
                 </Typography>

@@ -2,9 +2,6 @@ import 'dotenv/config';
 import { PrismaClient, Difficulty, MealType } from '@prisma/client';
 import { PrismaPg } from '@prisma/adapter-pg';
 
-const adapter = new PrismaPg({ connectionString: process.env.DATABASE_URL });
-const prisma = new PrismaClient({ adapter });
-
 const TEST_USER_ID = 'test-user-00-0000-0000-000000000001'; // The test user from database init
 
 const recipes = [
@@ -57,9 +54,9 @@ const recipes = [
   { title: 'Lemon Bars', description: 'Tangy lemon bars with shortbread crust', prepTime: 15, cookTime: 45, servings: 16, difficulty: 'easy', kidFriendly: true, cuisineType: 'American', mealTypes: ['dessert'] },
 ];
 
-async function main() {
+export async function seedRecipes(prisma: PrismaClient) {
   console.log('Seeding database with 40 test recipes...');
-  
+
   for (const recipe of recipes) {
     await prisma.recipe.create({
       data: {
@@ -79,18 +76,24 @@ async function main() {
     });
     console.log(`✓ Created: ${recipe.title}`);
   }
-  
+
   const count = await prisma.recipe.count();
   console.log(`\n✅ Successfully created ${count} recipes!`);
 }
 
-main()
-  .catch((e) => {
-    console.error('Error seeding database:', e);
-    process.exit(1);
-  })
-  .finally(async () => {
-    await prisma.$disconnect();
-  });
+// Allow running standalone (`ts-node seed-recipes.ts`) for manual/local reseeding.
+if (require.main === module) {
+  const adapter = new PrismaPg({ connectionString: process.env.DATABASE_URL });
+  const prisma = new PrismaClient({ adapter });
+
+  seedRecipes(prisma)
+    .catch((e) => {
+      console.error('Error seeding database:', e);
+      process.exit(1);
+    })
+    .finally(async () => {
+      await prisma.$disconnect();
+    });
+}
 
 // Made with Bob

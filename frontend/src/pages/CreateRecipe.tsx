@@ -712,7 +712,7 @@ export default function CreateRecipe() {
   const renderIngredients = () => (
     <Box>
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-        <Typography variant="h6">
+        <Typography variant="h6" component="h2">
           Add Ingredients
         </Typography>
         <Chip
@@ -815,6 +815,7 @@ export default function CreateRecipe() {
           <IconButton
             color="primary"
             onClick={handleAddIngredient}
+            aria-label="Add ingredient"
             sx={{ mt: 1 }}
           >
             <AddIcon />
@@ -930,7 +931,7 @@ export default function CreateRecipe() {
   const renderInstructions = () => (
     <Box>
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-        <Typography variant="h6">
+        <Typography variant="h6" component="h2">
           Cooking Instructions
         </Typography>
         <ToggleButtonGroup
@@ -956,6 +957,7 @@ export default function CreateRecipe() {
             fullWidth
             multiline
             rows={12}
+            label="Instructions"
             value={bulkInstructions}
             onChange={(e) => setBulkInstructions(e.target.value)}
             placeholder="Paste or type instructions here. Each line will become a step.&#10;&#10;Supports:&#10;1. Numbered lists (1. 2. 3.)&#10;• Bullet points&#10;- Dashes&#10;Or plain paragraphs"
@@ -1012,7 +1014,7 @@ export default function CreateRecipe() {
       )}
 
       <Box sx={{ mt: 4 }}>
-        <Typography variant="h6" gutterBottom>
+        <Typography variant="h6" component="h2" gutterBottom>
           Nutrition Information (Optional)
         </Typography>
         <Grid container spacing={2}>
@@ -1083,7 +1085,7 @@ export default function CreateRecipe() {
 
   const renderReview = () => (
     <Box>
-      <Typography variant="h6" gutterBottom>
+      <Typography variant="h6" component="h2" gutterBottom>
         Review Your Recipe
       </Typography>
 
@@ -1184,7 +1186,7 @@ export default function CreateRecipe() {
       </Button>
       
       <Box sx={{ mb: 4 }}>
-        <Typography variant="h4" gutterBottom>
+        <Typography variant="h4" component="h1" gutterBottom>
           {isEditMode ? 'Edit Recipe' : 'Create New Recipe'}
         </Typography>
         <Typography variant="body1" color="text.secondary">
