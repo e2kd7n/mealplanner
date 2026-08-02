@@ -21,10 +21,16 @@ vi.mock('../../services/api', () => {
     getStockImages: vi.fn(),
     setupStockVisualPassword: vi.fn(),
   };
-  return { userAPI, familyMemberAPI, visualAuthAPI };
+  const mealTypeOptionsAPI = {
+    getAll: vi.fn(),
+    create: vi.fn(),
+    update: vi.fn(),
+    delete: vi.fn(),
+  };
+  return { userAPI, familyMemberAPI, visualAuthAPI, mealTypeOptionsAPI };
 });
 
-import { userAPI, familyMemberAPI, visualAuthAPI } from '../../services/api';
+import { userAPI, familyMemberAPI, visualAuthAPI, mealTypeOptionsAPI } from '../../services/api';
 
 const mockProfile = { id: 'u1', email: 'admin@test.com', familyName: 'Test Fam' };
 const mockPreferences = {
@@ -37,6 +43,7 @@ function setupApiMocks(members = defaultMembers()) {
   (userAPI.getProfile as any).mockResolvedValue({ data: { data: mockProfile } });
   (userAPI.getPreferences as any).mockResolvedValue({ data: { data: mockPreferences } });
   (familyMemberAPI.getAll as any).mockResolvedValue({ data: { data: members } });
+  (mealTypeOptionsAPI.getAll as any).mockResolvedValue({ data: { data: [] } });
 }
 
 function defaultMembers() {
