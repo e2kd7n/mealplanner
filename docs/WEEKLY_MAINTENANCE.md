@@ -267,6 +267,43 @@ grep -r "TODO\|FIXME" backend/src frontend/src
 
 ---
 
+### 8. Worktree Hygiene (Local Only)
+
+**Purpose:** Prevent stale Claude Code worktrees (and their full `node_modules`
+installs) from accumulating in `.claude/worktrees/`.
+
+Split the same way as Secret Rotation above, since the cloud maintenance routine
+has no access to this laptop's filesystem:
+
+1. **Execution — `scripts/prune-worktrees.sh`, runs locally on this machine
+   via a weekly Windows Scheduled Task** (not the cloud routine — worktrees
+   are local-only state, never pushed anywhere). For each worktree other than
+   the repo root:
+   - Skips it if it's locked by a still-running session.
+   - Removes it (plus its local and remote branch) only if its branch has a
+     merged or closed PR **and** it has zero uncommitted changes **and** zero
+     commits ahead of `main` that aren't already on it.
+   - Anything else (open/no PR, or real uncommitted/unpushed work) is left
+     alone and reported, never guessed at.
+   - On Windows, falls back to a robocopy mirror-of-empty trick if `git
+     worktree remove` hits the MAX_PATH limit on deep `node_modules` trees
+     (`core.longpaths` alone doesn't fix this — see global CLAUDE.md).
+2. **Verification — none needed from the cloud routine.** This is purely
+   local-machine housekeeping; there's nothing here for a cloud agent to
+   check, unlike secret rotation where GitHub-visible state (commit history)
+   lets it verify a Pi-side job actually ran.
+
+**Commands:**
+```bash
+# Dry run — report only, changes nothing
+./scripts/prune-worktrees.sh .
+
+# Actually remove safe-to-remove worktrees and their branches
+./scripts/prune-worktrees.sh . --apply
+```
+
+---
+
 ## 📅 Monthly Tasks
 
 ### 1. Comprehensive Security Audit (1 hour)
@@ -382,6 +419,10 @@ Consider automating these tasks:
    only when a secret is actually due; the cloud routine cross-checks it
    actually ran via `docs/SECRET_ROTATION_STATUS.json`. See Security Updates
    above.
+7. **Worktree Hygiene** - Fully automated: `scripts/prune-worktrees.sh --apply`
+   runs weekly via a local Windows Scheduled Task and removes only worktrees
+   whose branch is merged/closed with no uncommitted or unpushed work. See
+   Worktree Hygiene above.
 
 ---
 
