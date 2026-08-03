@@ -5,6 +5,7 @@
 
 
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
   Container,
   Typography,
@@ -22,10 +23,6 @@ import {
   Chip,
   Divider,
   Stack,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
   CircularProgress,
   Alert,
   Collapse,
@@ -111,12 +108,12 @@ const mapIngredientCategoryToStore = (ingredientCategory: string): string => {
 };
 
 const GroceryList: React.FC = () => {
+  const navigate = useNavigate();
   const { confirm, confirmDialogProps } = useConfirmDialog();
   const [, setGroceryLists] = useState<GroceryList[]>([]);
   const [currentList, setCurrentList] = useState<GroceryList | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [openDialog, setOpenDialog] = useState(false);
   const [expandedCategories, setExpandedCategories] = useState<Record<string, boolean>>({});
 
   const fetchGroceryLists = async () => {
@@ -387,7 +384,7 @@ const GroceryList: React.FC = () => {
               </Typography>
               <Button
                 variant="contained"
-                onClick={() => window.location.href = '/meal-planner'}
+                onClick={() => navigate('/meal-planner')}
               >
                 Go to Meal Planner
               </Button>
@@ -524,18 +521,6 @@ const GroceryList: React.FC = () => {
           </Box>)
         )}
       </Box>
-      {/* Add Item Dialog (Disabled for now) */}
-      <Dialog open={openDialog} onClose={() => setOpenDialog(false)} maxWidth="sm" fullWidth>
-        <DialogTitle>Add Grocery Item</DialogTitle>
-        <DialogContent>
-          <Alert severity="info" sx={{ mt: 1 }}>
-            Adding custom items is not yet supported. Please generate grocery lists from your meal plans.
-          </Alert>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setOpenDialog(false)}>Close</Button>
-        </DialogActions>
-      </Dialog>
       <ConfirmDialog {...confirmDialogProps} />
     </Container>
   );
