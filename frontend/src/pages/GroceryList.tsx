@@ -50,6 +50,7 @@ import {
 } from '@mui/icons-material';
 import ConfirmDialog from '../components/ConfirmDialog';
 import { useConfirmDialog } from '../hooks/useConfirmDialog';
+import api from '../services/api';
 
 interface Ingredient {
   id: string;
@@ -118,27 +119,15 @@ const GroceryList: React.FC = () => {
   const [openDialog, setOpenDialog] = useState(false);
   const [expandedCategories, setExpandedCategories] = useState<Record<string, boolean>>({});
 
-  const apiBase = import.meta.env.VITE_API_URL || '/api';
-
   const fetchGroceryLists = async () => {
     try {
       setLoading(true);
       setError(null);
-      const token = localStorage.getItem('accessToken');
-      
-      const response = await fetch(`${apiBase}/grocery-lists`, {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-        },
-      });
 
-      if (!response.ok) {
-        throw new Error('Failed to fetch grocery lists');
-      }
-
-      const data = await response.json();
+      const response = await api.get('/grocery-lists');
+      const data = response.data;
       setGroceryLists(data.data || []);
-      
+
       // Set the most recent list as current
       if (data.data && data.data.length > 0) {
         setCurrentList(data.data[0]);
@@ -206,24 +195,11 @@ const GroceryList: React.FC = () => {
       const item = currentList.items.find(i => i.id === itemId);
       if (!item) return;
 
-      const token = localStorage.getItem('accessToken');
-      const response = await fetch(`${apiBase}/grocery-lists/${currentList.id}/items/${itemId}`, {
-        method: 'PUT',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          checked: !item.isChecked,
-        }),
+      const response = await api.put(`/grocery-lists/${currentList.id}/items/${itemId}`, {
+        checked: !item.isChecked,
       });
+      const data = response.data;
 
-      if (!response.ok) {
-        throw new Error('Failed to update item');
-      }
-
-      const data = await response.json();
-      
       // Update local state
       setCurrentList({
         ...currentList,
@@ -248,17 +224,7 @@ const GroceryList: React.FC = () => {
     if (!confirmed) return;
 
     try {
-      const token = localStorage.getItem('accessToken');
-      const response = await fetch(`${apiBase}/grocery-lists/${currentList.id}/items/${itemId}`, {
-        method: 'DELETE',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-        },
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to delete item');
-      }
+      await api.delete(`/grocery-lists/${currentList.id}/items/${itemId}`);
 
       // Update local state
       setCurrentList({
@@ -278,17 +244,10 @@ const GroceryList: React.FC = () => {
     const checkedItems = currentList.items.filter(item => item.isChecked);
     
     try {
-      const token = localStorage.getItem('accessToken');
-      
       // Delete all checked items
       await Promise.all(
         checkedItems.map(item =>
-          fetch(`${apiBase}/grocery-lists/${currentList.id}/items/${item.id}`, {
-            method: 'DELETE',
-            headers: {
-              'Authorization': `Bearer ${token}`,
-            },
-          })
+          api.delete(`/grocery-lists/${currentList.id}/items/${item.id}`)
         )
       );
 
@@ -350,7 +309,7 @@ const GroceryList: React.FC = () => {
       <Box sx={{ mb: 4 }}>
         {/* Header */}
         <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3, flexWrap: 'wrap', gap: 2 }}>
-          <Typography variant="h4">
+          <Typography variant="h4" component="h1">
             Grocery List
           </Typography>
           <Stack direction="row" spacing={1} sx={{ flexWrap: 'wrap' }}>
@@ -397,7 +356,7 @@ const GroceryList: React.FC = () => {
               <Stack direction="row" spacing={2} sx={{ alignItems: 'center' }}>
                 <ShoppingCartIcon sx={{ fontSize: 40 }} />
                 <Box sx={{ flexGrow: 1 }}>
-                  <Typography variant="h6">
+                  <Typography variant="h6" component="h2">
                     Shopping Progress
                   </Typography>
                   <Typography variant="body2">
@@ -405,7 +364,8 @@ const GroceryList: React.FC = () => {
                   </Typography>
                 </Box>
                 <Box sx={{ textAlign: 'right' }}>
-                  <Typography variant="h4">
+                  {/* Decorative progress readout, not a document heading. */}
+                  <Typography variant="h4" component="div">
                     {Math.round(progress)}%
                   </Typography>
                 </Box>
@@ -419,7 +379,7 @@ const GroceryList: React.FC = () => {
           <Card>
             <CardContent sx={{ textAlign: 'center', py: 8 }}>
               <ShoppingCartIcon sx={{ fontSize: 64, color: 'text.primary', mb: 2 }} aria-hidden="true" />
-              <Typography variant="h6" sx={{ color: 'text.primary' }} gutterBottom>
+              <Typography variant="h6" component="h2" sx={{ color: 'text.primary' }} gutterBottom>
                 Your grocery list is empty
               </Typography>
               <Typography variant="body2" sx={{ mb: 3, color: 'text.primary' }}>
@@ -474,7 +434,7 @@ const GroceryList: React.FC = () => {
                           <CategoryIcon />
                         </Avatar>
                         <Box>
-                          <Typography variant="h6" sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                          <Typography variant="h6" component="h2" sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                             <span>{categoryConfig.emoji}</span>
                             {categoryConfig.label}
                           </Typography>

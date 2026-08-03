@@ -30,8 +30,8 @@ test.describe('Browse Recipes', () => {
     // Click the recipe
     await firstRecipe.click();
     
-    // Should navigate to recipe detail page
-    await expect(authenticatedPage).toHaveURL(/.*recipes\/\d+/);
+    // Should navigate to recipe detail page (recipe ids are UUIDs, not ints)
+    await expect(authenticatedPage).toHaveURL(/\/recipes\/[0-9a-f-]+$/);
     
     // Should show the recipe title
     if (title) {

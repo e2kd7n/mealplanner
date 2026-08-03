@@ -957,7 +957,7 @@ const MealPlanner: React.FC = () => {
       <Box sx={{ mb: 4 }}>
         {/* Header */}
         <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
-          <Typography variant="h4">
+          <Typography variant="h4" component="h1">
             Meal Planner
           </Typography>
           <Button
@@ -974,7 +974,9 @@ const MealPlanner: React.FC = () => {
         <Card sx={{ mb: 2, bgcolor: 'background.default' }}>
           <CardContent sx={{ py: 2 }}>
             <Stack spacing={1}>
-              <Typography variant="subtitle2" color="text.secondary" align="center">
+              {/* MUI defaults subtitle2 to an <h6> tag — this is a plain
+                  label, not a document heading. */}
+              <Typography variant="subtitle2" component="span" color="text.secondary" align="center">
                 View Mode
               </Typography>
               <Stack direction="row" spacing={2} sx={{ justifyContent: 'center' }}>
@@ -1014,11 +1016,11 @@ const MealPlanner: React.FC = () => {
         <Card sx={{ mb: 3 }}>
           <CardContent>
             <Stack direction="row" sx={{ alignItems: 'center', justifyContent: 'space-between' }}>
-              <IconButton onClick={handlePreviousWeek}>
+              <IconButton onClick={handlePreviousWeek} aria-label="Previous week">
                 <ChevronLeftIcon />
               </IconButton>
               <Box sx={{ textAlign: 'center' }}>
-                <Typography variant="h6">
+                <Typography variant="h6" component="h2">
                   {format(currentWeekStart, 'MMMM yyyy')}
                 </Typography>
                 <Typography variant="body2" color="text.secondary">
@@ -1034,7 +1036,7 @@ const MealPlanner: React.FC = () => {
                 <Button size="small" onClick={handleToday}>
                   Today
                 </Button>
-                <IconButton onClick={handleNextWeek}>
+                <IconButton onClick={handleNextWeek} aria-label="Next week">
                   <ChevronRightIcon />
                 </IconButton>
               </Stack>
@@ -1087,8 +1089,11 @@ const MealPlanner: React.FC = () => {
                       },
                     }}
                   >
+                    {/* MUI defaults subtitle2 to an <h6> tag — this is a
+                        day-of-week label, not a document heading. */}
                     <Typography
                       variant="subtitle2"
+                      component="span"
                       align="center"
                       gutterBottom
                       sx={{
@@ -1100,6 +1105,7 @@ const MealPlanner: React.FC = () => {
                     </Typography>
                     <Typography
                       variant="h6"
+                      component="h3"
                       align="center"
                       gutterBottom
                       sx={{
@@ -1137,6 +1143,7 @@ const MealPlanner: React.FC = () => {
                             <IconButton
                               size="small"
                               onClick={() => handleOpenDialog(day, mealType)}
+                              aria-label={`Add ${mealType} for ${format(day, 'EEEE')}`}
                             >
                               <AddIcon fontSize="small" />
                             </IconButton>

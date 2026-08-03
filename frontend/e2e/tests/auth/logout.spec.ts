@@ -8,13 +8,19 @@ test.describe('Logout Flow', () => {
     // Click logout
     await authenticatedPage.getByRole('menuitem', { name: /logout/i }).click();
 
-    // Should redirect to the local login page
-    await expect(authenticatedPage).toHaveURL('/login');
+    // Logout (Layout.tsx) navigates to the classic form, not the visual
+    // family-member-picker at /login.
+    await expect(authenticatedPage).toHaveURL('/login/classic');
   });
 
   test('should not access protected routes after logout', async ({ authenticatedPage }) => {
     await authenticatedPage.getByLabel('Profile & Family Settings').click();
     await authenticatedPage.getByRole('menuitem', { name: /logout/i }).click();
+
+    // Logout dispatches an async API call that clears the auth cookies —
+    // wait for it to actually complete before navigating, otherwise this
+    // races ahead and /dashboard loads with the still-valid session cookie.
+    await expect(authenticatedPage).toHaveURL('/login/classic');
 
     // Try to access a protected route
     await authenticatedPage.goto('/dashboard');
@@ -26,7 +32,7 @@ test.describe('Logout Flow', () => {
   test('should clear session on logout', async ({ authenticatedPage }) => {
     await authenticatedPage.getByLabel('Profile & Family Settings').click();
     await authenticatedPage.getByRole('menuitem', { name: /logout/i }).click();
-    await expect(authenticatedPage).toHaveURL('/login');
+    await expect(authenticatedPage).toHaveURL('/login/classic');
 
     // Attempting a protected route confirms the session cookie was cleared
     await authenticatedPage.goto('/recipes');

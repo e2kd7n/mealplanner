@@ -65,10 +65,23 @@ export const mockSpoonacularAPI = async (page: Page) => {
     });
   });
 
-  // Mock recipe details endpoint
-  await page.route('**/api/recipes/browse/*', async (route) => {
+  // Mock recipe details / add-to-box endpoints. Must be `**` (not `*`) —
+  // add-to-box is a segment deeper (`/browse/{id}/add-to-box`), and a single
+  // `*` can't cross the extra `/`, so it would silently fall through to the
+  // real (unconfigured) backend and 503 instead of being mocked.
+  await page.route('**/api/recipes/browse/**', async (route) => {
     const url = route.request().url();
     const recipeId = url.match(/\/browse\/(\d+)/)?.[1];
+
+    // Routes are matched most-recently-registered-first, and this glob
+    // (`/browse/*`) also matches `/browse/search`. Without this guard, every
+    // search request gets silently swallowed by the details mock below and
+    // answered with a single bogus "Mock Recipe undefined" object instead of
+    // falling through to the dedicated search handler registered above.
+    if (!recipeId) {
+      await route.fallback();
+      return;
+    }
 
     if (route.request().method() === 'GET') {
       const mockResponse = {

@@ -19,8 +19,8 @@ test.describe('Browse Recipes', () => {
   });
 
   test('should display browse recipes page', async ({ page }) => {
-    // Check page title
-    await expect(page.locator('h4')).toContainText('Browse Recipes');
+    // Check page title (styled as h4, but semantically the page's h1)
+    await expect(page.locator('h1')).toContainText('Browse Recipes');
 
     // Check search input is visible
     await expect(page.getByPlaceholder(/Search recipes|Try:/)).toBeVisible();
@@ -37,26 +37,36 @@ test.describe('Browse Recipes', () => {
     await searchInput.fill('pasta');
 
     // Wait for debounce and results
-    await page.waitForTimeout(600); // Wait for debounce
+    await page.waitForTimeout(1000); // Wait for debounce
 
     // Check if results are displayed (mocked data should return 3 recipes)
     await expect(page.locator('[data-testid="recipe-card"]')).toHaveCount(3, { timeout: 5000 });
   });
 
   test('should display filter options', async ({ page }) => {
-    // Check filter controls are visible
-    await expect(page.getByText('Cuisine')).toBeVisible();
-    await expect(page.getByText('Diet')).toBeVisible();
-    await expect(page.getByText('Meal Type')).toBeVisible();
-    await expect(page.getByText('Sort By')).toBeVisible();
-    await expect(page.getByText('Max Cooking Time')).toBeVisible();
+    // Check filter controls are visible. Use getByLabel rather than
+    // getByText — MUI's outlined-select notch duplicates the label text
+    // into a legend for the border cutout, so getByText resolves to 2
+    // elements per field in strict mode.
+    await expect(page.getByLabel('Cuisine')).toBeVisible();
+    await expect(page.getByLabel('Diet')).toBeVisible();
+    await expect(page.getByLabel('Meal Type')).toBeVisible();
+    await expect(page.getByLabel('Sort By')).toBeVisible();
+    // No time filter is active by default, so "Max Time" text isn't
+    // rendered yet — the equivalent default-state affordance is this button.
+    await expect(page.getByRole('button', { name: /add time filter/i })).toBeVisible();
   });
 
   test('should apply cuisine filter', async ({ page }) => {
     // Search first
     const searchInput = page.getByPlaceholder(/Search recipes|Try:/);
     await searchInput.fill('pasta');
-    await page.waitForTimeout(600);
+    await page.waitForTimeout(1000);
+
+    // The natural-language search suggestions dropdown stays open after
+    // typing and visually overlaps the filters below it, which blocks
+    // clicks on them — dismiss it first (Escape is wired to close it).
+    await page.keyboard.press('Escape');
 
     // Open cuisine dropdown
     await page.getByLabel('Cuisine').click();
@@ -65,7 +75,7 @@ test.describe('Browse Recipes', () => {
     await page.getByRole('option', { name: 'Italian' }).click();
 
     // Wait for results to update
-    await page.waitForTimeout(600);
+    await page.waitForTimeout(1000);
 
     // Check URL contains cuisine parameter (case-insensitive)
     expect(page.url().toLowerCase()).toContain('cuisine=italian');
@@ -75,7 +85,8 @@ test.describe('Browse Recipes', () => {
     // Search first
     const searchInput = page.getByPlaceholder(/Search recipes|Try:/);
     await searchInput.fill('salad');
-    await page.waitForTimeout(600);
+    await page.waitForTimeout(1000);
+    await page.keyboard.press('Escape'); // dismiss search suggestions overlay
 
     // Open diet dropdown
     await page.getByLabel('Diet').click();
@@ -84,7 +95,7 @@ test.describe('Browse Recipes', () => {
     await page.getByRole('option', { name: 'Vegetarian' }).click();
 
     // Wait for results to update
-    await page.waitForTimeout(600);
+    await page.waitForTimeout(1000);
 
     // Check URL contains diet parameter (case-insensitive)
     expect(page.url().toLowerCase()).toContain('diet=vegetarian');
@@ -94,7 +105,8 @@ test.describe('Browse Recipes', () => {
     // Apply multiple filters
     const searchInput = page.getByPlaceholder(/Search recipes|Try:/);
     await searchInput.fill('chicken');
-    await page.waitForTimeout(600);
+    await page.waitForTimeout(1000);
+    await page.keyboard.press('Escape'); // dismiss search suggestions overlay
 
     await page.getByLabel('Cuisine').click();
     await page.getByRole('option', { name: 'American' }).click();
@@ -120,7 +132,8 @@ test.describe('Browse Recipes', () => {
     // Apply filters
     const searchInput = page.getByPlaceholder(/Search recipes|Try:/);
     await searchInput.fill('pasta');
-    await page.waitForTimeout(600);
+    await page.waitForTimeout(1000);
+    await page.keyboard.press('Escape'); // dismiss search suggestions overlay
 
     await page.getByLabel('Cuisine').click();
     await page.getByRole('option', { name: 'Italian' }).click();
@@ -144,7 +157,7 @@ test.describe('Browse Recipes', () => {
     // This test verifies the pagination component would work if there were more results
     const searchInput = page.getByPlaceholder(/Search recipes|Try:/);
     await searchInput.fill('pasta');
-    await page.waitForTimeout(600);
+    await page.waitForTimeout(1000);
 
     // Wait for results
     await page.waitForSelector('[data-testid="recipe-card"]', { timeout: 10000 }).catch(() => {});
@@ -160,12 +173,9 @@ test.describe('Browse Recipes', () => {
     const searchInput = page.getByPlaceholder(/Search recipes|Try:/);
     await searchInput.fill('pasta');
 
-    // Wait for results to load
-    await page.waitForTimeout(700);
-
-    // Verify results are displayed (mocked data)
-    const recipeCount = await page.locator('[data-testid="recipe-card"]').count();
-    expect(recipeCount).toBe(3);
+    // Verify results are displayed (mocked data) — toHaveCount retries
+    // instead of relying on a fixed delay to have been long enough.
+    await expect(page.locator('[data-testid="recipe-card"]')).toHaveCount(3, { timeout: 5000 });
   });
 });
 
@@ -178,19 +188,19 @@ test.describe('Browse Recipes - Add to Box', () => {
     // Search for recipes
     const searchInput = page.getByPlaceholder(/Search recipes|Try:/);
     await searchInput.fill('pasta');
-    await page.waitForTimeout(600);
+    await page.waitForTimeout(1000);
 
     // Wait for recipe cards (mocked data returns 3)
     await expect(page.locator('[data-testid="recipe-card"]')).toHaveCount(3, { timeout: 5000 });
 
-    // Click "Add to Box" on first recipe
-    await page.locator('[data-testid="recipe-card"]').first().getByRole('button', { name: /add to/i }).click();
+    // Click "Add" on first recipe
+    await page.locator('[data-testid="recipe-card"]').first().getByRole('button', { name: /^add$/i }).click();
 
     // Wait for success message
     await expect(page.getByText(/added to your recipe box/i)).toBeVisible({ timeout: 5000 });
 
-    // Button should change to "Added"
-    await expect(page.locator('[data-testid="recipe-card"]').first().getByRole('button', { name: /added/i })).toBeVisible();
+    // Button should change to "In Box"
+    await expect(page.locator('[data-testid="recipe-card"]').first().getByRole('button', { name: /in box/i })).toBeVisible();
   });
 });
 

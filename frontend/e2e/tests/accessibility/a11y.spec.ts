@@ -7,6 +7,22 @@ const GLOBAL_SKIPPED_RULES = [
   'color-contrast', // MUI theme contrast checked via Lighthouse CI instead
 ];
 
+// A fresh page.goto() on a protected route forces a full app remount:
+// PrivateRoute's auth check and SetupGuard's /setup/status check each gate
+// rendering behind their own sequential network round-trip, replacing the
+// whole tree with a bare, unlabeled CircularProgress in the meantime (no
+// <main>, no heading). Several page components (GroceryList, etc.) have
+// their own `if (loading) return <spinner-only>` on top of that. Either gap
+// can exceed Playwright's networkidle quiet window, so networkidle alone
+// can resolve while the app is still in a transient, non-landmarked loading
+// state. Waiting for an h1 to attach ensures axe runs against the real,
+// settled page instead of one of those flashes.
+async function waitForAppReady(page: Parameters<typeof AxeBuilder>[0]) {
+  await page.waitForLoadState('networkidle');
+  await page.waitForSelector('#main-content', { state: 'attached', timeout: 10000 });
+  await page.waitForSelector('h1', { state: 'attached', timeout: 10000 });
+}
+
 async function checkA11y(
   page: Parameters<typeof AxeBuilder>[0],
   context?: string
@@ -33,7 +49,11 @@ test.describe('Accessibility — unauthenticated pages', () => {
 
   test('login page has no WCAG violations', async ({ page }) => {
     await page.goto('/login');
+    // LocalLogin does its own sequential device-login-then-list-users check
+    // before rendering the picker — same transient, non-landmarked loading
+    // flash as the authenticated pages (see waitForAppReady above).
     await page.waitForLoadState('networkidle');
+    await page.waitForSelector('h1', { state: 'attached', timeout: 10000 });
     await checkA11y(page, 'login page');
   });
 });
@@ -46,43 +66,47 @@ test.describe('Accessibility — authenticated pages', () => {
 
   test('recipes list has no WCAG violations', async ({ authenticatedPage }) => {
     await authenticatedPage.goto('/recipes');
-    await authenticatedPage.waitForLoadState('networkidle');
+    await waitForAppReady(authenticatedPage);
     await checkA11y(authenticatedPage, 'recipes list');
   });
 
   test('create recipe form has no WCAG violations', async ({ authenticatedPage }) => {
     await authenticatedPage.goto('/recipes/create');
-    await authenticatedPage.waitForLoadState('networkidle');
+    await waitForAppReady(authenticatedPage);
     await checkA11y(authenticatedPage, 'create recipe form');
   });
 
   test('meal plan page has no WCAG violations', async ({ authenticatedPage }) => {
-    await authenticatedPage.goto('/meal-plan');
-    await authenticatedPage.waitForLoadState('networkidle');
+    // Note: the real route is /meal-planner, not /meal-plan — the latter
+    // hits the app's catch-all redirect and silently re-tests /dashboard.
+    await authenticatedPage.goto('/meal-planner');
+    await waitForAppReady(authenticatedPage);
     await checkA11y(authenticatedPage, 'meal plan page');
   });
 
   test('grocery list page has no WCAG violations', async ({ authenticatedPage }) => {
-    await authenticatedPage.goto('/grocery-lists');
-    await authenticatedPage.waitForLoadState('networkidle');
+    // Note: the real route is /grocery-list (singular), not /grocery-lists.
+    await authenticatedPage.goto('/grocery-list');
+    await waitForAppReady(authenticatedPage);
     await checkA11y(authenticatedPage, 'grocery list page');
   });
 
   test('pantry page has no WCAG violations', async ({ authenticatedPage }) => {
     await authenticatedPage.goto('/pantry');
-    await authenticatedPage.waitForLoadState('networkidle');
+    await waitForAppReady(authenticatedPage);
     await checkA11y(authenticatedPage, 'pantry page');
   });
 
   test('profile page has no WCAG violations', async ({ authenticatedPage }) => {
     await authenticatedPage.goto('/profile');
-    await authenticatedPage.waitForLoadState('networkidle');
+    await waitForAppReady(authenticatedPage);
     await checkA11y(authenticatedPage, 'profile page');
   });
 
   test('browse recipes page has no WCAG violations', async ({ authenticatedPage }) => {
-    await authenticatedPage.goto('/browse');
-    await authenticatedPage.waitForLoadState('networkidle');
+    // Note: the real route is /recipes/browse, not /browse.
+    await authenticatedPage.goto('/recipes/browse');
+    await waitForAppReady(authenticatedPage);
     await checkA11y(authenticatedPage, 'browse recipes page');
   });
 });
@@ -94,7 +118,10 @@ test.describe('Keyboard navigation', () => {
     test.use({ storageState: { cookies: [], origins: [] } });
 
     test('login form is keyboard navigable', async ({ page }) => {
-      await page.goto('/login');
+      // /login is the visual family-member-picker screen (no email/password
+      // fields at all); the classic email/password form lives at
+      // /login/classic.
+      await page.goto('/login/classic');
       await page.waitForLoadState('networkidle');
 
       await page.keyboard.press('Tab');
@@ -110,7 +137,9 @@ test.describe('Keyboard navigation', () => {
   test('navigation links receive focus', async ({ authenticatedPage }) => {
     await authenticatedPage.waitForLoadState('networkidle');
 
-    const navLinks = authenticatedPage.locator('nav a, nav button, [role="navigation"] a');
+    // MUI's ListItemButton renders as a <div role="button"> (not a real
+    // <button>) here, so the selector must also match ARIA-button divs.
+    const navLinks = authenticatedPage.locator('nav a, nav button, nav [role="button"], [role="navigation"] a');
     const count = await navLinks.count();
     expect(count).toBeGreaterThan(0);
   });

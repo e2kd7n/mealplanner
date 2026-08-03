@@ -1,7 +1,7 @@
 import { APIRequestContext } from '@playwright/test';
 
 export interface TestRecipe {
-  id: number;
+  id: string;
   title: string;
 }
 
@@ -13,8 +13,15 @@ const BASE_RECIPE = {
   servings: 4,
   difficulty: 'easy',
   mealTypes: ['dinner'],
-  instructions: '1. Test step',
-  ingredients: [],
+  // Array form (not a plain string) — CreateRecipe's edit-mode loader only
+  // recognizes `Array.isArray(recipe.instructions)`, otherwise it treats the
+  // recipe as having no instructions at all, which blocks the edit wizard's
+  // own step validation.
+  instructions: [{ step: 1, instruction: 'Test step' }],
+  // At least one ingredient — the edit wizard's Ingredients step requires
+  // one to advance, and a recipe created with none can't otherwise reach
+  // its own Instructions/Review steps in edit mode.
+  ingredients: [{ ingredientName: 'Test Ingredient', quantity: 1, unit: 'unit' }],
 };
 
 /**
@@ -46,7 +53,7 @@ export async function createTestRecipe(
   return { id: data.id, title: data.title };
 }
 
-export async function deleteTestRecipe(api: APIRequestContext, id: number): Promise<void> {
+export async function deleteTestRecipe(api: APIRequestContext, id: string): Promise<void> {
   const csrfToken = await fetchCsrfToken(api);
   await api.delete(`/api/recipes/${id}`, {
     headers: { 'X-CSRF-Token': csrfToken },

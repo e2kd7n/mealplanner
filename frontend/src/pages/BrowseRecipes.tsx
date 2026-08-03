@@ -122,7 +122,7 @@ const BrowseRecipeCard = memo(({ recipe, onAddToBox, onViewDetails, isAdded }: B
         )}
       </Box>
       <CardContent sx={{ flexGrow: 1 }}>
-        <Typography variant="h6" gutterBottom noWrap>
+        <Typography variant="h6" component="h2" gutterBottom noWrap>
           {recipe.title}
         </Typography>
         <Stack direction="row" spacing={1} sx={{ flexWrap: 'wrap', gap: 1, mb: 1 }}>
@@ -464,6 +464,10 @@ const BrowseRecipes: React.FC = () => {
                   ),
                 },
                 htmlInput: {
+                  // role="combobox" is required for aria-expanded/aria-autocomplete/
+                  // aria-controls to be allowed at all — a plain textbox's implicit
+                  // role doesn't support them (axe: aria-allowed-attr).
+                  role: 'combobox',
                   'aria-label': 'Search recipes with natural language',
                   'aria-describedby': 'search-help-text',
                   'aria-expanded': showSuggestions,
@@ -495,7 +499,9 @@ const BrowseRecipes: React.FC = () => {
             <Badge badgeContent={activeFilterCount} color="primary">
               <FilterListIcon color={hasActiveFilters ? "primary" : "action"} />
             </Badge>
-            <Typography variant="subtitle2" color={hasActiveFilters ? "primary" : "text.secondary"} sx={{ fontWeight: hasActiveFilters ? 600 : 400 }}>
+            {/* MUI defaults subtitle2 to an <h6> tag — this is a section
+                label, not a document heading. */}
+            <Typography variant="subtitle2" component="span" color={hasActiveFilters ? "primary" : "text.secondary"} sx={{ fontWeight: hasActiveFilters ? 600 : 400 }}>
               Filters {hasActiveFilters && `(${activeFilterCount} active)`}
             </Typography>
             {hasActiveFilters && (
@@ -553,8 +559,8 @@ const BrowseRecipes: React.FC = () => {
           
           <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} sx={{ flexWrap: 'wrap' }}>
             <FormControl sx={{ minWidth: 150 }}>
-              <InputLabel>Cuisine</InputLabel>
-              <Select value={cuisine} label="Cuisine" onChange={(e) => setCuisine(e.target.value)}>
+              <InputLabel id="browse-cuisine-label">Cuisine</InputLabel>
+              <Select labelId="browse-cuisine-label" value={cuisine} label="Cuisine" onChange={(e) => setCuisine(e.target.value)}>
                 <MenuItem value="">All</MenuItem>
                 <MenuItem value="African">African</MenuItem>
                 <MenuItem value="American">American</MenuItem>
@@ -578,8 +584,8 @@ const BrowseRecipes: React.FC = () => {
             </FormControl>
 
             <FormControl sx={{ minWidth: 150 }}>
-              <InputLabel>Diet</InputLabel>
-              <Select value={diet} label="Diet" onChange={(e) => setDiet(e.target.value)}>
+              <InputLabel id="browse-diet-label">Diet</InputLabel>
+              <Select labelId="browse-diet-label" value={diet} label="Diet" onChange={(e) => setDiet(e.target.value)}>
                 <MenuItem value="">All</MenuItem>
                 <MenuItem value="Gluten Free">Gluten Free</MenuItem>
                 <MenuItem value="Ketogenic">Ketogenic</MenuItem>
@@ -593,8 +599,8 @@ const BrowseRecipes: React.FC = () => {
             </FormControl>
 
             <FormControl sx={{ minWidth: 150 }}>
-              <InputLabel>Meal Type</InputLabel>
-              <Select value={mealType} label="Meal Type" onChange={(e) => setMealType(e.target.value)}>
+              <InputLabel id="browse-meal-type-label">Meal Type</InputLabel>
+              <Select labelId="browse-meal-type-label" value={mealType} label="Meal Type" onChange={(e) => setMealType(e.target.value)}>
                 <MenuItem value="">All</MenuItem>
                 <MenuItem value="breakfast">Breakfast</MenuItem>
                 <MenuItem value="lunch">Lunch</MenuItem>
@@ -605,8 +611,8 @@ const BrowseRecipes: React.FC = () => {
             </FormControl>
 
             <FormControl sx={{ minWidth: 180 }}>
-              <InputLabel>Sort By</InputLabel>
-              <Select value={sortBy} label="Sort By" onChange={(e) => setSortBy(e.target.value)}>
+              <InputLabel id="browse-sort-by-label">Sort By</InputLabel>
+              <Select labelId="browse-sort-by-label" value={sortBy} label="Sort By" onChange={(e) => setSortBy(e.target.value)}>
                 <MenuItem value="popularity">Popularity</MenuItem>
                 <MenuItem value="time">Cooking Time</MenuItem>
                 <MenuItem value="healthiness">Healthiness</MenuItem>
@@ -692,7 +698,7 @@ const BrowseRecipes: React.FC = () => {
       {!loading && recipes.length === 0 && (
         <Box sx={{ textAlign: 'center', py: 8 }}>
           <ExploreIcon sx={{ fontSize: 80, color: 'text.secondary', mb: 2 }} />
-          <Typography variant="h6" color="text.secondary" gutterBottom>
+          <Typography variant="h6" component="h2" color="text.secondary" gutterBottom>
             {searchQuery || hasActiveFilters ? 'No recipes found' : 'Start searching to discover recipes'}
           </Typography>
           <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>

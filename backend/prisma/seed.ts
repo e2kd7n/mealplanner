@@ -7,6 +7,7 @@ import 'dotenv/config';
 import { PrismaClient } from '@prisma/client';
 import { PrismaPg } from '@prisma/adapter-pg';
 import bcrypt from 'bcryptjs';
+import { seedRecipes } from '../seed-recipes';
 
 const adapter = new PrismaPg({ connectionString: process.env.DATABASE_URL });
 const prisma = new PrismaClient({ adapter });
@@ -48,7 +49,30 @@ async function main() {
   if (recipeCount > 0) {
     console.log(`✓ Found ${recipeCount} existing recipes for test user`);
   } else {
-    console.log('✓ No recipes found, they will be created by seed-recipes.ts if needed');
+    await seedRecipes(prisma);
+  }
+
+  // The visual login picker (/login) lists FamilyMember rows, not User rows
+  // directly — without at least one, it finds zero entries and redirects
+  // straight to /welcome (fresh-install flow), never actually showing the
+  // picker screen e2e tests expect to interact with.
+  const familyMemberCount = await prisma.familyMember.count({
+    where: { userId: TEST_USER_ID },
+  });
+
+  if (familyMemberCount > 0) {
+    console.log(`✓ Found ${familyMemberCount} existing family members for test user`);
+  } else {
+    await prisma.familyMember.create({
+      data: {
+        userId: TEST_USER_ID,
+        name: 'Test User',
+        ageGroup: 'adult',
+        canCook: true,
+        dietaryRestrictions: [],
+      },
+    });
+    console.log('✓ Created family member: Test User');
   }
 
   console.log('✅ Database seeding completed successfully!');
