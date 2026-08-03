@@ -4,6 +4,10 @@
 
 This document describes the ARIA labels and semantic HTML implementation for issue #122.
 
+> **Last re-verified:** 2026-08 (issue #313). Line numbers below drift as files change —
+> treat them as approximate pointers, not guarantees. Re-check against the current file
+> before relying on a specific line.
+
 ## Current Status
 
 ### ✅ Components with ARIA Labels
@@ -20,6 +24,9 @@ The following components already have proper ARIA labels:
    - ✅ Refresh button
    - ✅ Clear checked items button
    - ✅ Delete item buttons
+   - ✅ Per-category expand/collapse (the decorative chevron `IconButton` is
+     `aria-hidden` + `tabIndex={-1}`; the accessible name and `aria-expanded`
+     state live on the surrounding clickable `Box`, not the icon itself)
 
 3. **RecipeDetail.tsx**
    - ✅ Servings adjustment buttons
@@ -46,34 +53,40 @@ The following components already have proper ARIA labels:
 
 ### ⚠️ Components Needing ARIA Labels
 
-The following IconButtons need aria-labels added:
+Re-verified 2026-08 against current source. Several items below have already been
+fixed since this list was first written — those moved to the "has ARIA labels"
+section above. The rest are still genuinely missing an accessible name, just at
+updated line numbers.
 
-1. **GroceryList.tsx**
-   - Line 491: Expand/collapse category button (missing aria-label)
+The following IconButtons still need aria-labels added:
 
-2. **AdminDashboard.tsx**
-   - Lines 371-419: All admin action buttons need aria-labels
-     - Edit user button
-     - Block/unblock user buttons
-     - Reset password button
-     - Delete user button
+1. **AdminDashboard.tsx** (~lines 495-543)
+   - Line 495: Edit user role button — has `title="Edit Role"` only; `title` is not
+     a reliable accessible-name source for all screen readers, needs `aria-label`
+   - Line 507: Unblock user button — `title` only, same issue
+   - Line 516: Block user button — `title` only, same issue
+   - Line 525: Reset password button — `title` only, same issue
+   - Line 536: Delete user button — `title` only, same issue
 
-3. **Profile.tsx**
-   - Lines 525-530: Family member edit/delete buttons need aria-labels
+2. **Profile.tsx**
+   - Line 700: Family member edit button (icon-only, no accessible name)
+   - Line 703: Family member delete button (icon-only, no accessible name)
 
-4. **CreateRecipe.tsx**
-   - Line 722: Add ingredient button needs aria-label
-   - Line 747: Remove ingredient buttons need aria-labels
-   - Line 869: Remove instruction button needs aria-label
+3. **CreateRecipe.tsx**
+   - Line 815: Add ingredient button — ✅ already fixed (`aria-label="Add ingredient"`)
+   - Line 870: Remove ingredient button — still icon-only, needs aria-label
+   - Line 993: Remove instruction button — still icon-only, needs aria-label
 
-5. **BatchCookingDialog.tsx**
-   - Line 127: Close dialog button needs aria-label
+4. **BatchCookingDialog.tsx**
+   - Line 127: Close dialog button — still icon-only, needs aria-label (unchanged)
 
-6. **MealPlanner.tsx**
-   - Lines 914, 934: Week navigation buttons need aria-labels
-   - Line 1034: Add meal button needs aria-label
-   - Lines 1233, 1461: Close dialog buttons need aria-labels
-   - Line 1512: Delete meal button needs aria-label
+5. **MealPlanner.tsx**
+   - Line 1019: Previous week button — ✅ already fixed (`aria-label="Previous week"`)
+   - Line 1039: Next week button — ✅ already fixed (`aria-label="Next week"`)
+   - Line 1143: Add meal button — ✅ already fixed (has a dynamic `aria-label`)
+   - Line 1388: Meal-detail dialog close button — still icon-only, needs aria-label
+   - Line 1609: Day-summary dialog close button — still icon-only, needs aria-label
+   - Line 1660: Delete meal button — still icon-only, needs aria-label
 
 ## Implementation Plan
 
@@ -349,7 +362,10 @@ Completed:
 - ✅ Navigation landmarks
 
 Needs Work:
-- ⚠️ Add missing aria-labels to IconButtons
+- ⚠️ Add missing aria-labels to IconButtons — see the re-verified list above
+  (AdminDashboard.tsx action buttons, Profile.tsx family edit/delete, CreateRecipe.tsx
+  remove-ingredient/instruction, BatchCookingDialog.tsx close, MealPlanner.tsx dialog
+  close × 2 and delete-meal)
 - ⚠️ Add ARIA live regions
 - ⚠️ Add aria-current for navigation
 - ⚠️ Screen reader testing required

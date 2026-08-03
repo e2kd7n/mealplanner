@@ -88,6 +88,12 @@ const menuItems = [
   { text: 'Admin', icon: <AdminIcon />, path: '/admin', adminOnly: true },
 ];
 
+// Routes reachable outside the sidebar (avatar dropdown) still need a page title.
+const pageTitles: Record<string, string> = {
+  '/profile': 'Profile',
+  '/admin': 'Admin',
+};
+
 const Layout: React.FC = () => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
@@ -273,7 +279,9 @@ const Layout: React.FC = () => {
             <MenuIcon />
           </IconButton>
           <Typography variant="h6" noWrap component="div" sx={{ flexGrow: 1 }}>
-            {menuItems.find((item) => item.path === location.pathname)?.text || drawerTitle}
+            {menuItems.find((item) => item.path === location.pathname)?.text
+              || pageTitles[location.pathname]
+              || drawerTitle}
           </Typography>
           <Tooltip
             title={
