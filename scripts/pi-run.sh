@@ -128,7 +128,7 @@ REDIS_PASSWORD=$(cat secrets/redis_password.txt)
 JWT_SECRET=$(cat secrets/jwt_secret.txt)
 JWT_REFRESH_SECRET=$(cat secrets/jwt_refresh_secret.txt)
 SESSION_SECRET=$(cat secrets/session_secret.txt)
-NODE_OPTIONS=--max-old-space-size=128 --optimize-for-size
+NODE_OPTIONS=--max-old-space-size=128
 EOF
     rsync -az "$tmp_env" "${ZERO_USER}@${ip}:/opt/mealplanner/.env"
     ssh $ssh_opts "${ZERO_USER}@${ip}" 'chmod 600 /opt/mealplanner/.env'
@@ -141,12 +141,21 @@ EOF
 [Unit]
 Description=Meal Planner Backend
 After=network.target
+# Circuit breaker: give up after 10 restarts in 10 minutes instead of
+# crash-looping indefinitely (previously ran 40k-76k restarts unbounded
+# before anyone noticed — see #281 and the NODE_OPTIONS follow-up bug).
+# `systemctl reset-failed mealplanner` clears the counter after a real fix.
+StartLimitIntervalSec=600
+StartLimitBurst=10
 
 [Service]
 Type=simple
 WorkingDirectory=/opt/mealplanner
 EnvironmentFile=/opt/mealplanner/.env
-ExecStart=/usr/local/bin/node dist/index.js
+# --optimize-for-size must be a direct node flag, not NODE_OPTIONS — Node's
+# NODE_OPTIONS allowlist rejects it (exit code 9) even though it's valid
+# on the command line.
+ExecStart=/usr/local/bin/node --optimize-for-size dist/index.js
 Restart=always
 RestartSec=10
 StandardOutput=journal
