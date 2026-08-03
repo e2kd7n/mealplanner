@@ -119,6 +119,29 @@ deploy_to_zero() {
         "backend/node_modules/${PRISMA_PNPM_DIR}/" \
         "${ZERO_USER}@${ip}:/opt/mealplanner/node_modules/${PRISMA_PNPM_DIR}/"
 
+    # backend/src/utils/secrets.ts's getSecret() refuses plain env vars in
+    # production (NODE_ENV=production disables ALLOW_ENV_FALLBACK by
+    # design) — it only accepts a Docker secrets file at /run/secrets/<name>
+    # or a {NAME}_FILE env var pointing to an allowed path. The Zero Ws
+    # aren't containerized, so there's no /run/secrets, but process.cwd()
+    # (/opt/mealplanner) + "secrets" IS an allowed path. Ship actual secret
+    # files instead of raw values so jwt_secret, jwt_refresh_secret, and
+    # session_secret (all read via getSecret(), unlike DATABASE_URL which
+    # bypasses it) actually resolve — confirmed live that session_secret
+    # was failing with "Required secret not found" under the old raw-value
+    # .env, breaking every CSRF-token request once the Zero Ws started
+    # taking real traffic for the first time.
+    ssh $ssh_opts "${ZERO_USER}@${ip}" 'mkdir -p /opt/mealplanner/secrets && chmod 700 /opt/mealplanner/secrets'
+    local tmp_secrets
+    tmp_secrets=$(mktemp -d)
+    chmod 700 "$tmp_secrets"
+    for s in postgres_password redis_password jwt_secret jwt_refresh_secret session_secret; do
+        cp "secrets/${s}.txt" "$tmp_secrets/${s}"
+    done
+    rsync -az "$tmp_secrets/" "${ZERO_USER}@${ip}:/opt/mealplanner/secrets/"
+    ssh $ssh_opts "${ZERO_USER}@${ip}" 'chmod 600 /opt/mealplanner/secrets/*'
+    rm -rf "$tmp_secrets"
+
     # Write .env via a local temp file so secrets never appear in argv/SSH args
     local tmp_env
     tmp_env=$(mktemp)
@@ -131,16 +154,29 @@ POSTGRES_HOST=${BRIDGE_IP}
 POSTGRES_PORT=5432
 POSTGRES_DB=meal_planner
 POSTGRES_USER=mealplanner
-POSTGRES_PASSWORD=$(cat secrets/postgres_password.txt)
+POSTGRES_PASSWORD_FILE=/opt/mealplanner/secrets/postgres_password
 DATABASE_URL=postgresql://mealplanner:$(cat secrets/postgres_password.txt)@${BRIDGE_IP}:5432/meal_planner
 REDIS_HOST=${BRIDGE_IP}
 REDIS_PORT=6379
-REDIS_PASSWORD=$(cat secrets/redis_password.txt)
-JWT_SECRET=$(cat secrets/jwt_secret.txt)
-JWT_REFRESH_SECRET=$(cat secrets/jwt_refresh_secret.txt)
-SESSION_SECRET=$(cat secrets/session_secret.txt)
+REDIS_PASSWORD_FILE=/opt/mealplanner/secrets/redis_password
+JWT_SECRET_FILE=/opt/mealplanner/secrets/jwt_secret
+JWT_REFRESH_SECRET_FILE=/opt/mealplanner/secrets/jwt_refresh_secret
+SESSION_SECRET_FILE=/opt/mealplanner/secrets/session_secret
 NODE_OPTIONS=--max-old-space-size=128
 EOF
+    # backend/src/utils/validateEnv.ts is a separate startup check that only
+    # looks at the plain env var (it doesn't know about the {NAME}_FILE
+    # convention), so it needs these too — but getSecret()'s own lookup
+    # priority tries the Docker-secrets file, then {NAME}_FILE, before ever
+    # considering a plain env var (and won't fall back to one anyway in
+    # production), so the actual values used at runtime still come from the
+    # files above, not from these. Appended as a second write rather than
+    # inlined above to keep that distinction visible.
+    {
+        echo "JWT_SECRET=$(cat secrets/jwt_secret.txt)"
+        echo "JWT_REFRESH_SECRET=$(cat secrets/jwt_refresh_secret.txt)"
+        echo "SESSION_SECRET=$(cat secrets/session_secret.txt)"
+    } >> "$tmp_env"
     rsync -az "$tmp_env" "${ZERO_USER}@${ip}:/opt/mealplanner/.env"
     ssh $ssh_opts "${ZERO_USER}@${ip}" 'chmod 600 /opt/mealplanner/.env'
     rm -f "$tmp_env"
