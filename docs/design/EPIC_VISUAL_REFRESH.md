@@ -316,7 +316,7 @@ Phase 1 and 2 are the 80/20. The color fix and dashboard redesign alone will cha
 - [ ] Issue #25 closed with reference to Child #1
 - [ ] UIUX_ENHANCEMENTS.md smart-sorting item converted to a closed GitHub issue
 - [ ] `DESIGN_PRINCIPLES.md` updated: mark principles 2, 9, 12, 13, 14 gaps as resolved where applicable
-- [ ] `../archive/DESIGN_EVALUATION_CHECKLIST.md` re-evaluated against final state
+- [ ] `../archive/design-reviews/DESIGN_EVALUATION_CHECKLIST.md` re-evaluated against final state
 - [ ] No WCAG AA regressions (run contrast audit on any changed palette values)
 - [ ] `ISSUE_PRIORITIES.md` updated to reflect new child issues and closed #25
 
@@ -326,10 +326,10 @@ Phase 1 and 2 are the 80/20. The color fix and dashboard redesign alone will cha
 
 - `DESIGN_PRINCIPLES.md` — establishes the principles this epic addresses
 - `../DESIGN_UX_EVALUATION_REPORT.md` — internal B- grade evaluation (2026-04-20)
-- `docs/DESIGN_CONSULTANCY_REVIEW.md` — external C+ grade evaluation (2026-04-21)
-- `docs/DESIGN_REVIEW_COMPARISON.md` — resolution of disagreements between the two reviews
-- `docs/DESIGN_EVALUATION_CHECKLIST.md` — beta launch readiness checklist
-- `UIUX_ENHANCEMENTS.md` — smart recipe sorting backlog item (absorbed into Child #6)
+- `../archive/design-reviews/DESIGN_CONSULTANCY_REVIEW.md` — external C+ grade evaluation (2026-04-21)
+- `../archive/design-reviews/DESIGN_REVIEW_COMPARISON.md` — resolution of disagreements between the two reviews
+- `../archive/design-reviews/DESIGN_EVALUATION_CHECKLIST.md` — beta launch readiness checklist
+- `../archive/UIUX_ENHANCEMENTS.md` — smart recipe sorting backlog item (absorbed into Child #6; archived — item shipped as issue #201, closed)
 - `frontend/src/theme.ts` — MUI theme (target of Child #2, #3, #11)
 - `frontend/src/pages/Dashboard.tsx` — target of Child #1, #8
 - `frontend/src/pages/Recipes.tsx` — target of Child #6, #7
