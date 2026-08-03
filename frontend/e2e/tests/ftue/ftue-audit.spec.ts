@@ -51,7 +51,7 @@ test.describe('Visual Login Screen (/login)', () => {
   });
 
   test('#235 — branding should be consistent, not "Family Kitchen" vs "Family Meal Planner"', async ({ page }) => {
-    const heading = page.locator('h4, h3, h2').first();
+    const heading = page.locator('h1, h4, h3, h2').first();
     const text = await heading.textContent();
     // Document what the heading actually says
     console.log(`Login heading text: "${text}"`);
@@ -77,7 +77,12 @@ test.describe('Visual Login Screen (/login)', () => {
   });
 
   test('user cards are displayed for family members', async ({ page }) => {
+    // The picker shows Skeleton placeholders (no buttons at all) while the
+    // family-member list is loading — networkidle in beforeEach doesn't
+    // guarantee that in-component fetch has resolved yet, so wait for an
+    // actual card before counting.
     const userCards = page.getByRole('button').filter({ hasText: /\w+/ });
+    await userCards.first().waitFor({ state: 'visible', timeout: 10000 });
     const count = await userCards.count();
     console.log(`Found ${count} user cards on login screen`);
     expect(count).toBeGreaterThan(0);

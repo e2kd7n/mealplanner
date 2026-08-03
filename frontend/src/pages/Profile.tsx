@@ -439,7 +439,7 @@ const Profile: React.FC = () => {
   return (
     <Container maxWidth="lg">
       <Box sx={{ mb: 4 }}>
-        <Typography variant="h4" gutterBottom>
+        <Typography variant="h4" component="h1" gutterBottom>
           Profile
         </Typography>
         <Typography variant="body1" color="text.secondary">

@@ -292,7 +292,7 @@ const Pantry: React.FC = () => {
       <Box sx={{ mb: 4 }}>
         {/* Header */}
         <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
-          <Typography variant="h4">
+          <Typography variant="h4" component="h1">
             Pantry Inventory
           </Typography>
           <Button
@@ -337,7 +337,7 @@ const Pantry: React.FC = () => {
           <Card>
             <CardContent sx={{ textAlign: 'center', py: 8 }}>
               <KitchenIcon sx={{ fontSize: 64, color: 'text.secondary', mb: 2 }} />
-              <Typography variant="h6" color="text.secondary" gutterBottom>
+              <Typography variant="h6" component="h2" color="text.secondary" gutterBottom>
                 {activeTab === 0 ? 'Your pantry is empty' : 'No items in this category'}
               </Typography>
               <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
