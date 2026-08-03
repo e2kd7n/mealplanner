@@ -304,7 +304,9 @@ deploy_zeros() {
         echo ""
     done
 
-    [ "$any_failed" = true ] && echo -e "${YELLOW}⚠  One or more Zero W deployments failed — check output above${NC}"
+    if [ "$any_failed" = true ]; then
+        echo -e "${YELLOW}⚠  One or more Zero W deployments failed — check output above${NC}"
+    fi
 }
 
 # ---------------------------------------------------------------------------
