@@ -160,7 +160,7 @@ if (process.env.NODE_ENV === 'production') {
   
   // Catch-all route for SPA - must be after API routes
   // Only catch routes that don't start with /api or /health
-  app.get('*', (req, res, next) => {
+  app.get('/{*splat}', (req, res, next) => {
     if (req.path.startsWith('/api') || req.path === '/health') {
       return next();
     }
