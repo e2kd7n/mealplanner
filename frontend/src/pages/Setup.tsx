@@ -37,6 +37,7 @@ import {
   Radio,
   useMediaQuery,
   useTheme,
+  Skeleton,
 } from '@mui/material';
 import {
   Visibility,
@@ -89,7 +90,9 @@ export default function Setup() {
   const [memberAgeGroup, setMemberAgeGroup] = useState<'adult' | 'teen' | 'child'>('adult');
   const [membersLoading, setMembersLoading] = useState(false);
   const [membersError, setMembersError] = useState('');
+  const [memberNameTouched, setMemberNameTouched] = useState(false);
   const [stockImages, setStockImages] = useState<StockImage[]>([]);
+  const [stockImagesLoading, setStockImagesLoading] = useState(true);
   const [assigningMemberId, setAssigningMemberId] = useState<string | null>(null);
   const [processedMemberIds, setProcessedMemberIds] = useState<Set<string>>(new Set());
 
@@ -111,15 +114,18 @@ export default function Setup() {
   useEffect(() => {
     visualAuthAPI.getStockImages()
       .then((res) => setStockImages(res.data.images ?? []))
-      .catch(() => {});
+      .catch(() => {})
+      .finally(() => setStockImagesLoading(false));
   }, []);
 
   const handleAddMember = () => {
+    setMemberNameTouched(true);
     const trimmed = memberName.trim();
     if (!trimmed) return;
     setMembers((prev) => [...prev, { name: trimmed, ageGroup: memberAgeGroup }]);
     setMemberName('');
     setMemberAgeGroup('adult');
+    setMemberNameTouched(false);
   };
 
   const handleRemoveMember = (idx: number) => {
@@ -360,9 +366,13 @@ export default function Setup() {
               <Box sx={{ display: 'flex', gap: 1, mb: 1 }}>
                 <TextField
                   label="Name"
+                  required
                   value={memberName}
                   onChange={(e) => setMemberName(e.target.value)}
                   onKeyDown={(e) => e.key === 'Enter' && handleAddMember()}
+                  onBlur={() => setMemberNameTouched(true)}
+                  error={memberNameTouched && !memberName.trim()}
+                  helperText={memberNameTouched && !memberName.trim() ? 'Enter a name' : ''}
                   sx={{ flex: 1 }}
                   size="small"
                 />
@@ -459,22 +469,26 @@ export default function Setup() {
                   mb: 3,
                 }}
               >
-                {stockImages.map((img) => (
-                  <Card key={img.id} sx={{ cursor: 'pointer' }}>
-                    <CardActionArea onClick={() => handleAssignVisualPassword(assigningMemberId, img.imageUrl)}>
-                      <CardMedia
-                        component="img"
-                        height="80"
-                        image={img.imageUrl}
-                        alt={img.title}
-                        sx={{ objectFit: 'cover' }}
-                      />
-                      <CardContent sx={{ py: 0.5, px: 1 }}>
-                        <Typography variant="caption" noWrap>{img.title}</Typography>
-                      </CardContent>
-                    </CardActionArea>
-                  </Card>
-                ))}
+                {stockImagesLoading
+                  ? Array.from({ length: 8 }).map((_, i) => (
+                      <Skeleton key={i} variant="rectangular" height={110} sx={{ borderRadius: 1 }} aria-label="Loading login image" />
+                    ))
+                  : stockImages.map((img) => (
+                      <Card key={img.id} sx={{ cursor: 'pointer' }}>
+                        <CardActionArea onClick={() => handleAssignVisualPassword(assigningMemberId, img.imageUrl)}>
+                          <CardMedia
+                            component="img"
+                            height="80"
+                            image={img.imageUrl}
+                            alt={img.title}
+                            sx={{ objectFit: 'cover' }}
+                          />
+                          <CardContent sx={{ py: 0.5, px: 1 }}>
+                            <Typography variant="caption" noWrap>{img.title}</Typography>
+                          </CardContent>
+                        </CardActionArea>
+                      </Card>
+                    ))}
               </Box>
 
               <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>

@@ -24,6 +24,7 @@ import {
   CardContent,
   CardMedia,
   Link,
+  Skeleton,
 } from '@mui/material';
 import {
   Link as LinkIcon,
@@ -165,6 +166,35 @@ export default function ImportRecipe() {
         <Alert severity="error" sx={{ mb: 3 }}>
           {error}
         </Alert>
+      )}
+
+      {/* Recipe preview skeleton — shown while the URL is being parsed, shaped
+          like the "Recipe Preview" card that appears once import succeeds. */}
+      {loading && !parsedRecipe && (
+        <Paper sx={{ p: 3 }}>
+          <Skeleton variant="text" width={160} height={32} sx={{ mb: 3 }} />
+          <Grid container spacing={3}>
+            <Grid size={{ xs: 12, md: 4 }}>
+              <Skeleton variant="rectangular" height={250} sx={{ borderRadius: 1 }} />
+            </Grid>
+            <Grid size={{ xs: 12, md: 8 }}>
+              <Skeleton variant="text" width="60%" height={32} />
+              <Skeleton variant="text" width="100%" />
+              <Skeleton variant="text" width="80%" sx={{ mb: 2 }} />
+              <Box sx={{ display: 'flex', gap: 1 }}>
+                <Skeleton variant="rectangular" width={70} height={24} />
+                <Skeleton variant="rectangular" width={90} height={24} />
+                <Skeleton variant="rectangular" width={80} height={24} />
+              </Box>
+            </Grid>
+            <Grid size={{ xs: 12, md: 6 }}>
+              <Skeleton variant="rectangular" height={180} sx={{ borderRadius: 1 }} />
+            </Grid>
+            <Grid size={{ xs: 12, md: 6 }}>
+              <Skeleton variant="rectangular" height={180} sx={{ borderRadius: 1 }} />
+            </Grid>
+          </Grid>
+        </Paper>
       )}
 
       {parsedRecipe && (

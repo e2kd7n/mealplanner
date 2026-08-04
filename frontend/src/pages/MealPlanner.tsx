@@ -31,6 +31,7 @@ import {
   Link,
   Tooltip,
   Alert,
+  Skeleton,
 } from '@mui/material';
 import {
   Add as AddIcon,
@@ -1046,8 +1047,28 @@ const MealPlanner: React.FC = () => {
 
         {/* Weekly Calendar Grid */}
         {mealsLoading ? (
-          <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: 400 }}>
-            <CircularProgress />
+          <Box
+            sx={{
+              display: 'grid',
+              gridTemplateColumns: viewMode === 'month'
+                ? 'repeat(7, minmax(120px, 1fr))'
+                : viewMode === '3-day'
+                ? 'repeat(3, minmax(200px, 1fr))'
+                : 'repeat(7, minmax(120px, 1fr))',
+              gap: { xs: 1, md: 1.5, lg: 2 },
+            }}
+          >
+            {Array.from({ length: viewMode === 'month' ? 28 : viewMode === '3-day' ? 3 : 7 }).map((_, i) => (
+              <Card key={i}>
+                <CardContent sx={{ p: 2 }}>
+                  <Skeleton variant="text" width="50%" sx={{ mx: 'auto' }} />
+                  <Skeleton variant="text" width="30%" height={32} sx={{ mx: 'auto', mb: 2 }} />
+                  {[...Array(4)].map((_, j) => (
+                    <Skeleton key={j} variant="rectangular" height={20} sx={{ mb: 1, borderRadius: 1 }} />
+                  ))}
+                </CardContent>
+              </Card>
+            ))}
           </Box>
         ) : (
           <DndContext

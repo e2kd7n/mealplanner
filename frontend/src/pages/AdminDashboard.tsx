@@ -34,6 +34,7 @@ import {
   Tab,
   InputAdornment,
   Tooltip,
+  Skeleton,
 } from '@mui/material';
 import {
   Edit as EditIcon,
@@ -300,9 +301,40 @@ export default function AdminDashboard() {
 
   if (loading && !users.length) {
     return (
-      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '80vh' }}>
-        <CircularProgress />
-      </Box>
+      <Container maxWidth="xl" sx={{ py: 4 }}>
+        <Box sx={{ mb: 3 }}>
+          <Skeleton variant="text" width={260} height={40} />
+          <Skeleton variant="text" width={420} />
+        </Box>
+
+        <Grid container spacing={3} sx={{ mb: 4 }}>
+          {[...Array(6)].map((_, i) => (
+            <Grid size={{ xs: 12, sm: 6, md: 2 }} key={i}>
+              <Card>
+                <CardContent>
+                  <Skeleton variant="text" width="60%" />
+                  <Skeleton variant="text" width="40%" height={40} />
+                </CardContent>
+              </Card>
+            </Grid>
+          ))}
+        </Grid>
+
+        <Paper sx={{ p: 3 }}>
+          <Skeleton variant="text" width={180} height={32} sx={{ mb: 3 }} />
+          <Grid container spacing={2} sx={{ mb: 3 }}>
+            <Grid size={{ xs: 12, md: 6 }}>
+              <Skeleton variant="rectangular" height={56} sx={{ borderRadius: 1 }} />
+            </Grid>
+            <Grid size={{ xs: 12, md: 6 }}>
+              <Skeleton variant="rectangular" height={56} sx={{ borderRadius: 1 }} />
+            </Grid>
+          </Grid>
+          {[...Array(6)].map((_, i) => (
+            <Skeleton key={i} variant="rectangular" height={53} sx={{ mb: 0.5 }} />
+          ))}
+        </Paper>
+      </Container>
     );
   }
 
@@ -643,9 +675,26 @@ export default function AdminDashboard() {
             </Box>
 
             {settingsLoading ? (
-              <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
-                <CircularProgress />
-              </Box>
+              <Table>
+                <TableHead>
+                  <TableRow>
+                    <TableCell>Service</TableCell>
+                    <TableCell>Description</TableCell>
+                    <TableCell>Status</TableCell>
+                    <TableCell align="right">Actions</TableCell>
+                  </TableRow>
+                </TableHead>
+                <TableBody>
+                  {[...Array(4)].map((_, i) => (
+                    <TableRow key={i}>
+                      <TableCell><Skeleton variant="text" width="70%" /></TableCell>
+                      <TableCell><Skeleton variant="text" width="90%" /></TableCell>
+                      <TableCell><Skeleton variant="rectangular" width={90} height={24} sx={{ borderRadius: 4 }} /></TableCell>
+                      <TableCell align="right"><Skeleton variant="circular" width={28} height={28} sx={{ ml: 'auto' }} /></TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
             ) : (
               <Table>
                 <TableHead>
