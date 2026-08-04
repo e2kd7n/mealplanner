@@ -131,6 +131,10 @@ export default function CreateRecipe() {
   const [uploadingImage, setUploadingImage] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [bulkInstructions, setBulkInstructions] = useState('');
+  const [titleTouched, setTitleTouched] = useState(false);
+  const [prepTimeTouched, setPrepTimeTouched] = useState(false);
+  const [cookTimeTouched, setCookTimeTouched] = useState(false);
+  const [servingsTouched, setServingsTouched] = useState(false);
   
   const [formData, setFormData] = useState<RecipeFormData>({
     title: '',
@@ -300,6 +304,13 @@ export default function CreateRecipe() {
   };
 
   const validateBasicInfo = () => {
+    // Mark all fields touched so any inline errors below are revealed even if the
+    // user never blurred a field (e.g. clicked "Next" straight away).
+    setTitleTouched(true);
+    setPrepTimeTouched(true);
+    setCookTimeTouched(true);
+    setServingsTouched(true);
+
     if (!formData.title.trim()) {
       setError('Recipe title is required');
       return false;
@@ -534,6 +545,9 @@ export default function CreateRecipe() {
           label="Recipe Title"
           value={formData.title}
           onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+          onBlur={() => setTitleTouched(true)}
+          error={titleTouched && !formData.title.trim()}
+          helperText={titleTouched && !formData.title.trim() ? 'Recipe title is required' : ''}
           placeholder="e.g., Grandma's Chocolate Chip Cookies"
         />
       </Grid>
@@ -562,6 +576,9 @@ export default function CreateRecipe() {
             setFormData({ ...formData, prepTime: isNaN(value) ? 0 : value });
           }}
           onFocus={(e) => e.target.select()}
+          onBlur={() => setPrepTimeTouched(true)}
+          error={prepTimeTouched && formData.prepTime < 0}
+          helperText={prepTimeTouched && formData.prepTime < 0 ? 'Time values must be positive' : ''}
           slotProps={{ htmlInput: { min: 0 } }}
         />
       </Grid>
@@ -578,6 +595,9 @@ export default function CreateRecipe() {
             setFormData({ ...formData, cookTime: isNaN(value) ? 0 : value });
           }}
           onFocus={(e) => e.target.select()}
+          onBlur={() => setCookTimeTouched(true)}
+          error={cookTimeTouched && formData.cookTime < 0}
+          helperText={cookTimeTouched && formData.cookTime < 0 ? 'Time values must be positive' : ''}
           slotProps={{ htmlInput: { min: 0 } }}
         />
       </Grid>
@@ -594,6 +614,9 @@ export default function CreateRecipe() {
             setFormData({ ...formData, servings: isNaN(value) ? 1 : value });
           }}
           onFocus={(e) => e.target.select()}
+          onBlur={() => setServingsTouched(true)}
+          error={servingsTouched && formData.servings < 1}
+          helperText={servingsTouched && formData.servings < 1 ? 'Servings must be at least 1' : ''}
           slotProps={{ htmlInput: { min: 1 } }}
         />
       </Grid>
