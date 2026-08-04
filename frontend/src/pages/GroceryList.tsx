@@ -23,10 +23,10 @@ import {
   Chip,
   Divider,
   Stack,
-  CircularProgress,
   Alert,
   Collapse,
   Avatar,
+  Skeleton,
 } from '@mui/material';
 import {
   Delete as DeleteIcon,
@@ -278,8 +278,30 @@ const GroceryList: React.FC = () => {
   if (loading) {
     return (
       <Container maxWidth="lg">
-        <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '400px' }}>
-          <CircularProgress />
+        <Box sx={{ mb: 4 }}>
+          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3, flexWrap: 'wrap', gap: 2 }}>
+            <Skeleton variant="text" width={220} height={40} />
+            <Skeleton variant="rectangular" width={340} height={36} sx={{ borderRadius: 1 }} />
+          </Box>
+
+          <Skeleton variant="rectangular" height={96} sx={{ borderRadius: 1, mb: 3 }} />
+
+          {[...Array(4)].map((_, i) => (
+            <Card key={i} sx={{ mb: 2 }}>
+              <CardContent>
+                <Stack direction="row" spacing={2} sx={{ alignItems: 'center', mb: 2 }}>
+                  <Skeleton variant="circular" width={40} height={40} />
+                  <Box sx={{ flex: 1 }}>
+                    <Skeleton variant="text" width="40%" height={28} />
+                    <Skeleton variant="text" width="30%" />
+                  </Box>
+                </Stack>
+                {[...Array(3)].map((_, j) => (
+                  <Skeleton key={j} variant="text" width="80%" sx={{ mb: 1 }} />
+                ))}
+              </CardContent>
+            </Card>
+          ))}
         </Box>
       </Container>
     );

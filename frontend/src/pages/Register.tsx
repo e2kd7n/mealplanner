@@ -38,6 +38,8 @@ const Register: React.FC = () => {
   const [validationError, setValidationError] = useState('');
   const [emailError, setEmailError] = useState('');
   const [passwordStrength, setPasswordStrength] = useState(0);
+  const [passwordTouched, setPasswordTouched] = useState(false);
+  const [confirmPasswordTouched, setConfirmPasswordTouched] = useState(false);
 
   useEffect(() => {
     if (isAuthenticated) {
@@ -204,7 +206,9 @@ const Register: React.FC = () => {
               autoComplete="new-password"
               value={password}
               onChange={(e) => handlePasswordChange(e.target.value)}
+              onBlur={() => setPasswordTouched(true)}
               disabled={loading}
+              error={passwordTouched && password.length > 0 && passwordStrength < 50}
               helperText="At least 8 characters with mix of letters, numbers, and symbols"
               slotProps={{
                 input: {
@@ -240,6 +244,15 @@ const Register: React.FC = () => {
                   color={getPasswordStrengthColor()}
                   sx={{ height: 6, borderRadius: 3 }}
                 />
+                {passwordTouched && passwordStrength < 50 && (
+                  <Typography variant="caption" color="error" sx={{ mt: 0.5, display: 'block' }}>
+                    Too weak to continue
+                    {password.length < 12 && ' — try a longer password'}
+                    {!/[A-Z]/.test(password) && ', add uppercase'}
+                    {!/\d/.test(password) && ', add a number'}
+                    {!/[^a-zA-Z\d]/.test(password) && ', add a symbol'}
+                  </Typography>
+                )}
               </Box>
             )}
             <TextField
@@ -253,10 +266,11 @@ const Register: React.FC = () => {
               autoComplete="new-password"
               value={confirmPassword}
               onChange={(e) => setConfirmPassword(e.target.value)}
+              onBlur={() => setConfirmPasswordTouched(true)}
               disabled={loading}
-              error={confirmPassword.length > 0 && password !== confirmPassword}
+              error={confirmPasswordTouched && confirmPassword.length > 0 && password !== confirmPassword}
               helperText={
-                confirmPassword.length > 0 && password !== confirmPassword
+                confirmPasswordTouched && confirmPassword.length > 0 && password !== confirmPassword
                   ? 'Passwords do not match'
                   : 'Re-enter your password to confirm'
               }
