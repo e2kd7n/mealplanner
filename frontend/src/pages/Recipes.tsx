@@ -57,6 +57,7 @@ import { useDebounce } from '../hooks/useDebounce';
 import { useCachedImage } from '../hooks/useCachedImage';
 import BrowseRecipes from './BrowseRecipes';
 import RecipeDiscoveryEmptyState from '../components/RecipeDiscoveryEmptyState';
+import QuickIngredientEntryDialog from '../components/QuickIngredientEntryDialog';
 
 // Memoized Recipe Card Component for better performance
 interface RecipeCardProps {
@@ -287,7 +288,15 @@ const Recipes: React.FC = () => {
   }, []);
 
   const handleNavigate = useCallback((id: string) => navigate(`/recipes/${id}`), [navigate]);
-  const handleEditIngredients = useCallback((id: string) => navigate(`/recipes/${id}/edit`), [navigate]);
+
+  // Quick ingredient entry (issue #328) — lightweight line-by-line dialog,
+  // not a navigation to the full CreateRecipe wizard.
+  const [ingredientDialogRecipeId, setIngredientDialogRecipeId] = useState<string | null>(null);
+  const handleEditIngredients = useCallback((id: string) => setIngredientDialogRecipeId(id), []);
+  const ingredientDialogRecipe = useMemo(
+    () => recipes.find((r) => r.id === ingredientDialogRecipeId) || null,
+    [recipes, ingredientDialogRecipeId]
+  );
 
   const handleTabChange = (_event: React.SyntheticEvent, newValue: number) => setActiveTab(newValue);
 
@@ -595,6 +604,12 @@ const Recipes: React.FC = () => {
           <BrowseRecipes />
         </Box>
       </Box>
+
+      <QuickIngredientEntryDialog
+        open={ingredientDialogRecipeId !== null}
+        recipe={ingredientDialogRecipe}
+        onClose={() => setIngredientDialogRecipeId(null)}
+      />
     </Container>
   );
 };

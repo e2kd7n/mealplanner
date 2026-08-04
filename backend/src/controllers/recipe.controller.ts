@@ -70,10 +70,7 @@ function getUserId(req: Request): string | undefined {
 /**
  * Helper function to verify recipe ownership
  */
-async function verifyRecipeOwnership(
-  recipeId: string,
-  userId: string
-): Promise<void> {
+async function verifyRecipeOwnership(recipeId: string, userId: string) {
   const recipe = await prisma.recipe.findUnique({
     where: { id: recipeId },
   });
@@ -85,6 +82,8 @@ async function verifyRecipeOwnership(
   if (recipe.userId !== userId) {
     throw new AppError('Access denied', 403);
   }
+
+  return recipe;
 }
 
 /**
@@ -351,12 +350,16 @@ export async function getRecipeById(
  * Create new recipe
 /**
  * Helper function to find or create an ingredient
+ *
+ * Returns the ingredient's own default unit alongside its id so callers can
+ * fall back to it when a RecipeIngredient line omits a unit (quick ingredient
+ * entry, issue #328 — no required quantity/unit on that path).
  */
 async function findOrCreateIngredient(
   ingredientId: string | undefined,
   ingredientName: string,
-  unit: string
-): Promise<string> {
+  unit: string | undefined
+): Promise<{ id: string; unit: string }> {
   // Validate ingredient name
   if (!ingredientName || typeof ingredientName !== 'string' || ingredientName.trim() === '') {
     throw new AppError('Ingredient name is required and must be a non-empty string', 400);
@@ -369,11 +372,11 @@ async function findOrCreateIngredient(
     const existingIngredient = await prisma.ingredient.findUnique({
       where: { id: ingredientId },
     });
-    
+
     if (existingIngredient) {
-      return ingredientId;
+      return { id: existingIngredient.id, unit: existingIngredient.unit };
     }
-    
+
     // If ID provided but doesn't exist, log warning and fall through to create/find by name
     logger.warn(`Ingredient ID ${ingredientId} not found, searching by name: ${trimmedName}`);
   }
@@ -398,7 +401,7 @@ async function findOrCreateIngredient(
     });
   }
 
-  return ingredient.id;
+  return { id: ingredient.id, unit: ingredient.unit };
 }
 
 export async function createRecipe(
@@ -477,18 +480,20 @@ export async function createRecipe(
     // Handle ingredients - create new ones if needed
     if (ingredients && ingredients.length > 0) {
       for (const ing of ingredients) {
-        const ingredientId = await findOrCreateIngredient(
+        const ingredient = await findOrCreateIngredient(
           ing.ingredientId,
           ing.ingredientName,
           ing.unit
         );
 
+        // Quick-added ingredient lines (issue #328) may omit quantity/unit;
+        // fall back to a placeholder quantity and the ingredient's own unit.
         await prisma.recipeIngredient.create({
           data: {
             recipeId: recipe.id,
-            ingredientId,
-            quantity: ing.quantity,
-            unit: ing.unit,
+            ingredientId: ingredient.id,
+            quantity: ing.quantity ?? 1,
+            unit: ing.unit || ingredient.unit,
             notes: ing.notes || null,
             isOptional: ing.isOptional || false,
           },
@@ -535,7 +540,7 @@ export async function updateRecipe(
     }
 
     // Check if recipe exists and user owns it
-    await verifyRecipeOwnership(id, userId);
+    const existingRecipe = await verifyRecipeOwnership(id, userId);
 
     const {
       title,
@@ -554,14 +559,17 @@ export async function updateRecipe(
       ingredients,
     } = req.body;
 
-    // Calculate cleanup score if relevant fields are being updated
+    // Calculate cleanup score if relevant fields are being updated. Partial
+    // updates (e.g. quick ingredient entry, issue #328, which sends only
+    // `ingredients`) omit the rest, so fall back to the recipe's current
+    // stored values rather than passing undefined into the calculation.
     let cleanupScore;
     if (ingredients || instructions || prepTime || cookTime) {
       cleanupScore = calculateCleanupScore({
         ingredients: ingredients || [],
-        instructions,
-        cookTime,
-        prepTime,
+        instructions: instructions ?? existingRecipe.instructions,
+        cookTime: cookTime ?? existingRecipe.cookTime,
+        prepTime: prepTime ?? existingRecipe.prepTime,
       });
     }
 
@@ -596,18 +604,20 @@ export async function updateRecipe(
 
       // Add new ingredients
       for (const ing of ingredients) {
-        const ingredientId = await findOrCreateIngredient(
+        const ingredient = await findOrCreateIngredient(
           ing.ingredientId,
           ing.ingredientName || ing.name,
           ing.unit
         );
 
+        // Quick-added ingredient lines (issue #328) may omit quantity/unit;
+        // fall back to a placeholder quantity and the ingredient's own unit.
         await prisma.recipeIngredient.create({
           data: {
             recipeId: id,
-            ingredientId,
-            quantity: ing.quantity,
-            unit: ing.unit,
+            ingredientId: ingredient.id,
+            quantity: ing.quantity ?? 1,
+            unit: ing.unit || ingredient.unit,
             notes: ing.notes || null,
             isOptional: ing.isOptional || false,
           },
