@@ -30,6 +30,7 @@ import {
   Chip,
   ToggleButtonGroup,
   ToggleButton,
+  Skeleton,
 } from '@mui/material';
 import {
   Add as AddIcon,
@@ -1168,9 +1169,30 @@ export default function CreateRecipe() {
   if (initialLoading) {
     return (
       <Container maxWidth="lg" sx={{ py: 4 }}>
-        <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '50vh' }}>
-          <CircularProgress />
+        <Skeleton variant="rectangular" width={140} height={36} sx={{ mb: 2 }} />
+
+        <Box sx={{ mb: 4 }}>
+          <Skeleton variant="text" width="40%" height={48} />
+          <Skeleton variant="text" width="60%" />
         </Box>
+
+        <Paper sx={{ p: 3 }}>
+          <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 4, px: { xs: 2, sm: 8 } }}>
+            {steps.map((_, i) => (
+              <Skeleton key={i} variant="circular" width={32} height={32} />
+            ))}
+          </Box>
+          <Grid container spacing={3}>
+            {[...Array(6)].map((_, i) => (
+              <Grid size={{ xs: 12, sm: 6 }} key={i}>
+                <Skeleton variant="rectangular" height={56} sx={{ borderRadius: 1 }} />
+              </Grid>
+            ))}
+            <Grid size={{ xs: 12 }}>
+              <Skeleton variant="rectangular" height={80} sx={{ borderRadius: 1 }} />
+            </Grid>
+          </Grid>
+        </Paper>
       </Container>
     );
   }

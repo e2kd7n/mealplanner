@@ -37,6 +37,7 @@ import {
   Radio,
   useMediaQuery,
   useTheme,
+  Skeleton,
 } from '@mui/material';
 import {
   Visibility,
@@ -90,6 +91,7 @@ export default function Setup() {
   const [membersLoading, setMembersLoading] = useState(false);
   const [membersError, setMembersError] = useState('');
   const [stockImages, setStockImages] = useState<StockImage[]>([]);
+  const [stockImagesLoading, setStockImagesLoading] = useState(true);
   const [assigningMemberId, setAssigningMemberId] = useState<string | null>(null);
   const [processedMemberIds, setProcessedMemberIds] = useState<Set<string>>(new Set());
 
@@ -111,7 +113,8 @@ export default function Setup() {
   useEffect(() => {
     visualAuthAPI.getStockImages()
       .then((res) => setStockImages(res.data.images ?? []))
-      .catch(() => {});
+      .catch(() => {})
+      .finally(() => setStockImagesLoading(false));
   }, []);
 
   const handleAddMember = () => {
@@ -459,22 +462,26 @@ export default function Setup() {
                   mb: 3,
                 }}
               >
-                {stockImages.map((img) => (
-                  <Card key={img.id} sx={{ cursor: 'pointer' }}>
-                    <CardActionArea onClick={() => handleAssignVisualPassword(assigningMemberId, img.imageUrl)}>
-                      <CardMedia
-                        component="img"
-                        height="80"
-                        image={img.imageUrl}
-                        alt={img.title}
-                        sx={{ objectFit: 'cover' }}
-                      />
-                      <CardContent sx={{ py: 0.5, px: 1 }}>
-                        <Typography variant="caption" noWrap>{img.title}</Typography>
-                      </CardContent>
-                    </CardActionArea>
-                  </Card>
-                ))}
+                {stockImagesLoading
+                  ? Array.from({ length: 8 }).map((_, i) => (
+                      <Skeleton key={i} variant="rectangular" height={110} sx={{ borderRadius: 1 }} aria-label="Loading login image" />
+                    ))
+                  : stockImages.map((img) => (
+                      <Card key={img.id} sx={{ cursor: 'pointer' }}>
+                        <CardActionArea onClick={() => handleAssignVisualPassword(assigningMemberId, img.imageUrl)}>
+                          <CardMedia
+                            component="img"
+                            height="80"
+                            image={img.imageUrl}
+                            alt={img.title}
+                            sx={{ objectFit: 'cover' }}
+                          />
+                          <CardContent sx={{ py: 0.5, px: 1 }}>
+                            <Typography variant="caption" noWrap>{img.title}</Typography>
+                          </CardContent>
+                        </CardActionArea>
+                      </Card>
+                    ))}
               </Box>
 
               <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
