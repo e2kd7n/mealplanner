@@ -147,12 +147,14 @@ describe('recipesSlice', () => {
   });
 
   describe('updateRecipe thunk', () => {
+    // PUT /api/recipes/:id responds with { message, recipe }, not the
+    // recipe directly -- the fulfilled payload mirrors that shape.
     it('updates recipe in list', () => {
       const existing = { ...initialState, recipes: [mockRecipe] };
       const updated = { ...mockRecipe, title: 'Updated Pasta' };
       const state = recipesReducer(
         existing,
-        updateRecipe.fulfilled(updated, '', { id: 'recipe-1', data: {} })
+        updateRecipe.fulfilled({ message: 'Recipe updated successfully', recipe: updated }, '', { id: 'recipe-1', data: {} })
       );
       expect(state.recipes[0].title).toBe('Updated Pasta');
     });
@@ -162,7 +164,7 @@ describe('recipesSlice', () => {
       const updated = { ...mockRecipe, title: 'Updated' };
       const state = recipesReducer(
         existing,
-        updateRecipe.fulfilled(updated, '', { id: 'recipe-1', data: {} })
+        updateRecipe.fulfilled({ message: 'Recipe updated successfully', recipe: updated }, '', { id: 'recipe-1', data: {} })
       );
       expect(state.currentRecipe?.title).toBe('Updated');
     });

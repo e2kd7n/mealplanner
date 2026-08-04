@@ -252,12 +252,15 @@ const recipesSlice = createSlice({
       })
       // Update recipe
       .addCase(updateRecipe.fulfilled, (state, action) => {
-        const index = state.recipes.findIndex(r => r.id === action.payload.id);
+        // PUT /api/recipes/:id responds with { message, recipe }, not the
+        // recipe directly — unwrap it before matching against state.recipes.
+        const updated = action.payload.recipe;
+        const index = state.recipes.findIndex(r => r.id === updated.id);
         if (index !== -1) {
-          state.recipes[index] = action.payload;
+          state.recipes[index] = updated;
         }
-        if (state.currentRecipe?.id === action.payload.id) {
-          state.currentRecipe = action.payload;
+        if (state.currentRecipe?.id === updated.id) {
+          state.currentRecipe = updated;
         }
       })
       // Delete recipe
