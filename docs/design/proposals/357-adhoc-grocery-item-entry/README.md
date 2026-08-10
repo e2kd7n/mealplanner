@@ -1,6 +1,6 @@
 # Design proposal: ad-hoc/custom grocery item entry
 
-**Status:** 🚧 In progress — design collective drafting. Not yet reviewed by engineering.
+**Status:** ✅ Design collective drafting complete. Filed for engineering review — not yet reviewed by engineering.
 
 **Tracks:** [#357](https://github.com/e2kd7n/mealplanner/issues/357) (this proposal) ·
 [#316](https://github.com/e2kd7n/mealplanner/issues/316) (original product decision) ·
@@ -19,7 +19,7 @@ This is a first-pass design proposal drafted by a simulated **design collective*
 independent AI-agent passes, each taking a distinct professional lens, briefed with the same
 codebase research and then left to reach their own conclusions independently:
 
-- [`UX_INTERACTION.md`](UX_INTERACTION.md) — entry point, list placement, interaction parity *(pending)*
+- [`UX_INTERACTION.md`](UX_INTERACTION.md) — entry point, list placement, interaction parity
 - [`DATA_MODEL.md`](DATA_MODEL.md) — schema/API resolution of the core "freeform vs. catalog" fork
 - [`ACCESSIBILITY.md`](ACCESSIBILITY.md) — keyboard, screen-reader, and touch-target requirements
 
@@ -29,11 +29,10 @@ recommendation here as a starting point for actual team review, not a decision.
 
 ## Where things stand so far
 
-The data-model and accessibility passes are complete and materially agree with each other; the
-UX/interaction pass is still in progress and will be added as a follow-up commit. The synthesis
-below will be revised once it lands.
+All three passes are complete and converge on one coherent proposal — no unresolved
+contradictions between them.
 
-### Data model: resolved
+### Data model: extend the catalog, don't go freeform
 
 [`DATA_MODEL.md`](DATA_MODEL.md) recommends extending the `Ingredient` catalog with a new
 `household` `IngredientCategory` value and routing ad-hoc entry through the existing
@@ -43,22 +42,41 @@ flow), rather than adding a genuinely freeform `itemName` column. Reasoning: the
 indexing, dedup-by-name all depend on it), and `relationMode = "prisma"` (no DB-level FK/CHECK
 constraints) makes a freeform column's "exactly one of ingredientId/itemName" invariant unsafe to
 maintain in application code alone. Migration cost is a single metadata-only `ALTER TYPE ... ADD
-VALUE` — no table rewrite, no new index.
+VALUE` — no table rewrite, no new index. For v1, ad-hoc items can only be added into an *existing*
+meal-plan-derived list — see "Product decisions needed" below.
 
-### Accessibility: resolved, with one open reconciliation point
+### Accessibility: header-row control, live-region feedback, real text alternatives
 
 [`ACCESSIBILITY.md`](ACCESSIBILITY.md) requires the add-item control live in the page's existing
-header action row (not buried after 10 category cards), success/duplicate feedback via a
+header action row (not buried after 10 category cards), success/duplicate feedback via an
 `aria-live="polite"` region (not a color/icon-only toast), any "not from a recipe" indicator to
 have a real text alternative, and focus to return to the input after each add (not to the new
-item) to support rapid multi-item entry.
+item) to support rapid multi-item entry. It flagged a mild preference for an inline persistent
+entry row over a modal dialog, and left the final shape call to the UX pass.
 
-**Open reconciliation point for the UX pass:** accessibility has a mild preference for an inline
-persistent entry row over a modal dialog, because a dialog's standard focus-trap/Enter-submits
-behavior actively works against rapid "add a few odds and ends" entry unless Enter is kept from
-auto-closing the dialog. Either shape is compliant if implemented correctly, but the UX section
-needs to either adopt the inline-row shape or explicitly address this tradeoff if it chooses a
-dialog.
+### UX/interaction: inline row, own category card, full interaction parity
+
+[`UX_INTERACTION.md`](UX_INTERACTION.md) resolves the shape question accessibility left open —
+**inline persistent row in the header**, not a dialog — because the actual use case (a burst of
+a few unrelated, low-friction adds) is exactly the shape a dialog's focus-trap/Enter-submits
+conventions fight against. It also recommends:
+
+- A dedicated **"Household & Other" card**, rendered last, only when non-empty — not merged into
+  the existing `other` bucket, since merging would erase the one signal ("is this in the grocery
+  aisles") the category grouping exists to provide.
+- **Full interaction parity** with recipe-derived items (check-off, delete) and deliberately *no*
+  bespoke quantity-edit for ad-hoc items, since recipe-derived items don't have that either today —
+  a silent server-side `quantity: 1` default instead.
+- A visible-text **"Custom" `Chip`** (not an icon-only badge) as the "not from a recipe" marker,
+  satisfying accessibility's text-alternative requirement.
+- Reusing #328's ingredient-suggestion `Autocomplete` and "will create as a new ingredient"
+  microcopy for a consistent resolution experience, while deliberately using a different container
+  shell than that feature's dialog, since the two features have different interaction shapes
+  (bounded batch edit vs. ambient single-item drip).
+- Explicit handling for typed names that match an item already on the list (highlight + live-region
+  message, not a silent quantity increment) and for the no-current-list case (disabled input with
+  an inline caption matching the existing empty-state CTA copy, rather than a control guaranteed to
+  fail on submit).
 
 ## Product decisions needed (not resolved by this proposal)
 
@@ -76,8 +94,8 @@ described below.)*
 
 ## Process (design → engineering → design)
 
-1. ~~Design collective drafts this proposal~~ *(UX section still landing)*
-2. File as a PR for engineering comment and review
+1. ~~Design collective drafts this proposal~~ ✅ done — all three passes complete
+2. ~~File as a PR for engineering comment and review~~ ✅ [#367](https://github.com/e2kd7n/mealplanner/pull/367)
 3. A simulated engineering-review pass responds, clearly labeled as an AI-generated first pass
 4. Design revises in response; anything that surfaces as a genuine product call gets added to
    "Product decisions needed" above, for the user's real decision — never resolved by simulation
