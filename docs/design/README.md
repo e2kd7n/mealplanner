@@ -91,6 +91,11 @@ This backlog's one item (smart recipe sorting by meal occasion) shipped as issue
 and the doc has been moved to `docs/archive/` accordingly — it no longer represents an
 active backlog.
 
+### [Ad-hoc Grocery Item Entry Proposal](proposals/357-adhoc-grocery-item-entry/README.md) (in progress)
+Design proposal for [#357](https://github.com/e2kd7n/mealplanner/issues/357) — adding freeform
+grocery items not tied to a recipe/meal-plan ingredient. Drafted by a simulated design collective,
+filed for engineering review; not yet approved by a human designer or engineer.
+
 ### [Epic Visual Refresh](EPIC_VISUAL_REFRESH.md)
 Major visual redesign documentation:
 - Design system overhaul

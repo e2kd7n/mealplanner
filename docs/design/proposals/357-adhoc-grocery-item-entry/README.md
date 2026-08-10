@@ -1,0 +1,85 @@
+# Design proposal: ad-hoc/custom grocery item entry
+
+**Status:** 🚧 In progress — design collective drafting. Not yet reviewed by engineering.
+
+**Tracks:** [#357](https://github.com/e2kd7n/mealplanner/issues/357) (this proposal) ·
+[#316](https://github.com/e2kd7n/mealplanner/issues/316) (original product decision) ·
+[#310](https://github.com/e2kd7n/mealplanner/issues/310) (removed dead-code dialog, PR #352)
+
+## What this is
+
+A user should be able to add a freeform item to a grocery list that isn't derived from a
+recipe/meal-plan ingredient — e.g. "we're also out of paper towels." Confirmed as a real, wanted
+feature (#316), but flagged as needing real UX design before implementation. The previous stubbed
+"Add Grocery Item" dialog was removed as dead code in PR #352 — this starts from a clean slate.
+
+## How this proposal was produced
+
+This is a first-pass design proposal drafted by a simulated **design collective** — three
+independent AI-agent passes, each taking a distinct professional lens, briefed with the same
+codebase research and then left to reach their own conclusions independently:
+
+- [`UX_INTERACTION.md`](UX_INTERACTION.md) — entry point, list placement, interaction parity *(pending)*
+- [`DATA_MODEL.md`](DATA_MODEL.md) — schema/API resolution of the core "freeform vs. catalog" fork
+- [`ACCESSIBILITY.md`](ACCESSIBILITY.md) — keyboard, screen-reader, and touch-target requirements
+
+**This is explicitly a first pass to accelerate real review, not a substitute for it.** No part of
+this proposal was written or approved by a human designer or engineer yet. Treat every
+recommendation here as a starting point for actual team review, not a decision.
+
+## Where things stand so far
+
+The data-model and accessibility passes are complete and materially agree with each other; the
+UX/interaction pass is still in progress and will be added as a follow-up commit. The synthesis
+below will be revised once it lands.
+
+### Data model: resolved
+
+[`DATA_MODEL.md`](DATA_MODEL.md) recommends extending the `Ingredient` catalog with a new
+`household` `IngredientCategory` value and routing ad-hoc entry through the existing
+find-or-create-ingredient pattern (used today by recipe authoring and the #328 quick-add-staples
+flow), rather than adding a genuinely freeform `itemName` column. Reasoning: the codebase's
+"always resolve to a real `Ingredient` row" convention is structural (pantry tracking, search
+indexing, dedup-by-name all depend on it), and `relationMode = "prisma"` (no DB-level FK/CHECK
+constraints) makes a freeform column's "exactly one of ingredientId/itemName" invariant unsafe to
+maintain in application code alone. Migration cost is a single metadata-only `ALTER TYPE ... ADD
+VALUE` — no table rewrite, no new index.
+
+### Accessibility: resolved, with one open reconciliation point
+
+[`ACCESSIBILITY.md`](ACCESSIBILITY.md) requires the add-item control live in the page's existing
+header action row (not buried after 10 category cards), success/duplicate feedback via a
+`aria-live="polite"` region (not a color/icon-only toast), any "not from a recipe" indicator to
+have a real text alternative, and focus to return to the input after each add (not to the new
+item) to support rapid multi-item entry.
+
+**Open reconciliation point for the UX pass:** accessibility has a mild preference for an inline
+persistent entry row over a modal dialog, because a dialog's standard focus-trap/Enter-submits
+behavior actively works against rapid "add a few odds and ends" entry unless Enter is kept from
+auto-closing the dialog. Either shape is compliant if implemented correctly, but the UX section
+needs to either adopt the inline-row shape or explicitly address this tradeoff if it chooses a
+dialog.
+
+## Product decisions needed (not resolved by this proposal)
+
+Flagged explicitly rather than decided by any persona — these are genuine product/scope calls:
+
+- **Should a standalone, non-meal-plan-derived grocery list be supported?** Today
+  `GroceryList.mealPlanId` is required — every list is meal-plan-derived. The data-model pass
+  recommends **defaulting to "no" for v1** (ad-hoc items only get added into an existing
+  meal-plan-derived list) and treating a fully standalone "running household list" as a separate,
+  later decision, since it's a materially bigger scope increase (new list-creation entry point,
+  lifecycle without a source meal plan) than what #357 originally asked for.
+
+*(This section will be revised again after the simulated engineering-review pass, per the process
+described below.)*
+
+## Process (design → engineering → design)
+
+1. ~~Design collective drafts this proposal~~ *(UX section still landing)*
+2. File as a PR for engineering comment and review
+3. A simulated engineering-review pass responds, clearly labeled as an AI-generated first pass
+4. Design revises in response; anything that surfaces as a genuine product call gets added to
+   "Product decisions needed" above, for the user's real decision — never resolved by simulation
+5. PR stays open for real human/engineering review; nothing here is merged or acted on
+   automatically
