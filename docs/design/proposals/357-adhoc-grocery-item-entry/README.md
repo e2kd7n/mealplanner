@@ -1,6 +1,9 @@
 # Design proposal: ad-hoc/custom grocery item entry
 
-**Status:** ✅ Design collective drafting complete. Filed for engineering review — not yet reviewed by engineering.
+**Status:** ✅ Design collective drafting complete. ✅ Simulated engineering review received and
+addressed — see "Engineering review" below and the revised implementation plan in
+[`DATA_MODEL.md`](DATA_MODEL.md) §2. One new product decision flagged below. Still awaiting real
+human/engineering review.
 
 **Tracks:** [#357](https://github.com/e2kd7n/mealplanner/issues/357) (this proposal) ·
 [#316](https://github.com/e2kd7n/mealplanner/issues/316) (original product decision) ·
@@ -78,6 +81,32 @@ conventions fight against. It also recommends:
   an inline caption matching the existing empty-state CTA copy, rather than a control guaranteed to
   fail on submit).
 
+## Engineering review
+
+A simulated engineering-review pass evaluated this proposal against the actual codebase and
+posted its findings as a PR comment on [#367](https://github.com/e2kd7n/mealplanner/pull/367)
+(see the engineering-review comment on PR #367 for the full text). Summary:
+
+- **Core direction confirmed.** The review agrees with `DATA_MODEL.md`'s Option A recommendation
+  (extend the catalog with a `household` category) — it found the `relationMode = "prisma"`
+  reasoning sufficient on its own to settle the question, independent of the other supporting
+  points.
+- **Two fact-check corrections and one implementation-plan gap** were required before treating
+  the proposal as ready to build: the checked-state field name was wrong (`isChecked` should have
+  been `checked`, matching the actual controller and frontend), the "pantry tracking might want
+  this later" point was overstated as a justification rather than a nice-to-have, and the
+  duplicate-item-on-list dedup behavior described in `UX_INTERACTION.md` had no corresponding
+  technical plan — as written, it wasn't implementable.
+- **Several implementation-risk gaps** in `DATA_MODEL.md` §2's technical plan were identified:
+  a `findOrCreateIngredient` signature change that needs to protect two existing recipe-authoring
+  call sites, a search-suggestions-endpoint reuse conflict between the recipe and ad-hoc
+  Autocompletes, and an unhandled concurrent find-or-create race condition that pre-exists in
+  recipe authoring but is more likely to surface in ad-hoc grocery entry's multi-device context.
+
+All of the above have been folded into the revised `DATA_MODEL.md` §2. One item raised by the
+review is a genuine product/scope call rather than something either design or engineering should
+resolve — see the new item below.
+
 ## Product decisions needed (not resolved by this proposal)
 
 Flagged explicitly rather than decided by any persona — these are genuine product/scope calls:
@@ -89,15 +118,31 @@ Flagged explicitly rather than decided by any persona — these are genuine prod
   later decision, since it's a materially bigger scope increase (new list-creation entry point,
   lifecycle without a source meal plan) than what #357 originally asked for.
 
-*(This section will be revised again after the simulated engineering-review pass, per the process
-described below.)*
+- **Should fixing the concurrent find-or-create race condition be in scope for #357, or a
+  tracked follow-up issue?** Two family members adding the same ad-hoc item name (e.g. "paper
+  towels") from different devices at nearly the same time can currently either produce an
+  unhandled 500 error (same casing) or a duplicate `Ingredient` row (different casing), silently
+  defeating the catalog's dedup guarantee. This bug is pre-existing in `findOrCreateIngredient`
+  today (recipe authoring shares the same code path) — engineering review flagged it as more
+  likely to actually get triggered here than in its current home, given ad-hoc grocery entry's
+  multi-device, household-of-4, low-friction nature (see `DATA_MODEL.md` §2 for the technical
+  detail and proposed fix). Whether closing that gap now is worth the added scope for #357, versus
+  shipping the feature and tracking the race condition as a separate follow-up issue, is a real
+  scope/timeline call — not a design or engineering judgment. Neither the design collective nor
+  the simulated engineering-review pass is making this call; it needs a real decision.
+
+*(This section reflects the state after the simulated engineering-review pass, per the process
+described below. It will be revised again if a real human/engineering review surfaces further
+product calls.)*
 
 ## Process (design → engineering → design)
 
 1. ~~Design collective drafts this proposal~~ ✅ done — all three passes complete
 2. ~~File as a PR for engineering comment and review~~ ✅ [#367](https://github.com/e2kd7n/mealplanner/pull/367)
-3. A simulated engineering-review pass responds, clearly labeled as an AI-generated first pass
-4. Design revises in response; anything that surfaces as a genuine product call gets added to
-   "Product decisions needed" above, for the user's real decision — never resolved by simulation
+3. ~~A simulated engineering-review pass responds, clearly labeled as an AI-generated first pass~~
+   ✅ done — see "Engineering review" above
+4. ~~Design revises in response; anything that surfaces as a genuine product call gets added to
+   "Product decisions needed" above, for the user's real decision — never resolved by
+   simulation~~ ✅ done — `DATA_MODEL.md` §2 revised, one new product decision added above
 5. PR stays open for real human/engineering review; nothing here is merged or acted on
    automatically
