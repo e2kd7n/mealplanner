@@ -5,7 +5,7 @@
 
 
 import { Router } from 'express';
-import { authenticate, optionalAuthenticate } from '../middleware/auth';
+import { authenticate } from '../middleware/auth';
 import { requireAdmin } from '../middleware/admin';
 import {
   getIngredients,
@@ -61,7 +61,7 @@ router.get('/:id', getIngredientById);
  * @desc    Create new ingredient (checks for similar ingredients unless force=true)
  * @access  Private (Admin only in production)
  */
-router.post('/', optionalAuthenticate, createIngredient);
+router.post('/', authenticate, requireAdmin, createIngredient);
 
 /**
  * @route   POST /api/ingredients/merge
@@ -75,14 +75,14 @@ router.post('/merge', authenticate, requireAdmin, mergeIngredients);
  * @desc    Update ingredient
  * @access  Private (Admin only in production)
  */
-router.put('/:id', optionalAuthenticate, updateIngredient);
+router.put('/:id', authenticate, requireAdmin, updateIngredient);
 
 /**
  * @route   DELETE /api/ingredients/:id
  * @desc    Delete ingredient
  * @access  Private (Admin only in production)
  */
-router.delete('/:id', optionalAuthenticate, deleteIngredient);
+router.delete('/:id', authenticate, requireAdmin, deleteIngredient);
 
 export default router;
 

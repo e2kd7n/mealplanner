@@ -5,6 +5,7 @@
 
 import { Router } from 'express';
 import { authenticate } from '../middleware/auth';
+import { authRateLimiter } from '../middleware/rateLimiter';
 import {
   listUsers,
   getVisualChallenge,
@@ -21,12 +22,16 @@ import {
 const router: Router = Router();
 
 // ── Public endpoints (no auth required — local network convenience) ────────
-router.get('/users', listUsers);
-router.get('/visual-challenge/:userId', getVisualChallenge);
-router.post('/login/visual', visualLogin);
-router.post('/login/device', deviceLogin);
+// authRateLimiter (5 attempts/15 min in production) applies to all of these:
+// the visual-password challenge/response is a low-entropy factor (1-of-4, or
+// 1-of-8 for stock images) that's otherwise trivially brute-forceable without
+// throttling — see the security audit that added this.
+router.get('/users', authRateLimiter, listUsers);
+router.get('/visual-challenge/:userId', authRateLimiter, getVisualChallenge);
+router.post('/login/visual', authRateLimiter, visualLogin);
+router.post('/login/device', authRateLimiter, deviceLogin);
 router.post('/logout/device', deviceLogout);
-router.get('/visual-setup/stock-images', getStockImages);
+router.get('/visual-setup/stock-images', authRateLimiter, getStockImages);
 
 // ── Authenticated endpoints ───────────────────────────────────────────────
 router.get('/visual-password/status', authenticate, getVisualPasswordStatus);
