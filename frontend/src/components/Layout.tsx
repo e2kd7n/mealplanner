@@ -40,6 +40,7 @@ import {
   LightMode as LightModeIcon,
   DarkMode as DarkModeIcon,
   SettingsBrightness as SystemModeIcon,
+  HelpOutlineOutlined as HelpOutlineIcon,
 } from '@mui/icons-material';
 import { useThemePreference } from '../contexts/ThemeContext';
 import { useAppDispatch, useAppSelector } from '../store/hooks';
@@ -50,6 +51,7 @@ import BackendStatusBanner from './BackendStatusBanner';
 import { useKeyboardShortcuts } from '../hooks/useKeyboardShortcuts';
 import MobileBottomNav from './MobileBottomNav';
 import FeedbackButton from './FeedbackButton';
+import KeyboardShortcutsDialog from './KeyboardShortcutsDialog';
 
 const drawerWidth = 240;
 
@@ -108,6 +110,7 @@ const Layout: React.FC = () => {
 
   const [mobileOpen, setMobileOpen] = useState(false);
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
+  const [shortcutsOpen, setShortcutsOpen] = useState(false);
 
   useKeyboardShortcuts();
 
@@ -283,6 +286,16 @@ const Layout: React.FC = () => {
               || pageTitles[location.pathname]
               || drawerTitle}
           </Typography>
+          <Tooltip title="Keyboard Shortcuts">
+            <IconButton
+              color="inherit"
+              aria-label="Keyboard shortcuts"
+              onClick={() => setShortcutsOpen(true)}
+              sx={{ mr: 0.5, minWidth: 44, minHeight: 44 }}
+            >
+              <HelpOutlineIcon />
+            </IconButton>
+          </Tooltip>
           <Tooltip
             title={
               preference === 'system'
@@ -403,6 +416,7 @@ const Layout: React.FC = () => {
 
       <MobileBottomNav />
       <FeedbackButton />
+      <KeyboardShortcutsDialog open={shortcutsOpen} onClose={() => setShortcutsOpen(false)} />
     </Box>
   );
 };
