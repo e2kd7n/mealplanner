@@ -1,6 +1,6 @@
 # Issue Prioritization
 
-**Last Updated:** 2026-08-02 18:57:28 UTC / 2026-08-02 13:57:28 CDT
+**Last Updated:** 2026-08-13 02:00:53 UTC / 2026-08-12 21:00:53 CDT (manual edit, not via `update-issue-priorities.sh`)
 
 This file reflects the current state of GitHub issues organized by milestone and priority within each milestone.
 
@@ -9,35 +9,33 @@ This file reflects the current state of GitHub issues organized by milestone and
 ## 🎯 August 2026 (due 2026-08-30)
 
 ### 🔴 P0 - CRITICAL
-**No issues** ✅
+- #349 - P0: meals-backend crash-looping — Express 5 rejects bare '*' wildcard route (path-to-regexp@8.4.2)
 
 ### 🔴 P1 - HIGH
-- #341 - e2e suite broadly failing on main — Postgres duplicate-key on user_preferences + widespread timeouts
-- #328 - Quick-add staple meals to the meal plan
+**No issues** ✅
 
 ### 🟡 P2 - MEDIUM
 **No issues** ✅
 
 ### 🟢 P3 - LOW
-- #315 - [Product Decision] Is Pantry a committed real feature for this milestone?
-- #313 - docs: design documentation is stale and cross-references are broken after the archive reorganization
 - #308 - ux: keyboard shortcuts are fully implemented but completely undiscoverable
 - #307 - accessibility: missing aria-labels on icon-only buttons in CreateRecipe and Profile (one destructive)
 - #305 - ux: native alert()/window.confirm() used instead of the app's Alert/Snackbar/Dialog system
-- #303 - bug: Grocery List shows an error banner instead of an empty state for a user with no list yet
 - #301 - bug: AppBar page title falls back to brand name on Profile and Admin pages
 - #200 - Pi: move Postgres data volume to USB SSD
 
 ### 📋 P4 - FUTURE
-- #317 - [Product Decision] Clarify the intended distinction between /register and the FTUE /welcome flow
-- #316 - [Product Decision] Should Grocery List support ad-hoc custom items?
+- #357 - design: ad-hoc/custom grocery item entry — design proposal merged (#367); scope expanded to include a standalone (non-meal-plan) list per 2026-08-12 decision — DATA_MODEL.md/UX_INTERACTION.md need a revision pass for that before implementation; decision record pending review in PR #370
+- #356 - feature: Welcome/FTUE flow should offer to register additional household members
+- #355 - ux: clarify that /register is for adding household members, not first-run setup
 - #314 - design: MemberWelcome onboarding slides use hardcoded hex instead of theme tokens (3 of 4 slides)
 - #312 - bug: Grocery List empty-state CTA does a full page reload instead of SPA navigation
 - #311 - ux: form validation timing/feedback is inconsistent across Register, Welcome, CreateRecipe, Pantry, Setup
-- #310 - cleanup: dead 'Add Grocery Item' dialog is unreachable and admits the feature isn't supported
 - #309 - ux: loading-state pattern is inconsistent — Skeleton on 5 pages, bare CircularProgress spinner elsewhere
+- #19 - Implement Grocery List Regeneration and Sync Detection
 
 ### ⚠️ Unprioritized (need P-label)
+- #369 - bug: concurrent find-or-create race condition in findOrCreateIngredient (deferred out of #357/#367)
 - #261 - perf(e2e): use Playwright storageState to avoid per-test UI login in FTUE suite
 
 ---
@@ -63,7 +61,6 @@ These issues need to be assigned to a milestone and prioritized.
 - #64 - Implement Advanced Features (Nutrition Tracking, etc.)
 - #63 - Evaluate Scaling Strategy
 - #20 - Implement Pantry Integration with Grocery Lists
-- #19 - Implement Grocery List Regeneration and Sync Detection
 
 ## 📝 Workspace TODOs & Tasks
 Code comments and inline tasks found in the workspace that may need attention.
