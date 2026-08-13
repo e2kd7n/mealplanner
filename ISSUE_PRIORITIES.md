@@ -1,6 +1,6 @@
 # Issue Prioritization
 
-**Last Updated:** 2026-08-05 20:02:49 UTC / 2026-08-05 20:02:49 GMT
+**Last Updated:** 2026-08-13 19:04:44 UTC / 2026-08-13 14:04:44 CDT (manual edit against live `gh issue list` data, not via `update-issue-priorities.sh` — see note below)
 
 This file reflects the current state of GitHub issues organized by milestone and priority within each milestone.
 
@@ -18,13 +18,12 @@ This file reflects the current state of GitHub issues organized by milestone and
 **No issues** ✅
 
 ### 🟢 P3 - LOW
-- #308 - ux: keyboard shortcuts are fully implemented but completely undiscoverable
 - #307 - accessibility: missing aria-labels on icon-only buttons in CreateRecipe and Profile (one destructive)
 - #305 - ux: native alert()/window.confirm() used instead of the app's Alert/Snackbar/Dialog system
 - #200 - Pi: move Postgres data volume to USB SSD
 
 ### 📋 P4 - FUTURE
-- #357 - design: ad-hoc/custom grocery item entry — needs UX design before implementation
+- #357 - design: ad-hoc/custom grocery item entry — design proposal merged (#367); scope expanded to include a standalone (non-meal-plan) list per 2026-08-12 decision — DATA_MODEL.md/UX_INTERACTION.md need a revision pass for that before implementation; decision record pending review in PR #370
 - #356 - feature: Welcome/FTUE flow should offer to register additional household members
 - #355 - ux: clarify that /register is for adding household members, not first-run setup
 - #19 - Implement Grocery List Regeneration and Sync Detection
@@ -37,6 +36,9 @@ This file reflects the current state of GitHub issues organized by milestone and
 ## ⚠️ Issues Without Milestone Assignment
 
 These issues need to be assigned to a milestone and prioritized.
+
+### 🔴 P1 - HIGH
+- #365 - security: weekly audit 2026-08-05 — 13 high vulns found, 11 fixed via pnpm audit fix, 3 remain
 
 ### 🟡 P2 - MEDIUM
 - #116 - [P2][UX] Add Cost Tracking for Budget-Conscious Users
@@ -55,6 +57,12 @@ These issues need to be assigned to a milestone and prioritized.
 - #64 - Implement Advanced Features (Nutrition Tracking, etc.)
 - #63 - Evaluate Scaling Strategy
 - #20 - Implement Pantry Integration with Grocery Lists
+
+### ⚠️ Unprioritized (need P-label)
+- #372 - e2e flake: create.spec.ts recipe-title validation locator matches 2 elements (found rebasing PR #368)
+- #371 - MemberWelcome unit test crashes: no ThemeProvider wraps the component in test (found rebasing PR #368)
+- #369 - bug: concurrent find-or-create race condition in findOrCreateIngredient (deferred out of #357/#367 per 2026-08-12 decision)
+- #364 - security: docs/SECRET_ROTATION_STATUS.json missing — no rotation baseline established
 
 ## 📝 Workspace TODOs & Tasks
 Code comments and inline tasks found in the workspace that may need attention.
@@ -109,6 +117,13 @@ Code comments and inline tasks found in the workspace that may need attention.
 2. Set priority label:           `gh issue edit <N> --add-label P1-high`
 3. Regenerate this file:         `./scripts/update-issue-priorities.sh`
 4. Commit:                       `git add ISSUE_PRIORITIES.md && git commit -m "chore: update issue priorities"`
+
+**Note (2026-08-12):** The working tree had an uncommitted, stale regeneration sitting here
+before this edit — it still listed #349 as P0-CRITICAL, which had actually been closed since
+2026-08-05 (fixed by #351 on `main`). This update was built by hand against a live `gh issue
+list` snapshot instead of running the script, because `update-issue-priorities.sh` auto-closes
+issues on a commit-message heuristic that has produced confirmed false-closes before (see #210
+history) — not something to run unattended without reviewing what it's about to close first.
 
 ## Managing Workspace TODOs
 
