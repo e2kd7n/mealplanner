@@ -107,33 +107,30 @@ All of the above have been folded into the revised `DATA_MODEL.md` §2. One item
 review is a genuine product/scope call rather than something either design or engineering should
 resolve — see the new item below.
 
-## Product decisions needed (not resolved by this proposal)
+## Product decisions (resolved 2026-08-12)
 
-Flagged explicitly rather than decided by any persona — these are genuine product/scope calls:
+- **Standalone, non-meal-plan-derived grocery list: IN SCOPE for #357.** Overriding the
+  data-model pass's "default to no for v1" recommendation — the user wants standalone list
+  support built now rather than deferred to a later feature. This expands #357's scope beyond
+  what `DATA_MODEL.md` §2 currently specs: `GroceryList.mealPlanId` needs to become optional, a
+  new list-creation entry point is needed, and a lifecycle without a source meal plan needs to be
+  defined (e.g. what "clearing"/archiving means for a list with no plan to fall out of). None of
+  that schema/UX work has been done yet — `DATA_MODEL.md` and `UX_INTERACTION.md` need a follow-up
+  revision pass before implementation starts. Tracked as a checklist item below.
 
-- **Should a standalone, non-meal-plan-derived grocery list be supported?** Today
-  `GroceryList.mealPlanId` is required — every list is meal-plan-derived. The data-model pass
-  recommends **defaulting to "no" for v1** (ad-hoc items only get added into an existing
-  meal-plan-derived list) and treating a fully standalone "running household list" as a separate,
-  later decision, since it's a materially bigger scope increase (new list-creation entry point,
-  lifecycle without a source meal plan) than what #357 originally asked for.
+- **Concurrent find-or-create race condition: tracked as a follow-up, not fixed in this PR.**
+  Ships #357 on the existing plan; the race is a pre-existing bug in `findOrCreateIngredient`
+  (recipe authoring shares the same code path), not something #357 introduces. Filed as
+  [#369](https://github.com/e2kd7n/mealplanner/issues/369), which points back here for the
+  technical detail already captured in `DATA_MODEL.md` §2.
 
-- **Should fixing the concurrent find-or-create race condition be in scope for #357, or a
-  tracked follow-up issue?** Two family members adding the same ad-hoc item name (e.g. "paper
-  towels") from different devices at nearly the same time can currently either produce an
-  unhandled 500 error (same casing) or a duplicate `Ingredient` row (different casing), silently
-  defeating the catalog's dedup guarantee. This bug is pre-existing in `findOrCreateIngredient`
-  today (recipe authoring shares the same code path) — engineering review flagged it as more
-  likely to actually get triggered here than in its current home, given ad-hoc grocery entry's
-  multi-device, household-of-4, low-friction nature (see `DATA_MODEL.md` §2 for the technical
-  detail and proposed fix). Whether closing that gap now is worth the added scope for #357, versus
-  shipping the feature and tracking the race condition as a separate follow-up issue, is a real
-  scope/timeline call — not a design or engineering judgment. Neither the design collective nor
-  the simulated engineering-review pass is making this call; it needs a real decision.
+**Remaining before implementation:**
+- [ ] Revise `DATA_MODEL.md` §2 and `UX_INTERACTION.md` to cover standalone list creation/lifecycle
+- [ ] Race condition fix tracked separately in [#369](https://github.com/e2kd7n/mealplanner/issues/369)
 
-*(This section reflects the state after the simulated engineering-review pass, per the process
-described below. It will be revised again if a real human/engineering review surfaces further
-product calls.)*
+*(This section reflects the state after the simulated engineering-review pass and the user's
+2026-08-12 scope decisions. It will be revised again if a real human/engineering review surfaces
+further product calls.)*
 
 ## Process (design → engineering → design)
 
