@@ -94,19 +94,53 @@ deploy_to_zero() {
         'command -v pnpm >/dev/null 2>&1 || (sudo corepack enable && sudo corepack prepare pnpm@11.1.2 --activate)'
 
     # Install deps directly on the Zero W so pnpm fetches the correct armhf
-    # native binaries (Prisma engine, etc.). Deliberately NOT --prod: the
-    # "prisma" CLI itself is a devDependency, and the root postinstall hook
-    # (prisma generate) needs it present to produce the armv6l query engine.
-    # Also deliberately not followed by `pnpm prune --prod` — pruning is
-    # known to wipe the generated .prisma/client as a side effect (see
-    # backend/Dockerfile's production-stage comment on the same issue),
-    # which would just reintroduce a manual regenerate step. `set -o
-    # pipefail` ensures a failed install actually fails this SSH command
-    # (and thus the script's `set -e`) instead of the exit status coming
-    # from `tail` — see #288.
+    # native binaries where genuinely needed. --ignore-scripts skips every
+    # package's postinstall, including this project's own root-level
+    # "prisma generate" hook (added for #284) — prisma generate cannot run
+    # on this architecture at all: Prisma has no published schema-engine
+    # binary for 32-bit ARMv6 (confirmed 404 from binaries.prisma.sh for
+    # every OpenSSL variant, see #281). The generated client is produced
+    # once on the Pi 4B (arm64, a supported architecture) in deploy_zeros()
+    # and rsynced in below instead. `set -o pipefail` ensures a failed
+    # install actually fails this SSH command (and thus the script's
+    # `set -e`) instead of the exit status coming from `tail` — see #288.
     echo -e "    ${YELLOW}Installing deps on p${slot} (slow on first run)...${NC}"
     ssh $ssh_opts "${ZERO_USER}@${ip}" \
-        'set -o pipefail; cd /opt/mealplanner && pnpm install --frozen-lockfile 2>&1 | tail -5'
+        'set -o pipefail; cd /opt/mealplanner && pnpm install --frozen-lockfile --ignore-scripts 2>&1 | tail -5'
+
+    # Copy the pre-generated Prisma client instead of running `prisma
+    # generate` on this architecture (see comment above and #281). It's
+    # pure JS/WASM (driver-adapter + engineType="client"), so the artifact
+    # generated on the Pi 4B's arm64 host is portable as-is — WASM bytecode
+    # isn't compiled per-host-CPU at generate time, only JIT'd by V8 at
+    # runtime on whatever machine loads it.
+    echo -e "    Syncing pre-generated Prisma client to p${slot}..."
+    rsync -az --delete \
+        "backend/node_modules/${PRISMA_PNPM_DIR}/" \
+        "${ZERO_USER}@${ip}:/opt/mealplanner/node_modules/${PRISMA_PNPM_DIR}/"
+
+    # backend/src/utils/secrets.ts's getSecret() refuses plain env vars in
+    # production (NODE_ENV=production disables ALLOW_ENV_FALLBACK by
+    # design) — it only accepts a Docker secrets file at /run/secrets/<name>
+    # or a {NAME}_FILE env var pointing to an allowed path. The Zero Ws
+    # aren't containerized, so there's no /run/secrets, but process.cwd()
+    # (/opt/mealplanner) + "secrets" IS an allowed path. Ship actual secret
+    # files instead of raw values so jwt_secret, jwt_refresh_secret, and
+    # session_secret (all read via getSecret(), unlike DATABASE_URL which
+    # bypasses it) actually resolve — confirmed live that session_secret
+    # was failing with "Required secret not found" under the old raw-value
+    # .env, breaking every CSRF-token request once the Zero Ws started
+    # taking real traffic for the first time.
+    ssh $ssh_opts "${ZERO_USER}@${ip}" 'mkdir -p /opt/mealplanner/secrets && chmod 700 /opt/mealplanner/secrets'
+    local tmp_secrets
+    tmp_secrets=$(mktemp -d)
+    chmod 700 "$tmp_secrets"
+    for s in postgres_password redis_password jwt_secret jwt_refresh_secret session_secret; do
+        cp "secrets/${s}.txt" "$tmp_secrets/${s}"
+    done
+    rsync -az "$tmp_secrets/" "${ZERO_USER}@${ip}:/opt/mealplanner/secrets/"
+    ssh $ssh_opts "${ZERO_USER}@${ip}" 'chmod 600 /opt/mealplanner/secrets/*'
+    rm -rf "$tmp_secrets"
 
     # Write .env via a local temp file so secrets never appear in argv/SSH args
     local tmp_env
@@ -120,16 +154,29 @@ POSTGRES_HOST=${BRIDGE_IP}
 POSTGRES_PORT=5432
 POSTGRES_DB=meal_planner
 POSTGRES_USER=mealplanner
-POSTGRES_PASSWORD=$(cat secrets/postgres_password.txt)
+POSTGRES_PASSWORD_FILE=/opt/mealplanner/secrets/postgres_password
 DATABASE_URL=postgresql://mealplanner:$(cat secrets/postgres_password.txt)@${BRIDGE_IP}:5432/meal_planner
 REDIS_HOST=${BRIDGE_IP}
 REDIS_PORT=6379
-REDIS_PASSWORD=$(cat secrets/redis_password.txt)
-JWT_SECRET=$(cat secrets/jwt_secret.txt)
-JWT_REFRESH_SECRET=$(cat secrets/jwt_refresh_secret.txt)
-SESSION_SECRET=$(cat secrets/session_secret.txt)
-NODE_OPTIONS=--max-old-space-size=128 --optimize-for-size
+REDIS_PASSWORD_FILE=/opt/mealplanner/secrets/redis_password
+JWT_SECRET_FILE=/opt/mealplanner/secrets/jwt_secret
+JWT_REFRESH_SECRET_FILE=/opt/mealplanner/secrets/jwt_refresh_secret
+SESSION_SECRET_FILE=/opt/mealplanner/secrets/session_secret
+NODE_OPTIONS=--max-old-space-size=128
 EOF
+    # backend/src/utils/validateEnv.ts is a separate startup check that only
+    # looks at the plain env var (it doesn't know about the {NAME}_FILE
+    # convention), so it needs these too — but getSecret()'s own lookup
+    # priority tries the Docker-secrets file, then {NAME}_FILE, before ever
+    # considering a plain env var (and won't fall back to one anyway in
+    # production), so the actual values used at runtime still come from the
+    # files above, not from these. Appended as a second write rather than
+    # inlined above to keep that distinction visible.
+    {
+        echo "JWT_SECRET=$(cat secrets/jwt_secret.txt)"
+        echo "JWT_REFRESH_SECRET=$(cat secrets/jwt_refresh_secret.txt)"
+        echo "SESSION_SECRET=$(cat secrets/session_secret.txt)"
+    } >> "$tmp_env"
     rsync -az "$tmp_env" "${ZERO_USER}@${ip}:/opt/mealplanner/.env"
     ssh $ssh_opts "${ZERO_USER}@${ip}" 'chmod 600 /opt/mealplanner/.env'
     rm -f "$tmp_env"
@@ -141,12 +188,21 @@ EOF
 [Unit]
 Description=Meal Planner Backend
 After=network.target
+# Circuit breaker: give up after 10 restarts in 10 minutes instead of
+# crash-looping indefinitely (previously ran 40k-76k restarts unbounded
+# before anyone noticed — see #281 and the NODE_OPTIONS follow-up bug).
+# `systemctl reset-failed mealplanner` clears the counter after a real fix.
+StartLimitIntervalSec=600
+StartLimitBurst=10
 
 [Service]
 Type=simple
 WorkingDirectory=/opt/mealplanner
 EnvironmentFile=/opt/mealplanner/.env
-ExecStart=/usr/local/bin/node dist/index.js
+# --optimize-for-size must be a direct node flag, not NODE_OPTIONS — Node's
+# NODE_OPTIONS allowlist rejects it (exit code 9) even though it's valid
+# on the command line.
+ExecStart=/usr/local/bin/node --optimize-for-size dist/index.js
 Restart=always
 RestartSec=10
 StandardOutput=journal
@@ -163,18 +219,70 @@ UNITEOF
          && sudo systemctl enable mealplanner \
          && sudo systemctl restart mealplanner'
 
-    sleep 3
-    if ssh $ssh_opts "${ZERO_USER}@${ip}" 'systemctl is-active --quiet mealplanner' 2>/dev/null; then
-        echo -e "    ${GREEN}✓ p${slot} backend running${NC}"
+    # Real startup on this hardware takes ~100s (loading node_modules, Prisma
+    # client, DB connection, etc. on constrained ARMv6) — poll instead of a
+    # single early check, which would misreport a healthy-but-slow start as
+    # failed.
+    echo -e "    Waiting for p${slot} to become healthy (can take ~2 minutes)..."
+    local waited=0
+    local healthy=false
+    while [ "$waited" -lt 150 ]; do
+        if ssh $ssh_opts "${ZERO_USER}@${ip}" \
+                'curl -s -o /dev/null -w "%{http_code}" --max-time 5 http://127.0.0.1:3001/health' \
+                2>/dev/null | grep -q "200"; then
+            healthy=true
+            break
+        fi
+        sleep 5
+        waited=$((waited + 5))
+    done
+
+    if [ "$healthy" = true ]; then
+        echo -e "    ${GREEN}✓ p${slot} backend healthy (${waited}s)${NC}"
     else
-        echo -e "    ${YELLOW}⚠  p${slot} backend may not have started${NC}"
+        echo -e "    ${YELLOW}⚠  p${slot} backend did not become healthy within 150s${NC}"
         echo -e "    Check: ssh ${ZERO_USER}@${ip} 'journalctl -u mealplanner -n 50'"
     fi
 }
 
 deploy_zeros() {
-    if [ ! -d "backend/dist" ]; then
-        echo -e "${RED}❌ backend/dist not found — run 'npm run build' in backend/ first${NC}"
+    # Rebuild locally (on the Pi 4B's arm64 host, not in a container) before
+    # every Zero W deploy, rather than trusting whatever backend/dist and
+    # generated Prisma client happen to be sitting around — those previously
+    # went stale for a month (last built 2026-07-01) with nothing to catch
+    # it, so every deploy in between silently shipped pre-fix code. This also
+    # generates the Prisma client once on a Prisma-supported architecture;
+    # see the matching comment in deploy_to_zero() for why that matters.
+    echo -e "${BLUE}Building backend locally before Zero W deploy...${NC}"
+
+    # The Pi 4B host itself only runs the backend via container — it never
+    # had a native Node.js/pnpm install. arm64 is officially supported by
+    # Node (unlike the Zero Ws' armv6), so no unofficial-builds workaround
+    # needed here, just the standard nodejs.org distribution.
+    if ! command -v node >/dev/null 2>&1 || ! node --version | grep -qE "^v${NODE_VERSION//./\\.}"; then
+        echo -e "${BLUE}Installing Node.js ${NODE_VERSION} (arm64) on the Pi 4B host...${NC}"
+        local pi4_node_tar="/tmp/node-${NODE_VERSION}-linux-arm64.tar.xz"
+        curl -fsSL "https://nodejs.org/dist/v${NODE_VERSION}/node-v${NODE_VERSION}-linux-arm64.tar.xz" \
+            -o "$pi4_node_tar"
+        sudo tar -xJf "$pi4_node_tar" -C /usr/local --strip-components=1
+        rm -f "$pi4_node_tar"
+    fi
+    command -v pnpm >/dev/null 2>&1 || (sudo corepack enable && sudo corepack prepare pnpm@11.1.2 --activate)
+
+    if ! (cd backend && pnpm install --frozen-lockfile && pnpm run build); then
+        echo -e "${RED}❌ Local backend build failed — see output above${NC}"
+        return 1
+    fi
+    echo -e "${GREEN}✓ backend/dist and Prisma client are current${NC}"
+
+    # Locate the generated client's pnpm virtual-store directory (something
+    # like .pnpm/@prisma+client@7.9.1_.../) by resolving the @prisma/client
+    # symlink rather than hardcoding the version/hash — pnpm names this
+    # deterministically from the frozen lockfile, so the same path exists
+    # once each Zero W runs its own install from the identical lockfile.
+    PRISMA_PNPM_DIR=$(realpath backend/node_modules/@prisma/client | grep -oE '\.pnpm/[^/]+')
+    if [ -z "$PRISMA_PNPM_DIR" ]; then
+        echo -e "${RED}❌ Could not resolve generated Prisma client's pnpm store path${NC}"
         return 1
     fi
 
@@ -232,7 +340,9 @@ deploy_zeros() {
         echo ""
     done
 
-    [ "$any_failed" = true ] && echo -e "${YELLOW}⚠  One or more Zero W deployments failed — check output above${NC}"
+    if [ "$any_failed" = true ]; then
+        echo -e "${YELLOW}⚠  One or more Zero W deployments failed — check output above${NC}"
+    fi
 }
 
 # ---------------------------------------------------------------------------

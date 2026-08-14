@@ -1,5 +1,9 @@
 # UI/UX Enhancement Backlog
 
+> **Archived 2026-08 (issue #313):** this backlog's only item was fully resolved and
+> converted to GitHub issue #201 (closed) back in 2026-05-16. Moved out of
+> `docs/design/` — which implies an active/open backlog — into `docs/archive/`.
+
 ## Meal Planner - Recipe Selection Modal
 
 ### Enhancement: Smart Recipe Sorting by Meal Occasion

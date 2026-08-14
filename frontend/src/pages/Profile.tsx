@@ -38,6 +38,7 @@ import {
   CardMedia,
   CardContent,
   Tooltip,
+  Skeleton,
 } from '@mui/material';
 import {
   Edit as EditIcon,
@@ -429,9 +430,21 @@ const Profile: React.FC = () => {
   if (loading) {
     return (
       <Container maxWidth="lg">
-        <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '400px' }}>
-          <CircularProgress />
+        <Box sx={{ mb: 4 }}>
+          <Skeleton variant="text" width={160} height={40} />
+          <Skeleton variant="text" width={340} />
         </Box>
+
+        <Paper>
+          <Skeleton variant="rectangular" height={48} sx={{ borderRadius: 0 }} />
+          <Box sx={{ p: 3 }}>
+            <Stack spacing={2}>
+              <Skeleton variant="rectangular" height={56} sx={{ borderRadius: 1 }} />
+              <Skeleton variant="rectangular" height={56} sx={{ borderRadius: 1 }} />
+              <Skeleton variant="rectangular" height={100} sx={{ borderRadius: 1 }} />
+            </Stack>
+          </Box>
+        </Paper>
       </Container>
     );
   }

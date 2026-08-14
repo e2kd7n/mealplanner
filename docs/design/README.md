@@ -11,7 +11,7 @@ This directory contains all design, accessibility, and user experience documenta
 - **Check accessibility**: See [ARIA Accessibility](ARIA_ACCESSIBILITY.md)
 - **Verify WCAG compliance**: See [WCAG Compliance](WCAG_COMPLIANCE.md)
 - **Implement keyboard navigation**: See [Keyboard Navigation](KEYBOARD_NAVIGATION.md)
-- **Plan UI enhancements**: See [UI/UX Enhancements](UIUX_ENHANCEMENTS.md)
+- **Plan UI enhancements**: See [UI/UX Enhancements](../archive/UIUX_ENHANCEMENTS.md) (archived — its one item shipped as #201)
 
 ## Documentation Files
 
@@ -86,15 +86,15 @@ Comprehensive keyboard navigation support:
 - `Esc` - Close modals/dialogs
 - `Arrow keys` - Navigate lists/menus
 
-### [UI/UX Enhancements](UIUX_ENHANCEMENTS.md)
-Planned and implemented UI/UX improvements:
-- User feedback and iterations
-- Design system evolution
-- Component improvements
-- Interaction patterns
-- Visual refinements
-- Performance optimizations
-- Mobile experience enhancements
+### [UI/UX Enhancements](../archive/UIUX_ENHANCEMENTS.md) (archived)
+This backlog's one item (smart recipe sorting by meal occasion) shipped as issue #201
+and the doc has been moved to `docs/archive/` accordingly — it no longer represents an
+active backlog.
+
+### [Ad-hoc Grocery Item Entry Proposal](proposals/357-adhoc-grocery-item-entry/README.md) (in progress)
+Design proposal for [#357](https://github.com/e2kd7n/mealplanner/issues/357) — adding freeform
+grocery items not tied to a recipe/meal-plan ingredient. Drafted by a simulated design collective,
+filed for engineering review; not yet approved by a human designer or engineer.
 
 ### [Epic Visual Refresh](EPIC_VISUAL_REFRESH.md)
 Major visual redesign documentation:
