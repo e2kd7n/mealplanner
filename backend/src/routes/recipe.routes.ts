@@ -5,7 +5,7 @@
 
 
 import { Router } from 'express';
-import { authenticate, optionalAuthenticate } from '../middleware/auth';
+import { authenticate } from '../middleware/auth';
 import {
   getRecipes,
   getRecipeById,
@@ -23,9 +23,9 @@ const router: Router = Router();
 /**
  * @route   GET /api/recipes/search
  * @desc    Search recipes with advanced filters
- * @access  Public/Private
+ * @access  Private
  */
-router.get('/search', optionalAuthenticate, searchRecipes);
+router.get('/search', authenticate, searchRecipes);
 
 /**
  * @route   POST /api/recipes/import
@@ -37,16 +37,16 @@ router.post('/import', authenticate, importRecipe);
 /**
  * @route   GET /api/recipes
  * @desc    Get all recipes
- * @access  Public/Private
+ * @access  Private
  */
-router.get('/', optionalAuthenticate, getRecipes);
+router.get('/', authenticate, getRecipes);
 
 /**
  * @route   GET /api/recipes/:id
  * @desc    Get recipe by ID
- * @access  Public/Private
+ * @access  Private
  */
-router.get('/:id', optionalAuthenticate, getRecipeById);
+router.get('/:id', authenticate, getRecipeById);
 
 /**
  * @route   POST /api/recipes
