@@ -121,6 +121,9 @@ const Pantry: React.FC = () => {
   const [formData, setFormData] = useState<PantryFormData>(emptyFormData);
   const [formError, setFormError] = useState('');
   const [saving, setSaving] = useState(false);
+  const [nameTouched, setNameTouched] = useState(false);
+  const [quantityTouched, setQuantityTouched] = useState(false);
+  const [unitTouched, setUnitTouched] = useState(false);
 
   // Load real pantry data on mount — same thunks that drive the nav badge in Layout.tsx,
   // so the page and the badge always reflect the same backend truth.
@@ -145,6 +148,9 @@ const Pantry: React.FC = () => {
 
   const handleOpenDialog = (item?: PantryItem) => {
     setFormError('');
+    setNameTouched(false);
+    setQuantityTouched(false);
+    setUnitTouched(false);
     if (item) {
       setEditingItem(item);
       setFormData({
@@ -169,6 +175,10 @@ const Pantry: React.FC = () => {
   };
 
   const handleSaveItem = async () => {
+    setNameTouched(true);
+    setQuantityTouched(true);
+    setUnitTouched(true);
+
     const name = formData.ingredientName.trim();
     if (!name) {
       setFormError('Please enter an ingredient name');
@@ -448,6 +458,7 @@ const Pantry: React.FC = () => {
               options={availableIngredients}
               getOptionLabel={(option) => (typeof option === 'string' ? option : option.name)}
               value={formData.ingredientName || null}
+              onBlur={() => setNameTouched(true)}
               onChange={(_, value) => {
                 if (typeof value === 'string') {
                   setFormData({ ...formData, ingredientId: '', ingredientName: value });
@@ -471,8 +482,14 @@ const Pantry: React.FC = () => {
                 <TextField
                   {...params}
                   label="Item Name"
+                  required
                   placeholder="Search or type new ingredient..."
-                  helperText="Select an existing ingredient or type a new one"
+                  error={nameTouched && !formData.ingredientName.trim()}
+                  helperText={
+                    nameTouched && !formData.ingredientName.trim()
+                      ? 'Please enter an ingredient name'
+                      : 'Select an existing ingredient or type a new one'
+                  }
                   autoFocus
                 />
               )}
@@ -480,16 +497,24 @@ const Pantry: React.FC = () => {
             <Box sx={{ display: 'flex', gap: 2 }}>
               <TextField
                 label="Quantity"
+                required
                 type="number"
                 value={formData.quantity}
                 onChange={(e) => setFormData({ ...formData, quantity: Number(e.target.value) })}
+                onBlur={() => setQuantityTouched(true)}
+                error={quantityTouched && !(formData.quantity > 0)}
+                helperText={quantityTouched && !(formData.quantity > 0) ? 'Must be greater than 0' : ''}
                 sx={{ flex: 1 }}
                 slotProps={{ htmlInput: { min: 0, step: 0.25 } }}
               />
               <TextField
                 label="Unit"
+                required
                 value={formData.unit}
                 onChange={(e) => setFormData({ ...formData, unit: e.target.value })}
+                onBlur={() => setUnitTouched(true)}
+                error={unitTouched && !formData.unit.trim()}
+                helperText={unitTouched && !formData.unit.trim() ? 'Please enter a unit' : ''}
                 sx={{ flex: 1 }}
               />
             </Box>

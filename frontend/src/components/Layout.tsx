@@ -40,6 +40,7 @@ import {
   LightMode as LightModeIcon,
   DarkMode as DarkModeIcon,
   SettingsBrightness as SystemModeIcon,
+  HelpOutlineOutlined as HelpOutlineIcon,
 } from '@mui/icons-material';
 import { useThemePreference } from '../contexts/ThemeContext';
 import { useAppDispatch, useAppSelector } from '../store/hooks';
@@ -50,6 +51,7 @@ import BackendStatusBanner from './BackendStatusBanner';
 import { useKeyboardShortcuts } from '../hooks/useKeyboardShortcuts';
 import MobileBottomNav from './MobileBottomNav';
 import FeedbackButton from './FeedbackButton';
+import KeyboardShortcutsDialog from './KeyboardShortcutsDialog';
 
 const drawerWidth = 240;
 
@@ -88,6 +90,12 @@ const menuItems = [
   { text: 'Admin', icon: <AdminIcon />, path: '/admin', adminOnly: true },
 ];
 
+// Routes reachable outside the sidebar (avatar dropdown) still need a page title.
+const pageTitles: Record<string, string> = {
+  '/profile': 'Profile',
+  '/admin': 'Admin',
+};
+
 const Layout: React.FC = () => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
@@ -102,6 +110,7 @@ const Layout: React.FC = () => {
 
   const [mobileOpen, setMobileOpen] = useState(false);
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
+  const [shortcutsOpen, setShortcutsOpen] = useState(false);
 
   useKeyboardShortcuts();
 
@@ -273,8 +282,20 @@ const Layout: React.FC = () => {
             <MenuIcon />
           </IconButton>
           <Typography variant="h6" noWrap component="div" sx={{ flexGrow: 1 }}>
-            {menuItems.find((item) => item.path === location.pathname)?.text || drawerTitle}
+            {menuItems.find((item) => item.path === location.pathname)?.text
+              || pageTitles[location.pathname]
+              || drawerTitle}
           </Typography>
+          <Tooltip title="Keyboard Shortcuts">
+            <IconButton
+              color="inherit"
+              aria-label="Keyboard shortcuts"
+              onClick={() => setShortcutsOpen(true)}
+              sx={{ mr: 0.5, minWidth: 44, minHeight: 44 }}
+            >
+              <HelpOutlineIcon />
+            </IconButton>
+          </Tooltip>
           <Tooltip
             title={
               preference === 'system'
@@ -395,6 +416,7 @@ const Layout: React.FC = () => {
 
       <MobileBottomNav />
       <FeedbackButton />
+      <KeyboardShortcutsDialog open={shortcutsOpen} onClose={() => setShortcutsOpen(false)} />
     </Box>
   );
 };

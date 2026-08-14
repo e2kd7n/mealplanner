@@ -1,7 +1,7 @@
 # Meal Planner Application - Design Principles
 
-**Version:** 1.1  
-**Last Updated:** 2026-05-16  
+**Version:** 1.2  
+**Last Updated:** 2026-08-03  
 **Status:** Active
 
 ---
@@ -301,7 +301,9 @@ This document establishes the core design principles that guide all user experie
 - Templates for common patterns
 
 **Current Issues:**
-- ❌ Missing: Keyboard shortcuts
+- ✅ Keyboard shortcuts implemented via `useKeyboardShortcuts` (wired into
+  `Layout.tsx`) — see `docs/design/KEYBOARD_NAVIGATION.md`. Note: shortcuts are
+  fully implemented but not yet discoverable in the UI (tracked in #308).
 - ❌ Missing: Recipe templates
 - ❌ Missing: Bulk meal plan creation
 
@@ -442,7 +444,7 @@ This document establishes the core design principles that guide all user experie
 - **Related Documents:**
   - `docs/ARCHITECTURE.md` - Technical architecture
   - `ISSUE_PRIORITIES.md` - Current priorities
-  - `P0_P1_ISSUES_SUMMARY.md` - Recent fixes
+  - `docs/archive/releases/beta-launch/P0_P1_ISSUES_SUMMARY.md` - Recent fixes
 
 ---
 
@@ -477,3 +479,7 @@ Use this checklist when designing new features or evaluating existing ones:
 **Version History:**
 - v1.0 (2026-04-20): Initial creation based on current application state and recent fixes
 - v1.1 (2026-05-16): Marked principles 2, 9, 12, 13, 14 gaps resolved via Epic #191 Visual Refresh. Noted WCAG amber contrast gap.
+- v1.2 (2026-08-03): Issue #313 doc-accuracy pass — corrected Principle 16's stale
+  "keyboard shortcuts missing" claim (implemented since before v1.1; see
+  `docs/design/KEYBOARD_NAVIGATION.md` and issue #308 for the discoverability gap),
+  fixed the broken `P0_P1_ISSUES_SUMMARY.md` reference link.

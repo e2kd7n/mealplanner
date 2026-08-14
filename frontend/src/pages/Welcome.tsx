@@ -46,6 +46,8 @@ const Welcome: React.FC = () => {
   const [validationError, setValidationError] = useState('');
   const [emailError, setEmailError] = useState('');
   const [passwordStrength, setPasswordStrength] = useState(0);
+  const [passwordTouched, setPasswordTouched] = useState(false);
+  const [confirmPasswordTouched, setConfirmPasswordTouched] = useState(false);
 
   // If users already exist, this page has no business being here
   useEffect(() => {
@@ -230,7 +232,9 @@ const Welcome: React.FC = () => {
               autoComplete="new-password"
               value={password}
               onChange={(e) => handlePasswordChange(e.target.value)}
+              onBlur={() => setPasswordTouched(true)}
               disabled={loading}
+              error={passwordTouched && password.length > 0 && passwordStrength < 50}
               helperText="At least 8 characters with letters, numbers, and symbols"
               slotProps={{
                 input: {
@@ -263,7 +267,7 @@ const Welcome: React.FC = () => {
                   color={strengthColor()}
                   sx={{ height: 6, borderRadius: 3 }}
                 />
-                {passwordStrength < 50 && (
+                {passwordTouched && passwordStrength < 50 && (
                   <Typography variant="caption" color="error" sx={{ mt: 0.5, display: 'block' }}>
                     Too weak to continue
                     {password.length < 12 && ' — try a longer password'}
@@ -283,10 +287,11 @@ const Welcome: React.FC = () => {
               autoComplete="new-password"
               value={confirmPassword}
               onChange={(e) => setConfirmPassword(e.target.value)}
+              onBlur={() => setConfirmPasswordTouched(true)}
               disabled={loading}
-              error={confirmPassword.length > 0 && password !== confirmPassword}
+              error={confirmPasswordTouched && confirmPassword.length > 0 && password !== confirmPassword}
               helperText={
-                confirmPassword.length > 0 && password !== confirmPassword
+                confirmPasswordTouched && confirmPassword.length > 0 && password !== confirmPassword
                   ? 'Passwords do not match'
                   : 'Re-enter your password to confirm'
               }
