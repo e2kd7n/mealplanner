@@ -5,6 +5,7 @@
 
 
 import { Request, Response, NextFunction } from 'express';
+import { Prisma } from '@prisma/client';
 import prisma from '../utils/prisma';
 import { AppError } from '../middleware/errorHandler';
 import { logger } from '../utils/logger';
@@ -381,27 +382,47 @@ async function findOrCreateIngredient(
     logger.warn(`Ingredient ID ${ingredientId} not found, searching by name: ${trimmedName}`);
   }
 
-  // Check if ingredient exists by name
-  let ingredient = await prisma.ingredient.findFirst({
-    where: { name: { equals: trimmedName, mode: 'insensitive' } },
-  });
-
-  if (!ingredient) {
-    // Create new ingredient
-    logger.info(`Creating new ingredient: ${trimmedName}`);
-    ingredient = await prisma.ingredient.create({
-      data: {
-        name: trimmedName,
-        category: 'other',
-        seasonalMonths: [],
-        averagePrice: 0,
-        unit: unit || 'unit',
-        allergens: [],
-      },
+  // Concurrent callers resolving the same exact-cased ingredient name can
+  // both pass the findFirst below and race on create (issue #369),
+  // producing an unhandled 500 on the DB unique-constraint collision.
+  // Wrap find-then-create in a transaction and treat that collision as
+  // "someone else just created this" — re-fetch and use their row instead
+  // of surfacing a 500. (Differently-cased races, e.g. "Paper Towels" vs
+  // "paper towels", aren't caught by this constraint and are still
+  // possible; see the follow-up commit.)
+  return prisma.$transaction(async (tx) => {
+    let ingredient = await tx.ingredient.findFirst({
+      where: { name: { equals: trimmedName, mode: 'insensitive' } },
     });
-  }
 
-  return { id: ingredient.id, unit: ingredient.unit };
+    if (!ingredient) {
+      logger.info(`Creating new ingredient: ${trimmedName}`);
+      try {
+        ingredient = await tx.ingredient.create({
+          data: {
+            name: trimmedName,
+            category: 'other',
+            seasonalMonths: [],
+            averagePrice: 0,
+            unit: unit || 'unit',
+            allergens: [],
+          },
+        });
+      } catch (error) {
+        if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
+          const winner = await tx.ingredient.findFirst({
+            where: { name: { equals: trimmedName, mode: 'insensitive' } },
+          });
+          if (!winner) throw error;
+          ingredient = winner;
+        } else {
+          throw error;
+        }
+      }
+    }
+
+    return { id: ingredient.id, unit: ingredient.unit };
+  });
 }
 
 export async function createRecipe(
