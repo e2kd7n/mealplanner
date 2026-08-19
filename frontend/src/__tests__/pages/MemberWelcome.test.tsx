@@ -4,8 +4,10 @@ import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { Provider } from 'react-redux';
 import { MemoryRouter } from 'react-router-dom';
+import { ThemeProvider } from '@mui/material/styles';
 import { configureStore } from '@reduxjs/toolkit';
 import authReducer from '../../store/slices/authSlice';
+import { theme } from '../../theme';
 import MemberWelcome from '../../pages/MemberWelcome';
 
 const mockNavigate = vi.fn();
@@ -39,9 +41,11 @@ function createStore(authState = {}) {
 function renderMemberWelcome(authState = {}) {
   return render(
     <Provider store={createStore(authState)}>
-      <MemoryRouter initialEntries={['/member-welcome']}>
-        <MemberWelcome />
-      </MemoryRouter>
+      <ThemeProvider theme={theme}>
+        <MemoryRouter initialEntries={['/member-welcome']}>
+          <MemberWelcome />
+        </MemoryRouter>
+      </ThemeProvider>
     </Provider>
   );
 }

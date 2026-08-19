@@ -41,12 +41,12 @@ trap 'rm -f "$ROTATION_MANIFEST"' EXIT
 # Function to generate a secure random password
 generate_password() {
     local length=${1:-32}
-    openssl rand -base64 48 | tr -d "=+/" | cut -c1-${length}
+    openssl rand -base64 48 | tr -d "\n=+/" | cut -c1-${length}
 }
 
 # Function to generate a secure JWT secret (longer)
 generate_jwt_secret() {
-    openssl rand -base64 64 | tr -d "=+/" | cut -c1-64
+    openssl rand -base64 64 | tr -d "\n=+/" | cut -c1-64
 }
 
 # Function to generate secret with metadata and checksum
@@ -57,8 +57,12 @@ generate_secret_with_metadata() {
     
     echo -e "${BLUE}Generating ${name}...${NC}"
     
-    # Generate the secret
-    local secret=$(openssl rand -base64 $((length * 2)) | tr -d "=+/" | cut -c1-${length})
+    # Generate the secret. openssl rand -base64 wraps output at 64 chars/line for
+    # anything longer than that, and `cut -c1-N` truncates per line rather than
+    # across the whole stream — without stripping newlines first, the embedded
+    # line breaks survive into the secret (and broke DATABASE_URL on rotation,
+    # see #364). Strip them before cut so the truncation is on one continuous line.
+    local secret=$(openssl rand -base64 $((length * 2)) | tr -d "\n=+/" | cut -c1-${length})
     
     # Write secret to file
     echo -n "$secret" > "$SECRETS_DIR/${name}.txt"
