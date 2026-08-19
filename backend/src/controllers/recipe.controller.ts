@@ -382,15 +382,18 @@ async function findOrCreateIngredient(
     logger.warn(`Ingredient ID ${ingredientId} not found, searching by name: ${trimmedName}`);
   }
 
-  // Concurrent callers resolving the same exact-cased ingredient name can
-  // both pass the findFirst below and race on create (issue #369),
-  // producing an unhandled 500 on the DB unique-constraint collision.
-  // Wrap find-then-create in a transaction and treat that collision as
-  // "someone else just created this" — re-fetch and use their row instead
-  // of surfacing a 500. (Differently-cased races, e.g. "Paper Towels" vs
-  // "paper towels", aren't caught by this constraint and are still
-  // possible; see the follow-up commit.)
+  // Concurrent callers resolving the same ingredient name can otherwise both
+  // pass the findFirst below and race on create (issue #369): same-cased
+  // names collide on the DB unique constraint (handled below via the P2002
+  // catch), but differently-cased names ("Paper Towels" vs "paper towels")
+  // don't collide at all, silently producing duplicate rows. A
+  // transaction-scoped advisory lock keyed on the case-normalized name
+  // serializes concurrent resolution of the same logical ingredient; it's
+  // held only for the duration of this transaction and auto-released on
+  // commit/rollback.
   return prisma.$transaction(async (tx) => {
+    await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${trimmedName.toLowerCase()}))`;
+
     let ingredient = await tx.ingredient.findFirst({
       where: { name: { equals: trimmedName, mode: 'insensitive' } },
     });
@@ -409,6 +412,8 @@ async function findOrCreateIngredient(
           },
         });
       } catch (error) {
+        // The advisory lock above should make this unreachable now, but
+        // keep it as a defensive fallback rather than trusting that.
         if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
           const winner = await tx.ingredient.findFirst({
             where: { name: { equals: trimmedName, mode: 'insensitive' } },
