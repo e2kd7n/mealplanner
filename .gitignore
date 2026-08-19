@@ -68,6 +68,12 @@ data/feedback-exports/*
 data/maintenance-logs/*
 !data/maintenance-logs/.gitkeep
 
+# Ad hoc feedback analysis output — retired 2026-08-19, superseded by
+# scripts/feedback-log-triage.sh (which archives its own output privately,
+# never in this repo). Never re-commit this file — it can contain real
+# users' email/familyName via the UserFeedback.user relation.
+backend/feedback-analysis.json
+
 # Docker/Podman volumes
 postgres_data/
 redis_data/
