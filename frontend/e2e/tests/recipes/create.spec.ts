@@ -62,8 +62,10 @@ test.describe('Create Recipe', () => {
     // to advance past step 1.
     await authenticatedPage.getByRole('button', { name: /^next$/i }).click();
 
-    // Should show validation error and stay on step 1
-    await expect(authenticatedPage.getByText(/recipe title is required/i)).toBeVisible();
+    // Should show validation error and stay on step 1. The message renders twice
+    // (summary Alert + field FormHelperText), so scope to the Alert to avoid a
+    // Playwright strict-mode ambiguous match (#372).
+    await expect(authenticatedPage.getByRole('alert').getByText(/recipe title is required/i)).toBeVisible();
     await expect(authenticatedPage.getByLabel(/recipe title/i)).toBeVisible();
   });
 
