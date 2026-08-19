@@ -1,6 +1,6 @@
 # Issue Prioritization
 
-**Last Updated:** 2026-08-14 12:31:42 UTC / 2026-08-14 07:31:42 CDT (manual merge-conflict resolution, cross-checked against live `gh issue list` data, not via `update-issue-priorities.sh` — see note below)
+**Last Updated:** 2026-08-19 12:31:58 UTC / 2026-08-19 07:31:58 CDT (manual edit, not via `update-issue-priorities.sh` — see note below)
 
 This file reflects the current state of GitHub issues organized by milestone and priority within each milestone.
 
@@ -61,7 +61,6 @@ These issues need to be assigned to a milestone and prioritized.
 ### ⚠️ Unprioritized (need P-label)
 - #372 - e2e flake: create.spec.ts recipe-title validation locator matches 2 elements (found rebasing PR #368)
 - #371 - MemberWelcome unit test crashes: no ThemeProvider wraps the component in test (found rebasing PR #368)
-- #369 - bug: concurrent find-or-create race condition in findOrCreateIngredient (deferred out of #357/#367 per 2026-08-12 decision)
 - #364 - security: docs/SECRET_ROTATION_STATUS.json missing — no rotation baseline established
 
 ## 📝 Workspace TODOs & Tasks
