@@ -1,6 +1,6 @@
 # Issue Prioritization
 
-**Last Updated:** 2026-08-19 12:31:58 UTC / 2026-08-19 07:31:58 CDT (manual edit, not via `update-issue-priorities.sh` — see note below)
+**Last Updated:** 2026-08-19 23:15:00 UTC / 2026-08-19 18:15:00 CDT (manual edit, not via `update-issue-priorities.sh` — see note below)
 
 This file reflects the current state of GitHub issues organized by milestone and priority within each milestone.
 
@@ -59,9 +59,7 @@ These issues need to be assigned to a milestone and prioritized.
 - #20 - Implement Pantry Integration with Grocery Lists
 
 ### ⚠️ Unprioritized (need P-label)
-- #372 - e2e flake: create.spec.ts recipe-title validation locator matches 2 elements (found rebasing PR #368)
-- #371 - MemberWelcome unit test crashes: no ThemeProvider wraps the component in test (found rebasing PR #368)
-- #364 - security: docs/SECRET_ROTATION_STATUS.json missing — no rotation baseline established
+**No issues** ✅
 
 ## 📝 Workspace TODOs & Tasks
 Code comments and inline tasks found in the workspace that may need attention.
