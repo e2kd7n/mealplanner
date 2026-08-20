@@ -2,15 +2,23 @@
 # Common utility functions for Pi scripts
 # Source this file in other scripts: source "$(dirname "$0")/utilities.sh"
 
-# Colors for output
-export RED='\033[0;31m'
-export GREEN='\033[0;32m'
-export YELLOW='\033[1;33m'
-export BLUE='\033[0;34m'
-export CYAN='\033[0;36m'
-export NC='\033[0m'
-export BOLD='\033[1m'
-export DIM='\033[2m'
+# Colors for output — blank when $NO_COLOR is set (https://no-color.org) or
+# stdout isn't a TTY (piped to a log file, cron, CI). Every script that
+# sources this file gets the fallback for free; nothing else to change.
+if [[ -n "${NO_COLOR:-}" ]] || [[ ! -t 1 ]]; then
+    export RED='' GREEN='' YELLOW='' BLUE='' CYAN='' NC='' BOLD='' DIM=''
+    export _PLAIN_OUTPUT=1
+else
+    export RED='\033[0;31m'
+    export GREEN='\033[0;32m'
+    export YELLOW='\033[1;33m'
+    export BLUE='\033[0;34m'
+    export CYAN='\033[0;36m'
+    export NC='\033[0m'
+    export BOLD='\033[1m'
+    export DIM='\033[2m'
+    export _PLAIN_OUTPUT=0
+fi
 
 # Thresholds for health checks
 export TEMP_WARNING=65
@@ -349,6 +357,13 @@ start_spinner() {
     local msg="${1:-Working...}"
     _SPINNER_MSG="$msg"
     _SPINNER_ACTIVE=1
+    if [[ "${_PLAIN_OUTPUT:-0}" == "1" ]]; then
+        # No TTY / NO_COLOR: an animated line would just leave raw \r noise
+        # in a log file, so print the message once and let stop_spinner
+        # print the final glyph on its own line instead.
+        printf "  %s... " "$msg"
+        return
+    fi
     (
         local i=0
         local frames=('⠋' '⠙' '⠹' '⠸' '⠼' '⠴' '⠦' '⠧' '⠇' '⠏')
@@ -370,6 +385,15 @@ stop_spinner() {
     if [[ -n "${_SPINNER_PID:-}" ]]; then
         kill "$_SPINNER_PID" 2>/dev/null || true
         _SPINNER_PID=""
+    fi
+    if [[ "${_PLAIN_OUTPUT:-0}" == "1" ]]; then
+        # Nothing was animated, so nothing to clear — just land the glyph.
+        if [[ "$status" == "fail" ]]; then
+            echo "✗  ${_SPINNER_MSG}"
+        else
+            echo "✓  ${_SPINNER_MSG}"
+        fi
+        return
     fi
     printf "\r\033[2K"
     if [[ "$status" == "fail" ]]; then
