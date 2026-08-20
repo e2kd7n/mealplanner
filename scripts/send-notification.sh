@@ -1,10 +1,10 @@
 #!/bin/bash
-/** Copyright (c) 2026 e2kd7n. All rights reserved. */
+# Copyright (c) 2026 e2kd7n. All rights reserved.
 
 # Send Notification Helper Script
-# 
+#
 # Usage: ./scripts/send-notification.sh <priority> <title> <message> [tags]
-# 
+#
 # Priority: urgent, high, default, low, min
 # Tags: comma-separated emoji tags (e.g., "rotating_light,warning")
 #
@@ -13,6 +13,10 @@
 #   ./scripts/send-notification.sh default "Backup Success" "Backup completed: 125MB" "white_check_mark,floppy_disk"
 
 set -e
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# shellcheck source=utilities.sh
+source "$SCRIPT_DIR/utilities.sh"
 
 # Load environment variables
 if [ -f .env ]; then
@@ -27,7 +31,7 @@ NTFY_AUTH_TOKEN="${NTFY_AUTH_TOKEN:-}"
 
 # Check if notifications are enabled
 if [ "$NTFY_ENABLED" != "true" ]; then
-    echo "Notifications disabled (NTFY_ENABLED=$NTFY_ENABLED)"
+    echo -e "  ${DIM}ℹ️  Notifications disabled (NTFY_ENABLED=$NTFY_ENABLED)${NC}"
     exit 0
 fi
 
@@ -38,8 +42,8 @@ MESSAGE="${3:-}"
 TAGS="${4:-information_source}"
 
 if [ -z "$MESSAGE" ]; then
-    echo "Usage: $0 <priority> <title> <message> [tags]"
-    echo "Priority: urgent, high, default, low, min"
+    echo -e "  ${RED}✗${NC}  Usage: $0 <priority> <title> <message> [tags]"
+    echo -e "  ${YELLOW}Priority: urgent, high, default, low, min${NC}"
     exit 1
 fi
 
@@ -61,8 +65,8 @@ case "$PRIORITY" in
         PRIORITY_NUM=1
         ;;
     *)
-        echo "Invalid priority: $PRIORITY"
-        echo "Valid priorities: urgent, high, default, low, min"
+        echo -e "  ${RED}✗${NC}  Invalid priority: $PRIORITY"
+        echo -e "  ${YELLOW}Valid priorities: urgent, high, default, low, min${NC}"
         exit 1
         ;;
 esac
@@ -81,12 +85,10 @@ CURL_ARGS+=(
     "$NTFY_SERVER/$NTFY_TOPIC"
 )
 
-echo "Sending notification: $TITLE ($PRIORITY)"
-if curl "${CURL_ARGS[@]}"; then
-    echo ""
-    echo "Notification sent successfully"
+start_spinner "Sending notification: $TITLE ($PRIORITY)"
+if curl "${CURL_ARGS[@]}" > /dev/null; then
+    stop_spinner ok
 else
-    echo "Failed to send notification"
+    stop_spinner fail
     exit 1
 fi
-

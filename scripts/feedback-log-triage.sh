@@ -54,6 +54,7 @@ notify() {
     bash "$SCRIPT_DIR/send-notification.sh" "$1" "$2" "$3" "speech_balloon,bug" 2>/dev/null || true
 }
 
+section "Feedback & Error-Log Triage" "🔍"
 log "=== Feedback & error-log triage starting (dry_run=$DRY_RUN) ==="
 
 # ── Preflight ────────────────────────────────────────────────────────────
@@ -142,8 +143,12 @@ cat "$CANDIDATES_RAW" >> "$COMBINED_FILE"
 # rather than one `gh` call per candidate. --state all so a fixed or
 # wontfix'd issue is never re-filed. ───────────────────────────────────────
 EXISTING_ISSUES_FILE="$LOG_DIR/.feedback-triage-existing-$RUN_STAMP.json"
-if ! gh issue list --state all --label auto-feedback-triage \
+start_spinner "Fetching existing auto-feedback-triage issues for dedup"
+if gh issue list --state all --label auto-feedback-triage \
         --json number,title,body,state --limit 1000 > "$EXISTING_ISSUES_FILE" 2>>"$LOG_FILE"; then
+    stop_spinner ok
+else
+    stop_spinner fail
     log "ERROR: gh issue list failed — cannot safely dedupe. Aborting before filing anything."
     update_status "FAILED" "gh issue list (dedup fetch) failed — see log"
     notify urgent "Feedback triage FAILED" "Could not fetch existing issues for dedup — check $LOG_FILE"
@@ -205,9 +210,12 @@ while IFS= read -r item; do
     if [ "$DRY_RUN" = true ]; then
         log "DRY RUN: would create issue: [$labels] $title"
     else
+        start_spinner "Filing issue: $title"
         if gh issue create --title "$title" --body "$body" --label "$labels" >> "$LOG_FILE" 2>&1; then
+            stop_spinner ok
             log "Filed issue: $title"
         else
+            stop_spinner fail
             log "ERROR: gh issue create failed for: $title"
             PARTIAL_FAILURE=true
         fi
@@ -225,6 +233,7 @@ fi
 rm -f "$COMBINED_FILE" "$EXISTING_ISSUES_FILE" "$SUPPRESSED_FILE"
 
 # ── Step 5: report ──────────────────────────────────────────────────────
+section "Summary" "🍽️"
 SUMMARY="candidates=$CANDIDATE_COUNT filed=$FILED_COUNT duplicates=$DUPLICATE_COUNT suppressed=$SUPPRESSED_COUNT dry_run=$DRY_RUN"
 log "=== Done: $SUMMARY ==="
 

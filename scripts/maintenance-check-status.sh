@@ -99,11 +99,8 @@ display_status() {
     local pid=$(grep "^PID=" "$STATUS_FILE" | cut -d'=' -f2 2>/dev/null || echo "unknown")
     
     # Display header
-    echo -e "${BLUE}========================================${NC}"
-    echo -e "${CYAN}Background Task Status${NC}"
-    echo -e "${BLUE}========================================${NC}"
-    echo ""
-    
+    section "Background Task Status" "🔍"
+
     # Display status with appropriate color
     case "$status" in
         RUNNING)
@@ -190,11 +187,8 @@ show_summary() {
         return 2
     fi
     
-    echo -e "${BLUE}========================================${NC}"
-    echo -e "${CYAN}Issue Management Summary${NC}"
-    echo -e "${BLUE}========================================${NC}"
-    echo ""
-    
+    section "Issue Management Summary" "📋"
+
     # Check if ISSUE_PRIORITIES.md exists and show summary
     if [ -f "$PROJECT_ROOT/ISSUE_PRIORITIES.md" ]; then
         echo -e "${GREEN}✅ ISSUE_PRIORITIES.md updated${NC}"
