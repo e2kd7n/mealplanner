@@ -1,6 +1,6 @@
 # Issue Prioritization
 
-**Last Updated:** 2026-08-19 23:15:00 UTC / 2026-08-19 18:15:00 CDT (manual edit, not via `update-issue-priorities.sh` — see note below)
+**Last Updated:** 2026-08-20 02:54:14 UTC / 2026-08-20 02:54:14 GMT
 
 This file reflects the current state of GitHub issues organized by milestone and priority within each milestone.
 
@@ -23,7 +23,7 @@ This file reflects the current state of GitHub issues organized by milestone and
 - #200 - Pi: move Postgres data volume to USB SSD
 
 ### 📋 P4 - FUTURE
-- #357 - design: ad-hoc/custom grocery item entry — design proposal merged (#367); scope expanded to include a standalone (non-meal-plan) list per 2026-08-12 decision — DATA_MODEL.md/UX_INTERACTION.md need a revision pass for that before implementation; decision record pending review in PR #370
+- #357 - design: ad-hoc/custom grocery item entry — needs UX design before implementation
 - #356 - feature: Welcome/FTUE flow should offer to register additional household members
 - #355 - ux: clarify that /register is for adding household members, not first-run setup
 - #19 - Implement Grocery List Regeneration and Sync Detection
@@ -38,12 +38,25 @@ This file reflects the current state of GitHub issues organized by milestone and
 These issues need to be assigned to a milestone and prioritized.
 
 ### 🔴 P1 - HIGH
+- #392 - security: deepmerge-ts stack exhaustion via prisma@7.9.1 config (backend)
 - #365 - security: weekly audit 2026-08-05 — 13 high vulns found, 11 fixed via pnpm audit fix, 3 remain
 
 ### 🟡 P2 - MEDIUM
 - #116 - [P2][UX] Add Cost Tracking for Budget-Conscious Users
 
 ### 🟢 P3 - LOW
+- #391 - [Epic] CLI Script Design Language — Bring scripts/ up to the pi-deploy-registry.sh standard
+- #389 - scripts: bring one-off dev-hygiene scripts up to the CLI style guide
+- #388 - scripts: bring test-runner scripts up to the CLI style guide
+- #387 - scripts: bring GitHub-issue-automation and notification scripts up to the CLI style guide
+- #386 - scripts: bring local dev workflow scripts up to the CLI style guide
+- #385 - scripts: bring secrets/security scripts up to the CLI style guide
+- #384 - scripts: bring database backup/restore/migration scripts up to the CLI style guide
+- #383 - scripts: bring Pi day-2 ops scripts up to the CLI style guide
+- #382 - scripts: bring Pi deploy/build pipeline up to the CLI style guide
+- #381 - scripts: bring onboarding/setup scripts up to the CLI style guide
+- #380 - scripts: menu.sh doesn't use the section/spinner design language
+- #379 - scripts: utilities.sh should respect NO_COLOR and non-TTY output
 - #170 - ✨ Add photo capture and PDF upload for recipe creation
 - #84 - [P3][Feature] Add recipe document upload (PDF, images, DOCX)
 - #14 - Implement Nutrition Guideline Warnings
@@ -57,9 +70,6 @@ These issues need to be assigned to a milestone and prioritized.
 - #64 - Implement Advanced Features (Nutrition Tracking, etc.)
 - #63 - Evaluate Scaling Strategy
 - #20 - Implement Pantry Integration with Grocery Lists
-
-### ⚠️ Unprioritized (need P-label)
-**No issues** ✅
 
 ## 📝 Workspace TODOs & Tasks
 Code comments and inline tasks found in the workspace that may need attention.
@@ -114,21 +124,6 @@ Code comments and inline tasks found in the workspace that may need attention.
 2. Set priority label:           `gh issue edit <N> --add-label P1-high`
 3. Regenerate this file:         `./scripts/update-issue-priorities.sh`
 4. Commit:                       `git add ISSUE_PRIORITIES.md && git commit -m "chore: update issue priorities"`
-
-**Note (2026-08-12):** The working tree had an uncommitted, stale regeneration sitting here
-before this edit — it still listed #349 as P0-CRITICAL, which had actually been closed since
-2026-08-05 (fixed by #351 on `main`). This update was built by hand against a live `gh issue
-list` snapshot instead of running the script, because `update-issue-priorities.sh` auto-closes
-issues on a commit-message heuristic that has produced confirmed false-closes before (see #210
-history) — not something to run unattended without reviewing what it's about to close first.
-
-**Note (2026-08-14):** Resolved a merge conflict between two independent manual edits (one
-local, one already on `main` as f135890). Both sides had dropped stale closed issues from
-different sections; merged the union and re-verified every changed line against live `gh issue
-view` output rather than trusting either side. That also caught a second, unrelated staleness:
-the local edit had re-added #349 to P0-CRITICAL even though it was already closed — removed
-again. #369 was also listed twice (once under the August milestone, once under "Without
-Milestone Assignment"); it has no milestone set on GitHub, so kept only the latter.
 
 ## Managing Workspace TODOs
 
