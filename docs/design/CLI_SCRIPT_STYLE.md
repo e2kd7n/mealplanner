@@ -94,6 +94,7 @@ of independent ones:
 | Cleanup | 🧹 |
 | Network / cluster | 🌐 |
 | Health / diagnostics | 🩺 |
+| Codemod / batch source edit | ✏️ |
 | Summary / done | 🍽️ (the app's own mark — reserve this one for final summaries) |
 
 If a script needs an emoji not listed here, add it to this table in the same PR rather
