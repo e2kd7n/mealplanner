@@ -9,12 +9,12 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # shellcheck source=utilities.sh
 source "$SCRIPT_DIR/utilities.sh"
 
-echo "🔍 Raspberry Pi Architecture Diagnostic"
-echo "========================================"
-echo ""
+section "Architecture Diagnostic" "🩺"
+
+steps_init 5
 
 # Check kernel architecture
-echo -e "${BLUE}1. Kernel Architecture:${NC}"
+step "Kernel Architecture"
 KERNEL_ARCH=$(uname -m)
 echo "   uname -m: $KERNEL_ARCH"
 
@@ -28,7 +28,7 @@ fi
 echo ""
 
 # Check userspace architecture
-echo -e "${BLUE}2. Userspace Architecture:${NC}"
+step "Userspace Architecture"
 USERSPACE_ARCH=$(dpkg --print-architecture)
 echo "   dpkg architecture: $USERSPACE_ARCH"
 
@@ -45,7 +45,7 @@ fi
 echo ""
 
 # Check LONG_BIT
-echo -e "${BLUE}3. System Word Size:${NC}"
+step "System Word Size"
 LONG_BIT=$(getconf LONG_BIT)
 echo "   getconf LONG_BIT: $LONG_BIT"
 if [ "$LONG_BIT" = "64" ]; then
@@ -56,7 +56,7 @@ fi
 echo ""
 
 # Check file command on a binary
-echo -e "${BLUE}4. Binary Format Check:${NC}"
+step "Binary Format Check"
 if command -v bash &> /dev/null; then
     BASH_FORMAT=$(file -L /bin/bash | grep -o "ELF [0-9]*-bit" || echo "unknown")
     echo "   /bin/bash: $BASH_FORMAT"
@@ -69,7 +69,7 @@ fi
 echo ""
 
 # Check Podman architecture support
-echo -e "${BLUE}5. Podman Architecture Support:${NC}"
+step "Podman Architecture Support"
 if command -v podman &> /dev/null; then
     PODMAN_ARCH=$(podman version --format '{{.Client.OsArch}}' 2>/dev/null || echo "unknown")
     echo "   Podman OS/Arch: $PODMAN_ARCH"
@@ -84,9 +84,7 @@ fi
 echo ""
 
 # Diagnosis and recommendation
-echo "========================================"
-echo -e "${BLUE}📊 DIAGNOSIS:${NC}"
-echo ""
+section "Diagnosis" "🩺"
 
 if [ "$KERNEL_64BIT" = true ] && [ "$USERSPACE_64BIT" = false ]; then
     echo -e "${YELLOW}⚠️  MIXED ARCHITECTURE DETECTED${NC}"
@@ -149,7 +147,4 @@ else
     echo "To build locally:"
     echo "  ./scripts/build-on-pi.sh"
 fi
-
-echo ""
-echo "========================================"
 

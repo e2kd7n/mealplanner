@@ -42,9 +42,7 @@ check_port() {
     return 1
 }
 
-echo ""
-echo -e "${BLUE}🔍 Checking Deployment Mode...${NC}"
-echo ""
+section "Deployment Mode" "🔍"
 
 # Check for local dev mode (Vite on 5173)
 if check_port 5173; then

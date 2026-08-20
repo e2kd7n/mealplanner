@@ -61,12 +61,25 @@ else
     echo -e "${BLUE}💡 To force clean build: NO_CACHE=true ./scripts/build-on-pi.sh${NC}"
 fi
 
+# podman build can sit silent for several seconds while it hashes/sends the
+# build context before the first STEP line appears — bridge that gap with a
+# spinner, then hand off to the line-by-line progress annotations below
+# (which are a richer signal than an animated spinner once output starts, so
+# don't run both at once). Coordinated via a marker file rather than a plain
+# shell var since the while loop below runs in a pipeline subshell and
+# wouldn't see a var it set once the subshell exits.
+BUILD_SPINNER_DONE_FLAG=$(mktemp -u)
+start_spinner "Building backend image (preparing build context)..."
 podman build \
     $CACHE_FLAG \
     -t meals-backend:latest \
     -f backend/Dockerfile \
     --build-arg VITE_API_URL=/api \
     . 2>&1 | while IFS= read -r line; do
+        if [ ! -f "$BUILD_SPINNER_DONE_FLAG" ]; then
+            stop_spinner ok
+            touch "$BUILD_SPINNER_DONE_FLAG"
+        fi
         echo "$line"
         
         # Detect build stage transitions
@@ -204,10 +217,17 @@ podman build \
             echo -e "${GREEN}   ✅ Backend image build completed successfully!${NC}"
         fi
     done
+# Safety net: if podman build produced no output at all, the spinner was
+# never stopped inside the loop above.
+[ ! -f "$BUILD_SPINNER_DONE_FLAG" ] && stop_spinner ok
+rm -f "$BUILD_SPINNER_DONE_FLAG"
 
 section "Extracting Frontend Assets" "📦"
-echo -e "${BLUE}  Extracting frontend static files for Nginx...${NC}"
-extract_frontend_from_image
+start_spinner "Extracting frontend static files for Nginx"
+extract_frontend_from_image >/dev/null
+FILE_COUNT=$(ls ./data/frontend-dist | wc -l)
+stop_spinner ok
+echo -e "  ${DIM}${FILE_COUNT} files → ./data/frontend-dist/${NC}"
 
 # Log total build time
 BUILD_END=$(date +%s)
