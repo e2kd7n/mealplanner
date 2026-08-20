@@ -11,6 +11,7 @@ This directory contains all design, accessibility, and user experience documenta
 - **Check accessibility**: See [ARIA Accessibility](ARIA_ACCESSIBILITY.md)
 - **Verify WCAG compliance**: See [WCAG Compliance](WCAG_COMPLIANCE.md)
 - **Implement keyboard navigation**: See [Keyboard Navigation](KEYBOARD_NAVIGATION.md)
+- **Style an operator-facing shell script**: See [CLI Script Style Guide](CLI_SCRIPT_STYLE.md)
 - **Plan UI enhancements**: See [UI/UX Enhancements](../archive/UIUX_ENHANCEMENTS.md) (archived — its one item shipped as #201)
 
 ## Documentation Files
@@ -95,6 +96,11 @@ active backlog.
 Design proposal for [#357](https://github.com/e2kd7n/mealplanner/issues/357) — adding freeform
 grocery items not tied to a recipe/meal-plan ingredient. Drafted by a simulated design collective,
 filed for engineering review; not yet approved by a human designer or engineer.
+
+### [CLI Script Style Guide](CLI_SCRIPT_STYLE.md)
+Extends the app's design principles and `theme.ts` palette to `scripts/`: color tokens,
+section-header conventions, progress feedback, confirmation prompts, and accessibility
+(`NO_COLOR`/non-TTY) rules. Reference implementation: `scripts/pi-deploy-registry.sh`.
 
 ### [Epic Visual Refresh](EPIC_VISUAL_REFRESH.md)
 Major visual redesign documentation:
