@@ -30,36 +30,29 @@ CONTAINER_CMD=$(detect_container_runtime)
 # Clear screen and show header
 show_header() {
     clear
-    echo -e "${CYAN}╔════════════════════════════════════════════════════════════╗${NC}"
-    echo -e "${CYAN}║${NC}  ${GREEN}🍽️  Meal Planner - Script Management Menu${NC}              ${CYAN}║${NC}"
-    echo -e "${CYAN}╚════════════════════════════════════════════════════════════╝${NC}"
-    echo ""
-    
+    section "Meal Planner - Script Management Menu" "🍽️"
+
     # Show environment info
     case $ENV in
         pi)
-            echo -e "${BLUE}📍 Environment:${NC} Raspberry Pi"
+            echo -e "  ${BLUE}📍 Environment:${NC} Raspberry Pi"
             ;;
         mac)
-            echo -e "${BLUE}📍 Environment:${NC} macOS (Development)"
+            echo -e "  ${BLUE}📍 Environment:${NC} macOS (Development)"
             ;;
         linux)
-            echo -e "${BLUE}📍 Environment:${NC} Linux (Development)"
+            echo -e "  ${BLUE}📍 Environment:${NC} Linux (Development)"
             ;;
         *)
-            echo -e "${YELLOW}📍 Environment:${NC} Unknown"
+            echo -e "  ${YELLOW}⚠️  Environment:${NC} Unknown"
             ;;
     esac
-    
+
     if [ -n "$CONTAINER_CMD" ]; then
-        echo -e "${BLUE}🐳 Container Runtime:${NC} $CONTAINER_CMD"
+        echo -e "  ${BLUE}🐳 Container Runtime:${NC} $CONTAINER_CMD"
     else
-        echo -e "${YELLOW}⚠️  No container runtime detected${NC}"
+        echo -e "  ${YELLOW}⚠️  No container runtime detected${NC}"
     fi
-    
-    echo ""
-    echo -e "${CYAN}────────────────────────────────────────────────────────────${NC}"
-    echo ""
 }
 
 # Check deployment mode
@@ -92,107 +85,100 @@ check_deployment_mode() {
 
 # Show quick status
 show_quick_status() {
-    echo -e "${BLUE}📊 Quick Status:${NC}"
-    
+    section "Quick Status" "🩺"
+
     # Disk usage
     local disk_usage=$(get_disk_usage_percent)
     if [ "$disk_usage" -gt "$DISK_CRITICAL" ]; then
-        echo -e "   ${RED}💾 Disk: ${disk_usage}% (CRITICAL)${NC}"
+        echo -e "   ${RED}✗  💾 Disk: ${disk_usage}% (CRITICAL)${NC}"
     elif [ "$disk_usage" -gt "$DISK_WARNING" ]; then
-        echo -e "   ${YELLOW}💾 Disk: ${disk_usage}% (Warning)${NC}"
+        echo -e "   ${YELLOW}⚠️  💾 Disk: ${disk_usage}% (Warning)${NC}"
     else
-        echo -e "   ${GREEN}💾 Disk: ${disk_usage}% (Healthy)${NC}"
+        echo -e "   ${GREEN}✓  💾 Disk: ${disk_usage}% (Healthy)${NC}"
     fi
-    
+
     # Memory usage (Pi only)
     if [ "$ENV" = "pi" ]; then
         local mem_usage=$(get_memory_usage)
         if [ "$mem_usage" -gt "$MEM_CRITICAL" ]; then
-            echo -e "   ${RED}🧠 Memory: ${mem_usage}% (CRITICAL)${NC}"
+            echo -e "   ${RED}✗  🧠 Memory: ${mem_usage}% (CRITICAL)${NC}"
         elif [ "$mem_usage" -gt "$MEM_WARNING" ]; then
-            echo -e "   ${YELLOW}🧠 Memory: ${mem_usage}% (Warning)${NC}"
+            echo -e "   ${YELLOW}⚠️  🧠 Memory: ${mem_usage}% (Warning)${NC}"
         else
-            echo -e "   ${GREEN}🧠 Memory: ${mem_usage}% (Healthy)${NC}"
+            echo -e "   ${GREEN}✓  🧠 Memory: ${mem_usage}% (Healthy)${NC}"
         fi
-        
+
         # Temperature
         local temp=$(get_cpu_temp)
         if (( $(echo "$temp > $TEMP_CRITICAL" | bc -l 2>/dev/null || echo 0) )); then
-            echo -e "   ${RED}🌡️  Temp: ${temp}°C (CRITICAL)${NC}"
+            echo -e "   ${RED}✗  🌡️  Temp: ${temp}°C (CRITICAL)${NC}"
         elif (( $(echo "$temp > $TEMP_WARNING" | bc -l 2>/dev/null || echo 0) )); then
-            echo -e "   ${YELLOW}🌡️  Temp: ${temp}°C (Warning)${NC}"
+            echo -e "   ${YELLOW}⚠️  🌡️  Temp: ${temp}°C (Warning)${NC}"
         else
-            echo -e "   ${GREEN}🌡️  Temp: ${temp}°C (Normal)${NC}"
+            echo -e "   ${GREEN}✓  🌡️  Temp: ${temp}°C (Normal)${NC}"
         fi
     fi
-    
+
     # Deployment mode status
     local mode=$(check_deployment_mode)
     case $mode in
         local-dev)
-            echo -e "   ${GREEN}🚀 Mode: Local Development (Port 5173)${NC}"
+            echo -e "   ${GREEN}✓  🚀 Mode: Local Development (Port 5173)${NC}"
             echo -e "   ${BLUE}   → Hot reload enabled, fast iteration${NC}"
             ;;
         container)
-            echo -e "   ${GREEN}🐳 Mode: Container (Port 8080)${NC}"
+            echo -e "   ${GREEN}✓  🐳 Mode: Container (Port 8080)${NC}"
             echo -e "   ${BLUE}   → Production-like environment${NC}"
             ;;
         none)
             echo -e "   ${YELLOW}⚠️  Mode: Not running${NC}"
             ;;
     esac
-    
+
     # Container status (if applicable)
     if [ -n "$CONTAINER_CMD" ] && [ "$mode" = "container" ]; then
         local running=$($CONTAINER_CMD ps --filter "name=meals-" --format "{{.Names}}" 2>/dev/null | wc -l)
         if [ "$running" -eq 4 ]; then
-            echo -e "   ${GREEN}   Containers: $running/4 running${NC}"
+            echo -e "   ${GREEN}✓  Containers: $running/4 running${NC}"
         elif [ "$running" -gt 0 ]; then
-            echo -e "   ${YELLOW}   Containers: $running/4 running (incomplete)${NC}"
+            echo -e "   ${YELLOW}⚠️  Containers: $running/4 running (incomplete)${NC}"
         fi
     fi
-    
-    echo ""
 }
 
 # Pi-specific menu
 show_pi_menu() {
-    echo -e "${YELLOW}═══ Raspberry Pi Operations ═══${NC}"
-    echo ""
-    
     local current_mode=$(check_deployment_mode)
-    echo -e "${GREEN}🚀 Deployment:${NC}"
+
+    section "Deployment" "🚀"
     echo "  1) Deploy/Start containers"
     if [ "$current_mode" = "container" ]; then
-        echo -e "     ${GREEN}✓ Currently running${NC}"
+        echo -e "     ${GREEN}✓${NC}  Currently running"
     fi
     echo "  2) Stop containers"
     echo "  3) Restart containers"
     echo "  4) Check deployment mode"
     echo "  5) Deploy from registry (pull latest from GHCR)"
-    echo ""
 
-    echo -e "${GREEN}🔨 Build (On Pi):${NC}"
+    section "Build (On Pi)" "📦"
     echo "  6) Build all images"
     echo "  7) Build frontend only"
     echo "  8) Load pre-built images"
-    echo ""
 
-    echo -e "${GREEN}🔧 Maintenance:${NC}"
+    section "Maintenance" "🩺"
     echo "  9) Health check"
     echo " 10) Full diagnostics"
     echo " 11) Cleanup Pi"
     echo " 12) Pre-build cleanup"
     echo " 13) Journal cleanup (sudo)"
     echo " 14) Trigger auto-update check"
-    echo ""
 
-    echo -e "${GREEN}💾 Database:${NC}"
+    section "Database" "🗄️"
     echo " 15) Backup database"
     echo " 16) Restore database"
     echo " 17) Safe migration"
+
     echo ""
-    
     echo -e "${BLUE}Other:${NC}"
     echo "  0) Exit"
     echo ""
@@ -200,58 +186,51 @@ show_pi_menu() {
 
 # Dev machine menu
 show_dev_menu() {
-    echo -e "${YELLOW}═══ Development Machine Operations ═══${NC}"
-    echo ""
-    
     # Show deployment mode selection with guidance
     local current_mode=$(check_deployment_mode)
-    echo -e "${GREEN}🚀 Local Deployment:${NC}"
+
+    section "Local Deployment" "🚀"
     echo "  1) Local Dev Mode (Port 5173)"
     echo -e "     ${BLUE}→ For: Active development, hot reload, debugging${NC}"
     echo -e "     ${BLUE}→ Resources: ~2GB RAM, Node.js required${NC}"
     if [ "$current_mode" = "local-dev" ]; then
-        echo -e "     ${GREEN}✓ Currently running${NC}"
+        echo -e "     ${GREEN}✓${NC}  Currently running"
     fi
     echo ""
     echo "  2) Container Mode (Port 8080)"
     echo -e "     ${BLUE}→ For: Production testing, deployment prep${NC}"
     echo -e "     ${BLUE}→ Resources: ~3GB RAM, Docker/Podman required${NC}"
     if [ "$current_mode" = "container" ]; then
-        echo -e "     ${GREEN}✓ Currently running${NC}"
+        echo -e "     ${GREEN}✓${NC}  Currently running"
     fi
     echo ""
     echo "  3) Stop all services"
     echo "  4) Restart services (bounce)"
     echo "  5) Check deployment mode"
-    echo ""
-    
-    echo -e "${GREEN}🔨 Build for Pi:${NC}"
+
+    section "Build for Pi" "📦"
     echo "  6) Build images for Pi (cross-compile)"
     echo "  7) Transfer images to Pi"
-    echo ""
-    
-    echo -e "${GREEN}🚀 Pi Deployment (SSH):${NC}"
+
+    section "Pi Deployment (SSH)" "🌐"
     echo "  8) Deploy to Pi"
     echo "  9) Check Pi health"
     echo " 10) View Pi logs"
-    echo ""
-    
-    echo -e "${GREEN}🧪 Testing:${NC}"
+
+    section "Testing" "🧪"
     echo " 11) Run E2E tests"
     echo " 12) Run E2E tests (UI mode)"
-    echo ""
-    
-    echo -e "${GREEN}💾 Database:${NC}"
+
+    section "Database" "🗄️"
     echo " 13) Backup database (local)"
     echo " 14) Restore database (local)"
-    echo ""
-    
-    echo -e "${GREEN}🔧 Maintenance:${NC}"
+
+    section "Maintenance" "🧹"
     echo " 15) Cleanup dev machine"
     echo " 16) Generate secrets"
     echo " 17) First-time setup"
+
     echo ""
-    
     echo -e "${BLUE}Other:${NC}"
     echo "  0) Exit"
     echo ""
@@ -329,11 +308,11 @@ execute_pi_command() {
             CALLED_FROM_MENU=1 "$SCRIPT_DIR/safe-migrate.sh"
             ;;
         0)
-            echo -e "${GREEN}Goodbye!${NC}"
+            echo -e "${GREEN}✓${NC}  Goodbye!"
             exit 0
             ;;
         *)
-            echo -e "${RED}Invalid option${NC}"
+            echo -e "${RED}✗${NC}  Invalid option"
             ;;
     esac
 }
@@ -466,11 +445,11 @@ execute_dev_command() {
             CALLED_FROM_MENU=1 "$SCRIPT_DIR/first-time-setup.sh"
             ;;
         0)
-            echo -e "${GREEN}Goodbye!${NC}"
+            echo -e "${GREEN}✓${NC}  Goodbye!"
             exit 0
             ;;
         *)
-            echo -e "${RED}Invalid option${NC}"
+            echo -e "${RED}✗${NC}  Invalid option"
             ;;
     esac
 }
