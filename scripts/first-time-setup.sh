@@ -42,11 +42,11 @@ generate_secrets_if_needed() {
     done
 
     if $all_present; then
-        echo -e "${GREEN}✓ Secrets already exist${NC}"
+        echo -e "  ${GREEN}✓${NC}  Secrets already exist"
         return 0
     fi
 
-    echo -e "${YELLOW}ℹ Generating secure secrets...${NC}"
+    echo -e "  ${BLUE}ℹ️  Generating secure secrets...${NC}"
     mkdir -p "$SECRETS_DIR"
     chmod 700 "$SECRETS_DIR"
 
@@ -55,7 +55,7 @@ generate_secrets_if_needed() {
         if [ ! -f "$SECRETS_DIR/${name}.txt" ]; then
             openssl rand -base64 $((length * 2)) | tr -d "=+/" | cut -c1-${length} > "$SECRETS_DIR/${name}.txt"
             chmod 600 "$SECRETS_DIR/${name}.txt"
-            echo -e "  ${GREEN}✓ ${name}${NC}"
+            echo -e "     ${GREEN}✓${NC}  ${name}"
         fi
     }
 
@@ -65,17 +65,17 @@ generate_secrets_if_needed() {
     gen_secret "session_secret" 48
     gen_secret "redis_password" 32
 
-    echo -e "${GREEN}✓ Secrets generated in ./secrets/${NC}"
+    echo -e "  ${GREEN}✓${NC}  Secrets generated in ./secrets/"
 }
 
 # ── Helper: assert a command exists ───────────────────────────────────────────
 require_cmd() {
     local cmd=$1 install_hint=$2
     if ! command -v "$cmd" &>/dev/null; then
-        echo -e "${RED}✗ $cmd not found.${NC} ${install_hint}"
+        echo -e "  ${RED}✗ $cmd not found.${NC} ${install_hint}"
         exit 1
     fi
-    echo -e "${GREEN}✓ $cmd${NC}"
+    echo -e "  ${GREEN}✓${NC}  $cmd"
 }
 
 # ── Choose deployment target ──────────────────────────────────────────────────
@@ -98,24 +98,52 @@ read -p "Choice [1]: " DEPLOY_CHOICE
 DEPLOY_CHOICE=${DEPLOY_CHOICE:-1}
 echo ""
 
-# ── Common: create data directories ──────────────────────────────────────────
-mkdir -p secrets data/backups data/uploads data/images data/feedback-exports data/frontend-dist
-echo -e "${GREEN}✓ Data directories ready${NC}"
+case "$DEPLOY_CHOICE" in
+    1) STEP_COUNT=3 ;;
+    2|3|4) STEP_COUNT=4 ;;
+    *)
+        echo -e "${RED}Invalid choice. Run the script again and enter 1, 2, 3, or 4.${NC}"
+        exit 1
+        ;;
+esac
 
-# ── Branch per target ─────────────────────────────────────────────────────────
+steps_init "$STEP_COUNT"
+
+# ── Common: create data directories ──────────────────────────────────────────
+step "Prepare data directories"
+mkdir -p secrets data/backups data/uploads data/images data/feedback-exports data/frontend-dist
+echo -e "  ${GREEN}✓${NC}  Data directories ready"
+
+# ── Check prerequisites (per target) ──────────────────────────────────────────
+step "Check prerequisites"
+case "$DEPLOY_CHOICE" in
+    1)
+        require_cmd "node"   "Install Node.js 20+ from https://nodejs.org/"
+        require_cmd "podman" "Install Podman from https://podman.io/"
+        ;;
+    2)
+        require_cmd "podman" "Install Podman from https://podman.io/"
+        ;;
+    3|4)
+        require_cmd "podman" "Install Podman: sudo apt-get install -y podman"
+        ;;
+esac
+
+# ── Prepare secrets (skipped for local dev — local-run.sh handles it) ────────
+if [[ "$DEPLOY_CHOICE" != "1" ]]; then
+    step "Prepare secrets"
+    generate_secrets_if_needed
+fi
+
+# ── Ready — per-target launch instructions ────────────────────────────────────
+step "Ready"
 case "$DEPLOY_CHOICE" in
 
 # ── 1: Local development ──────────────────────────────────────────────────────
 1)
-    echo ""
-    echo -e "${BOLD}${CYAN}Checking prerequisites for local development...${NC}"
-    require_cmd "node"   "Install Node.js 20+ from https://nodejs.org/"
-    require_cmd "podman" "Install Podman from https://podman.io/"
-    echo ""
-
     # local-run.sh handles secrets, .env files, deps, migrations, and seeding
     # on first run — no need to pre-generate them here.
-    echo -e "${GREEN}✅ Ready to start!${NC}"
+    echo -e "  ${GREEN}✅ Ready to start!${NC}"
     echo ""
     echo -e "${BOLD}${CYAN}Run this to launch the app:${NC}"
     echo ""
@@ -134,14 +162,7 @@ case "$DEPLOY_CHOICE" in
 
 # ── 2: Local container mode ───────────────────────────────────────────────────
 2)
-    echo ""
-    echo -e "${BOLD}${CYAN}Checking prerequisites for container mode...${NC}"
-    require_cmd "podman" "Install Podman from https://podman.io/"
-    echo ""
-
-    generate_secrets_if_needed
-    echo ""
-    echo -e "${GREEN}✅ Ready to start!${NC}"
+    echo -e "  ${GREEN}✅ Ready to start!${NC}"
     echo ""
     echo -e "${BOLD}${CYAN}Run this to launch all services:${NC}"
     echo ""
@@ -153,14 +174,7 @@ case "$DEPLOY_CHOICE" in
 
 # ── 3: Raspberry Pi — GHCR registry (recommended) ────────────────────────────
 3)
-    echo ""
-    echo -e "${BOLD}${CYAN}Checking prerequisites for Pi deployment...${NC}"
-    require_cmd "podman" "Install Podman: sudo apt-get install -y podman"
-    echo ""
-
-    generate_secrets_if_needed
-    echo ""
-    echo -e "${GREEN}✅ Ready to deploy!${NC}"
+    echo -e "  ${GREEN}✅ Ready to deploy!${NC}"
     echo ""
     echo -e "${BOLD}${CYAN}Pull and start from the registry:${NC}"
     echo ""
@@ -182,14 +196,7 @@ case "$DEPLOY_CHOICE" in
 
 # ── 4: Raspberry Pi — build from source ──────────────────────────────────────
 4)
-    echo ""
-    echo -e "${BOLD}${CYAN}Checking prerequisites for Pi build...${NC}"
-    require_cmd "podman" "Install Podman: sudo apt-get install -y podman"
-    echo ""
-
-    generate_secrets_if_needed
-    echo ""
-    echo -e "${GREEN}✅ Ready to build!${NC}"
+    echo -e "  ${GREEN}✅ Ready to build!${NC}"
     echo ""
     echo -e "${BOLD}${CYAN}Build and start:${NC}"
     echo ""
@@ -203,17 +210,11 @@ case "$DEPLOY_CHOICE" in
     echo -e "${BOLD}${YELLOW}Tip:${NC} The GHCR registry option (choice 3) is much faster if you"
     echo -e "  have a build in GitHub Actions — no compilation needed on the Pi."
     ;;
-
-*)
-    echo -e "${RED}Invalid choice. Run the script again and enter 1, 2, 3, or 4.${NC}"
-    exit 1
-    ;;
 esac
 
 # ── Pi only: offer nightly auto-updates ──────────────────────────────────────
 if [[ "$DEPLOY_CHOICE" == "3" || "$DEPLOY_CHOICE" == "4" ]]; then
-    echo ""
-    echo -e "${BOLD}${YELLOW}Enable nightly auto-updates?${NC}"
+    section "Auto-Updates" "🚀"
     echo -e "  Installs a systemd timer that pulls the latest image from GHCR"
     echo -e "  each night at 01:30 and redeploys if the image has changed."
     echo ""
@@ -221,32 +222,28 @@ if [[ "$DEPLOY_CHOICE" == "3" || "$DEPLOY_CHOICE" == "4" ]]; then
     AUTO_UPDATE_CHOICE=${AUTO_UPDATE_CHOICE:-N}
     echo ""
     if [[ "$AUTO_UPDATE_CHOICE" =~ ^[Yy]$ ]]; then
-        echo -e "${CYAN}Running pi-update-setup.sh...${NC}"
-        echo ""
         "$SCRIPT_DIR/pi-update-setup.sh"
         echo ""
-        echo -e "${GREEN}✓ Auto-updates enabled — next check tonight at 01:30${NC}"
-        echo -e "  Manual update anytime: ${GREEN}./scripts/pi-auto-update.sh${NC}"
-        echo -e "  Force redeploy:        ${GREEN}./scripts/pi-auto-update.sh --force${NC}"
+        echo -e "  ${GREEN}✓${NC}  Auto-updates enabled — next check tonight at 01:30"
+        echo -e "     Manual update anytime: ${GREEN}./scripts/pi-auto-update.sh${NC}"
+        echo -e "     Force redeploy:        ${GREEN}./scripts/pi-auto-update.sh --force${NC}"
     else
-        echo -e "${YELLOW}Skipped. You can enable auto-updates later:${NC}"
-        echo -e "   ${GREEN}./scripts/pi-update-setup.sh${NC}"
+        echo -e "  ${BLUE}ℹ️  Skipped. You can enable auto-updates later:${NC}"
+        echo -e "     ${GREEN}./scripts/pi-update-setup.sh${NC}"
     fi
 fi
 
 # ── Common footer ─────────────────────────────────────────────────────────────
+section "Summary" "🍽️"
+echo -e "  ${BOLD}Key reminders:${NC}"
+echo -e "    • ${YELLOW}Never commit the secrets/ directory${NC} to version control"
+echo -e "    • Back up secrets securely — they cannot be recovered if lost"
+echo -e "    • Rotate secrets every 90 days: ${GREEN}./scripts/generate-secrets.sh${NC}"
 echo ""
-echo -e "${BOLD}${CYAN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
-echo -e "${BOLD}Key reminders:${NC}"
-echo -e "  • ${YELLOW}Never commit the secrets/ directory${NC} to version control"
-echo -e "  • Back up secrets securely — they cannot be recovered if lost"
-echo -e "  • Rotate secrets every 90 days: ${GREEN}./scripts/generate-secrets.sh${NC}"
-echo ""
-echo -e "${BOLD}Documentation:${NC}"
-echo -e "  Dev setup:     ${BLUE}docs/SETUP.md${NC}"
-echo -e "  Pi deployment: ${BLUE}docs/RASPBERRY_PI_DEPLOYMENT_GUIDE.md${NC}"
-echo -e "  Architecture:  ${BLUE}docs/ARCHITECTURE.md${NC}"
-echo -e "  All scripts:   ${GREEN}./scripts/menu.sh${NC}"
-echo -e "${BOLD}${CYAN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+echo -e "  ${BOLD}Documentation:${NC}"
+echo -e "    Dev setup:     ${BLUE}docs/SETUP.md${NC}"
+echo -e "    Pi deployment: ${BLUE}docs/RASPBERRY_PI_DEPLOYMENT_GUIDE.md${NC}"
+echo -e "    Architecture:  ${BLUE}docs/ARCHITECTURE.md${NC}"
+echo -e "    All scripts:   ${GREEN}./scripts/menu.sh${NC}"
 echo ""
 
