@@ -265,6 +265,83 @@ grep -r "TODO\|FIXME" backend/src frontend/src
 - USER_TESTING_SUMMARY.md
 - USER_TESTING_ISSUES_LOG.md
 
+**Automated Feedback & Error-Log Triage (fully automated):**
+
+Split the same way as Secret Rotation above, since the cloud maintenance
+routine has no live Postgres access:
+
+1. **Execution — `scripts/feedback-log-triage.sh`, runs ON the Pi via its
+   own weekly cron entry** (needs direct database access, which only the Pi
+   has). Most weeks it files zero or one issue:
+   - Pulls the last 7 days of `UserFeedback` and error/warn `ClientLog` rows
+     via `backend/dist/scripts/feedback-triage.js` (`podman exec
+     meals-backend node dist/scripts/feedback-triage.js`), filters out known
+     test/noise data (`@example.com`/`@test.com` accounts, `/test`-prefixed
+     pages, boilerplate test messages — see
+     `backend/src/scripts/feedback-triage.util.ts`), and clusters recurring
+     errors (3+ occurrences) so a single flaky blip doesn't become an issue.
+     Real user feedback isn't clustering-gated the same way — a single
+     genuine report is enough to file.
+   - Dedupes against **every** existing `auto-feedback-triage`-labeled issue
+     (open, closed-fixed, and closed-wontfix all suppress re-filing) via a
+     stable fingerprint embedded as a hidden HTML comment in each filed
+     issue's body — the same underlying problem is never re-filed, and
+     marking a false positive `wontfix` permanently silences it.
+   - Files real `gh issue create` calls for genuinely new problems, with
+     dynamic titles/bodies (severity, occurrence count, first/last seen,
+     a redacted/capped excerpt — never the reporter's email or name) and
+     existing repo labels only (`bug`/`enhancement`/`question` +
+     `P1-high`/`P2-medium`/`P3-low`), capped at `MAX_ISSUES_PER_RUN`
+     (default 5) per run; anything over the cap carries over to next week
+     instead of being dropped.
+   - Requires `secrets/github_token.txt` — a fine-grained PAT scoped to
+     this repo only, `Issues: Read and write`, mode 600, created once
+     manually (`gh` honors `GH_TOKEN` natively, no `gh auth login` needed).
+     Not part of `rotate-secrets-if-due.sh`'s rotation set — a PAT has no
+     `ALTER USER`-style in-place rotation, so rotate it manually.
+   - Requires `gh`/`jq` installed on the Pi host (one-time
+     `apt-get install -y gh jq`).
+   - The full, unredacted view of everything a given run looked at
+     (including filtered noise, with real names/messages intact) is written
+     locally to `data/maintenance-logs/feedback-triage-raw-latest.json` —
+     **never committed to this repo**. It's picked up by the existing daily
+     backup job and archived privately at `github.com/e2kd7n/backups` →
+     `mealplanner/feedback-triage/` (see the companion-change note below).
+   - Install once with a crontab entry:
+     ```bash
+     # crontab -e on the Pi
+     45 3 * * 0  cd /path/to/mealplanner && ./scripts/feedback-log-triage.sh >> data/maintenance-logs/cron-feedback-triage.log 2>&1
+     ```
+     (45 minutes after Secret Rotation's `15 3 * * 0` — clear of its
+     container-recreate/health-check window.)
+2. **Verification — spot-check locally**, since there's no separate cloud
+   routine cross-check for this one (unlike Secret Rotation):
+   - [ ] Read `data/maintenance-logs/feedback-triage-status.txt` for the
+     latest `STATUS`/`MESSAGE`.
+   - [ ] **STATUS=FAILED** — check the referenced `LOG_FILE`; common causes
+     are a missing/expired `secrets/github_token.txt`, `meals-backend` not
+     running, or a DB error.
+   - [ ] **Issues filed this run** — skim them for label/priority
+     correctness and confirm nothing identifying a household member leaked
+     through; mark false positives `wontfix` (the fingerprint dedup treats
+     that as handled permanently).
+   - [ ] **Suspiciously few/zero candidates for several weeks running** —
+     check the run's log for a `WARNING: ... MAX_DATABASE_LOGS_DAYS`
+     message; the script self-checks the oldest `ClientLog` row it saw each
+     run against the requested lookback window.
+
+**Companion change required (one-time, in the separate `e2kd7n/backups`
+repo, not this one):** `scripts/backup-mealplanner.sh`'s `_populate()`
+needs a small addition to pick up the raw archive file if present:
+```bash
+# inside _populate(), alongside the existing backend.env / secrets/*.txt copies
+local raw="${PROJECT_DIR}/data/maintenance-logs/feedback-triage-raw-latest.json"
+[[ -f "$raw" ]] && mkdir -p "${dest}/feedback-triage" && cp "$raw" "${dest}/feedback-triage/"
+```
+Until this lands, `feedback-triage-raw-latest.json` stays local-only on the
+Pi (never lost, just not off-device archived) — it does not block the rest
+of this feature.
+
 ---
 
 ### 8. Worktree Hygiene (Local Only)
@@ -423,6 +500,11 @@ Consider automating these tasks:
    runs weekly via a local Windows Scheduled Task and removes only worktrees
    whose branch is merged/closed with no uncommitted or unpushed work. See
    Worktree Hygiene above.
+8. **Feedback/Error-Log Triage** - Fully automated:
+   `scripts/feedback-log-triage.sh` runs weekly on the Pi via cron, clusters
+   and dedupes recurring feedback/errors, and files `gh issue create` calls
+   for genuinely new problems only — the full unredacted picture is archived
+   privately, never committed here. See User Feedback Review above.
 
 ---
 
@@ -436,5 +518,5 @@ Consider automating these tasks:
 
 ---
 
-**Last Updated:** 2026-08-01  
+**Last Updated:** 2026-08-19  
 **Maintained By:** Development Team
