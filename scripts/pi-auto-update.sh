@@ -22,14 +22,18 @@ GHCR_TOKEN_FILE="./secrets/ghcr_token.txt"
 FORCE=false
 [ "${1:-}" = "--force" ] && FORCE=true
 
-log() { echo "[$(date '+%Y-%m-%d %H:%M:%S')] $*"; }
+# Timestamped log line. When run under cron/systemd (non-TTY), utilities.sh
+# already blanks the color vars, so this degrades to plain text automatically.
+log()  { echo -e "${DIM}[$(date '+%Y-%m-%d %H:%M:%S')]${NC} $*"; }
+warn() { echo -e "${DIM}[$(date '+%Y-%m-%d %H:%M:%S')]${NC} ${YELLOW}⚠️  $*${NC}"; }
+err()  { echo -e "${DIM}[$(date '+%Y-%m-%d %H:%M:%S')]${NC} ${RED}✗ $*${NC}"; }
 
 # On failure: dump the last backend log lines so the error is debuggable without
 # SSH-ing in, then prune any dangling (untagged) images left by a partial pull.
 _on_exit() {
     local exit_code=$?
     if [ "$exit_code" -ne 0 ]; then
-        log "ERROR: script exited with code $exit_code — last 30 backend log lines:"
+        err "Script exited with code $exit_code — last 30 backend log lines:"
         podman logs --tail=30 meals-backend 2>/dev/null || true
         log "Pruning dangling images left by failed update..."
         podman image prune -f 2>/dev/null || true
@@ -37,27 +41,33 @@ _on_exit() {
 }
 trap _on_exit EXIT
 
-log "=== Meal Planner Auto-Update ==="
+section "Meal Planner Auto-Update" "📥"
+
+section "Pre-flight Check" "🔍"
 
 # Git state check — uses cached fetch state, no network call
 BEHIND=$(git rev-list --count HEAD..origin/main 2>/dev/null || echo 0)
 if [ "${BEHIND}" -gt 0 ]; then
-    log "WARNING: Local repo is ${BEHIND} commit(s) behind origin/main — config changes won't take effect until 'git pull' is run"
+    warn "Local repo is ${BEHIND} commit(s) behind origin/main — config changes won't take effect until 'git pull' is run"
 fi
 
 # Disk check — warn but do not block unattended runs
 DISK_USAGE=$(df / | awk 'NR==2 {print $5}' | tr -d '%')
 if [ "$DISK_USAGE" -gt 80 ]; then
-    log "WARNING: Disk at ${DISK_USAGE}% — pull may fail. Consider: podman image prune -a"
+    warn "Disk at ${DISK_USAGE}% — pull may fail. Consider: podman image prune -a"
+else
+    log "Disk usage ${DISK_USAGE}% — OK"
 fi
 
 # Prune stopped containers and dangling images before starting so stale remnants
 # from a previous failed run do not interfere with the pull.
+section "Cleanup" "🧹"
 log "Cleaning up stale containers and dangling images..."
 podman container prune -f 2>/dev/null || true
 podman image prune -f 2>/dev/null || true
 
 if [ -f "$GHCR_TOKEN_FILE" ]; then
+    section "Authentication" "🔐"
     log "Authenticating with GHCR..."
     podman login "$REGISTRY" -u "$IMAGE_OWNER" \
         --password-stdin --log-level=warn < "$GHCR_TOKEN_FILE"
@@ -66,11 +76,14 @@ fi
 # Record current local image ID so we can detect a real change after pull
 BEFORE_ID=$(podman inspect "$LOCAL_IMAGE" --format '{{.Id}}' 2>/dev/null || echo "")
 
+section "Pulling Image" "📥"
 log "Pulling ${REMOTE_IMAGE}..."
+timer_start
 if ! podman pull "$REMOTE_IMAGE"; then
-    log "ERROR: Pull failed — network issue or image not yet published. Aborting."
+    err "Pull failed — network issue or image not yet published. Aborting."
     exit 1
 fi
+timer_end
 
 podman tag "$REMOTE_IMAGE" "$LOCAL_IMAGE"
 AFTER_ID=$(podman inspect "$LOCAL_IMAGE" --format '{{.Id}}' 2>/dev/null || echo "")
@@ -92,6 +105,7 @@ log "New image: ${BEFORE_ID:0:12} → ${AFTER_ID:0:12}"
 
 # Extract the compiled React frontend bundled inside the backend image.
 # Nginx serves static files from ./data/frontend-dist — there is no frontend container on Pi.
+section "Preparing Assets" "📦"
 log "Extracting frontend static files..."
 extract_frontend_from_image "$LOCAL_IMAGE" >/dev/null
 log "Extracted $(ls ./data/frontend-dist | wc -l) files to data/frontend-dist/"
@@ -101,6 +115,7 @@ if echo "$COMPOSE_FILES" | grep -q "clusterhat"; then
     log "ClusterHAT overlay enabled"
 fi
 
+section "Restarting Services" "🚀"
 log "Restarting containers..."
 # Suppress expected "not found" noise when nothing was running before this update.
 # shellcheck disable=SC2086
@@ -111,44 +126,50 @@ podman-compose $COMPOSE_FILES down 2>&1 \
 # shellcheck disable=SC2086
 podman-compose $COMPOSE_FILES up -d
 
+section "Health Check" "🩺"
 log "Waiting for backend to become healthy..."
+HEALTHY=false
 for i in $(seq 1 12); do
     sleep 5
     if podman healthcheck run meals-backend >/dev/null 2>&1; then
-        log "✓ Backend healthy after $((i * 5))s."
+        HEALTHY=true
         break
     fi
-    if [ "$i" -eq 12 ]; then
-        log "ERROR: meals-backend did not become healthy after 60s. Last 30 log lines:"
-        # shellcheck disable=SC2086
-        podman-compose $COMPOSE_FILES logs --tail=30 backend >&2
-        exit 1
-    fi
 done
+if [ "$HEALTHY" = true ]; then
+    log "✓ Backend healthy after $((i * 5))s."
+else
+    err "meals-backend did not become healthy after 60s. Last 30 log lines:"
+    # shellcheck disable=SC2086
+    podman-compose $COMPOSE_FILES logs --tail=30 backend >&2
+    exit 1
+fi
 
+section "Database Migration" "🗄️"
 log "Running database migrations..."
 PRISMA_BIN=$(podman exec meals-backend find /app/node_modules/.pnpm -name "index.js" -path "*/prisma/build/index.js" 2>/dev/null | head -1)
 if [ -z "$PRISMA_BIN" ]; then
     PRISMA_BIN="/app/node_modules/.bin/prisma"
 fi
 if ! podman exec meals-backend test -f "$PRISMA_BIN" 2>/dev/null; then
-    log "WARNING: Prisma CLI not found in container — skipping migration step."
+    warn "Prisma CLI not found in container — skipping migration step."
 else
     podman exec meals-backend sh -c "
         POSTGRES_PASSWORD=\$(cat /run/secrets/postgres_password)
         export DATABASE_URL=\"postgresql://\${POSTGRES_USER}:\${POSTGRES_PASSWORD}@\${POSTGRES_HOST}:\${POSTGRES_PORT}/\${POSTGRES_DB}\"
         node $PRISMA_BIN migrate deploy
-    " && log "✓ Migrations applied." || log "WARNING: Migration step failed — check logs."
+    " && log "✓ Migrations applied." || warn "Migration step failed — check logs."
 fi
 
 # Deploy updated backend to Zero W nodes
 if detect_clusterhat; then
+    section "ClusterHAT Deployment" "🌐"
     log "Deploying updated backend to Zero W nodes..."
     if bash "$SCRIPT_DIR/pi-run.sh" --zeros-only --zero-user="$CLUSTERHAT_ZERO_USER" 2>&1 \
         | while IFS= read -r line; do log "  $line"; done; then
         log "✓ Zero W deployment complete."
     else
-        log "WARNING: Zero W deployment had errors — check output above"
+        warn "Zero W deployment had errors — check output above"
     fi
 fi
 
@@ -157,4 +178,5 @@ fi
 log "Cleaning up superseded images..."
 podman image prune -f 2>/dev/null || true
 
+section "Summary" "🍽️"
 log "✓ Deployment complete."

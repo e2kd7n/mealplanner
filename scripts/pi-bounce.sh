@@ -10,7 +10,7 @@ source "$SCRIPT_DIR/utilities.sh"
 
 COMPOSE_FILES=$(clusterhat_compose_files)
 
-echo "🔄 Restarting Meal Planner on Raspberry Pi..."
+section "Restart Meal Planner" "🚀"
 
 # Check if podman-compose is installed
 if ! command -v podman-compose &> /dev/null; then
@@ -26,58 +26,59 @@ if ! podman ps -a | grep -q "meals-"; then
 fi
 
 # Show current status
-echo -e "${BLUE}Current status:${NC}"
+echo -e "${BLUE}ℹ️  Current status:${NC}"
 # shellcheck disable=SC2086
 podman-compose $COMPOSE_FILES ps
 
-echo ""
+section "Stopping Services" "🛑"
 
 # Stop Zero W services first (while Postgres/Redis are still up)
 clusterhat_stop_zeros
 
 echo -e "${YELLOW}🛑 Stopping services...${NC}"
-
-# Stop services
 # shellcheck disable=SC2086
 podman-compose $COMPOSE_FILES down
+echo -e "  ${GREEN}✓${NC}  Services stopped"
 
-echo -e "${GREEN}✓ Services stopped${NC}"
-echo ""
+section "Starting Services" "🚀"
+
 echo -e "${YELLOW}🚀 Starting services...${NC}"
-
-# Start services
 # shellcheck disable=SC2086
 podman-compose $COMPOSE_FILES up -d
+echo -e "  ${GREEN}✓${NC}  Services started"
 
 # Wait for services to be healthy
-start_spinner "Waiting for services to start..."
+start_spinner "Waiting for services to stabilize"
 sleep 10
 stop_spinner ok
 
 # Check service status
 echo ""
-echo -e "${GREEN}📊 Service status:${NC}"
+echo -e "${BLUE}ℹ️  Service status:${NC}"
 # shellcheck disable=SC2086
 podman-compose $COMPOSE_FILES ps
 
+section "Verifying" "🩺"
+
 # Verify backend is running
 if podman ps | grep -q "meals-backend"; then
+    echo -e "  ${GREEN}✓${NC}  Backend container running"
+
     # Nginx caches backend DNS at startup — after down/up the backend container
     # has a new IP, causing 502s until nginx is restarted (Podman 4.3.1 lacks
     # working resolver directive support). See #206.
     if podman ps | grep -q "meals-nginx"; then
-        echo -e "${YELLOW}🔄 Restarting nginx to refresh backend DNS...${NC}"
-        podman restart meals-nginx
-        echo -e "${GREEN}✓ Nginx restarted${NC}"
+        start_spinner "Restarting nginx to refresh backend DNS"
+        podman restart meals-nginx &>/dev/null
+        stop_spinner ok
     fi
 
     # Restart Zero W services now that Postgres/Redis are back
     clusterhat_restart_zeros
 
-    echo ""
-    echo -e "${GREEN}✅ Application restarted successfully!${NC}"
-    echo ""
-    echo "═══════════════════════════════════════════════════════════════"
+    section "Summary" "🍽️"
+
+    echo -e "  ${GREEN}✓ Application restarted successfully${NC}"
     echo ""
 
     # Call check-deployment-mode.sh as the source of truth
@@ -91,8 +92,6 @@ if podman ps | grep -q "meals-backend"; then
         echo ""
     fi
 
-    echo ""
-    echo "═══════════════════════════════════════════════════════════════"
     echo ""
     echo -e "${BLUE}Useful commands:${NC}"
     echo -e "   📝 View logs: podman-compose -f podman-compose.pi.yml logs -f"

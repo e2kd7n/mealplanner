@@ -9,43 +9,38 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # shellcheck source=utilities.sh
 source "$SCRIPT_DIR/utilities.sh"
 
-echo "🔧 Cleaning up systemd journal on Raspberry Pi..."
+section "Journal Cleanup" "🧹"
 
 # Check if running as root or with sudo
-if [ "$EUID" -ne 0 ]; then 
+if [ "$EUID" -ne 0 ]; then
     echo -e "${RED}❌ This script must be run as root or with sudo${NC}"
     echo -e "${YELLOW}Usage: sudo ./scripts/pi-journal-cleanup.sh${NC}"
     exit 1
 fi
 
-echo -e "${BLUE}📊 Current journal status:${NC}"
+echo -e "${BLUE}ℹ️  Current journal status:${NC}"
 journalctl --disk-usage
 
-echo ""
-echo -e "${YELLOW}🧹 Step 1: Rotating journals...${NC}"
+steps_init 6
+
+step "Rotating journals"
 journalctl --rotate
 
-echo ""
-echo -e "${YELLOW}🗑️  Step 2: Removing corrupted/archived journals...${NC}"
-# Remove archived journals older than 1 day
+step "Removing corrupted/archived journals older than 1 day"
 journalctl --vacuum-time=1d
 
-echo ""
-echo -e "${YELLOW}💾 Step 3: Limiting journal size...${NC}"
-# Keep only 100MB of journals
+step "Limiting journal size to 100MB"
 journalctl --vacuum-size=100M
 
-echo ""
-echo -e "${YELLOW}🔍 Step 4: Verifying journal integrity...${NC}"
-journalctl --verify || {
-    echo -e "${YELLOW}⚠️  Some journal files have issues, removing them...${NC}"
+step "Verifying journal integrity"
+if ! journalctl --verify; then
+    echo -e "  ${YELLOW}⚠️  Some journal files have issues, removing them...${NC}"
     # If verification fails, remove all archived journals
     rm -f /var/log/journal/*/system@*.journal
-    echo -e "${GREEN}✓ Removed problematic journal files${NC}"
-}
+    echo -e "  ${GREEN}✓ Removed problematic journal files${NC}"
+fi
 
-echo ""
-echo -e "${YELLOW}⚙️  Step 5: Configuring journal limits...${NC}"
+step "Configuring journal limits"
 # Create or update journald configuration
 cat > /etc/systemd/journald.conf.d/00-journal-size.conf << 'EOF'
 [Journal]
@@ -58,17 +53,15 @@ Compress=yes
 # Sync to disk every 5 minutes (reduces SD card wear)
 SyncIntervalSec=5m
 EOF
+echo -e "  ${GREEN}✓ Journal configuration updated${NC}"
 
-echo -e "${GREEN}✓ Journal configuration updated${NC}"
-
-echo ""
-echo -e "${YELLOW}🔄 Step 6: Restarting systemd-journald...${NC}"
+step "Restarting systemd-journald"
 systemctl restart systemd-journald
 
+section "Summary" "🍽️"
+echo -e "  ${GREEN}✓ Journal cleanup complete!${NC}"
 echo ""
-echo -e "${GREEN}✅ Journal cleanup complete!${NC}"
-echo ""
-echo -e "${BLUE}📊 New journal status:${NC}"
+echo -e "${BLUE}ℹ️  New journal status:${NC}"
 journalctl --disk-usage
 
 echo ""
@@ -78,4 +71,3 @@ echo -e "   2. Consider adding a UPS or battery backup"
 echo -e "   3. Use 'sudo systemctl reboot' for reboots"
 echo ""
 echo -e "${GREEN}🎯 Journal is now clean and optimized for SD card longevity${NC}"
-

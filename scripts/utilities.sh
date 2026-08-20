@@ -161,26 +161,25 @@ ensure_podman_runtime() {
 # Clean podman/docker system
 clean_container_system() {
     local container_cmd=$1
-    
+
     if [ -z "$container_cmd" ]; then
         echo -e "${YELLOW}⚠️  No container runtime found${NC}"
         return 1
     fi
-    
-    echo -e "${YELLOW}🧹 Cleaning $container_cmd system...${NC}"
+
+    start_spinner "Cleaning $container_cmd system"
     $container_cmd system prune -f 2>/dev/null || true
     $container_cmd image prune -a -f 2>/dev/null || true
     $container_cmd builder prune -af 2>/dev/null || true
-    echo -e "${GREEN}✓ $container_cmd system cleaned${NC}"
+    stop_spinner ok
 }
 
 # Clean journal logs
 clean_journal_logs() {
     local size_limit=${1:-100M}
     local time_limit=${2:-7d}
-    
-    echo -e "${YELLOW}🧹 Cleaning systemd journal logs...${NC}"
-    
+
+    start_spinner "Cleaning systemd journal logs"
     if [ "$EUID" -ne 0 ]; then
         sudo journalctl --vacuum-size=$size_limit 2>/dev/null || true
         sudo journalctl --vacuum-time=$time_limit 2>/dev/null || true
@@ -188,37 +187,36 @@ clean_journal_logs() {
         journalctl --vacuum-size=$size_limit 2>/dev/null || true
         journalctl --vacuum-time=$time_limit 2>/dev/null || true
     fi
-    
-    echo -e "${GREEN}✓ Journal logs cleaned${NC}"
+    stop_spinner ok
 }
 
 # Clean package manager caches
 clean_package_caches() {
-    echo -e "${YELLOW}🧹 Cleaning package manager caches...${NC}"
-    
     # npm
     if command -v npm &> /dev/null; then
+        start_spinner "Clearing npm cache"
         npm cache clean --force 2>/dev/null || true
-        echo -e "  ${GREEN}✓ npm cache cleared${NC}"
+        stop_spinner ok
     fi
-    
+
     # pnpm
     if command -v pnpm &> /dev/null; then
+        start_spinner "Pruning pnpm store"
         pnpm store prune 2>/dev/null || true
-        echo -e "  ${GREEN}✓ pnpm store pruned${NC}"
+        stop_spinner ok
     fi
-    
+
     # yarn
     if command -v yarn &> /dev/null; then
+        start_spinner "Clearing yarn cache"
         yarn cache clean 2>/dev/null || true
-        echo -e "  ${GREEN}✓ yarn cache cleared${NC}"
+        stop_spinner ok
     fi
 }
 
 # Clean APT cache
 clean_apt_cache() {
-    echo -e "${YELLOW}🧹 Cleaning APT cache...${NC}"
-    
+    start_spinner "Cleaning APT cache"
     if [ "$EUID" -ne 0 ]; then
         sudo apt-get clean 2>/dev/null || true
         sudo apt-get autoremove -y 2>/dev/null || true
@@ -226,8 +224,7 @@ clean_apt_cache() {
         apt-get clean 2>/dev/null || true
         apt-get autoremove -y 2>/dev/null || true
     fi
-    
-    echo -e "${GREEN}✓ APT cache cleared${NC}"
+    stop_spinner ok
 }
 
 # Show container status
