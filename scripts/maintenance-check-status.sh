@@ -10,8 +10,6 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # shellcheck source=utilities.sh
 source "$SCRIPT_DIR/utilities.sh"
 
-MAGENTA='\033[0;35m'
-
 # Directories
 PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 LOG_DIR="$PROJECT_ROOT/data/maintenance-logs"
@@ -118,7 +116,7 @@ display_status() {
             echo -e "Status:    ${RED}❌ FAILED${NC}"
             ;;
         *)
-            echo -e "Status:    ${MAGENTA}Unknown: $status${NC}"
+            echo -e "Status:    ${YELLOW}⚠️  Unknown: $status${NC}"
             ;;
     esac
     
