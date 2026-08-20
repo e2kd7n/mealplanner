@@ -2,7 +2,7 @@
 
 ###############################################################################
 # Database Backup Setup Script
-# 
+#
 # This script automatically configures your environment for database backups
 # by detecting your current setup and creating the necessary configuration.
 #
@@ -15,89 +15,85 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # shellcheck source=utilities.sh
 source "$SCRIPT_DIR/utilities.sh"
 
-echo -e "${BLUE}========================================${NC}"
-echo -e "${BLUE}Database Backup Setup${NC}"
-echo -e "${BLUE}========================================${NC}"
-echo ""
+section "Database Backup Setup" "🗄️"
 
 # Step 1: Detect database configuration
-echo -e "${YELLOW}Step 1: Detecting database configuration...${NC}"
+section "Detecting Configuration" "🔍"
 
 # Check if using containerized database
 if podman ps | grep -q meals-postgres; then
-    echo -e "${GREEN}✓ Found Podman container: meals-postgres${NC}"
+    echo -e "  ${GREEN}✓${NC}  Found Podman container: meals-postgres"
     DB_TYPE="podman"
     DB_HOST="localhost"
     DB_PORT="5432"
     DB_NAME="meal_planner"
     DB_USER="mealplanner"
-    
+
     # Get password from secrets file
     if [ -f "secrets/postgres_password.txt" ]; then
         DB_PASSWORD=$(cat secrets/postgres_password.txt)
-        echo -e "${GREEN}✓ Found database password in secrets${NC}"
+        echo -e "  ${GREEN}✓${NC}  Found database password in secrets"
     else
-        echo -e "${RED}ERROR: secrets/postgres_password.txt not found${NC}"
+        echo -e "  ${RED}❌ secrets/postgres_password.txt not found${NC}"
         exit 1
     fi
 elif docker ps | grep -q meals-postgres 2>/dev/null; then
-    echo -e "${GREEN}✓ Found Docker container: meals-postgres${NC}"
+    echo -e "  ${GREEN}✓${NC}  Found Docker container: meals-postgres"
     DB_TYPE="docker"
     DB_HOST="localhost"
     DB_PORT="5432"
     DB_NAME="meal_planner"
     DB_USER="mealplanner"
-    
+
     # Get password from secrets file
     if [ -f "secrets/postgres_password.txt" ]; then
         DB_PASSWORD=$(cat secrets/postgres_password.txt)
-        echo -e "${GREEN}✓ Found database password in secrets${NC}"
+        echo -e "  ${GREEN}✓${NC}  Found database password in secrets"
     else
-        echo -e "${RED}ERROR: secrets/postgres_password.txt not found${NC}"
+        echo -e "  ${RED}❌ secrets/postgres_password.txt not found${NC}"
         exit 1
     fi
 else
-    echo -e "${YELLOW}No containerized database found, checking for local PostgreSQL...${NC}"
+    echo -e "  ${YELLOW}ℹ️  No containerized database found, checking for local PostgreSQL...${NC}"
     if pg_isready -q; then
-        echo -e "${GREEN}✓ Found local PostgreSQL${NC}"
+        echo -e "  ${GREEN}✓${NC}  Found local PostgreSQL"
         DB_TYPE="local"
         DB_HOST="localhost"
         DB_PORT="5432"
-        
+
         # Prompt for database details
-        read -p "Database name [mealplanner_prod]: " DB_NAME
+        read -p "  Database name [mealplanner_prod]: " DB_NAME
         DB_NAME=${DB_NAME:-mealplanner_prod}
-        
-        read -p "Database user [postgres]: " DB_USER
+
+        read -p "  Database user [postgres]: " DB_USER
         DB_USER=${DB_USER:-postgres}
-        
-        read -sp "Database password: " DB_PASSWORD
+
+        read -sp "  Database password: " DB_PASSWORD
         echo ""
     else
-        echo -e "${RED}ERROR: No database found!${NC}"
-        echo "Please start your database first:"
-        echo "  - For containers: podman-compose up -d postgres"
-        echo "  - For local: brew services start postgresql"
+        echo -e "  ${RED}❌ No database found!${NC}"
+        echo "  Please start your database first:"
+        echo "    - For containers: podman-compose up -d postgres"
+        echo "    - For local: brew services start postgresql"
         exit 1
     fi
 fi
 
 echo ""
-echo -e "${GREEN}Database Configuration:${NC}"
-echo -e "  Type: $DB_TYPE"
-echo -e "  Host: $DB_HOST"
-echo -e "  Port: $DB_PORT"
-echo -e "  Database: $DB_NAME"
-echo -e "  User: $DB_USER"
-echo ""
+echo -e "  ${BLUE}Database Configuration:${NC}"
+echo -e "    Type: $DB_TYPE"
+echo -e "    Host: $DB_HOST"
+echo -e "    Port: $DB_PORT"
+echo -e "    Database: $DB_NAME"
+echo -e "    User: $DB_USER"
 
 # Step 2: Create/Update .env file
-echo -e "${YELLOW}Step 2: Creating .env configuration...${NC}"
+section "Configuring .env" "🔐"
 
 # Backup existing .env if it exists
 if [ -f .env ]; then
     cp .env .env.backup.$(date +%Y%m%d_%H%M%S)
-    echo -e "${GREEN}✓ Backed up existing .env${NC}"
+    echo -e "  ${GREEN}✓${NC}  Backed up existing .env"
 fi
 
 # Create DATABASE_URL
@@ -113,90 +109,85 @@ if [ -f .env ] && grep -q "^DATABASE_URL=" .env; then
         # Linux
         sed -i "s|^DATABASE_URL=.*|DATABASE_URL=\"${DATABASE_URL}\"|" .env
     fi
-    echo -e "${GREEN}✓ Updated DATABASE_URL in .env${NC}"
+    echo -e "  ${GREEN}✓${NC}  Updated DATABASE_URL in .env"
 else
     # Add DATABASE_URL to .env
     if [ ! -f .env ]; then
         # Create new .env from example
         if [ -f .env.example ]; then
             cp .env.example .env
-            echo -e "${GREEN}✓ Created .env from .env.example${NC}"
+            echo -e "  ${GREEN}✓${NC}  Created .env from .env.example"
         else
             touch .env
-            echo -e "${GREEN}✓ Created new .env file${NC}"
+            echo -e "  ${GREEN}✓${NC}  Created new .env file"
         fi
     fi
-    
+
     # Add DATABASE_URL
     echo "" >> .env
     echo "# Database Configuration (added by setup-database-backup.sh)" >> .env
     echo "DATABASE_URL=\"${DATABASE_URL}\"" >> .env
-    echo -e "${GREEN}✓ Added DATABASE_URL to .env${NC}"
+    echo -e "  ${GREEN}✓${NC}  Added DATABASE_URL to .env"
 fi
 
 # Add POSTGRES_PASSWORD if not present
 if ! grep -q "^POSTGRES_PASSWORD=" .env; then
     echo "POSTGRES_PASSWORD=\"${DB_PASSWORD}\"" >> .env
-    echo -e "${GREEN}✓ Added POSTGRES_PASSWORD to .env${NC}"
+    echo -e "  ${GREEN}✓${NC}  Added POSTGRES_PASSWORD to .env"
 fi
 
-echo ""
-
 # Step 3: Test database connection
-echo -e "${YELLOW}Step 3: Testing database connection...${NC}"
+section "Testing Connection" "🔍"
 
+start_spinner "Testing database connection"
 if [ "$DB_TYPE" = "podman" ]; then
     if podman exec meals-postgres psql -U "$DB_USER" -d "$DB_NAME" -c "SELECT 1;" > /dev/null 2>&1; then
-        echo -e "${GREEN}✓ Database connection successful${NC}"
+        stop_spinner ok
     else
-        echo -e "${RED}ERROR: Cannot connect to database${NC}"
+        stop_spinner fail
+        echo -e "  ${RED}❌ Cannot connect to database${NC}"
         exit 1
     fi
 elif [ "$DB_TYPE" = "docker" ]; then
     if docker exec meals-postgres psql -U "$DB_USER" -d "$DB_NAME" -c "SELECT 1;" > /dev/null 2>&1; then
-        echo -e "${GREEN}✓ Database connection successful${NC}"
+        stop_spinner ok
     else
-        echo -e "${RED}ERROR: Cannot connect to database${NC}"
+        stop_spinner fail
+        echo -e "  ${RED}❌ Cannot connect to database${NC}"
         exit 1
     fi
 else
     if PGPASSWORD="$DB_PASSWORD" psql -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER" -d "$DB_NAME" -c "SELECT 1;" > /dev/null 2>&1; then
-        echo -e "${GREEN}✓ Database connection successful${NC}"
+        stop_spinner ok
     else
-        echo -e "${RED}ERROR: Cannot connect to database${NC}"
+        stop_spinner fail
+        echo -e "  ${RED}❌ Cannot connect to database${NC}"
         exit 1
     fi
 fi
 
-echo ""
-
 # Step 4: Create first backup
-echo -e "${YELLOW}Step 4: Creating your first backup...${NC}"
+section "First Backup" "🗄️"
 
 if ./scripts/pre-migration-backup.sh; then
-    echo -e "${GREEN}✓ First backup created successfully!${NC}"
+    echo -e "  ${GREEN}✓${NC}  First backup created successfully!"
 else
-    echo -e "${RED}ERROR: Backup failed${NC}"
-    echo "Please check the error messages above"
+    echo -e "  ${RED}❌ Backup failed${NC}"
+    echo "  Please check the error messages above"
     exit 1
 fi
 
+section "Summary" "🍽️"
+echo -e "  ${YELLOW}What was configured:${NC}"
+echo -e "    ✓ DATABASE_URL added to .env"
+echo -e "    ✓ POSTGRES_PASSWORD added to .env"
+echo -e "    ✓ Database connection tested"
+echo -e "    ✓ First backup created"
 echo ""
-echo -e "${GREEN}========================================${NC}"
-echo -e "${GREEN}Setup Complete!${NC}"
-echo -e "${GREEN}========================================${NC}"
+echo -e "  ${YELLOW}Next steps:${NC}"
+echo -e "    1. Run weekly backups: ${GREEN}./scripts/pre-migration-backup.sh${NC}"
+echo -e "    2. Before migrations: ${GREEN}./scripts/safe-migrate.sh${NC}"
+echo -e "    3. Follow maintenance checklist: ${GREEN}docs/releases/maintenance/WEEKLY_MAINTENANCE_CHECKLIST.md${NC}"
 echo ""
-echo -e "${YELLOW}What was configured:${NC}"
-echo -e "  ✓ DATABASE_URL added to .env"
-echo -e "  ✓ POSTGRES_PASSWORD added to .env"
-echo -e "  ✓ Database connection tested"
-echo -e "  ✓ First backup created"
+echo -e "  ${YELLOW}Your backups are stored in:${NC} ${GREEN}data/backups/${NC}"
 echo ""
-echo -e "${YELLOW}Next steps:${NC}"
-echo -e "  1. Run weekly backups: ${GREEN}./scripts/pre-migration-backup.sh${NC}"
-echo -e "  2. Before migrations: ${GREEN}./scripts/safe-migrate.sh${NC}"
-echo -e "  3. Follow maintenance checklist: ${GREEN}docs/releases/maintenance/WEEKLY_MAINTENANCE_CHECKLIST.md${NC}"
-echo ""
-echo -e "${YELLOW}Your backups are stored in:${NC} ${GREEN}data/backups/${NC}"
-echo ""
-

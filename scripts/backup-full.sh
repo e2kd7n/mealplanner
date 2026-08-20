@@ -39,10 +39,10 @@ POSTGRES_USER="${POSTGRES_USER:-mealplanner}"
 ZEROS=(p1 p2 p3 p4)
 
 log()  { echo -e "${GREEN}[$(date '+%H:%M:%S')] $1${NC}"; }
-warn() { echo -e "${YELLOW}[$(date '+%H:%M:%S')] $1${NC}"; }
-err()  { echo -e "${RED}[$(date '+%H:%M:%S')] ERROR: $1${NC}"; exit 1; }
+warn() { echo -e "${YELLOW}⚠️  [$(date '+%H:%M:%S')] $1${NC}"; }
+err()  { echo -e "${RED}✗ [$(date '+%H:%M:%S')] ERROR: $1${NC}"; exit 1; }
 
-section "Meal Planner Full Backup" "💾"
+section "Full System Backup" "🗄️"
 echo "Timestamp: $(date)"
 echo "Bundle:    ${BUNDLE}"
 echo ""
@@ -116,7 +116,7 @@ stop_spinner ok
 SQL_COPY="${OUTPUT_DIR}/database_${TIMESTAMP}.sql.gz"
 tar -xOzf "${BUNDLE}" "${BUNDLE_NAME}/database.sql.gz" > "${SQL_COPY}"
 
-section "Backup Complete" "✅"
+section "Summary" "🍽️"
 echo "Bundle:   ${BUNDLE} (${BUNDLE_SIZE})"
 echo "SQL dump: ${SQL_COPY}"
 echo ""
