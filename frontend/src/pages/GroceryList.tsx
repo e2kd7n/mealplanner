@@ -27,6 +27,7 @@ import {
   Collapse,
   Avatar,
   Skeleton,
+  Snackbar,
 } from '@mui/material';
 import {
   Delete as DeleteIcon,
@@ -115,6 +116,14 @@ const GroceryList: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [expandedCategories, setExpandedCategories] = useState<Record<string, boolean>>({});
+  const [snackbar, setSnackbar] = useState<{ open: boolean; message: string; severity: 'success' | 'error' }>({
+    open: false,
+    message: '',
+    severity: 'error',
+  });
+  const showSnackbar = (message: string, severity: 'success' | 'error') => {
+    setSnackbar({ open: true, message, severity });
+  };
 
   const fetchGroceryLists = async () => {
     try {
@@ -206,7 +215,7 @@ const GroceryList: React.FC = () => {
       });
     } catch (err) {
       if (import.meta.env.DEV) console.error('Error toggling item:', err);
-      alert('Failed to update item. Please try again.');
+      showSnackbar('Failed to update item. Please try again.', 'error');
     }
   };
 
@@ -230,7 +239,7 @@ const GroceryList: React.FC = () => {
       });
     } catch (err) {
       if (import.meta.env.DEV) console.error('Error deleting item:', err);
-      alert('Failed to delete item. Please try again.');
+      showSnackbar('Failed to delete item. Please try again.', 'error');
     }
   };
 
@@ -255,7 +264,7 @@ const GroceryList: React.FC = () => {
       });
     } catch (err) {
       if (import.meta.env.DEV) console.error('Error clearing checked items:', err);
-      alert('Failed to clear checked items. Please try again.');
+      showSnackbar('Failed to clear checked items. Please try again.', 'error');
     }
   };
 
@@ -544,6 +553,18 @@ const GroceryList: React.FC = () => {
         )}
       </Box>
       <ConfirmDialog {...confirmDialogProps} />
+
+      {/* Snackbar for notifications */}
+      <Snackbar
+        open={snackbar.open}
+        autoHideDuration={6000}
+        onClose={() => setSnackbar({ ...snackbar, open: false })}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+      >
+        <Alert onClose={() => setSnackbar({ ...snackbar, open: false })} severity={snackbar.severity} sx={{ width: '100%' }}>
+          {snackbar.message}
+        </Alert>
+      </Snackbar>
     </Container>
   );
 };

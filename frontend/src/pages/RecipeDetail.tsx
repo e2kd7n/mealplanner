@@ -36,6 +36,7 @@ import {
   FormControl,
   InputLabel,
   Skeleton,
+  Snackbar,
 } from '@mui/material';
 import {
   ArrowBack as ArrowBackIcon,
@@ -85,6 +86,16 @@ const RecipeDetail: React.FC = () => {
   const [openDeleteDialog, setOpenDeleteDialog] = useState(false);
   const [deleting, setDeleting] = useState(false);
 
+  // Snackbar notification state
+  const [snackbar, setSnackbar] = useState<{ open: boolean; message: string; severity: 'success' | 'error' | 'info' }>({
+    open: false,
+    message: '',
+    severity: 'success',
+  });
+  const showSnackbar = (message: string, severity: 'success' | 'error' | 'info') => {
+    setSnackbar({ open: true, message, severity });
+  };
+
   // Recipe scaling state
   const [scaledServings, setScaledServings] = useState<number>(recipe?.servings || 1);
 
@@ -132,14 +143,14 @@ const RecipeDetail: React.FC = () => {
         
         // If still no meal plans after fetching, user needs to go to meal planner
         if (!result || result.length === 0) {
-          alert('Please visit the Meal Planner to set up your weekly meal plan, then you can add recipes to it.');
-          navigate('/meal-planner');
+          showSnackbar('Please visit the Meal Planner to set up your weekly meal plan, then you can add recipes to it.', 'info');
+          setTimeout(() => navigate('/meal-planner'), 2000);
           return;
         }
       } catch (error) {
         if (import.meta.env.DEV) console.error('Failed to check meal plans:', error);
-        alert('Please visit the Meal Planner to set up your weekly meal plan.');
-        navigate('/meal-planner');
+        showSnackbar('Please visit the Meal Planner to set up your weekly meal plan.', 'info');
+        setTimeout(() => navigate('/meal-planner'), 2000);
         return;
       }
     }
@@ -171,10 +182,10 @@ const RecipeDetail: React.FC = () => {
       
       setOpenMealPlanDialog(false);
       setSelectedMealPlanId('');
-      alert(`Successfully added "${recipe.title}" to meal plan!`);
+      showSnackbar(`Successfully added "${recipe.title}" to meal plan!`, 'success');
     } catch (error: unknown) {
       if (import.meta.env.DEV) console.error('Failed to add to meal plan:', error);
-      alert(error instanceof Error ? error.message : 'Failed to add recipe to meal plan');
+      showSnackbar(error instanceof Error ? error.message : 'Failed to add recipe to meal plan', 'error');
     } finally {
       setAddingToMealPlan(false);
     }
@@ -182,8 +193,8 @@ const RecipeDetail: React.FC = () => {
 
   const handleAddToGroceryList = () => {
     if (groceryLists.length === 0) {
-      alert('No grocery lists found. Please create a meal plan first to generate a grocery list.');
-      navigate('/meal-planner');
+      showSnackbar('No grocery lists found. Please create a meal plan first to generate a grocery list.', 'info');
+      setTimeout(() => navigate('/meal-planner'), 2000);
       return;
     }
     setOpenGroceryDialog(true);
@@ -215,10 +226,10 @@ const RecipeDetail: React.FC = () => {
       
       setOpenGroceryDialog(false);
       setSelectedListId('');
-      alert(`Successfully added ${recipe.ingredients?.length || 0} ingredients to grocery list!`);
+      showSnackbar(`Successfully added ${recipe.ingredients?.length || 0} ingredients to grocery list!`, 'success');
     } catch (error: unknown) {
       if (import.meta.env.DEV) console.error('Failed to add ingredients:', error);
-      alert(error instanceof Error ? error.message : 'Failed to add ingredients to grocery list');
+      showSnackbar(error instanceof Error ? error.message : 'Failed to add ingredients to grocery list', 'error');
     } finally {
       setAddingToList(false);
     }
@@ -235,11 +246,11 @@ const RecipeDetail: React.FC = () => {
     try {
       await dispatch(deleteRecipe(recipe.id)).unwrap();
       setOpenDeleteDialog(false);
-      alert(`Successfully deleted "${recipe.title}"`);
-      navigate('/recipes');
+      showSnackbar(`Successfully deleted "${recipe.title}"`, 'success');
+      setTimeout(() => navigate('/recipes'), 1200);
     } catch (error: unknown) {
       if (import.meta.env.DEV) console.error('Failed to delete recipe:', error);
-      alert(error instanceof Error ? error.message : 'Failed to delete recipe');
+      showSnackbar(error instanceof Error ? error.message : 'Failed to delete recipe', 'error');
     } finally {
       setDeleting(false);
     }
@@ -847,6 +858,18 @@ const RecipeDetail: React.FC = () => {
           </Button>
         </DialogActions>
       </Dialog>
+
+      {/* Snackbar for notifications */}
+      <Snackbar
+        open={snackbar.open}
+        autoHideDuration={6000}
+        onClose={() => setSnackbar({ ...snackbar, open: false })}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+      >
+        <Alert onClose={() => setSnackbar({ ...snackbar, open: false })} severity={snackbar.severity} sx={{ width: '100%' }}>
+          {snackbar.message}
+        </Alert>
+      </Snackbar>
     </Container>
   );
 };
