@@ -2,7 +2,7 @@
 
 ###############################################################################
 # Pre-Migration Database Backup Script
-# 
+#
 # This script MUST be run before any database migration to prevent data loss.
 # It creates a timestamped backup and verifies it was successful.
 #
@@ -21,15 +21,15 @@ TIMESTAMP=$(date +%Y%m%d_%H%M%S)
 BACKUP_FILE="${BACKUP_DIR}/pre_migration_${TIMESTAMP}.sql.gz"
 ENV_FILE=".env"
 
-echo -e "${YELLOW}========================================${NC}"
-echo -e "${YELLOW}Pre-Migration Database Backup${NC}"
-echo -e "${YELLOW}========================================${NC}"
-echo ""
+section "Pre-Migration Backup" "🗄️"
+
+# ── Environment ──────────────────────────────────────────────────────────────
+section "Environment" "🔍"
 
 # Check if .env exists
 if [ ! -f "$ENV_FILE" ]; then
-    echo -e "${RED}ERROR: .env file not found!${NC}"
-    echo "Please create .env file with database credentials."
+    echo -e "  ${RED}❌ .env file not found${NC}"
+    echo "  Please create .env file with database credentials."
     exit 1
 fi
 
@@ -40,9 +40,9 @@ set +a
 
 # Check if DATABASE_URL is set
 if [ -z "$DATABASE_URL" ]; then
-    echo -e "${RED}ERROR: DATABASE_URL not set in .env${NC}"
-    echo "Please add DATABASE_URL to your .env file"
-    echo "Example: DATABASE_URL=postgresql://postgres:password@localhost:5432/mealplanner"
+    echo -e "  ${RED}❌ DATABASE_URL not set in .env${NC}"
+    echo "  Please add DATABASE_URL to your .env file"
+    echo "  Example: DATABASE_URL=postgresql://postgres:password@localhost:5432/mealplanner"
     exit 1
 fi
 
@@ -53,9 +53,8 @@ DB_HOST=$(echo $DATABASE_URL | sed -n 's/.*@\([^:]*\):.*/\1/p')
 DB_PORT=$(echo $DATABASE_URL | sed -n 's/.*:\([0-9]*\)\/.*/\1/p')
 DB_NAME=$(echo $DATABASE_URL | sed -n 's/.*\/\([^?]*\).*/\1/p')
 
-echo -e "${YELLOW}Database:${NC} $DB_NAME"
-echo -e "${YELLOW}Host:${NC} $DB_HOST:$DB_PORT"
-echo ""
+echo -e "  ${BLUE}ℹ️${NC}  Database: ${BOLD}${DB_NAME}${NC}"
+echo -e "  ${BLUE}ℹ️${NC}  Host: ${DB_HOST}:${DB_PORT}"
 
 # Create backup directory if it doesn't exist
 mkdir -p "$BACKUP_DIR"
@@ -65,35 +64,36 @@ CONTAINER_NAME=""
 if podman ps --format "{{.Names}}" 2>/dev/null | grep -q "meals-postgres"; then
     CONTAINER_NAME="meals-postgres"
     CONTAINER_CMD="podman"
-    echo -e "${GREEN}✓ Using Podman container: $CONTAINER_NAME${NC}"
+    echo -e "  ${GREEN}✓${NC}  Using Podman container: ${CONTAINER_NAME}"
 elif docker ps --format "{{.Names}}" 2>/dev/null | grep -q "meals-postgres"; then
     CONTAINER_NAME="meals-postgres"
     CONTAINER_CMD="docker"
-    echo -e "${GREEN}✓ Using Docker container: $CONTAINER_NAME${NC}"
+    echo -e "  ${GREEN}✓${NC}  Using Docker container: ${CONTAINER_NAME}"
 fi
 
 # Check if database is accessible
-echo -e "${YELLOW}Checking database connection...${NC}"
+start_spinner "Checking database connection"
 if [ -n "$CONTAINER_NAME" ]; then
     # Use container exec for connection test
     if ! $CONTAINER_CMD exec "$CONTAINER_NAME" psql -U "$DB_USER" -d "$DB_NAME" -c '\q' 2>/dev/null; then
-        echo -e "${RED}ERROR: Cannot connect to database!${NC}"
-        echo "Please check your database credentials and ensure the database is running."
+        stop_spinner fail
+        echo -e "  ${RED}❌ Cannot connect to database${NC}"
+        echo "  Please check your database credentials and ensure the database is running."
         exit 1
     fi
 else
     # Use direct connection for local database
     if ! PGPASSWORD=$POSTGRES_PASSWORD psql -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER" -d "$DB_NAME" -c '\q' 2>/dev/null; then
-        echo -e "${RED}ERROR: Cannot connect to database!${NC}"
-        echo "Please check your database credentials and ensure the database is running."
+        stop_spinner fail
+        echo -e "  ${RED}❌ Cannot connect to database${NC}"
+        echo "  Please check your database credentials and ensure the database is running."
         exit 1
     fi
 fi
-echo -e "${GREEN}✓ Database connection successful${NC}"
-echo ""
+stop_spinner ok
 
 # Count records before backup
-echo -e "${YELLOW}Counting records...${NC}"
+start_spinner "Counting records"
 if [ -n "$CONTAINER_NAME" ]; then
     USER_COUNT=$($CONTAINER_CMD exec "$CONTAINER_NAME" psql -U "$DB_USER" -d "$DB_NAME" -t -c "SELECT COUNT(*) FROM users;" 2>/dev/null | xargs)
     RECIPE_COUNT=$($CONTAINER_CMD exec "$CONTAINER_NAME" psql -U "$DB_USER" -d "$DB_NAME" -t -c "SELECT COUNT(*) FROM recipes;" 2>/dev/null | xargs)
@@ -101,39 +101,42 @@ else
     USER_COUNT=$(PGPASSWORD=$POSTGRES_PASSWORD psql -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER" -d "$DB_NAME" -t -c "SELECT COUNT(*) FROM users;" 2>/dev/null | xargs)
     RECIPE_COUNT=$(PGPASSWORD=$POSTGRES_PASSWORD psql -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER" -d "$DB_NAME" -t -c "SELECT COUNT(*) FROM recipes;" 2>/dev/null | xargs)
 fi
+stop_spinner ok
+echo -e "  ${DIM}Users: ${USER_COUNT}, Recipes: ${RECIPE_COUNT}${NC}"
 
-echo -e "${GREEN}✓ Users: $USER_COUNT${NC}"
-echo -e "${GREEN}✓ Recipes: $RECIPE_COUNT${NC}"
-echo ""
+# ── Backup ───────────────────────────────────────────────────────────────────
+section "Creating Backup" "🗄️"
+echo -e "  ${BLUE}ℹ️${NC}  Target file: ${BACKUP_FILE}"
 
-# Create backup
-echo -e "${YELLOW}Creating backup: $BACKUP_FILE${NC}"
+start_spinner "Dumping database"
+DUMP_STATUS=0
 if [ -n "$CONTAINER_NAME" ]; then
     # Use container exec for backup
-    $CONTAINER_CMD exec "$CONTAINER_NAME" pg_dump -U "$DB_USER" -d "$DB_NAME" --clean --if-exists | gzip > "$BACKUP_FILE"
+    $CONTAINER_CMD exec "$CONTAINER_NAME" pg_dump -U "$DB_USER" -d "$DB_NAME" --clean --if-exists | gzip > "$BACKUP_FILE" || DUMP_STATUS=$?
 else
     # Use direct connection for local database
-    PGPASSWORD=$POSTGRES_PASSWORD pg_dump -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER" -d "$DB_NAME" --clean --if-exists | gzip > "$BACKUP_FILE"
+    PGPASSWORD=$POSTGRES_PASSWORD pg_dump -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER" -d "$DB_NAME" --clean --if-exists | gzip > "$BACKUP_FILE" || DUMP_STATUS=$?
 fi
 
-if [ $? -eq 0 ]; then
+if [ "$DUMP_STATUS" -eq 0 ]; then
     BACKUP_SIZE=$(du -h "$BACKUP_FILE" | cut -f1)
-    echo -e "${GREEN}✓ Backup created successfully ($BACKUP_SIZE)${NC}"
+    stop_spinner ok
+    echo -e "  ${DIM}${BACKUP_SIZE}${NC}"
 else
-    echo -e "${RED}ERROR: Backup failed!${NC}"
+    stop_spinner fail
+    echo -e "  ${RED}❌ Backup failed${NC}"
     exit 1
 fi
-echo ""
 
 # Verify backup
-echo -e "${YELLOW}Verifying backup integrity...${NC}"
+start_spinner "Verifying backup integrity"
 if gunzip -t "$BACKUP_FILE" 2>/dev/null; then
-    echo -e "${GREEN}✓ Backup file is valid${NC}"
+    stop_spinner ok
 else
-    echo -e "${RED}ERROR: Backup file is corrupted!${NC}"
+    stop_spinner fail
+    echo -e "  ${RED}❌ Backup file is corrupted${NC}"
     exit 1
 fi
-echo ""
 
 # Create a restore instructions file
 RESTORE_INSTRUCTIONS="${BACKUP_DIR}/RESTORE_${TIMESTAMP}.txt"
@@ -156,13 +159,10 @@ Or manually:
 gunzip -c $BACKUP_FILE | PGPASSWORD=\$POSTGRES_PASSWORD psql -h $DB_HOST -p $DB_PORT -U $DB_USER -d $DB_NAME
 EOF
 
-echo -e "${GREEN}========================================${NC}"
-echo -e "${GREEN}Backup Complete!${NC}"
-echo -e "${GREEN}========================================${NC}"
+# Summary
+section "Summary" "🍽️"
+echo -e "  ${BLUE}Backup file:${NC} ${GREEN}$BACKUP_FILE${NC} ${DIM}(${BACKUP_SIZE})${NC}"
+echo -e "  ${BLUE}Restore instructions:${NC} ${GREEN}$RESTORE_INSTRUCTIONS${NC}"
 echo ""
-echo -e "Backup file: ${GREEN}$BACKUP_FILE${NC}"
-echo -e "Restore instructions: ${GREEN}$RESTORE_INSTRUCTIONS${NC}"
+echo -e "  ${YELLOW}⚠️  IMPORTANT:${NC} Keep this backup safe before proceeding with migration!"
 echo ""
-echo -e "${YELLOW}IMPORTANT:${NC} Keep this backup safe before proceeding with migration!"
-echo ""
-

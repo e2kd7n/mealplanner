@@ -12,7 +12,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # shellcheck source=utilities.sh
 source "$SCRIPT_DIR/utilities.sh"
 
-echo -e "${GREEN}📦 Re-extracting frontend static files from backend image...${NC}"
+section "Re-extract Frontend" "📦"
 
 # Check if podman is installed
 if ! command -v podman &> /dev/null; then
@@ -27,10 +27,13 @@ if ! podman images | grep -q "meals-backend"; then
     exit 1
 fi
 
-echo -e "${BLUE}ℹ️  Extracting from meals-backend:latest /app/public ...${NC}"
+start_spinner "Extracting from meals-backend:latest /app/public"
+extract_frontend_from_image >/dev/null
+FILE_COUNT=$(ls ./data/frontend-dist | wc -l)
+stop_spinner ok
+echo -e "  ${DIM}${FILE_COUNT} files → ./data/frontend-dist/${NC}"
 
-extract_frontend_from_image
-echo ""
+section "Summary" "🍽️"
 echo -e "${BLUE}📁 Extracted files:${NC}"
 ls ./data/frontend-dist
 echo ""

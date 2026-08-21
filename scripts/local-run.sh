@@ -208,43 +208,21 @@ check_port() {
     fi
 }
 
-start_spinner "Waiting for backend"
-waited=0
-while [[ $waited -lt 30 ]]; do
-    if check_port 3000; then
-        stop_spinner ok
-        break
-    fi
-    if [[ $waited -ge 28 ]]; then
-        stop_spinner fail
-        echo -e "${YELLOW}Backend logs:${NC}"
-        tail -20 backend.log
-        exit 1
-    fi
-    sleep 1
-    waited=$(( waited + 1 ))
-done
+if ! wait_for "Waiting for backend" 30 1 check_port 3000; then
+    echo -e "${YELLOW}Backend logs:${NC}"
+    tail -20 backend.log
+    exit 1
+fi
 
 echo -e "  ${CYAN}▸${NC} Starting frontend server..."
 (cd frontend && npm run dev > ../frontend.log 2>&1) &
 FRONTEND_PID=$!
 
-start_spinner "Waiting for frontend"
-waited=0
-while [[ $waited -lt 30 ]]; do
-    if check_port 5173; then
-        stop_spinner ok
-        break
-    fi
-    if [[ $waited -ge 28 ]]; then
-        stop_spinner fail
-        echo -e "${YELLOW}Frontend logs:${NC}"
-        tail -20 frontend.log
-        exit 1
-    fi
-    sleep 1
-    waited=$(( waited + 1 ))
-done
+if ! wait_for "Waiting for frontend" 30 1 check_port 5173; then
+    echo -e "${YELLOW}Frontend logs:${NC}"
+    tail -20 frontend.log
+    exit 1
+fi
 
 echo ""
 echo -e "${GREEN}✅ All services are running!${NC}"

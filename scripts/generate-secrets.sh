@@ -54,9 +54,7 @@ generate_secret_with_metadata() {
     local name=$1
     local length=$2
     local description=$3
-    
-    echo -e "${BLUE}Generating ${name}...${NC}"
-    
+
     # Generate the secret. openssl rand -base64 wraps output at 64 chars/line for
     # anything longer than that, and `cut -c1-N` truncates per line rather than
     # across the whole stream — without stripping newlines first, the embedded
@@ -91,8 +89,6 @@ EOF
     # maintenance routine — which never has filesystem access to $SECRETS_DIR —
     # can still tell when this secret is due for rotation.
     echo "${name}|$(date -u +"%Y-%m-%dT%H:%M:%SZ")|$(future_date 90)" >> "$ROTATION_MANIFEST"
-
-    echo -e "${GREEN}✓ Generated ${name} (${length} chars) with metadata and checksum${NC}"
 }
 
 # Function to write docs/SECRET_ROTATION_STATUS.json from the manifest built
@@ -121,8 +117,6 @@ write_rotation_status_file() {
         echo "  }"
         echo "}"
     } > "$ROTATION_STATUS_FILE"
-
-    echo -e "${GREEN}✓ Updated $ROTATION_STATUS_FILE (safe to commit — no secret values)${NC}"
 }
 
 # Function to backup existing secret as previous version
@@ -130,10 +124,8 @@ backup_as_previous() {
     local name=$1
     
     if [ -f "$SECRETS_DIR/${name}.txt" ]; then
-        echo -e "${YELLOW}Backing up current ${name} as previous version...${NC}"
         cp "$SECRETS_DIR/${name}.txt" "$SECRETS_DIR/${name}.txt.previous"
         chmod 600 "$SECRETS_DIR/${name}.txt.previous"
-        echo -e "${GREEN}✓ Previous version saved for rotation support${NC}"
     fi
 }
 
@@ -146,72 +138,87 @@ for arg in "$@"; do
     esac
 done
 
-echo -e "${GREEN}=== Meal Planner Secrets Generator - Enhanced Security Edition ===${NC}"
-echo ""
+section "Secrets Generator" "🔐"
+echo -e "  ${DIM}Enhanced Security Edition — metadata + integrity checksums${NC}"
 
 # Check if secrets directory exists
 if [ -d "$SECRETS_DIR" ]; then
+    section "Existing Secrets" "🔐"
+
+    existing_files=("$SECRETS_DIR"/*.txt)
+    existing_count=0
+    [ -e "${existing_files[0]}" ] && existing_count=${#existing_files[@]}
+    echo -e "  ${YELLOW}⚠️  ${existing_count} existing secret file(s) in ${SECRETS_DIR}/ will be regenerated and overwritten:${NC}"
+    for f in "${existing_files[@]}"; do
+        [ -f "$f" ] && echo -e "     ${DIM}- $(basename "$f")${NC}"
+    done
+    echo -e "  ${DIM}(a full timestamped backup of ${SECRETS_DIR}/ is taken first)${NC}"
+    echo ""
+
     if [ "$NON_INTERACTIVE" = true ]; then
-        echo -e "${YELLOW}Secrets directory already exists — regenerating (--yes passed, no prompt).${NC}"
+        echo -e "  ${BLUE}ℹ️  --yes passed — regenerating without prompting.${NC}"
     else
-        echo -e "${YELLOW}Warning: Secrets directory already exists.${NC}"
-        read -p "Do you want to regenerate all secrets? This will overwrite existing secrets. (y/N): " -n 1 -r
+        read -p "  $(echo -e "${RED}Regenerate all secrets now? This overwrites the files above. [y/N]:${NC}") " -n 1 -r
         echo
         if [[ ! $REPLY =~ ^[Yy]$ ]]; then
-            echo -e "${RED}Aborted. No secrets were changed.${NC}"
+            echo -e "  ${RED}✗${NC}  Aborted. No secrets were changed."
             exit 1
         fi
     fi
+    echo ""
 
-    # Create timestamped backup
-    echo -e "${YELLOW}Creating timestamped backup of existing secrets...${NC}"
+    start_spinner "Backing up existing secrets directory"
     backup_dir="${SECRETS_DIR}.backup.$(date +%Y%m%d_%H%M%S)"
     cp -r "$SECRETS_DIR" "$backup_dir"
-    echo -e "${GREEN}✓ Backup created: ${backup_dir}${NC}"
+    stop_spinner ok
+    echo -e "  ${DIM}${backup_dir}${NC}"
     echo ""
-    
-    # Backup current secrets as previous versions for rotation support
-    echo -e "${BLUE}Preparing for secret rotation...${NC}"
+
+    start_spinner "Preparing previous versions for rotation support"
     backup_as_previous "postgres_password"
     backup_as_previous "jwt_secret"
     backup_as_previous "jwt_refresh_secret"
     backup_as_previous "session_secret"
     backup_as_previous "redis_password"
-    echo ""
+    stop_spinner ok
 fi
 
 # Create secrets directory
 mkdir -p "$SECRETS_DIR"
 chmod 700 "$SECRETS_DIR"
 
-echo -e "${GREEN}Generating secure secrets with metadata and integrity checksums...${NC}"
-echo ""
+section "Generating Secrets" "🔐"
 
-# Generate PostgreSQL password
+start_spinner "postgres_password — PostgreSQL database password (32 chars)"
 generate_secret_with_metadata "postgres_password" 32 "PostgreSQL database password"
+stop_spinner ok
 
-# Generate JWT secret
+start_spinner "jwt_secret — JWT access token signing secret (64 chars)"
 generate_secret_with_metadata "jwt_secret" 64 "JWT access token signing secret"
+stop_spinner ok
 
-# Generate JWT refresh secret
+start_spinner "jwt_refresh_secret — JWT refresh token signing secret (64 chars)"
 generate_secret_with_metadata "jwt_refresh_secret" 64 "JWT refresh token signing secret"
+stop_spinner ok
 
-# Generate session secret (also used as the CSRF token HMAC secret)
+start_spinner "session_secret — Session / CSRF signing secret (48 chars)"
 generate_secret_with_metadata "session_secret" 48 "Session / CSRF signing secret"
+stop_spinner ok
 
-# Generate Redis password (required for Pi production compose)
+start_spinner "redis_password — Redis authentication password (32 chars)"
 generate_secret_with_metadata "redis_password" 32 "Redis authentication password"
+stop_spinner ok
 
+start_spinner "Writing rotation status file"
 write_rotation_status_file
+stop_spinner ok
+echo -e "  ${DIM}$ROTATION_STATUS_FILE (safe to commit — no secret values)${NC}"
 
 echo ""
-echo -e "${GREEN}✓ All secrets generated successfully!${NC}"
-echo -e "${YELLOW}⚠ Secrets are stored in: $SECRETS_DIR${NC}"
-echo -e "${YELLOW}⚠ These files contain sensitive data and should NEVER be committed to version control${NC}"
-echo ""
+echo -e "  ${GREEN}✓${NC}  All secrets generated successfully."
+echo -e "  ${YELLOW}⚠️  Stored in ${SECRETS_DIR} — these files contain sensitive data and must NEVER be committed.${NC}"
 
-# Display secret information
-echo -e "${BLUE}=== Secret Information ===${NC}"
+section "Secret Details" "🔐"
 for secret_file in "$SECRETS_DIR"/*.txt; do
     if [ -f "$secret_file" ]; then
         secret_name=$(basename "$secret_file" .txt)
@@ -220,18 +227,18 @@ for secret_file in "$SECRETS_DIR"/*.txt; do
             checksum_file="${secret_file}.sha256"
             metadata_file="${secret_file}.metadata"
             
-            echo -e "${GREEN}${secret_name}:${NC}"
-            echo -e "  Length: ${secret_length} characters"
-            
+            echo -e "  ${GREEN}✓${NC} ${BOLD}${secret_name}${NC}"
+            echo -e "     Length: ${secret_length} characters"
+
             if [ -f "$checksum_file" ]; then
                 checksum=$(cat "$checksum_file")
-                echo -e "  Checksum: ${checksum:0:16}..."
+                echo -e "     Checksum: ${DIM}${checksum:0:16}...${NC}"
             fi
-            
+
             if [ -f "$metadata_file" ]; then
                 rotation_due=$(grep -o '"rotationDue": "[^"]*"' "$metadata_file" | cut -d'"' -f4)
                 if [ "$rotation_due" != "null" ]; then
-                    echo -e "  Rotation Due: ${rotation_due}"
+                    echo -e "     Rotation due: ${rotation_due}"
                 fi
             fi
             echo ""
@@ -240,9 +247,9 @@ for secret_file in "$SECRETS_DIR"/*.txt; do
 done
 
 # Create .env file with references to secrets (for local development)
+section "Environment File" "🔐"
 ENV_FILE="./backend/.env"
 if [ ! -f "$ENV_FILE" ]; then
-    echo -e "${GREEN}Creating backend/.env file with secret references...${NC}"
     cat > "$ENV_FILE" << 'EOF'
 # Backend Environment Variables
 # Generated by generate-secrets.sh - Enhanced Security Edition
@@ -301,33 +308,31 @@ PASSWORD_MIN_LOWERCASE=1
 PASSWORD_MIN_NUMBERS=1
 PASSWORD_MIN_SPECIAL=1
 EOF
-    echo -e "${GREEN}✓ Created backend/.env file${NC}"
+    echo -e "  ${GREEN}✓${NC}  Created backend/.env file"
 else
-    echo -e "${YELLOW}⚠ backend/.env already exists. Skipping creation.${NC}"
-    echo -e "${YELLOW}  You may need to manually update it to reference the new secrets.${NC}"
+    echo -e "  ${YELLOW}⚠️  backend/.env already exists — skipped.${NC}"
+    echo -e "     You may need to manually update it to reference the new secrets."
 fi
 
+section "Summary" "🍽️"
+echo -e "  ${BOLD}Next steps:${NC}"
+echo -e "    1. Review the generated secrets in: ${YELLOW}$SECRETS_DIR${NC}"
+echo -e "    2. Start your services with: ${YELLOW}podman-compose up -d${NC}"
+echo -e "    3. For local development without containers, manually set environment variables from secrets files"
+echo -e "    4. Commit the updated rotation status file: ${YELLOW}git add docs/SECRET_ROTATION_STATUS.json && git commit -m 'chore: record secret rotation'${NC}"
 echo ""
-echo -e "${GREEN}=== Setup Complete ===${NC}"
+echo -e "  ${BLUE}Security features:${NC}"
+echo -e "    ${GREEN}✓${NC} Cryptographically secure random generation"
+echo -e "    ${GREEN}✓${NC} SHA-256 integrity checksums"
+echo -e "    ${GREEN}✓${NC} Metadata with expiration tracking"
+echo -e "    ${GREEN}✓${NC} Previous version backup for rotation support"
+echo -e "    ${GREEN}✓${NC} Timestamped backups of old secrets"
 echo ""
-echo -e "Next steps:"
-echo -e "1. Review the generated secrets in: ${YELLOW}$SECRETS_DIR${NC}"
-echo -e "2. Start your services with: ${YELLOW}podman-compose up -d${NC}"
-echo -e "3. For local development without containers, manually set environment variables from secrets files"
-echo -e "4. Commit the updated rotation status file: ${YELLOW}git add docs/SECRET_ROTATION_STATUS.json && git commit -m 'chore: record secret rotation'${NC}"
+echo -e "  ${YELLOW}Security reminders:${NC}"
+echo -e "    • Rotate secrets every 90 days (tracked in metadata)"
+echo -e "    • Never commit secrets to version control"
+echo -e "    • Use different secrets for each environment"
+echo -e "    • Keep backups encrypted and secure"
 echo ""
-echo -e "${BLUE}Security Features:${NC}"
-echo -e "  ✓ Cryptographically secure random generation"
-echo -e "  ✓ SHA-256 integrity checksums"
-echo -e "  ✓ Metadata with expiration tracking"
-echo -e "  ✓ Previous version backup for rotation support"
-echo -e "  ✓ Timestamped backups of old secrets"
-echo ""
-echo -e "${YELLOW}Security Reminders:${NC}"
-echo -e "  • Rotate secrets every 90 days (tracked in metadata)"
-echo -e "  • Never commit secrets to version control"
-echo -e "  • Use different secrets for each environment"
-echo -e "  • Keep backups encrypted and secure"
-echo ""
-echo -e "${RED}IMPORTANT: Add '$SECRETS_DIR/' to your .gitignore if not already present!${NC}"
+echo -e "  ${RED}⚠️  IMPORTANT: Add '$SECRETS_DIR/' to your .gitignore if not already present!${NC}"
 

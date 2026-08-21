@@ -29,7 +29,7 @@ if [ -f /proc/device-tree/model ]; then
     fi
 fi
 
-echo "🏗️  Building container images for Raspberry Pi..."
+section "Build for Pi" "📦"
 
 # Detect macOS and block with clear instructions
 if [[ "$OSTYPE" == "darwin"* ]]; then
@@ -67,6 +67,8 @@ if [[ "$OSTYPE" == "darwin"* ]]; then
     echo -e "${YELLOW}⚠️  Images may have compatibility issues on Raspberry Pi${NC}"
     echo ""
 fi
+
+section "Pre-flight Check" "🔍"
 
 # Check if podman or docker is available
 if command -v podman &> /dev/null; then

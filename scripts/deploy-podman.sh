@@ -18,8 +18,10 @@ if [ "$OS" = "pi" ]; then
     exit 1
 fi
 
+section "Deploy (Container Mode)" "🚀"
 echo -e "${BLUE}🖥️  Platform: $OS ($ARCH)${NC}"
-echo "🚀 Starting Meal Planner in container mode (port 8080)..."
+
+section "Pre-flight Check" "🔍"
 
 # ── Prerequisites ────────────────────────────────────────────────────────────
 
@@ -69,6 +71,8 @@ elif [ "$DISK_USAGE" -gt "$DISK_WARNING" ]; then
     [[ $REPLY =~ ^[Yy]$ ]] || exit 1
 fi
 
+section "Starting Services" "🚀"
+
 # ── Tear down existing containers ─────────────────────────────────────────────
 
 echo -e "${YELLOW}🛑 Stopping existing containers...${NC}"
@@ -81,7 +85,7 @@ podman container prune -f 2>/dev/null || true
 echo -e "${GREEN}🚀 Starting services (podman-compose.yml)...${NC}"
 podman-compose -f podman-compose.yml up -d
 
-section "Waiting for Services" "⏲️"
+section "Health Checks" "🩺"
 
 if ! wait_for "PostgreSQL starting up" 60 2 \
         podman exec meals-postgres pg_isready -U mealplanner -d meal_planner; then
@@ -99,16 +103,22 @@ fi
 
 # ── Run migrations ────────────────────────────────────────────────────────────
 
-echo -e "${GREEN}🔄 Running database migrations...${NC}"
-if ! podman exec meals-backend sh -c "cd /app && npx prisma migrate deploy"; then
-    echo -e "${RED}❌ Migration failed${NC}"
+section "Migrations" "🗄️"
+
+start_spinner "Running database migrations"
+if podman exec meals-backend sh -c "cd /app && npx prisma migrate deploy" >/tmp/deploy-podman-migrate.log 2>&1; then
+    stop_spinner ok
+else
+    stop_spinner fail
+    cat /tmp/deploy-podman-migrate.log
     podman logs meals-backend --tail=100
     exit 1
 fi
 
 # ── Status ────────────────────────────────────────────────────────────────────
 
-echo ""
+section "Status" "🩺"
+
 echo -e "${GREEN}📊 Container status:${NC}"
 podman ps --filter "name=meals-"
 
@@ -146,9 +156,7 @@ esac
 
 # ── Summary ───────────────────────────────────────────────────────────────────
 
-echo ""
-echo "═══════════════════════════════════════════════════════════════"
-echo ""
+section "Summary" "🍽️"
 
 if [ -f "./scripts/check-deployment-mode.sh" ]; then
     bash ./scripts/check-deployment-mode.sh

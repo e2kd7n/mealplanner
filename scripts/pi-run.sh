@@ -47,6 +47,25 @@ fi
 # Zero W deployment helpers
 # ---------------------------------------------------------------------------
 
+# Single-shot health probe used by wait_for below — returns 0 once the Zero
+# W's backend answers 200 on its local /health endpoint.
+# Usage: _zero_health_ok <ip> "<ssh_opts>"
+_zero_health_ok() {
+    local ip="$1"
+    local ssh_opts="$2"
+    # shellcheck disable=SC2086
+    ssh $ssh_opts "${ZERO_USER}@${ip}" \
+            'curl -s -o /dev/null -w "%{http_code}" --max-time 5 http://127.0.0.1:3001/health' \
+            2>/dev/null | grep -q "200"
+}
+
+# Returns 0 once the Pi 4B's backend container is running (used by wait_for
+# after `podman-compose up -d`, which returns as soon as containers launch —
+# not once they're actually up).
+_pi_backend_running() {
+    podman ps | grep -q "meals-backend"
+}
+
 deploy_to_zero() {
     local ip="$1"
     local slot="$2"
@@ -223,23 +242,8 @@ UNITEOF
     # client, DB connection, etc. on constrained ARMv6) — poll instead of a
     # single early check, which would misreport a healthy-but-slow start as
     # failed.
-    echo -e "    Waiting for p${slot} to become healthy (can take ~2 minutes)..."
-    local waited=0
-    local healthy=false
-    while [ "$waited" -lt 150 ]; do
-        if ssh $ssh_opts "${ZERO_USER}@${ip}" \
-                'curl -s -o /dev/null -w "%{http_code}" --max-time 5 http://127.0.0.1:3001/health' \
-                2>/dev/null | grep -q "200"; then
-            healthy=true
-            break
-        fi
-        sleep 5
-        waited=$((waited + 5))
-    done
-
-    if [ "$healthy" = true ]; then
-        echo -e "    ${GREEN}✓ p${slot} backend healthy (${waited}s)${NC}"
-    else
+    if ! wait_for "Waiting for p${slot} to become healthy (up to 150s)" 150 5 \
+            _zero_health_ok "$ip" "$ssh_opts"; then
         echo -e "    ${YELLOW}⚠  p${slot} backend did not become healthy within 150s${NC}"
         echo -e "    Check: ssh ${ZERO_USER}@${ip} 'journalctl -u mealplanner -n 50'"
     fi
@@ -349,11 +353,11 @@ deploy_zeros() {
 # Main
 # ---------------------------------------------------------------------------
 
-echo "🚀 Starting Meal Planner on Raspberry Pi..."
+section "Starting Meal Planner" "🚀"
 
 # --zeros-only: skip container management and deploy straight to Zero W nodes
 if [ "$ZEROS_ONLY" = true ]; then
-    echo -e "${BLUE}🎛️  Zero W deploy-only mode${NC}"
+    section "Zero W Deploy-Only Mode" "🌐"
 
     if [ ! -d "backend/dist" ]; then
         echo -e "${YELLOW}backend/dist not found — extracting from running container...${NC}"
@@ -383,6 +387,8 @@ if [ "$ZEROS_ONLY" = true ]; then
     deploy_zeros
     exit 0
 fi
+
+section "Pre-flight Check" "🔍"
 
 # Always ensure meals-network exists — podman-compose does not auto-create it
 # reliably across all versions; pre-creating is idempotent and safe.
@@ -448,10 +454,11 @@ if [ ! -f "./data/frontend-dist/index.html" ]; then
     exit 1
 fi
 
+section "Compose Configuration" "🌐"
+
 COMPOSE_FILES="-f podman-compose.pi.yml"
 
 if [ "$CLUSTERHAT" = true ]; then
-    echo ""
     echo -e "${BLUE}🎛️  ClusterHAT mode${NC}"
 
     if ! command -v clusterctrl &>/dev/null; then
@@ -491,14 +498,14 @@ if [ "$CLUSTERHAT" = true ]; then
 fi
 
 # Start Pi 4B services
-echo ""
-echo -e "${GREEN}🚀 Starting services...${NC}"
+section "Starting Services" "🚀"
 # shellcheck disable=SC2086
 podman-compose $COMPOSE_FILES up -d
 
-start_spinner "Waiting for services to start..."
-sleep 10
-stop_spinner ok
+# podman-compose up -d returns as soon as containers launch, not once they're
+# actually running — poll instead of a blind sleep so a slow start doesn't
+# get misreported and a fast one doesn't wait longer than it has to.
+wait_for "Waiting for services to start" 60 3 _pi_backend_running || true
 
 echo ""
 echo -e "${GREEN}📊 Service status:${NC}"
@@ -506,27 +513,23 @@ podman-compose -f podman-compose.pi.yml ps
 
 if podman ps | grep -q "meals-backend"; then
     if [ "$CLUSTERHAT" = true ] && [ ${#REACHABLE_ZEROS[@]} -gt 0 ]; then
-        echo ""
-        echo -e "${BLUE}🎛️  Deploying backend to Zero W nodes...${NC}"
+        section "Zero W Deployment" "🌐"
         deploy_zeros
     fi
 
     if command -v glances &>/dev/null; then
-        echo ""
-        echo -e "${BLUE}📊 Starting monitoring...${NC}"
+        section "Monitoring" "🩺"
         GLANCES_ARGS=""
         [ "$CLUSTERHAT" = true ] && GLANCES_ARGS="--clusterhat"
         # shellcheck disable=SC2086
         bash ./scripts/start-glances.sh $GLANCES_ARGS
     fi
 
-    echo ""
+    section "Summary" "🍽️"
     echo -e "${GREEN}✅ Application started successfully!${NC}"
     bash "$SCRIPT_DIR/send-notification.sh" high "Mealplanner Started" \
         "Services up on $(hostname -s 2>/dev/null || echo Pi)${CLUSTERHAT:+ — ${#REACHABLE_ZEROS[@]}/4 Zero W nodes online}" \
         "white_check_mark,rocket" || true
-    echo ""
-    echo "═══════════════════════════════════════════════════════════════"
     echo ""
 
     if [ -f "./scripts/check-deployment-mode.sh" ]; then

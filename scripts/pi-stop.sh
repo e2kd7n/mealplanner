@@ -8,7 +8,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # shellcheck source=utilities.sh
 source "$SCRIPT_DIR/utilities.sh"
 
-echo "🛑 Stopping Meal Planner on Raspberry Pi..."
+section "Stop Meal Planner" "🛑"
 
 # Check if podman-compose is installed
 if ! command -v podman-compose &> /dev/null; then
@@ -20,13 +20,13 @@ fi
 if ! podman ps | grep -q "meals-"; then
     echo -e "${YELLOW}⚠️  No containers are currently running${NC}"
     echo ""
-    echo -e "${BLUE}Container status:${NC}"
+    echo -e "${BLUE}ℹ️  Container status:${NC}"
     podman-compose -f podman-compose.pi.yml ps
     exit 0
 fi
 
 # Show what's running before stopping
-echo -e "${BLUE}Currently running containers:${NC}"
+echo -e "${BLUE}ℹ️  Currently running containers:${NC}"
 podman ps --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}" | grep meals
 
 echo ""
@@ -42,17 +42,17 @@ COMPOSE_FILES=$(clusterhat_compose_files)
 podman-compose $COMPOSE_FILES down
 
 # Verify containers are stopped
-echo ""
+section "Summary" "🍽️"
+
 if podman ps | grep -q "meals-"; then
     echo -e "${RED}❌ Some containers are still running${NC}"
     podman ps | grep meals
     exit 1
 else
-    echo -e "${GREEN}✅ All services stopped successfully${NC}"
+    echo -e "  ${GREEN}✓${NC}  All services stopped successfully"
     echo ""
-    echo -e "${BLUE}Container status:${NC}"
+    echo -e "${BLUE}ℹ️  Container status:${NC}"
     podman-compose -f podman-compose.pi.yml ps
     echo ""
     echo -e "${BLUE}To start again: ./scripts/pi-run.sh${NC}"
 fi
-

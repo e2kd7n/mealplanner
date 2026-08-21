@@ -5,12 +5,15 @@
 
 set -e
 
-echo "Creating GitHub issues from feedback analysis..."
-echo ""
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# shellcheck source=utilities.sh
+source "$SCRIPT_DIR/utilities.sh"
+
+section "Creating Issues" "📋"
 
 # Issue 1: Critical - GroceryList React Hooks Error
-echo "Creating Issue 1: Fix GroceryList React Hooks Error..."
-gh issue create \
+start_spinner "Creating Issue 1: Fix GroceryList React Hooks Error"
+if ISSUE_URL=$(gh issue create \
   --title "🐛 [P0] Fix React Hooks error in GroceryList component" \
   --label "bug,P0-critical,error-recovery,data-loss-prevention" \
   --body "## Problem
@@ -64,14 +67,18 @@ This error typically occurs when:
 - User Rating: 1/5 (both reports)
 
 ## Priority Justification
-P0 because this completely blocks a core feature (grocery list management) for all users."
-
-echo "✓ Issue 1 created"
-echo ""
+P0 because this completely blocks a core feature (grocery list management) for all users." 2>&1); then
+  stop_spinner ok
+  echo -e "  ${DIM}${ISSUE_URL}${NC}"
+else
+  stop_spinner fail
+  echo -e "  ${RED}${ISSUE_URL}${NC}"
+  exit 1
+fi
 
 # Issue 2: Recipe Import UX Improvements
-echo "Creating Issue 2: Recipe Import UX Improvements..."
-gh issue create \
+start_spinner "Creating Issue 2: Recipe Import UX Improvements"
+if ISSUE_URL=$(gh issue create \
   --title "💡 Improve Recipe Import/Create UX - Keep import button visible" \
   --label "enhancement,design,P2-medium" \
   --body "## User Feedback
@@ -108,14 +115,18 @@ These could be separate feature requests.
 - [ ] User can import recipes from any recipe view
 
 ## Related Feedback
-- Feedback ID: a1376c43-516b-4f36-8cf6-92d8579b7014"
-
-echo "✓ Issue 2 created"
-echo ""
+- Feedback ID: a1376c43-516b-4f36-8cf6-92d8579b7014" 2>&1); then
+  stop_spinner ok
+  echo -e "  ${DIM}${ISSUE_URL}${NC}"
+else
+  stop_spinner fail
+  echo -e "  ${RED}${ISSUE_URL}${NC}"
+  exit 1
+fi
 
 # Issue 3: Recipe Photo/PDF Upload Feature
-echo "Creating Issue 3: Recipe Photo/PDF Upload Feature..."
-gh issue create \
+start_spinner "Creating Issue 3: Recipe Photo/PDF Upload Feature"
+if ISSUE_URL=$(gh issue create \
   --title "✨ Add photo capture and PDF upload for recipe creation" \
   --label "enhancement,P3-low" \
   --body "## Feature Request
@@ -177,20 +188,19 @@ Users want to digitize physical recipe cards and documents by:
 - Feedback ID: a1376c43-516b-4f36-8cf6-92d8579b7014
 
 ## Priority
-Medium - Nice to have feature that improves user experience but not blocking core functionality."
+Medium - Nice to have feature that improves user experience but not blocking core functionality." 2>&1); then
+  stop_spinner ok
+  echo -e "  ${DIM}${ISSUE_URL}${NC}"
+else
+  stop_spinner fail
+  echo -e "  ${RED}${ISSUE_URL}${NC}"
+  exit 1
+fi
 
-echo "✓ Issue 3 created"
+section "Summary" "🍽️"
+echo -e "  ${GREEN}✓${NC} Issue 1: [P0] Fix GroceryList React Hooks Error (Critical Bug)"
+echo -e "  ${GREEN}✓${NC} Issue 2: Improve Recipe Import UX (Enhancement)"
+echo -e "  ${GREEN}✓${NC} Issue 3: Add Photo/PDF Upload for Recipes (Feature)"
 echo ""
-
-echo "=========================================="
-echo "GitHub Issues Created Successfully!"
-echo "=========================================="
+echo -e "  ${DIM}ℹ️  Test feedback entries were filtered out and not converted to issues.${NC}"
 echo ""
-echo "Summary:"
-echo "- Issue 1: [P0] Fix GroceryList React Hooks Error (Critical Bug)"
-echo "- Issue 2: Improve Recipe Import UX (Enhancement)"
-echo "- Issue 3: Add Photo/PDF Upload for Recipes (Feature)"
-echo ""
-echo "Note: Test feedback entries were filtered out and not converted to issues."
-echo ""
-

@@ -17,36 +17,33 @@ for arg in "$@"; do
     esac
 done
 
-log()  { echo -e "${GREEN}[$(date '+%H:%M:%S')] $1${NC}"; }
-warn() { echo -e "${YELLOW}[$(date '+%H:%M:%S')] $1${NC}"; }
+section "Start Glances" "🩺"
 
 if ! command -v glances &>/dev/null; then
-    warn "Glances not installed — run ./scripts/install-glances.sh first"
+    echo -e "  ${YELLOW}⚠️  Glances not installed — run ./scripts/install-glances.sh first${NC}"
     exit 0
 fi
 
-log "Starting Glances on Pi 4B..."
+start_spinner "Starting Glances on Pi 4B"
 if systemctl is-active --quiet glances 2>/dev/null; then
     sudo systemctl restart glances
 else
     sudo systemctl start glances
 fi
-log "✓ Pi 4B monitoring active"
+stop_spinner ok
 
 if [ "$CLUSTERHAT" = true ]; then
-    echo ""
-    log "Starting Glances on Zero W nodes..."
+    section "Starting on Zero W Nodes" "🌐"
     for zero in "${ZEROS[@]}"; do
         if ! ssh -o ConnectTimeout=5 -o BatchMode=yes pi@"$zero" true 2>/dev/null; then
-            warn "  ${zero}: unreachable — skipping"
+            echo -e "  ${YELLOW}⚠️  ${zero}: unreachable — skipping${NC}"
             continue
         fi
         if ssh -o BatchMode=yes pi@"$zero" \
                 'sudo systemctl restart glances 2>/dev/null || sudo systemctl start glances' 2>/dev/null; then
-            log "  ✓ ${zero}"
+            echo -e "  ${GREEN}✓${NC}  ${zero}"
         else
-            warn "  ${zero}: glances not installed — run ./scripts/install-glances.sh --clusterhat"
+            echo -e "  ${YELLOW}⚠️  ${zero}: glances not installed — run ./scripts/install-glances.sh --clusterhat${NC}"
         fi
     done
 fi
-

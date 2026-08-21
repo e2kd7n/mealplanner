@@ -94,7 +94,12 @@ of independent ones:
 | Cleanup | 🧹 |
 | Network / cluster | 🌐 |
 | Health / diagnostics | 🩺 |
-| Summary / done | 🍽️ (the app's own mark — reserve this one for final summaries) |
+| Codemod / batch source edit | ✏️ |
+| Stop / shutdown services | 🛑 |
+| Issue listing / report generation | 📋 |
+| Notifications | 🔔 |
+| Test suite / test run | 🧪 |
+| Summary / done | 🍽️ (the app's own mark — reserve this one for final summaries, or a script's own top-level title banner) |
 
 If a script needs an emoji not listed here, add it to this table in the same PR rather
 than inventing a one-off.

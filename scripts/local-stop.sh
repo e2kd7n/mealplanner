@@ -13,37 +13,49 @@ source "$SCRIPT_DIR/utilities.sh"
 OS=$(detect_os)
 
 if [ "$OS" = "pi" ]; then
-    echo "❌ ERROR: This is a LOCAL DEVELOPMENT script!"
+    echo -e "  ${RED}❌ ERROR: This is a LOCAL DEVELOPMENT script!${NC}"
     echo ""
-    echo "For Raspberry Pi, use: ./scripts/pi-stop.sh"
+    echo -e "  ${YELLOW}For Raspberry Pi, use: ./scripts/pi-stop.sh${NC}"
     echo ""
     exit 1
 fi
 
-echo -e "${YELLOW}🛑 Stopping Meal Planner local development environment...${NC}"
+section "Stopping Local Dev Environment" "🛑"
 
-# Stop and remove the standalone postgres container started by local-run.sh
-echo -e "${BLUE}📦 Stopping database container...${NC}"
-if podman stop meals-postgres 2>/dev/null; then
-    podman rm meals-postgres 2>/dev/null || true
-    echo -e "${GREEN}   ✓ Database container stopped${NC}"
+section "Database" "🗄️"
+if podman inspect meals-postgres &>/dev/null; then
+    start_spinner "Stopping database container"
+    podman stop meals-postgres &>/dev/null || true
+    podman rm meals-postgres &>/dev/null || true
+    stop_spinner ok
 else
-    echo "   No database container running"
+    echo -e "  ${DIM}·  No database container running${NC}"
 fi
 
-# Kill any running Node/Vite processes
-echo -e "${BLUE}🔪 Stopping Node processes...${NC}"
-pkill -f "npm run dev" 2>/dev/null && echo -e "${GREEN}   ✓ npm dev stopped${NC}" || echo "   No npm dev processes found"
-pkill -f "vite" 2>/dev/null && echo -e "${GREEN}   ✓ vite stopped${NC}" || echo "   No vite processes found"
-pkill -f "nodemon" 2>/dev/null && echo -e "${GREEN}   ✓ nodemon stopped${NC}" || echo "   No nodemon processes found"
-pkill -f "ts-node\|tsx" 2>/dev/null && echo -e "${GREEN}   ✓ ts-node/tsx stopped${NC}" || true
+section "Processes" "🛑"
+kill_matching() {
+    local label="$1" pattern="$2"
+    if pkill -f "$pattern" 2>/dev/null; then
+        echo -e "  ${GREEN}✓${NC}  ${label} stopped"
+    else
+        echo -e "  ${DIM}·  No ${label} processes found${NC}"
+    fi
+}
+kill_matching "npm dev" "npm run dev"
+kill_matching "vite" "vite"
+kill_matching "nodemon" "nodemon"
+kill_matching "ts-node/tsx" "ts-node\|tsx"
 
-# Clean up log files written by local-run.sh (project root)
-echo -e "${BLUE}🧹 Cleaning up log files...${NC}"
+section "Cleanup" "🧹"
 ROOT_DIR="$(dirname "$SCRIPT_DIR")"
-rm -f "$ROOT_DIR/backend.log" && echo -e "${GREEN}   ✓ backend.log removed${NC}" || true
-rm -f "$ROOT_DIR/frontend.log" && echo -e "${GREEN}   ✓ frontend.log removed${NC}" || true
+for log in backend.log frontend.log; do
+    if [ -f "$ROOT_DIR/$log" ]; then
+        rm -f "$ROOT_DIR/$log"
+        echo -e "  ${GREEN}✓${NC}  ${log} removed"
+    else
+        echo -e "  ${DIM}·  ${log} not present${NC}"
+    fi
+done
 
-echo ""
-echo -e "${GREEN}✅ All services stopped successfully!${NC}"
-
+section "Summary" "🍽️"
+echo -e "  ${GREEN}✓${NC}  All services stopped successfully!"

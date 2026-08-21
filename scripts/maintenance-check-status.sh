@@ -10,8 +10,6 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # shellcheck source=utilities.sh
 source "$SCRIPT_DIR/utilities.sh"
 
-MAGENTA='\033[0;35m'
-
 # Directories
 PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 LOG_DIR="$PROJECT_ROOT/data/maintenance-logs"
@@ -99,11 +97,8 @@ display_status() {
     local pid=$(grep "^PID=" "$STATUS_FILE" | cut -d'=' -f2 2>/dev/null || echo "unknown")
     
     # Display header
-    echo -e "${BLUE}========================================${NC}"
-    echo -e "${CYAN}Background Task Status${NC}"
-    echo -e "${BLUE}========================================${NC}"
-    echo ""
-    
+    section "Background Task Status" "🔍"
+
     # Display status with appropriate color
     case "$status" in
         RUNNING)
@@ -121,7 +116,7 @@ display_status() {
             echo -e "Status:    ${RED}❌ FAILED${NC}"
             ;;
         *)
-            echo -e "Status:    ${MAGENTA}Unknown: $status${NC}"
+            echo -e "Status:    ${YELLOW}⚠️  Unknown: $status${NC}"
             ;;
     esac
     
@@ -190,11 +185,8 @@ show_summary() {
         return 2
     fi
     
-    echo -e "${BLUE}========================================${NC}"
-    echo -e "${CYAN}Issue Management Summary${NC}"
-    echo -e "${BLUE}========================================${NC}"
-    echo ""
-    
+    section "Issue Management Summary" "📋"
+
     # Check if ISSUE_PRIORITIES.md exists and show summary
     if [ -f "$PROJECT_ROOT/ISSUE_PRIORITIES.md" ]; then
         echo -e "${GREEN}✅ ISSUE_PRIORITIES.md updated${NC}"

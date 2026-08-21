@@ -9,7 +9,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # shellcheck source=utilities.sh
 source "$SCRIPT_DIR/utilities.sh"
 
-echo "📦 Loading container images on Raspberry Pi..."
+section "Pre-flight Check" "🔍"
 
 # Check if podman is installed
 if ! command -v podman &> /dev/null; then
@@ -65,40 +65,48 @@ if [ "$DISK_USAGE" -gt 70 ]; then
     fi
 fi
 
+section "Loading Images" "📥"
+
 # Load backend image
-echo -e "${YELLOW}📥 Loading backend image (1/2)...${NC}"
-echo -e "${BLUE}   This may take 2-3 minutes...${NC}"
+start_spinner "Loading backend image (1/2, ~2-3 minutes)"
 if [ "$USE_COMPRESSED" = true ]; then
     LOAD_OUTPUT=$(gunzip -c "$BACKEND_COMPRESSED" | podman load 2>&1)
-    echo "$LOAD_OUTPUT"
-    if echo "$LOAD_OUTPUT" | grep -q "Loaded image"; then
-        echo -e "${GREEN}✓ Backend image loaded successfully${NC}"
-    else
-        echo -e "${RED}❌ Failed to load backend image${NC}"
-        echo "$LOAD_OUTPUT"
-        exit 1
-    fi
 else
     LOAD_OUTPUT=$(podman load -i "$BACKEND_UNCOMPRESSED" 2>&1)
-    echo "$LOAD_OUTPUT"
-    if echo "$LOAD_OUTPUT" | grep -q "Loaded image"; then
-        echo -e "${GREEN}✓ Backend image loaded successfully${NC}"
-    else
-        echo -e "${RED}❌ Failed to load backend image${NC}"
-        exit 1
-    fi
 fi
-echo ""
+if echo "$LOAD_OUTPUT" | grep -q "Loaded image"; then
+    stop_spinner ok
+else
+    stop_spinner fail
+    echo "$LOAD_OUTPUT"
+    exit 1
+fi
 
 # Extract frontend static files (Nginx serves these directly — no frontend container on Pi)
-echo -e "${YELLOW}📦 Extracting frontend static files (2/2)...${NC}"
+start_spinner "Extracting frontend static files (2/2)"
 mkdir -p ./data/frontend-dist
 rm -rf ./data/frontend-dist/*
 tar -xzf "$FRONTEND_DIST_TAR" -C ./data/frontend-dist
-echo -e "${GREEN}✓ Frontend static files extracted to ./data/frontend-dist/ ($(ls ./data/frontend-dist | wc -l) files)${NC}"
-echo ""
+FILE_COUNT=$(ls ./data/frontend-dist | wc -l)
+stop_spinner ok
+echo -e "  ${DIM}${FILE_COUNT} files → ./data/frontend-dist/${NC}"
 
-# Verify
+# Cleanup transferred files
+section "Cleanup" "🧹"
+start_spinner "Removing transferred archive files to save space"
+if [ "$USE_COMPRESSED" = true ]; then
+    rm -f "$BACKEND_COMPRESSED"
+else
+    rm -f "$BACKEND_UNCOMPRESSED"
+fi
+rm -f "$FRONTEND_DIST_TAR"
+stop_spinner ok
+
+# Show disk space after cleanup
+DISK_AFTER=$(df / | awk 'NR==2 {print $5}')
+echo -e "  ${DIM}💾 Disk usage after cleanup: ${DISK_AFTER}${NC}"
+
+section "Summary" "🍽️"
 echo -e "${GREEN}✅ All assets loaded successfully!${NC}"
 echo ""
 echo -e "${BLUE}📋 Backend image:${NC}"
@@ -106,22 +114,6 @@ podman images | grep meals-backend
 echo ""
 echo -e "${BLUE}📁 Frontend dist:${NC}"
 ls ./data/frontend-dist | head -10
-
-# Cleanup transferred files
-echo ""
-echo -e "${YELLOW}🧹 Cleaning up transferred files to save space...${NC}"
-if [ "$USE_COMPRESSED" = true ]; then
-    rm -f "$BACKEND_COMPRESSED"
-else
-    rm -f "$BACKEND_UNCOMPRESSED"
-fi
-rm -f "$FRONTEND_DIST_TAR"
-echo -e "${GREEN}✓ Removed transferred files${NC}"
-
-# Show disk space after cleanup
-DISK_AFTER=$(df / | awk 'NR==2 {print $5}')
-echo -e "${BLUE}💾 Disk usage after cleanup: ${DISK_AFTER}${NC}"
-
 echo ""
 echo -e "${GREEN}🚀 Next step: Deploy the application${NC}"
 echo -e "   ${GREEN}./scripts/pi-run.sh${NC}"

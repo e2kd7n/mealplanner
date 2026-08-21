@@ -2,15 +2,23 @@
 # Common utility functions for Pi scripts
 # Source this file in other scripts: source "$(dirname "$0")/utilities.sh"
 
-# Colors for output
-export RED='\033[0;31m'
-export GREEN='\033[0;32m'
-export YELLOW='\033[1;33m'
-export BLUE='\033[0;34m'
-export CYAN='\033[0;36m'
-export NC='\033[0m'
-export BOLD='\033[1m'
-export DIM='\033[2m'
+# Colors for output — blank when $NO_COLOR is set (https://no-color.org) or
+# stdout isn't a TTY (piped to a log file, cron, CI). Every script that
+# sources this file gets the fallback for free; nothing else to change.
+if [[ -n "${NO_COLOR:-}" ]] || [[ ! -t 1 ]]; then
+    export RED='' GREEN='' YELLOW='' BLUE='' CYAN='' NC='' BOLD='' DIM=''
+    export _PLAIN_OUTPUT=1
+else
+    export RED='\033[0;31m'
+    export GREEN='\033[0;32m'
+    export YELLOW='\033[1;33m'
+    export BLUE='\033[0;34m'
+    export CYAN='\033[0;36m'
+    export NC='\033[0m'
+    export BOLD='\033[1m'
+    export DIM='\033[2m'
+    export _PLAIN_OUTPUT=0
+fi
 
 # Thresholds for health checks
 export TEMP_WARNING=65
@@ -153,26 +161,25 @@ ensure_podman_runtime() {
 # Clean podman/docker system
 clean_container_system() {
     local container_cmd=$1
-    
+
     if [ -z "$container_cmd" ]; then
         echo -e "${YELLOW}⚠️  No container runtime found${NC}"
         return 1
     fi
-    
-    echo -e "${YELLOW}🧹 Cleaning $container_cmd system...${NC}"
+
+    start_spinner "Cleaning $container_cmd system"
     $container_cmd system prune -f 2>/dev/null || true
     $container_cmd image prune -a -f 2>/dev/null || true
     $container_cmd builder prune -af 2>/dev/null || true
-    echo -e "${GREEN}✓ $container_cmd system cleaned${NC}"
+    stop_spinner ok
 }
 
 # Clean journal logs
 clean_journal_logs() {
     local size_limit=${1:-100M}
     local time_limit=${2:-7d}
-    
-    echo -e "${YELLOW}🧹 Cleaning systemd journal logs...${NC}"
-    
+
+    start_spinner "Cleaning systemd journal logs"
     if [ "$EUID" -ne 0 ]; then
         sudo journalctl --vacuum-size=$size_limit 2>/dev/null || true
         sudo journalctl --vacuum-time=$time_limit 2>/dev/null || true
@@ -180,37 +187,36 @@ clean_journal_logs() {
         journalctl --vacuum-size=$size_limit 2>/dev/null || true
         journalctl --vacuum-time=$time_limit 2>/dev/null || true
     fi
-    
-    echo -e "${GREEN}✓ Journal logs cleaned${NC}"
+    stop_spinner ok
 }
 
 # Clean package manager caches
 clean_package_caches() {
-    echo -e "${YELLOW}🧹 Cleaning package manager caches...${NC}"
-    
     # npm
     if command -v npm &> /dev/null; then
+        start_spinner "Clearing npm cache"
         npm cache clean --force 2>/dev/null || true
-        echo -e "  ${GREEN}✓ npm cache cleared${NC}"
+        stop_spinner ok
     fi
-    
+
     # pnpm
     if command -v pnpm &> /dev/null; then
+        start_spinner "Pruning pnpm store"
         pnpm store prune 2>/dev/null || true
-        echo -e "  ${GREEN}✓ pnpm store pruned${NC}"
+        stop_spinner ok
     fi
-    
+
     # yarn
     if command -v yarn &> /dev/null; then
+        start_spinner "Clearing yarn cache"
         yarn cache clean 2>/dev/null || true
-        echo -e "  ${GREEN}✓ yarn cache cleared${NC}"
+        stop_spinner ok
     fi
 }
 
 # Clean APT cache
 clean_apt_cache() {
-    echo -e "${YELLOW}🧹 Cleaning APT cache...${NC}"
-    
+    start_spinner "Cleaning APT cache"
     if [ "$EUID" -ne 0 ]; then
         sudo apt-get clean 2>/dev/null || true
         sudo apt-get autoremove -y 2>/dev/null || true
@@ -218,8 +224,7 @@ clean_apt_cache() {
         apt-get clean 2>/dev/null || true
         apt-get autoremove -y 2>/dev/null || true
     fi
-    
-    echo -e "${GREEN}✓ APT cache cleared${NC}"
+    stop_spinner ok
 }
 
 # Show container status
@@ -349,6 +354,13 @@ start_spinner() {
     local msg="${1:-Working...}"
     _SPINNER_MSG="$msg"
     _SPINNER_ACTIVE=1
+    if [[ "${_PLAIN_OUTPUT:-0}" == "1" ]]; then
+        # No TTY / NO_COLOR: an animated line would just leave raw \r noise
+        # in a log file, so print the message once and let stop_spinner
+        # print the final glyph on its own line instead.
+        printf "  %s... " "$msg"
+        return
+    fi
     (
         local i=0
         local frames=('⠋' '⠙' '⠹' '⠸' '⠼' '⠴' '⠦' '⠧' '⠇' '⠏')
@@ -370,6 +382,15 @@ stop_spinner() {
     if [[ -n "${_SPINNER_PID:-}" ]]; then
         kill "$_SPINNER_PID" 2>/dev/null || true
         _SPINNER_PID=""
+    fi
+    if [[ "${_PLAIN_OUTPUT:-0}" == "1" ]]; then
+        # Nothing was animated, so nothing to clear — just land the glyph.
+        if [[ "$status" == "fail" ]]; then
+            echo "✗  ${_SPINNER_MSG}"
+        else
+            echo "✓  ${_SPINNER_MSG}"
+        fi
+        return
     fi
     printf "\r\033[2K"
     if [[ "$status" == "fail" ]]; then

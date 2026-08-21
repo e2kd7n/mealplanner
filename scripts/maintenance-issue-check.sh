@@ -50,33 +50,31 @@ trap 'update_status "FAILED" "Script failed with error"; exit 1' ERR
 
 # Main execution
 main() {
-    log "${BLUE}========================================${NC}"
-    log "${CYAN}Weekly Maintenance - Issue Management${NC}"
-    log "${BLUE}========================================${NC}"
-    log ""
+    section "Weekly Maintenance — Issue Management" "🔍" | tee -a "$LOG_FILE"
     log "Starting background issue check..."
     log "Log file: $LOG_FILE"
     log "Status file: $STATUS_FILE"
     log ""
-    
+
     # Update status to running
     update_status "RUNNING" "Issue management check in progress"
-    
+
     # Change to project root
     cd "$PROJECT_ROOT"
-    
-    # Run the issue priority update script
-    log "${YELLOW}Running update-issue-priorities.sh...${NC}"
+
+    # Run the issue priority update script (it makes its own `gh`/GitHub API calls
+    # and reports its own progress on stderr, so it gets its own log lines below
+    # rather than a spinner here, which would collide with its interleaved output).
+    log "Running update-issue-priorities.sh..."
     log ""
-    
+
     if "$SCRIPT_DIR/update-issue-priorities.sh" 2>> "$LOG_FILE"; then
         log ""
         log "${GREEN}✅ Issue management check completed successfully${NC}"
         update_status "COMPLETE" "Issue management check finished successfully"
-        
+
         # Show summary
-        log ""
-        log "${CYAN}Summary:${NC}"
+        section "Summary" "🍽️" | tee -a "$LOG_FILE"
         log "- Check completed at: $(date)"
         log "- Full log available at: $LOG_FILE"
         log "- Updated ISSUE_PRIORITIES.md"
