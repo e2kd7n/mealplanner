@@ -1,4 +1,17 @@
 #!/bin/bash
+# Issue & Repository Hygiene — runs ON the Pi via a weekly cron entry, using
+# gh/jq which are already installed there for scripts/feedback-log-triage.sh.
+# Regenerates ISSUE_PRIORITIES.md, flags (never auto-closes) issues that look
+# resolved by recent commits, adds missing labels, and reports workspace
+# TODOs — see docs/WEEKLY_MAINTENANCE.md's "Issue and Repository Hygiene"
+# section. Judgment-based issue closing (reading an issue against the actual
+# PR/commit content and deciding it's genuinely done) stays with the cloud
+# maintenance routine; --auto-close's regex-pattern matching is deliberately
+# left off by default in the cron install — see feedback_autoclose_bot_false_positives
+# for why blind pattern-based closing has burned this repo twice before.
+#
+# Install as a weekly cron job, e.g.:
+#   15 4 * * 0  cd /path/to/mealplanner && GH_TOKEN="$(cat secrets/github_token.txt)" ./scripts/update-issue-priorities.sh >> data/maintenance-logs/cron-issue-priorities.log 2>&1
 
 # WSL/Cygwin fix: LANG is unset in those environments, causing bash to mangle multi-byte
 # UTF-8 sequences (emoji appear as garbage). macOS sets en_US.UTF-8 automatically.
@@ -11,6 +24,17 @@ else
     export LC_ALL="${LC_ALL:-C.UTF-8}"
 fi
 
+# Self-contained token loading for non-interactive hosts (cron has no
+# `gh auth login` session) — same pattern as feedback-log-triage.sh and
+# rotate-secrets-if-due.sh. Falls through to ambient `gh` auth if the file
+# isn't present (e.g. a developer's machine with `gh auth login` already done).
+SCRIPT_DIR_FOR_TOKEN="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+GITHUB_TOKEN_FILE="$SCRIPT_DIR_FOR_TOKEN/../secrets/github_token.txt"
+if [ -z "${GH_TOKEN:-}" ] && [ -s "$GITHUB_TOKEN_FILE" ]; then
+  export GH_TOKEN
+  GH_TOKEN="$(cat "$GITHUB_TOKEN_FILE")"
+fi
+
 # Check required dependencies before doing anything
 MISSING_DEPS=()
 command -v gh >/dev/null 2>&1 || MISSING_DEPS+=("gh (GitHub CLI)")
@@ -19,12 +43,12 @@ command -v jq >/dev/null 2>&1 || MISSING_DEPS+=("jq")
 if [ ${#MISSING_DEPS[@]} -gt 0 ]; then
   echo "Error: required tools not found: ${MISSING_DEPS[*]}" >&2
   echo "" >&2
-  echo "This script must be run from a machine with the GitHub CLI and jq installed." >&2
-  echo "It is not intended to run on the Pi deployment host." >&2
+  echo "This script needs the GitHub CLI and jq installed (on the Pi:" >&2
+  echo "  sudo apt-get install -y gh jq  — same as scripts/feedback-log-triage.sh)." >&2
   echo "" >&2
   echo "Install on Debian/Ubuntu:  sudo apt install gh jq" >&2
   echo "Install on macOS:          brew install gh jq" >&2
-  echo "Authenticate:              gh auth login" >&2
+  echo "Authenticate:              gh auth login  (or set GH_TOKEN / secrets/github_token.txt)" >&2
   exit 1
 fi
 
