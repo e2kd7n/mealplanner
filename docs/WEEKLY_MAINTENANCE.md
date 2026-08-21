@@ -57,6 +57,43 @@ gh issue comment <issue-number> --body "Progress update: [details]"
 - Local issue documents (e.g., CRITICAL_BUGS_FOUND.md, USER_TESTING_ISSUES_LOG.md) should be migrated to GitHub and removed
 - Use GitHub issue labels for priority (P0-critical, P1-high, P2-medium, P3-low, P4-future)
 
+**Automation (mostly Pi-side, as of 2026-08-21):**
+
+Split the same way as Secret Rotation below, now that `gh`/`jq` are
+installed on the Pi (they weren't when `update-issue-priorities.sh` was
+first written, hence its old dependency-check message telling people not
+to run it there — that's stale and has been corrected):
+
+1. **Execution — `scripts/weekly-repo-hygiene.sh`, runs ON the Pi via its
+   own weekly cron entry.** A thin wrapper around
+   `scripts/update-issue-priorities.sh` that adds the commit/push step:
+   - Duplicate-issue detection, missing-label auto-add (`security`/`bug`
+     inferred from title), workspace TODO/FIXME scan, and
+     ISSUE_PRIORITIES.md regeneration all run for real.
+   - Issues that *look* resolved by recent commit messages (`Fixes #N`,
+     `Closes #N`, etc.) are **flagged only, never auto-closed** —
+     `--auto-close` is deliberately not passed. Regex-pattern-based closing
+     has produced false positives on this repo before (see memory
+     `feedback_autoclose_bot_false_positives`), so a human (or the cloud
+     routine's LLM judgment, see below) still reviews and closes those.
+   - Commits and pushes ISSUE_PRIORITIES.md if it changed.
+   - Install once with a crontab entry:
+     ```bash
+     # crontab -e on the Pi
+     15 4 * * 0  cd /path/to/mealplanner && ./scripts/weekly-repo-hygiene.sh >> data/maintenance-logs/cron-issue-hygiene.log 2>&1
+     ```
+     (One hour after Secret Rotation's `15 3 * * 0` — clear of its
+     container-recreate window and Feedback Triage's `45 3 * * 0`.)
+2. **Verification/judgment — the cloud maintenance routine**, scoped down
+   to just what genuinely needs an LLM reading actual issue/commit content
+   rather than a regex:
+   - [ ] Read the Pi-flagged "appears resolved but still open" candidates
+     from the latest `data/maintenance-logs/issue-hygiene-*.log` and decide
+     which are *actually* done — close those with a proper comment.
+   - [ ] Comment on genuinely stale issues (30+ days, no real progress).
+   - [ ] Everything else in this section (labels, dedup, ISSUE_PRIORITIES.md,
+     TODO scan) is already handled by the Pi script — don't redo it.
+
 ---
 
 ### 2. Database Maintenance (15 minutes)
@@ -119,6 +156,45 @@ npm update <package-name>
 git log --since="7 days ago" -p -- . ':(exclude)*.lock' \
   | grep -EnI "AKIA[0-9A-Z]{16}|-----BEGIN [A-Z ]*PRIVATE KEY-----|(SECRET|TOKEN|PASSWORD|API_KEY)[[:space:]]*[:=][[:space:]]*['\"][^'\"]{12,}"
 ```
+
+**Dependency Vulnerability Scanning (fully automated, Pi-side, as of 2026-08-21):**
+
+Runs entirely on the Pi via `scripts/security-audit.sh` — no cloud
+verification half needed here, unlike Secret Rotation, because there's
+nothing that requires live Pi/container access that the script itself
+doesn't already have:
+
+- Uses `pnpm audit` (not `npm audit` — see memory
+  `feedback_audit_pnpm_not_npm`: npm undercounted 27 real vulns as 6
+  because it wasn't reading the actual lockfile) for both `backend` and
+  `frontend`, before and after `pnpm audit fix` (non-breaking, no
+  `--force`).
+- Also runs the credential-leak commit scan above. A match is **never**
+  posted anywhere on GitHub — that would publish the very secret it found
+  — only a local `send-notification.sh` alert fires.
+- Keeps a **single rolling tracker issue** (label `auto-security-audit`)
+  in sync with whatever HIGH/CRITICAL findings remain after the fix,
+  editing its body in place each run rather than filing a new issue every
+  week. Closes it automatically when nothing remains; comments + closes
+  with a summary. Any CRITICAL finding also fires an urgent local
+  notification immediately, per the "alert user to critical vulnerabilities"
+  policy above.
+- Commits/pushes `package.json`/`pnpm-lock.yaml` changes from `audit fix`
+  if any were made.
+- Pre-dates this automation: issues #365 and #392 (and similar) were
+  filed manually by the old cloud-routine flow and aren't tracked by the
+  new fingerprint-free tracker issue — worth a one-time reconciliation
+  (close them into the new tracker or vice versa) rather than assuming
+  they'll stay in sync automatically.
+- Install once with a crontab entry:
+  ```bash
+  # crontab -e on the Pi
+  45 4 * * 0  cd /path/to/mealplanner && ./scripts/security-audit.sh >> data/maintenance-logs/cron-security-audit.log 2>&1
+  ```
+  (Thirty minutes after Weekly Repo Hygiene's `15 4 * * 0`.)
+- Test with `./scripts/security-audit.sh --dry-run` first — it still runs
+  `pnpm audit` for real (read-only) but skips `pnpm audit fix`, the git
+  commit/push, and all `gh issue` writes.
 
 **Secret Rotation (when applicable):**
 
@@ -487,24 +563,36 @@ Copy this checklist for each weekly maintenance session:
 Consider automating these tasks:
 
 1. **Automated Backups** - Already implemented via cron
-2. **Security Scanning** - GitHub Dependabot
-3. **Performance Monitoring** - Application monitoring tools
-4. **Issue Stale Bot** - GitHub Actions for stale issues
-5. **Dependency Updates** - Renovate or Dependabot
-6. **Secret Rotation** - Fully automated: `scripts/rotate-secrets-if-due.sh`
+2. **Performance Monitoring** - Application monitoring tools
+3. **Issue Stale Bot** - GitHub Actions for stale issues
+4. **Dependency Updates** - Dependabot was tried and removed 2026-07-29
+   (net churn — 30 PRs/10wk, most closed unmerged, see memory
+   `project_dependabot_removed`); item 9 below is the replacement.
+5. **Secret Rotation** - Fully automated: `scripts/rotate-secrets-if-due.sh`
    runs weekly on the Pi via cron and rotates (with health-checked rollback)
    only when a secret is actually due; the cloud routine cross-checks it
    actually ran via `docs/SECRET_ROTATION_STATUS.json`. See Security Updates
    above.
-7. **Worktree Hygiene** - Fully automated: `scripts/prune-worktrees.sh --apply`
+6. **Worktree Hygiene** - Fully automated: `scripts/prune-worktrees.sh --apply`
    runs weekly via a local Windows Scheduled Task and removes only worktrees
    whose branch is merged/closed with no uncommitted or unpushed work. See
    Worktree Hygiene above.
-8. **Feedback/Error-Log Triage** - Fully automated:
+7. **Feedback/Error-Log Triage** - Fully automated:
    `scripts/feedback-log-triage.sh` runs weekly on the Pi via cron, clusters
    and dedupes recurring feedback/errors, and files `gh issue create` calls
    for genuinely new problems only — the full unredacted picture is archived
    privately, never committed here. See User Feedback Review above.
+8. **Issue & Repository Hygiene** - Mostly automated:
+   `scripts/weekly-repo-hygiene.sh` runs weekly on the Pi via cron
+   (duplicate detection, label auto-add, ISSUE_PRIORITIES.md regen, TODO
+   scan, commit/push); the cloud routine now only does the judgment-based
+   piece — reviewing and closing issues the Pi script flagged as
+   "appears resolved." See Issue and Repository Hygiene above.
+9. **Dependency Vulnerability Scanning** - Fully automated:
+   `scripts/security-audit.sh` runs weekly on the Pi via cron (`pnpm audit`
+   + `audit fix` for both apps, a single rolling tracker issue instead of
+   weekly spam, urgent alert on any CRITICAL finding). See Security Updates
+   above.
 
 ---
 
@@ -518,5 +606,5 @@ Consider automating these tasks:
 
 ---
 
-**Last Updated:** 2026-08-19  
+**Last Updated:** 2026-08-21  
 **Maintained By:** Development Team
