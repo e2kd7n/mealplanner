@@ -30,7 +30,7 @@ POSTGRES_USER="${POSTGRES_USER:-mealplanner}"
 TIMESTAMP=$(date +%Y%m%d_%H%M%S)
 BACKUP_FILE="backup_${POSTGRES_DB}_${TIMESTAMP}.sql.gz"
 
-section "Database Backup Script" "💾"
+section "Database Backup" "🗄️"
 echo "Timestamp: $(date)"
 echo "Database: ${POSTGRES_DB}"
 echo "Backup Directory: ${BACKUP_DIR}"
@@ -41,7 +41,7 @@ mkdir -p "${BACKUP_DIR}"
 
 # Check if container is running
 if ! podman ps | grep -q "${POSTGRES_CONTAINER}"; then
-    echo -e "${RED}Error: PostgreSQL container '${POSTGRES_CONTAINER}' is not running${NC}"
+    echo -e "${RED}❌ PostgreSQL container '${POSTGRES_CONTAINER}' is not running${NC}"
     exit 1
 fi
 
@@ -83,7 +83,7 @@ echo -e "${GREEN}Recent backups:${NC}"
 ls -lh "${BACKUP_DIR}" | grep "backup_" | tail -5
 
 # Summary
-section "Backup Complete" "✅"
+section "Summary" "🍽️"
 echo "Backup file: ${BACKUP_FILE}"
 echo "Location: ${BACKUP_DIR}/${BACKUP_FILE}"
 echo "Size: ${BACKUP_SIZE}"

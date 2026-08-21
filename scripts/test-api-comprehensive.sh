@@ -11,20 +11,28 @@ source "$SCRIPT_DIR/utilities.sh"
 
 API_URL="http://localhost:8080/api"
 
-echo "🧪 Starting Comprehensive API Testing"
-echo "======================================"
-echo ""
+TOTAL_TESTS=15
+PASS_COUNT=0
+
+# ── Health Check ─────────────────────────────────────────────────────────────
+
+section "Health Check" "🔍"
 
 # Test 1: Health Check
 echo -e "${YELLOW}Test 1: Health Check${NC}"
 HEALTH=$(curl -s http://localhost:8080/health)
 if echo "$HEALTH" | jq -e '.status == "ok"' > /dev/null; then
     echo -e "${GREEN}✓ Health check passed${NC}"
+    PASS_COUNT=$((PASS_COUNT + 1))
 else
     echo -e "${RED}✗ Health check failed${NC}"
     exit 1
 fi
 echo ""
+
+# ── Authentication ───────────────────────────────────────────────────────────
+
+section "Authentication" "🔍"
 
 # Test 2: User Registration
 echo -e "${YELLOW}Test 2: User Registration${NC}"
@@ -41,6 +49,7 @@ if echo "$REGISTER_RESPONSE" | jq -e '.accessToken' > /dev/null; then
     USER_ID=$(echo "$REGISTER_RESPONSE" | jq -r '.user.id')
     echo -e "${GREEN}✓ User registration successful${NC}"
     echo "  User ID: $USER_ID"
+    PASS_COUNT=$((PASS_COUNT + 1))
 else
     echo -e "${RED}✗ User registration failed${NC}"
     echo "$REGISTER_RESPONSE" | jq .
@@ -60,6 +69,7 @@ LOGIN_RESPONSE=$(curl -s -X POST "$API_URL/auth/login" \
 if echo "$LOGIN_RESPONSE" | jq -e '.accessToken' > /dev/null; then
     ACCESS_TOKEN=$(echo "$LOGIN_RESPONSE" | jq -r '.accessToken')
     echo -e "${GREEN}✓ User login successful${NC}"
+    PASS_COUNT=$((PASS_COUNT + 1))
 else
     echo -e "${RED}✗ User login failed${NC}"
     echo "$LOGIN_RESPONSE" | jq .
@@ -75,12 +85,17 @@ PROFILE_RESPONSE=$(curl -s -X GET "$API_URL/users/me" \
 if echo "$PROFILE_RESPONSE" | jq -e '.email' > /dev/null; then
     echo -e "${GREEN}✓ User profile retrieved${NC}"
     echo "  Email: $(echo "$PROFILE_RESPONSE" | jq -r '.email')"
+    PASS_COUNT=$((PASS_COUNT + 1))
 else
     echo -e "${RED}✗ User profile retrieval failed${NC}"
     echo "$PROFILE_RESPONSE" | jq .
     exit 1
 fi
 echo ""
+
+# ── Recipes ───────────────────────────────────────────────────────────────────
+
+section "Recipes" "🔍"
 
 # Test 5: Create Recipe
 echo -e "${YELLOW}Test 5: Create Recipe${NC}"
@@ -118,6 +133,7 @@ if echo "$RECIPE_RESPONSE" | jq -e '.id' > /dev/null; then
     RECIPE_ID=$(echo "$RECIPE_RESPONSE" | jq -r '.id')
     echo -e "${GREEN}✓ Recipe created successfully${NC}"
     echo "  Recipe ID: $RECIPE_ID"
+    PASS_COUNT=$((PASS_COUNT + 1))
 else
     echo -e "${RED}✗ Recipe creation failed${NC}"
     echo "$RECIPE_RESPONSE" | jq .
@@ -134,6 +150,7 @@ if echo "$RECIPES_RESPONSE" | jq -e '.[0].id' > /dev/null; then
     RECIPE_COUNT=$(echo "$RECIPES_RESPONSE" | jq 'length')
     echo -e "${GREEN}✓ Recipes retrieved successfully${NC}"
     echo "  Recipe count: $RECIPE_COUNT"
+    PASS_COUNT=$((PASS_COUNT + 1))
 else
     echo -e "${RED}✗ Recipe retrieval failed${NC}"
     echo "$RECIPES_RESPONSE" | jq .
@@ -149,12 +166,17 @@ SINGLE_RECIPE=$(curl -s -X GET "$API_URL/recipes/$RECIPE_ID" \
 if echo "$SINGLE_RECIPE" | jq -e '.title' > /dev/null; then
     echo -e "${GREEN}✓ Single recipe retrieved${NC}"
     echo "  Title: $(echo "$SINGLE_RECIPE" | jq -r '.title')"
+    PASS_COUNT=$((PASS_COUNT + 1))
 else
     echo -e "${RED}✗ Single recipe retrieval failed${NC}"
     echo "$SINGLE_RECIPE" | jq .
     exit 1
 fi
 echo ""
+
+# ── Meal Planning ─────────────────────────────────────────────────────────────
+
+section "Meal Planning" "🔍"
 
 # Test 8: Create Meal Plan
 echo -e "${YELLOW}Test 8: Create Meal Plan${NC}"
@@ -172,6 +194,7 @@ if echo "$MEAL_PLAN_RESPONSE" | jq -e '.id' > /dev/null; then
     MEAL_PLAN_ID=$(echo "$MEAL_PLAN_RESPONSE" | jq -r '.id')
     echo -e "${GREEN}✓ Meal plan created successfully${NC}"
     echo "  Meal Plan ID: $MEAL_PLAN_ID"
+    PASS_COUNT=$((PASS_COUNT + 1))
 else
     echo -e "${RED}✗ Meal plan creation failed${NC}"
     echo "$MEAL_PLAN_RESPONSE" | jq .
@@ -188,12 +211,17 @@ if echo "$MEAL_PLANS_RESPONSE" | jq -e '.[0].id' > /dev/null; then
     MEAL_PLAN_COUNT=$(echo "$MEAL_PLANS_RESPONSE" | jq 'length')
     echo -e "${GREEN}✓ Meal plans retrieved successfully${NC}"
     echo "  Meal plan count: $MEAL_PLAN_COUNT"
+    PASS_COUNT=$((PASS_COUNT + 1))
 else
     echo -e "${RED}✗ Meal plan retrieval failed${NC}"
     echo "$MEAL_PLANS_RESPONSE" | jq .
     exit 1
 fi
 echo ""
+
+# ── Grocery Lists ─────────────────────────────────────────────────────────────
+
+section "Grocery Lists" "🔍"
 
 # Test 10: Create Grocery List
 echo -e "${YELLOW}Test 10: Create Grocery List${NC}"
@@ -216,6 +244,7 @@ if echo "$GROCERY_LIST_RESPONSE" | jq -e '.id' > /dev/null; then
     GROCERY_LIST_ID=$(echo "$GROCERY_LIST_RESPONSE" | jq -r '.id')
     echo -e "${GREEN}✓ Grocery list created successfully${NC}"
     echo "  Grocery List ID: $GROCERY_LIST_ID"
+    PASS_COUNT=$((PASS_COUNT + 1))
 else
     echo -e "${RED}✗ Grocery list creation failed${NC}"
     echo "$GROCERY_LIST_RESPONSE" | jq .
@@ -232,12 +261,17 @@ if echo "$GROCERY_LISTS_RESPONSE" | jq -e '.[0].id' > /dev/null; then
     GROCERY_LIST_COUNT=$(echo "$GROCERY_LISTS_RESPONSE" | jq 'length')
     echo -e "${GREEN}✓ Grocery lists retrieved successfully${NC}"
     echo "  Grocery list count: $GROCERY_LIST_COUNT"
+    PASS_COUNT=$((PASS_COUNT + 1))
 else
     echo -e "${RED}✗ Grocery list retrieval failed${NC}"
     echo "$GROCERY_LISTS_RESPONSE" | jq .
     exit 1
 fi
 echo ""
+
+# ── Pantry ────────────────────────────────────────────────────────────────────
+
+section "Pantry" "🔍"
 
 # Test 12: Add Pantry Item
 echo -e "${YELLOW}Test 12: Add Pantry Item${NC}"
@@ -256,6 +290,7 @@ if echo "$PANTRY_RESPONSE" | jq -e '.id' > /dev/null; then
     PANTRY_ID=$(echo "$PANTRY_RESPONSE" | jq -r '.id')
     echo -e "${GREEN}✓ Pantry item added successfully${NC}"
     echo "  Pantry Item ID: $PANTRY_ID"
+    PASS_COUNT=$((PASS_COUNT + 1))
 else
     echo -e "${RED}✗ Pantry item addition failed${NC}"
     echo "$PANTRY_RESPONSE" | jq .
@@ -272,12 +307,17 @@ if echo "$PANTRY_ITEMS_RESPONSE" | jq -e '.[0].id' > /dev/null; then
     PANTRY_COUNT=$(echo "$PANTRY_ITEMS_RESPONSE" | jq 'length')
     echo -e "${GREEN}✓ Pantry items retrieved successfully${NC}"
     echo "  Pantry item count: $PANTRY_COUNT"
+    PASS_COUNT=$((PASS_COUNT + 1))
 else
     echo -e "${RED}✗ Pantry item retrieval failed${NC}"
     echo "$PANTRY_ITEMS_RESPONSE" | jq .
     exit 1
 fi
 echo ""
+
+# ── Ingredients ───────────────────────────────────────────────────────────────
+
+section "Ingredients" "🔍"
 
 # Test 14: Get Ingredients
 echo -e "${YELLOW}Test 14: Get Ingredients${NC}"
@@ -288,12 +328,17 @@ if echo "$INGREDIENTS_RESPONSE" | jq -e 'type == "array"' > /dev/null; then
     INGREDIENT_COUNT=$(echo "$INGREDIENTS_RESPONSE" | jq 'length')
     echo -e "${GREEN}✓ Ingredients retrieved successfully${NC}"
     echo "  Ingredient count: $INGREDIENT_COUNT"
+    PASS_COUNT=$((PASS_COUNT + 1))
 else
     echo -e "${RED}✗ Ingredient retrieval failed${NC}"
     echo "$INGREDIENTS_RESPONSE" | jq .
     exit 1
 fi
 echo ""
+
+# ── Cache Performance ─────────────────────────────────────────────────────────
+
+section "Cache Performance" "🔍"
 
 # Test 15: Cache Performance (node-cache validation)
 echo -e "${YELLOW}Test 15: Cache Performance Test${NC}"
@@ -316,23 +361,24 @@ echo "  Second call: ${SECOND_CALL}ms (cached)"
 if [ $SECOND_CALL -lt $FIRST_CALL ]; then
     echo -e "${GREEN}  Cache is working (second call faster)${NC}"
 fi
+PASS_COUNT=$((PASS_COUNT + 1))
 echo ""
 
-# Summary
-echo "======================================"
-echo -e "${GREEN}✅ All 15 API tests passed successfully!${NC}"
-echo ""
-echo "Architecture Validation Summary:"
-echo "  ✓ Authentication working (JWT tokens)"
-echo "  ✓ User management working"
-echo "  ✓ Recipe CRUD operations working"
-echo "  ✓ Meal planning working"
-echo "  ✓ Grocery list management working"
-echo "  ✓ Pantry management working"
-echo "  ✓ Ingredient management working"
-echo "  ✓ In-memory cache (node-cache) working"
-echo "  ✓ Database connectivity working"
-echo "  ✓ All API endpoints accessible"
-echo ""
-echo "🎉 Phase 1-3 Architecture Changes Validated!"
+# ── Summary ───────────────────────────────────────────────────────────────────
 
+section "Summary" "🍽️"
+echo -e "  ${GREEN}✓${NC}  ${PASS_COUNT}/${TOTAL_TESTS} API tests passed"
+echo ""
+echo -e "  ${BOLD}Architecture Validation Summary:${NC}"
+echo "    ✓ Authentication working (JWT tokens)"
+echo "    ✓ User management working"
+echo "    ✓ Recipe CRUD operations working"
+echo "    ✓ Meal planning working"
+echo "    ✓ Grocery list management working"
+echo "    ✓ Pantry management working"
+echo "    ✓ Ingredient management working"
+echo "    ✓ In-memory cache (node-cache) working"
+echo "    ✓ Database connectivity working"
+echo "    ✓ All API endpoints accessible"
+echo ""
+echo -e "  ${GREEN}🎉 Phase 1-3 Architecture Changes Validated!${NC}"

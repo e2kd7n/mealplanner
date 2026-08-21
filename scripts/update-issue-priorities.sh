@@ -28,12 +28,15 @@ if [ ${#MISSING_DEPS[@]} -gt 0 ]; then
   exit 1
 fi
 
-# Check stderr (fd 2) for tty — log functions write there, not stdout.
-if [ -t 2 ]; then
-  RED='\033[0;31m'; GREEN='\033[0;32m'; YELLOW='\033[1;33m'; BLUE='\033[0;34m'; NC='\033[0m'
-else
-  RED=''; GREEN=''; YELLOW=''; BLUE=''; NC=''
-fi
+# scripts/utilities.sh provides the color palette (RED/GREEN/YELLOW/BLUE/CYAN/BOLD/DIM/NC)
+# plus section/spinner helpers, and already blanks colors when $NO_COLOR is set or stdout
+# isn't a TTY. All UI calls in this script (section/start_spinner/stop_spinner) are
+# explicitly redirected to stderr (>&2) below, matching this script's existing convention
+# of keeping progress output on stderr and the generated report on stdout — the latter
+# gets `exec`'d to ISSUE_PRIORITIES.md partway through, so nothing decorative may land there.
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# shellcheck source=utilities.sh
+source "$SCRIPT_DIR/utilities.sh"
 
 # Use printf instead of echo -e: more portable across bash versions and WSL/Cygwin.
 log_action()  { printf "${BLUE}[%s]${NC} %s\n"    "$(date +%H:%M:%S)" "$1" >&2; }
@@ -50,7 +53,9 @@ detect_duplicate_issues() {
 
   local temp_file
   temp_file=$(mktemp)
+  start_spinner "Fetching open issues" >&2
   gh issue list --state open --json number,title,body --limit 200 > "$temp_file"
+  stop_spinner ok >&2
 
   local duplicates
   duplicates=$(jq -r '
@@ -259,7 +264,9 @@ update_issue_labels() {
 
   local updated_count=0
   local issues
+  start_spinner "Fetching open issues for label review" >&2
   issues=$(gh issue list --state open --json number,title,body,labels --limit 100)
+  stop_spinner ok >&2
 
   echo "$issues" | jq -r '.[] | select(.title | test("security|vulnerability|auth|csrf|xss|sql"; "i")) | select(.labels | map(.name) | index("security") | not) | .number' | while read -r issue_num; do
     log_action "Adding 'security' label to issue #$issue_num"
@@ -358,16 +365,13 @@ while [[ $# -gt 0 ]]; do
   esac
 done
 
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 OUTPUT_FILE="${SCRIPT_DIR}/../ISSUE_PRIORITIES.md"
 
 # ---------------------------------------------------------------------------
 # Pre-report issue management
 # ---------------------------------------------------------------------------
 
-printf "\n" >&2
-log_action "🔍 Running Intelligent Issue Management..."
-printf "\n" >&2
+section "Intelligent Issue Management" "🔍" >&2
 
 [ "$DETECT_DUPLICATES" = true ] && detect_duplicate_issues
 
@@ -393,9 +397,7 @@ fi
 
 create_issues_from_todos
 
-printf "\n" >&2
-log_action "📊 Generating Issue Priority Report..."
-printf "\n" >&2
+section "Generating Issue Priority Report" "📋" >&2
 
 # Always write the report directly to the output file so bash (not PowerShell) owns the
 # file descriptor. This guarantees UTF-8 encoding regardless of how the script is invoked.
@@ -420,8 +422,10 @@ echo ""
 # Fetch once, filter with jq — avoids one API call per priority level
 # ---------------------------------------------------------------------------
 
+start_spinner "Fetching issues and milestones for report" >&2
 ALL_ISSUES=$(gh issue list --state open --json number,title,labels,milestone --limit 500 2>/dev/null)
 MILESTONES_JSON=$(gh api "repos/:owner/:repo/milestones?state=open&per_page=100&direction=asc" 2>/dev/null)
+stop_spinner ok >&2
 MILESTONE_COUNT=$(echo "$MILESTONES_JSON" | jq '. | length')
 
 # ---------------------------------------------------------------------------

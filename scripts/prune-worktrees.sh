@@ -9,7 +9,9 @@
 #                                         # the parent of this script's dir
 #
 # Default is dry-run (report only). Pass --apply to actually remove
-# worktrees and delete their local/remote branches.
+# worktrees and delete their local/remote branches — this still asks for
+# confirmation once, listing everything that will be removed, before it
+# touches anything.
 #
 # "Safe to remove" = branch has a merged or closed PR, AND the worktree
 # has no uncommitted changes (besides .claude/settings.local.json, which
@@ -21,7 +23,11 @@
 
 set -uo pipefail
 
-DEV_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# shellcheck source=utilities.sh
+source "$SCRIPT_DIR/utilities.sh"
+
+DEV_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 
 APPLY=""
 TARGETS=()
@@ -40,6 +46,15 @@ if [ ${#TARGETS[@]} -eq 0 ]; then
   done
 fi
 
+# Collected during the scan pass; only acted on after the confirmation gate.
+SAFE_REMOVE_REPOS=()
+SAFE_REMOVE_WTS=()
+SAFE_REMOVE_BRANCHES=()
+NEEDS_REVIEW_COUNT=0
+KEEP_COUNT=0
+
+section "Worktree Hygiene" "🧹"
+
 prune_repo() {
   local repo="$1"
   cd "$repo" || return
@@ -55,7 +70,7 @@ prune_repo() {
   [ -z "$wt_list" ] && return
 
   local any_extra=0
-  echo "=== $repo (default: $default_branch) ==="
+  echo -e "${CYAN}${BOLD}📂 ${repo}${NC} ${DIM}(default: ${default_branch})${NC}"
 
   local wt="" branch=""
   while IFS= read -r line; do
@@ -75,7 +90,7 @@ prune_repo() {
     esac
   done <<< "$wt_list"$'\n'
 
-  [ "$any_extra" = 0 ] && echo "  (no extra worktrees)"
+  [ "$any_extra" = 0 ] && echo -e "  ${DIM}(no extra worktrees)${NC}"
   echo
 }
 
@@ -87,10 +102,11 @@ evaluate_worktree() {
     local pid
     pid=$(grep -oE 'pid [0-9]+' "$lockfile" | grep -oE '[0-9]+' | head -1)
     if [ -n "$pid" ] && kill -0 "$pid" 2>/dev/null; then
-      echo "  [active-session] $branch — locked, owning pid $pid still running, skipping"
+      echo -e "  ${BLUE}ℹ️${NC}  ${branch} — locked, owning pid ${pid} still running, skipping"
+      (( KEEP_COUNT++ ))
       return
     fi
-    echo "  [stale-lock] $branch — locked but owning pid ${pid:-unknown} is dead"
+    echo -e "  ${YELLOW}⚠️${NC}  ${branch} — locked but owning pid ${pid:-unknown} is dead (stale lock)"
   fi
 
   local dirty ahead pr_state
@@ -101,17 +117,19 @@ evaluate_worktree() {
 
   if [ "$pr_state" = "MERGED" ] || [ "$pr_state" = "CLOSED" ]; then
     if [ -z "$dirty" ] && [ -z "$ahead" ]; then
-      echo "  [safe-remove] $branch — PR $pr_state, clean, nothing unmerged"
-      if [ "$APPLY" = "--apply" ]; then
-        remove_worktree "$repo" "$wt" "$branch"
-      fi
+      echo -e "  ${GREEN}✓${NC}  ${branch} — PR ${pr_state}, clean, nothing unmerged"
+      SAFE_REMOVE_REPOS+=("$repo")
+      SAFE_REMOVE_WTS+=("$wt")
+      SAFE_REMOVE_BRANCHES+=("$branch")
     else
-      echo "  [needs-review] $branch — PR $pr_state, but has uncommitted or unpushed work:"
-      [ -n "$dirty" ] && echo "$dirty" | sed 's/^/      /'
-      [ -n "$ahead" ] && echo "$ahead" | sed 's/^/      unpushed: /'
+      echo -e "  ${YELLOW}⚠️${NC}  ${branch} — PR ${pr_state}, but has uncommitted or unpushed work:"
+      [ -n "$dirty" ] && echo -e "${DIM}$(echo "$dirty" | sed 's/^/      /')${NC}"
+      [ -n "$ahead" ] && echo -e "${DIM}$(echo "$ahead" | sed 's/^/      unpushed: /')${NC}"
+      (( NEEDS_REVIEW_COUNT++ ))
     fi
   else
-    echo "  [keep] $branch — PR state: ${pr_state:-none/open}"
+    echo -e "  ${BLUE}ℹ️${NC}  ${branch} — PR state: ${pr_state:-none/open}"
+    (( KEEP_COUNT++ ))
   fi
 }
 
@@ -124,7 +142,7 @@ remove_worktree() {
       # Windows: git worktree remove's recursive delete hits MAX_PATH on
       # deep node_modules trees even with core.longpaths set. robocopy's
       # mirror-of-empty trick deletes via the long-path-aware Win32 API.
-      echo "    long-path removal failed, falling back to robocopy mirror (Windows)..."
+      echo -e "    ${DIM}long-path removal failed, falling back to robocopy mirror (Windows)...${NC}"
       local empty
       empty=$(mktemp -d)
       robocopy "$empty" "$wt" /MIR /NFL /NDL /NJH /NJS >/dev/null 2>&1
@@ -133,7 +151,7 @@ remove_worktree() {
     else
       # macOS/Linux: no MAX_PATH limit, so a plain rm -rf covers whatever
       # else made git's own removal fail.
-      echo "    git worktree remove failed, falling back to rm -rf..."
+      echo -e "    ${DIM}git worktree remove failed, falling back to rm -rf...${NC}"
       rm -rf "$wt" 2>/dev/null
     fi
     git worktree prune
@@ -141,13 +159,46 @@ remove_worktree() {
 
   git branch -D "$branch" 2>/dev/null
   git push origin --delete "$branch" 2>/dev/null
-  echo "    removed worktree and branch: $branch"
+  echo -e "    ${GREEN}✓${NC}  removed worktree and branch: ${branch}"
 }
+
+section "Scanning" "🔍"
 
 for repo in "${TARGETS[@]}"; do
   prune_repo "$repo"
 done
 
-if [ -z "$APPLY" ]; then
-  echo "(dry run — pass --apply to actually remove the [safe-remove] worktrees above)"
+section "Summary" "🍽️"
+
+safe_count=${#SAFE_REMOVE_BRANCHES[@]}
+echo -e "  ${GREEN}✓${NC}  ${safe_count} safe to remove"
+echo -e "  ${YELLOW}⚠️${NC}  ${NEEDS_REVIEW_COUNT} need review"
+echo -e "  ${BLUE}ℹ️${NC}  ${KEEP_COUNT} kept (active or open PR)"
+
+if [ "$safe_count" -eq 0 ]; then
+  echo -e "\n  ${DIM}Nothing to remove.${NC}"
+  exit 0
 fi
+
+if [ -z "$APPLY" ]; then
+  echo -e "\n  ${DIM}(dry run — pass --apply to remove the ✓ safe-remove worktrees above)${NC}"
+  exit 0
+fi
+
+echo ""
+echo -e "  ${RED}⚠️  About to permanently remove ${safe_count} worktree(s) and their local/remote branches:${NC}"
+for i in "${!SAFE_REMOVE_BRANCHES[@]}"; do
+  echo -e "     ${RED}-${NC} ${SAFE_REMOVE_BRANCHES[$i]}  ${DIM}(${SAFE_REMOVE_WTS[$i]})${NC}"
+done
+echo ""
+read -p "  $(echo -e "${RED}Remove these now? (y/N):${NC}") " -n 1 -r
+echo
+if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+  echo -e "  ${YELLOW}Aborted — nothing removed.${NC}"
+  exit 1
+fi
+
+echo ""
+for i in "${!SAFE_REMOVE_BRANCHES[@]}"; do
+  remove_worktree "${SAFE_REMOVE_REPOS[$i]}" "${SAFE_REMOVE_WTS[$i]}" "${SAFE_REMOVE_BRANCHES[$i]}"
+done

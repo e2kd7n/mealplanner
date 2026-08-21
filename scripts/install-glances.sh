@@ -25,27 +25,27 @@ for arg in "$@"; do
     esac
 done
 
-log()  { echo -e "${GREEN}[$(date '+%H:%M:%S')] $1${NC}"; }
-warn() { echo -e "${YELLOW}[$(date '+%H:%M:%S')] $1${NC}"; }
-err()  { echo -e "${RED}[$(date '+%H:%M:%S')] $1${NC}"; }
-
-echo -e "${BLUE}=== Install Glances on Pi Cluster ===${NC}"
-echo ""
+section "Install Glances" "🩺"
 
 # ---------------------------------------------------------------------------
 # Pi 4B
 # ---------------------------------------------------------------------------
 
-log "Installing on Pi 4B..."
+steps_init 4
+
+step "Installing Glances package"
 if command -v glances &>/dev/null; then
-    echo "  already installed: $(glances --version 2>&1 | head -1)"
+    echo -e "  ${BLUE}ℹ️  already installed: $(glances --version 2>&1 | head -1)${NC}"
 else
-    sudo apt install glances -y
+    start_spinner "Installing glances via apt"
+    sudo apt install glances -y &>/dev/null
+    stop_spinner ok
 fi
 
 GLANCES_BIN=$(command -v glances)
 CURRENT_USER=$(whoami)
 
+step "Writing systemd unit"
 sudo tee /etc/systemd/system/glances.service > /dev/null << EOF
 [Unit]
 Description=Glances monitoring
@@ -59,16 +59,19 @@ User=${CURRENT_USER}
 [Install]
 WantedBy=multi-user.target
 EOF
+echo -e "  ${GREEN}✓${NC}  /etc/systemd/system/glances.service written"
 
+step "Enabling service"
 sudo systemctl daemon-reload
 sudo systemctl enable glances -q
+echo -e "  ${GREEN}✓${NC}  glances enabled at boot"
+
+step "Starting service"
 sudo systemctl restart glances
-log "✓ Pi 4B — http://${PI4B_IP}:8080/monitoring"
+echo -e "  ${GREEN}✓${NC}  Pi 4B — http://${PI4B_IP}:8080/monitoring"
 
 if [ "$CLUSTERHAT" = false ]; then
-    echo ""
-    echo -e "${GREEN}=== Glances Install Complete ===${NC}"
-    echo ""
+    section "Summary" "🍽️"
     echo -e "${BLUE}Monitoring dashboard:${NC}"
     echo -e "  ${GREEN}http://${PI4B_IP}:8080/monitoring${NC}"
     echo ""
@@ -79,20 +82,20 @@ fi
 # Zero W nodes
 # ---------------------------------------------------------------------------
 
-echo ""
-log "Installing on Zero W nodes..."
+section "Installing on Zero W Nodes" "🌐"
 
 for i in "${!ZEROS[@]}"; do
     zero="${ZEROS[$i]}"
     ip="${ZERO_IPS[$i]}"
     echo ""
-    warn "→ ${zero} (${ip})..."
+    echo -e "${YELLOW}→ ${zero} (${ip})...${NC}"
 
     if ! ssh -o ConnectTimeout=5 -o BatchMode=yes "${ZERO_USER}@${zero}" true 2>/dev/null; then
-        err "  ✗ ${zero}: unreachable — skipping"
+        echo -e "  ${RED}✗ ${zero}: unreachable — skipping${NC}"
         continue
     fi
 
+    start_spinner "Installing glances on ${zero}"
     if ssh "${ZERO_USER}@${zero}" bash << 'ENDSSH'
 set -e
 if ! command -v glances &>/dev/null; then
@@ -117,17 +120,16 @@ sudo systemctl enable glances -q
 sudo systemctl restart glances
 ENDSSH
     then
-        log "  ✓ ${zero} — browse via Pi 4B Connections menu"
+        stop_spinner ok
+        echo -e "  ${GREEN}✓${NC}  ${zero} — browse via Pi 4B Connections menu"
     else
-        err "  ✗ ${zero}: install failed"
+        stop_spinner fail
+        echo -e "  ${RED}✗ ${zero}: install failed${NC}"
     fi
 done
 
-echo ""
-echo -e "${GREEN}=== Glances Install Complete ===${NC}"
-echo ""
+section "Summary" "🍽️"
 echo -e "${BLUE}Monitoring dashboard:${NC}"
 echo -e "  ${GREEN}http://${PI4B_IP}:8080/monitoring${NC}"
 echo -e "  ${YELLOW}Browse Zero W nodes via the Connections menu in the dashboard${NC}"
 echo ""
-
