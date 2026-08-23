@@ -5,7 +5,7 @@
 
 
 import React, { useState, useEffect } from 'react';
-import { useNavigate, Link as RouterLink } from 'react-router-dom';
+import { useNavigate, useLocation, Link as RouterLink } from 'react-router-dom';
 import {
   Box,
   Button,
@@ -26,8 +26,13 @@ import ErrorAlert from '../components/ErrorAlert';
 
 const Register: React.FC = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const dispatch = useAppDispatch();
   const { isAuthenticated, loading, error } = useAppSelector((state) => state.auth);
+
+  // True when linked here from the end of the admin Welcome/Setup flow
+  // ("Add a Household Member") rather than a standalone visit to /register.
+  const fromFtue = Boolean((location.state as { fromFtue?: boolean } | null)?.fromFtue);
 
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
@@ -146,8 +151,14 @@ const Register: React.FC = () => {
             Family Meal Planner
           </Typography>
           <Typography component="h2" variant="h6" align="center" color="text.secondary" gutterBottom>
-            Create Account
+            {fromFtue ? 'Add a Household Member' : 'Create Account'}
           </Typography>
+          {fromFtue && (
+            <Typography variant="body2" align="center" color="text.secondary" sx={{ mb: 1 }}>
+              Give another person in your household their own sign-in. You'll be
+              switched to their account once it's created.
+            </Typography>
+          )}
 
           {(error || validationError) && (
             <ErrorAlert
@@ -157,7 +168,7 @@ const Register: React.FC = () => {
                 dispatch(clearError());
                 setValidationError('');
               }}
-              additionalContext="User attempted to register"
+              additionalContext={fromFtue ? 'Admin attempted to add household member from FTUE' : 'User attempted to register'}
               sx={{ mt: 2, mb: 2 }}
             />
           )}
@@ -303,9 +314,15 @@ const Register: React.FC = () => {
               {loading ? 'Creating Account...' : 'Create Account'}
             </Button>
             <Box sx={{ textAlign: 'center' }}>
-              <Link component={RouterLink} to="/login" variant="body2">
-                Already have an account? Sign In
-              </Link>
+              {fromFtue ? (
+                <Link component={RouterLink} to="/dashboard" variant="body2">
+                  Skip for now — go to Dashboard
+                </Link>
+              ) : (
+                <Link component={RouterLink} to="/login" variant="body2">
+                  Already have an account? Sign In
+                </Link>
+              )}
             </Box>
           </Box>
         </Paper>
