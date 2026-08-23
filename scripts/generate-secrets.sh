@@ -180,6 +180,7 @@ if [ -d "$SECRETS_DIR" ]; then
     backup_as_previous "jwt_refresh_secret"
     backup_as_previous "session_secret"
     backup_as_previous "redis_password"
+    backup_as_previous "grafana_admin_password"
     stop_spinner ok
 fi
 
@@ -207,6 +208,10 @@ stop_spinner ok
 
 start_spinner "redis_password — Redis authentication password (32 chars)"
 generate_secret_with_metadata "redis_password" 32 "Redis authentication password"
+stop_spinner ok
+
+start_spinner "grafana_admin_password — Grafana admin login (32 chars, monitoring overlay only)"
+generate_secret_with_metadata "grafana_admin_password" 32 "Grafana admin login password"
 stop_spinner ok
 
 start_spinner "Writing rotation status file"

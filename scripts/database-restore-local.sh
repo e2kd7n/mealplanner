@@ -152,7 +152,11 @@ if [ "$DATABASE_HEALTHY" = false ]; then
         -e POSTGRES_USER=mealplanner \
         -e POSTGRES_PASSWORD="$POSTGRES_PASSWORD" \
         -v postgres_data:/var/lib/postgresql/data \
-        -v ./database/init:/docker-entrypoint-initdb.d:ro \
+        -v ./database/init/01-init.sql:/docker-entrypoint-initdb.d/01-init.sql:ro \
+        -v ./database/seed-dev/02-test-data.sql:/docker-entrypoint-initdb.d/02-test-data.sql:ro \
+        -v ./database/seed-dev/03-additional-recipes.sql:/docker-entrypoint-initdb.d/03-additional-recipes.sql:ro \
+        -v ./database/seed-dev/04-complete-recipe-data.sql:/docker-entrypoint-initdb.d/04-complete-recipe-data.sql:ro \
+        -v ./database/seed-dev/05-enrich-existing-recipes.sql:/docker-entrypoint-initdb.d/05-enrich-existing-recipes.sql:ro \
         --health-cmd "pg_isready -U mealplanner -d meal_planner" \
         --health-interval 10s \
         --health-timeout 5s \

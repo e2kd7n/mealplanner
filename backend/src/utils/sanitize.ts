@@ -3,9 +3,11 @@
  * All rights reserved.
  */
 
+import net from 'net';
 import { JSDOM } from 'jsdom';
 import DOMPurify from 'dompurify';
 import { logger } from './logger';
+import { isBlockedIp } from './ipSafety';
 
 /**
  * XSS Sanitization Utility
@@ -159,53 +161,22 @@ export function sanitizeUrl(url: string): string | undefined {
       return undefined;
     }
     
-    // Block localhost and private IPs (SSRF protection)
+    // Block localhost and literal private/reserved IPs (fast syntactic pre-filter).
+    // This only catches an attacker-supplied URL that spells out a blocked address
+    // directly — it does NOT protect against DNS rebinding or a redirect to an
+    // internal host, since neither is visible from the string alone. Anything that
+    // actually issues a network request with this URL (image proxy, recipe import)
+    // MUST go through `safeFetch` (see utils/safeFetch.ts), which re-resolves and
+    // re-validates the IP address on every hop, including redirects, immediately
+    // before connecting.
     const hostname = parsed.hostname.toLowerCase();
-
-    // IPv4 private / reserved ranges
-    const blockedIPv4 =
-      hostname === 'localhost' ||
-      hostname === '127.0.0.1' ||
-      hostname === '0.0.0.0' ||
-      hostname.startsWith('10.') ||
-      hostname.startsWith('169.254.') ||   // link-local / APIPA / AWS IMDS
-      hostname.startsWith('192.168.') ||
-      hostname.startsWith('172.16.') ||
-      hostname.startsWith('172.17.') ||
-      hostname.startsWith('172.18.') ||
-      hostname.startsWith('172.19.') ||
-      hostname.startsWith('172.20.') ||
-      hostname.startsWith('172.21.') ||
-      hostname.startsWith('172.22.') ||
-      hostname.startsWith('172.23.') ||
-      hostname.startsWith('172.24.') ||
-      hostname.startsWith('172.25.') ||
-      hostname.startsWith('172.26.') ||
-      hostname.startsWith('172.27.') ||
-      hostname.startsWith('172.28.') ||
-      hostname.startsWith('172.29.') ||
-      hostname.startsWith('172.30.') ||
-      hostname.startsWith('172.31.');
-
-    if (blockedIPv4) {
-      logger.warn('Blocked private/local URL (SSRF protection)', { url: url.substring(0, 100) });
-      return undefined;
-    }
-
-    // IPv6 loopback and private ranges (colons only appear in IPv6 addresses)
     const rawHost = hostname.startsWith('[') && hostname.endsWith(']')
       ? hostname.slice(1, -1)
       : hostname;
-    if (rawHost.includes(':')) {
-      const blockedIPv6 =
-        rawHost === '::1' ||              // loopback
-        rawHost.startsWith('fe80:') ||   // link-local (fe80::/10)
-        rawHost.startsWith('fc') ||      // unique-local (fc00::/7)
-        rawHost.startsWith('fd');        // unique-local (fd00::/7)
-      if (blockedIPv6) {
-        logger.warn('Blocked private/local URL (SSRF protection)', { url: url.substring(0, 100) });
-        return undefined;
-      }
+
+    if (hostname === 'localhost' || (net.isIP(rawHost) && isBlockedIp(rawHost))) {
+      logger.warn('Blocked private/local URL (SSRF protection)', { url: url.substring(0, 100) });
+      return undefined;
     }
 
     return parsed.toString();

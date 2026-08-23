@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" width="200" height="200">
+  <rect width="200" height="200" rx="32" fill="#1ABC9C"/>
+  <!-- Cone -->
+  <path d="M78 120 L100 175 L122 120 Z" fill="#D9A566"/>
+  <path d="M82 126 L118 126 M85 138 L115 138 M88 150 L112 150" stroke="#B8854A" stroke-width="2.5"/>
+  <!-- Bottom scoop -->
+  <circle cx="100" cy="108" r="34" fill="#FFB6C1"/>
+  <!-- Top scoop -->
+  <circle cx="100" cy="75" r="28" fill="#FEFEFE"/>
+  <!-- Cherry -->
+  <circle cx="100" cy="46" r="8" fill="#E74C3C"/>
+  <path d="M100 38 Q106 28 114 30" fill="none" stroke="#4CAF50" stroke-width="3" stroke-linecap="round"/>
+</svg>

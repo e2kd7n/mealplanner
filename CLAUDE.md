@@ -26,7 +26,8 @@ mealplanner/
 ├── backend/           # Express API (Prisma ORM, JWT auth, Zod validation)
 ├── nginx/
 │   └── default.conf   # Nginx config - includes ClusterHAT upstream block
-├── database/init/     # Postgres init scripts
+├── database/init/     # Postgres init scripts — prod-safe only (extensions/grants); mounted into BOTH dev and Pi prod
+├── database/seed-dev/ # Dev-only sample/test data (incl. a test admin login) — dev compose mounts these individually; Pi prod never does
 ├── data/
 │   ├── images/        # Recipe images
 │   ├── uploads/       # User uploads
@@ -167,6 +168,10 @@ minifier.
 - JWT secrets must be generated with `./scripts/generate-secrets.sh` — never use defaults.
 - CORS is explicitly locked to known origins in `podman-compose.pi.yml`.
 - The `secrets/redis_password.txt` file must exist before running the Pi compose.
+- **Never mount `database/seed-dev/*.sql` (or add files there beyond `01-init.sql`) into
+  `podman-compose.pi.yml`'s Postgres init.** `02-test-data.sql` seeds a hardcoded
+  `testadmin@example.com` / `AdminPass123!` admin login — dev/test only, never prod.
+  `database/init/` must stay schema/extensions-only so it's safe to mount as-is in prod.
 
 ---
 
@@ -287,7 +292,13 @@ cross-compile if needed.
 ### Key Config Differences: `podman-compose.pi.yml` vs `podman-compose.yml`
 
 - No frontend service (Nginx serves static files directly)
-- Redis included (earlier Pi compose omitted it; backend may have silently used in-memory cache)
+- Redis included (earlier Pi compose omitted it). It backs the visual-login single-use
+  challenge store (`backend/src/utils/redis.ts` / `visualChallengeStore.ts`) — required
+  there since ClusterHAT's `least_conn` load balancing has no session affinity across
+  Zero W backend processes. Dev never provisions Redis, so that store (and anything
+  else built the same way) must fall back to an in-memory per-process store when
+  `REDIS_HOST` is unset — general request caching is still the separate in-memory
+  `utils/cache.ts` (node-cache) either way.
 - Postgres tuned for 2GB RAM: `shared_buffers=64MB`, `min_wal_size=128MB`
 - Backend platform: `linux/arm64/v8`
 - All `depends_on` use `condition: service_healthy`

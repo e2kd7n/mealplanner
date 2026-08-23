@@ -142,14 +142,10 @@ export async function getRecipes(
     const limitNum = parseInt(limit as string);
     const skip = (pageNum - 1) * limitNum;
 
-    // Build where clause - filter by user to prevent test recipes from appearing
+    // Recipes are shared across the whole household — every authenticated user sees
+    // every recipe, matching getRecipeById (which never filtered by owner). Only
+    // update/delete are owner-restricted (see verifyRecipeOwnership).
     const where: any = {};
-    
-    // Filter recipes by userId so users only see their own recipes
-    const userId = getUserId(req);
-    if (userId) {
-      where.userId = userId;
-    }
 
     if (search) {
       // Add search conditions while preserving access control
@@ -902,12 +898,8 @@ export async function searchRecipes(
     const limitNum = parseInt(limit as string);
     const skip = (pageNum - 1) * limitNum;
 
-    // Build where clause
-    const where: any = {
-      AND: [
-        { userId: req.user?.userId },
-      ],
-    };
+    // Build where clause — recipes are shared across the household (see getRecipes).
+    const where: any = { AND: [] as any[] };
 
     // Add text search
     if (q) {

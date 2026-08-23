@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" width="200" height="200">
+  <rect width="200" height="200" rx="32" fill="#F1C40F"/>
+  <!-- Donut base -->
+  <circle cx="100" cy="100" r="55" fill="#D9A566"/>
+  <!-- Icing -->
+  <path d="M48 90 Q48 45 100 45 Q152 45 152 90 Q152 100 145 105 Q100 120 55 105 Q48 100 48 90 Z" fill="#FF6FA5"/>
+  <!-- Hole -->
+  <circle cx="100" cy="100" r="18" fill="#F1C40F"/>
+  <!-- Sprinkles -->
+  <rect x="70" y="60" width="5" height="14" rx="2.5" fill="#3498DB" transform="rotate(20 72 67)"/>
+  <rect x="95" y="52" width="5" height="14" rx="2.5" fill="#2ECC71" transform="rotate(-10 97 59)"/>
+  <rect x="120" y="62" width="5" height="14" rx="2.5" fill="#FEFEFE" transform="rotate(35 122 69)"/>
+  <rect x="132" y="82" width="5" height="14" rx="2.5" fill="#9B59B6" transform="rotate(70 134 89)"/>
+  <rect x="82" y="70" width="5" height="12" rx="2.5" fill="#FEFEFE" transform="rotate(-30 84 76)"/>
+</svg>

@@ -78,7 +78,7 @@ podman volume rm mealplanner_postgres_data mealplanner_redis_data
 ./scripts/run-local.sh
 
 # Reload test users
-podman exec -i meals-postgres psql -U mealplanner -d meal_planner < database/init/02-test-data.sql
+podman exec -i meals-postgres psql -U mealplanner -d meal_planner < database/seed-dev/02-test-data.sql
 ```
 
 ### Backup Current Test Data
@@ -153,7 +153,7 @@ podman exec meals-postgres psql -U mealplanner -d meal_planner -c "YOUR SQL HERE
 
 ### Can't Log In
 - Verify test users exist: `podman exec meals-postgres psql -U mealplanner -d meal_planner -c "SELECT email FROM users;"`
-- If empty, reload test data: `podman exec -i meals-postgres psql -U mealplanner -d meal_planner < database/init/02-test-data.sql`
+- If empty, reload test data: `podman exec -i meals-postgres psql -U mealplanner -d meal_planner < database/seed-dev/02-test-data.sql`
 
 ### Database Connection Errors
 - Check backend logs: `podman logs meals-backend`

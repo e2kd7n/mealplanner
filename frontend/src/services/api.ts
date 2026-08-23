@@ -124,7 +124,7 @@ export const visualAuthAPI = {
   getVisualChallenge: (memberId: string) =>
     api.get(`/auth/visual-challenge/${memberId}`),
 
-  visualLogin: (data: { memberId: string; recipeId: string }) =>
+  visualLogin: (data: { memberId: string; challengeId: string; recipeId: string }) =>
     api.post('/auth/login/visual', data),
 
   deviceLogin: () =>

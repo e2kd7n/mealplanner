@@ -8,6 +8,7 @@ import { logger } from '../utils/logger';
 import prismaClient from '../utils/prisma';
 import { decode } from 'html-entities';
 import { sanitizeUrl } from '../utils/sanitize';
+import { safeFetch } from '../utils/safeFetch';
 
 interface ParsedRecipe {
   title: string;
@@ -359,11 +360,18 @@ export class RecipeImportService {
 
       logger.info(`[RECIPE_IMPORT_START] URL: ${validatedUrl}, Hostname: ${hostname}, Attempt: ${retryCount + 1}/${maxRetries + 1}`);
 
-      // Scrape recipe using @rethora/url-recipe-scraper
+      // Fetch the page HTML ourselves via safeFetch (which re-validates the resolved IP
+      // on every hop, including redirects, immediately before connecting) rather than
+      // handing the raw URL to @rethora/url-recipe-scraper — that library fetches with
+      // the platform's native `fetch`, which follows redirects and re-resolves DNS with
+      // no SSRF protection at all. The library accepts raw HTML in place of a URL
+      // (its own README documents this exact pattern), so scraping is unaffected.
       let scrapedRecipe;
       try {
-        scrapedRecipe = await scrapeRecipe(validatedUrl);
-        
+        const page = await safeFetch(validatedUrl, { timeoutMs: 10000, maxBytes: 5 * 1024 * 1024 });
+        const html = page.buffer.toString('utf-8');
+        scrapedRecipe = await scrapeRecipe(html);
+
         // Log successful scrape with data structure
         logger.info(`[RECIPE_SCRAPE_SUCCESS] ${hostname}`, {
           url: validatedUrl,

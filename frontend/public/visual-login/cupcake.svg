@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" width="200" height="200">
+  <rect width="200" height="200" rx="32" fill="#8E44AD"/>
+  <!-- Wrapper -->
+  <path d="M58 118 L142 118 L132 165 Q100 175 68 165 Z" fill="#E74C3C"/>
+  <path d="M58 118 L142 118 L138 130 L62 130 Z" fill="#FEFEFE" opacity="0.25"/>
+  <!-- Frosting swirl -->
+  <path d="M65 118 Q60 90 80 82 Q75 65 95 60 Q100 45 105 60 Q125 65 120 82 Q140 90 135 118 Z" fill="#FDEBD0"/>
+  <!-- Cherry -->
+  <circle cx="100" cy="48" r="9" fill="#C0392B"/>
+  <path d="M100 40 Q105 30 113 32" fill="none" stroke="#4CAF50" stroke-width="3" stroke-linecap="round"/>
+  <!-- Sprinkles -->
+  <rect x="80" y="90" width="4" height="10" rx="2" fill="#3498DB" transform="rotate(20 82 95)"/>
+  <rect x="112" y="88" width="4" height="10" rx="2" fill="#2ECC71" transform="rotate(-15 114 93)"/>
+</svg>
