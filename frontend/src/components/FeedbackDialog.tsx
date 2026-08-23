@@ -32,7 +32,7 @@ import {
   Send as SendIcon,
   CameraAlt as CameraIcon,
 } from '@mui/icons-material';
-import { useLocation } from 'react-router-dom';
+import { useLocation } from 'react-router';
 import { useTheme } from '@mui/material/styles';
 import type { Options as Html2CanvasOptions } from 'html2canvas';
 import api from '../services/api';

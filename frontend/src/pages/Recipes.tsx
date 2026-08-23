@@ -46,7 +46,7 @@ import {
   Clear as ClearIcon,
   ShoppingCart as ShoppingCartIcon,
 } from '@mui/icons-material';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router';
 import { useAppDispatch, useAppSelector } from '../store/hooks';
 import { fetchRecipes } from '../store/slices/recipesSlice';
 import type { Recipe } from '../store/slices/recipesSlice';

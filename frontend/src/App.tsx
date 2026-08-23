@@ -5,7 +5,7 @@
 
 
 import { lazy, Suspense } from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router';
 import { CssBaseline, CircularProgress, Box } from '@mui/material';
 import { Provider } from 'react-redux';
 import { store } from './store';

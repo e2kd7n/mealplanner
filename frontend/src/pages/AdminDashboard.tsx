@@ -49,7 +49,7 @@ import {
   Cancel as CancelIcon,
   Key as KeyIcon,
 } from '@mui/icons-material';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router';
 import api from '../services/api';
 import { isAxiosError } from 'axios';
 import { getApiErrorMessage } from '../utils/errorHandler';

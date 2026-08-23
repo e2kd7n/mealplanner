@@ -4,7 +4,7 @@
  */
 
 import { useState, useCallback } from 'react';
-import { useLocation } from 'react-router-dom';
+import { useLocation } from 'react-router';
 import api from '../services/api';
 import { parseError, getErrorTitle } from '../utils/errorHandler';
 import type { AppError } from '../utils/errorHandler';

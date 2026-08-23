@@ -25,7 +25,7 @@ import {
   Warning as WarningIcon,
   Add as AddIcon,
 } from '@mui/icons-material';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router';
 import { useTheme } from '@mui/material/styles';
 import { format, startOfWeek, addDays, isSameDay } from 'date-fns';
 import { useAppDispatch, useAppSelector } from '../store/hooks';
