@@ -39,7 +39,7 @@ import {
   FilterList as FilterListIcon,
   Visibility as VisibilityIcon,
 } from '@mui/icons-material';
-import { useSearchParams } from 'react-router-dom';
+import { useSearchParams } from 'react-router';
 import { useAppDispatch, useAppSelector } from '../store/hooks';
 import {
   searchSpoonacularRecipes,

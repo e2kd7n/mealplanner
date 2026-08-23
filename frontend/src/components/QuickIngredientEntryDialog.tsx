@@ -21,7 +21,7 @@ import {
   CircularProgress,
 } from '@mui/material';
 import { Close as CloseIcon, DragIndicator as DragIndicatorIcon } from '@mui/icons-material';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router';
 import { useAppDispatch } from '../store/hooks';
 import { updateRecipe } from '../store/slices/recipesSlice';
 import { getApiErrorMessage } from '../utils/errorHandler';

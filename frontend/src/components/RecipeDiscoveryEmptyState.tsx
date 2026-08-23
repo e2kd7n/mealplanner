@@ -27,7 +27,7 @@ import {
   Visibility as VisibilityIcon,
   CheckCircle as CheckCircleIcon,
 } from '@mui/icons-material';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router';
 import { useAppDispatch, useAppSelector } from '../store/hooks';
 import { searchSpoonacularRecipes, addSpoonacularRecipeToBox } from '../store/slices/recipeBrowseSlice';
 import type { SpoonacularRecipe } from '../store/slices/recipeBrowseSlice';

@@ -4,7 +4,7 @@
  */
 
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router';
 import { Box, Typography, Button, MobileStepper, useTheme } from '@mui/material';
 import {
   RestaurantMenu as RestaurantMenuIcon,
