@@ -1,6 +1,6 @@
 # Issue Prioritization
 
-**Last Updated:** 2026-08-20 02:54:14 UTC / 2026-08-20 02:54:14 GMT
+**Last Updated:** 2026-08-23 03:32:57 UTC / 2026-08-23 03:32:57 GMT (manual edit, not via `update-issue-priorities.sh` — drop closed #365/#392)
 
 This file reflects the current state of GitHub issues organized by milestone and priority within each milestone.
 
@@ -38,8 +38,7 @@ This file reflects the current state of GitHub issues organized by milestone and
 These issues need to be assigned to a milestone and prioritized.
 
 ### 🔴 P1 - HIGH
-- #392 - security: deepmerge-ts stack exhaustion via prisma@7.9.1 config (backend)
-- #365 - security: weekly audit 2026-08-05 — 13 high vulns found, 11 fixed via pnpm audit fix, 3 remain
+**No issues** ✅
 
 ### 🟡 P2 - MEDIUM
 - #116 - [P2][UX] Add Cost Tracking for Budget-Conscious Users
