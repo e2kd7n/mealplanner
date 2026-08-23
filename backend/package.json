@@ -44,7 +44,8 @@
       "path-to-regexp": "0.1.13",
       "picomatch": ">=4.0.4",
       "brace-expansion": ">=5.0.6",
-      "cookie": ">=0.7.0"
+      "cookie": ">=0.7.0",
+      "deepmerge-ts": "8.0.0"
     }
   },
   "dependencies": {

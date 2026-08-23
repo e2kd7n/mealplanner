@@ -1,6 +1,9 @@
 packages:
   - '.'
 
+overrides:
+  deepmerge-ts: 8.0.0
+
 allowBuilds:
   '0': '@prisma/client'
   '1': '@prisma/engines'
