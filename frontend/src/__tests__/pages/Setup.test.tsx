@@ -368,5 +368,35 @@ describe('Setup Wizard', () => {
 
       expect(mockNavigate).toHaveBeenCalledWith('/dashboard');
     });
+
+    it('offers to add another household member (#356)', async () => {
+      (api.put as any).mockResolvedValue({});
+      const user = userEvent.setup();
+      renderSetup();
+
+      await user.click(screen.getByRole('button', { name: /get started/i }));
+      await user.click(screen.getByRole('button', { name: /skip/i }));
+      await user.click(screen.getByRole('button', { name: /skip/i }));
+      await user.click(screen.getByRole('button', { name: /skip for now/i }));
+
+      await waitFor(() => expect(screen.getByText(/you're all set/i)).toBeInTheDocument());
+      expect(screen.getByRole('button', { name: /add a household member/i })).toBeInTheDocument();
+    });
+
+    it('Add a Household Member navigates to /register with FTUE context (#356)', async () => {
+      (api.put as any).mockResolvedValue({});
+      const user = userEvent.setup();
+      renderSetup();
+
+      await user.click(screen.getByRole('button', { name: /get started/i }));
+      await user.click(screen.getByRole('button', { name: /skip/i }));
+      await user.click(screen.getByRole('button', { name: /skip/i }));
+      await user.click(screen.getByRole('button', { name: /skip for now/i }));
+
+      await waitFor(() => expect(screen.getByText(/you're all set/i)).toBeInTheDocument());
+      await user.click(screen.getByRole('button', { name: /add a household member/i }));
+
+      expect(mockNavigate).toHaveBeenCalledWith('/register', { state: { fromFtue: true } });
+    });
   });
 });

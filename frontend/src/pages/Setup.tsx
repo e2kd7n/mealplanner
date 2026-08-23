@@ -38,6 +38,7 @@ import {
   useMediaQuery,
   useTheme,
   Skeleton,
+  Divider,
 } from '@mui/material';
 import {
   Visibility,
@@ -726,14 +727,37 @@ export default function Setup() {
                 Setup is complete. You can update preferences and API keys any time
                 from the <strong>Profile</strong> and <strong>Admin</strong> pages.
               </Typography>
-              <Button
-                variant="contained"
-                size="large"
-                onClick={() => navigate('/dashboard')}
-                sx={{ mt: 2 }}
-              >
-                Go to Dashboard
-              </Button>
+
+              <Divider sx={{ my: 3 }} />
+
+              <Box sx={{ textAlign: 'left', mb: 2 }}>
+                <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>
+                  Add another household member?
+                </Typography>
+                <Typography variant="body2" color="text.secondary">
+                  Give another adult their own sign-in so they can plan meals and
+                  manage the kitchen too. Totally optional — you can always add
+                  more people later from the Admin page.
+                </Typography>
+              </Box>
+
+              <Box sx={{ display: 'flex', gap: 1, justifyContent: 'center', flexWrap: 'wrap' }}>
+                <Button
+                  variant="outlined"
+                  size="large"
+                  startIcon={<PersonAddIcon />}
+                  onClick={() => navigate('/register', { state: { fromFtue: true } })}
+                >
+                  Add a Household Member
+                </Button>
+                <Button
+                  variant="contained"
+                  size="large"
+                  onClick={() => navigate('/dashboard')}
+                >
+                  Go to Dashboard
+                </Button>
+              </Box>
             </Box>
           )}
         </Paper>
