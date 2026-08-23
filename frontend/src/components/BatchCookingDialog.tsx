@@ -63,11 +63,13 @@ const BatchCookingDialog: React.FC<BatchCookingDialogProps> = ({
   const [servingsMultiplier, setServingsMultiplier] = useState<number>(1);
   const [markAsLeftovers, setMarkAsLeftovers] = useState<boolean>(true);
   const [loading, setLoading] = useState<boolean>(false);
+  const [formError, setFormError] = useState<string | null>(null);
 
   // Generate next 14 days for selection
   const availableDates = Array.from({ length: 14 }, (_, i) => addDays(currentWeekStart, i));
 
   const handleDateToggle = (date: Date) => {
+    setFormError(null);
     setSelectedDates((prev) => {
       const exists = prev.some((d) => isSameDay(d, date));
       if (exists) {
@@ -88,17 +90,18 @@ const BatchCookingDialog: React.FC<BatchCookingDialogProps> = ({
 
   const handleSubmit = async () => {
     if (selectedDates.length === 0) {
-      alert('Please select at least one date');
+      setFormError('Please select at least one date');
       return;
     }
 
+    setFormError(null);
     setLoading(true);
     try {
       await onBatchCook(selectedDates, servingsMultiplier, markAsLeftovers);
       handleClose();
     } catch (error) {
       console.error('Batch cooking failed:', error);
-      alert('Failed to batch cook meals. Please try again.');
+      setFormError('Failed to batch cook meals. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -108,6 +111,7 @@ const BatchCookingDialog: React.FC<BatchCookingDialogProps> = ({
     setSelectedDates([]);
     setServingsMultiplier(1);
     setMarkAsLeftovers(true);
+    setFormError(null);
     onClose();
   };
 
@@ -136,6 +140,13 @@ const BatchCookingDialog: React.FC<BatchCookingDialogProps> = ({
           <Alert severity="info" icon={<RestaurantIcon />}>
             Batch cooking lets you prepare one recipe and schedule it for multiple days. Perfect for meal prep!
           </Alert>
+
+          {/* Form Error */}
+          {formError && (
+            <Alert severity="error" onClose={() => setFormError(null)}>
+              {formError}
+            </Alert>
+          )}
 
           {/* Original Meal Info */}
           <Box>
