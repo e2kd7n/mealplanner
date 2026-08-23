@@ -16,7 +16,16 @@ services:
       - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
-      - ./database/init:/docker-entrypoint-initdb.d:ro
+      # Dev-only: schema init (01) plus seed/test data (02-05) mounted as individual
+      # files rather than the whole ./database/init dir, so dev keeps the sample
+      # data while podman-compose.pi.yml (which mounts only ./database/init) never
+      # sees it — 02-test-data.sql seeds a hardcoded admin login that must never
+      # land in a production Postgres volume.
+      - ./database/init/01-init.sql:/docker-entrypoint-initdb.d/01-init.sql:ro
+      - ./database/seed-dev/02-test-data.sql:/docker-entrypoint-initdb.d/02-test-data.sql:ro
+      - ./database/seed-dev/03-additional-recipes.sql:/docker-entrypoint-initdb.d/03-additional-recipes.sql:ro
+      - ./database/seed-dev/04-complete-recipe-data.sql:/docker-entrypoint-initdb.d/04-complete-recipe-data.sql:ro
+      - ./database/seed-dev/05-enrich-existing-recipes.sql:/docker-entrypoint-initdb.d/05-enrich-existing-recipes.sql:ro
     networks:
       meals-network:
         aliases:

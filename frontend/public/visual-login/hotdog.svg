@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" width="200" height="200">
+  <rect width="200" height="200" rx="32" fill="#34495E"/>
+  <!-- Bun bottom -->
+  <path d="M35 118 Q35 145 60 145 L140 145 Q165 145 165 118 Q165 105 150 105 L50 105 Q35 105 35 118 Z" fill="#E8B563"/>
+  <!-- Bun top -->
+  <path d="M40 105 Q40 78 100 78 Q160 78 160 105 Z" fill="#F0C87D"/>
+  <!-- Sausage -->
+  <rect x="42" y="92" width="116" height="26" rx="13" fill="#A83232"/>
+  <!-- Mustard zigzag -->
+  <path d="M50 100 Q65 92 80 100 Q95 108 110 100 Q125 92 140 100 Q150 104 155 100"
+        fill="none" stroke="#F1C40F" stroke-width="4" stroke-linecap="round"/>
+</svg>

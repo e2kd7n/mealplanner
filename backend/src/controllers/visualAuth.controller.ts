@@ -15,10 +15,16 @@ import {
   hashSessionToken,
   getClientIp,
 } from '../utils/authCookies';
+import { createVisualChallenge, consumeVisualChallenge } from '../utils/visualChallengeStore';
 
 const DEVICE_COOKIE_NAME = 'mealplanner_device';
 const DEVICE_TOKEN_DAYS = 14;
-const VISUAL_CHALLENGE_SIZE = 4; // 1 correct + 3 decoys
+// Images actually shown (and required to guess among) per challenge — 1 correct + 7
+// decoys. This is the real per-attempt entropy for a blind guesser: a wider backing
+// STOCK_IMAGES pool only helps if each challenge draws a fresh random subset of it
+// (see getVisualChallenge), since an attacker who can see a challenge response always
+// knows exactly which options it offered.
+const VISUAL_CHALLENGE_SIZE = 8;
 
 const STOCK_IMAGES = [
   { id: 'stock-burger', title: 'Burger', imageUrl: '/visual-login/burger.svg' },
@@ -29,6 +35,14 @@ const STOCK_IMAGES = [
   { id: 'stock-taco', title: 'Taco', imageUrl: '/visual-login/taco.svg' },
   { id: 'stock-cake', title: 'Cake', imageUrl: '/visual-login/cake.svg' },
   { id: 'stock-soup', title: 'Soup', imageUrl: '/visual-login/soup.svg' },
+  { id: 'stock-donut', title: 'Donut', imageUrl: '/visual-login/donut.svg' },
+  { id: 'stock-icecream', title: 'Ice Cream', imageUrl: '/visual-login/icecream.svg' },
+  { id: 'stock-avocado', title: 'Avocado', imageUrl: '/visual-login/avocado.svg' },
+  { id: 'stock-pretzel', title: 'Pretzel', imageUrl: '/visual-login/pretzel.svg' },
+  { id: 'stock-waffle', title: 'Waffle', imageUrl: '/visual-login/waffle.svg' },
+  { id: 'stock-hotdog', title: 'Hot Dog', imageUrl: '/visual-login/hotdog.svg' },
+  { id: 'stock-cupcake', title: 'Cupcake', imageUrl: '/visual-login/cupcake.svg' },
+  { id: 'stock-coffee', title: 'Coffee', imageUrl: '/visual-login/coffee.svg' },
 ];
 
 function hashToken(token: string): string {
@@ -92,9 +106,11 @@ export async function listUsers(_req: Request, res: Response, next: NextFunction
 
 /**
  * GET /api/auth/visual-challenge/:memberId
- * Returns a shuffled array of VISUAL_CHALLENGE_SIZE recipe images for the
- * login challenge. One is the family member's visual password; the rest are random decoys.
- * Does NOT reveal which is correct.
+ * Creates a single-use, ~2-minute challenge and returns a shuffled array of
+ * VISUAL_CHALLENGE_SIZE images for the login picker. One is the family member's
+ * visual password; the rest are random decoys drawn fresh each call. Does NOT reveal
+ * which is correct — `POST /login/visual` must present the returned challengeId and
+ * can only be checked against the specific image set this call produced.
  */
 export async function getVisualChallenge(req: Request, res: Response, next: NextFunction): Promise<void> {
   try {
@@ -121,7 +137,9 @@ export async function getVisualChallenge(req: Request, res: Response, next: Next
       shuffle(decoys);
       const images = [correct, ...decoys.slice(0, VISUAL_CHALLENGE_SIZE - 1)];
       shuffle(images);
-      res.json({ images });
+
+      const challengeId = await createVisualChallenge(memberId, correct.id);
+      res.json({ challengeId, images: images.map(({ id, title, imageUrl }) => ({ id, title, imageUrl })) });
       return;
     }
 
@@ -155,7 +173,8 @@ export async function getVisualChallenge(req: Request, res: Response, next: Next
     const images = [correctRecipe, ...decoys].slice(0, VISUAL_CHALLENGE_SIZE);
     shuffle(images);
 
-    res.json({ images });
+    const challengeId = await createVisualChallenge(memberId, correctRecipe.id);
+    res.json({ challengeId, images: images.map(({ id, title, imageUrl }) => ({ id, title, imageUrl })) });
   } catch (err) {
     next(err);
   }
@@ -163,15 +182,30 @@ export async function getVisualChallenge(req: Request, res: Response, next: Next
 
 /**
  * POST /api/auth/login/visual
- * Body: { memberId, imageId } where imageId is a recipe ID or stock image ID (e.g. "stock-burger")
- * Validates the family member's visual password and issues JWT + 14-day device cookie on success.
+ * Body: { memberId, challengeId, recipeId } where recipeId is the id (recipe ID or
+ * stock image ID, e.g. "stock-burger") the caller picked from the challenge's image
+ * set. The guess is checked against the single-use challenge record created by
+ * `getVisualChallenge` — not re-derived from a static table — so a caller can no
+ * longer skip straight to guessing without ever fetching a challenge, and each
+ * challenge (and its randomized decoy set) can only be tried once.
+ * Issues JWT + 14-day device cookie on success.
  */
 export async function visualLogin(req: Request, res: Response, next: NextFunction): Promise<void> {
   try {
-    const { memberId, recipeId: imageId } = req.body as { memberId: string; recipeId: string };
+    const { memberId, challengeId, recipeId: imageId } = req.body as {
+      memberId: string;
+      challengeId: string;
+      recipeId: string;
+    };
 
-    if (!memberId || !imageId) {
-      throw new AppError('memberId and recipeId are required', 400);
+    if (!memberId || !challengeId || !imageId) {
+      throw new AppError('memberId, challengeId and recipeId are required', 400);
+    }
+
+    const challenge = await consumeVisualChallenge(challengeId);
+    if (!challenge || challenge.memberId !== memberId || challenge.correctId !== imageId) {
+      logger.warn('Visual login challenge invalid, expired, already used, or answer mismatch', { memberId });
+      throw new AppError('Invalid or expired login attempt — please try again', 401);
     }
 
     const member = await withRetry(() =>
@@ -181,24 +215,8 @@ export async function visualLogin(req: Request, res: Response, next: NextFunctio
       })
     );
 
-    if (!member) {
+    if (!member || !(member.visualPasswordImageUrl || member.visualPasswordRecipeId)) {
       throw new AppError('Invalid credentials', 401);
-    }
-
-    // Check stock image password
-    if (member.visualPasswordImageUrl) {
-      const stockMatch = STOCK_IMAGES.find((s) => s.id === imageId);
-      if (!stockMatch || stockMatch.imageUrl !== member.visualPasswordImageUrl) {
-        logger.warn('Visual password mismatch (stock)', { memberId });
-        throw new AppError('Invalid credentials', 401);
-      }
-    } else if (member.visualPasswordRecipeId) {
-      if (member.visualPasswordRecipeId !== imageId) {
-        logger.warn('Visual password mismatch (recipe)', { memberId });
-        throw new AppError('Invalid credentials', 401);
-      }
-    } else {
-      throw new AppError('Visual password not configured', 400);
     }
 
     const user = await withRetry(() =>

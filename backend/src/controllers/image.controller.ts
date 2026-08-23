@@ -4,12 +4,12 @@
  */
 
 import { Request, Response, NextFunction } from 'express';
-import axios from 'axios';
 import path from 'path';
 import fs from 'fs/promises';
 import { logger } from '../utils/logger';
 import { AppError } from '../middleware/errorHandler';
 import { sanitizeUrl } from '../utils/sanitize';
+import { safeFetch, SafeFetchError } from '../utils/safeFetch';
 import prisma from '../utils/prisma';
 
 /**
@@ -41,7 +41,10 @@ export const proxyImage = async (
       throw new AppError('Only HTTP and HTTPS URLs are allowed', 400);
     }
 
-    // Block private/internal IPs (SSRF protection)
+    // Block private/internal IPs (SSRF protection). This is a syntactic pre-filter only —
+    // safeFetch below re-resolves and re-validates the IP address on every hop, including
+    // redirects, immediately before connecting. That's what actually closes DNS-rebinding
+    // and redirect-based SSRF; this check just rejects the obvious cases early.
     if (!sanitizeUrl(url)) {
       throw new AppError('URL points to a disallowed host', 400);
     }
@@ -51,24 +54,14 @@ export const proxyImage = async (
     // Fetch the image from the external source with retry logic
     let lastError: any;
     const maxRetries = 2;
-    
+
     for (let attempt = 0; attempt <= maxRetries; attempt++) {
       try {
-        const response = await axios.get(url, {
-          responseType: 'arraybuffer',
-          timeout: 8000, // 8 second timeout (reduced from 10s)
-          maxContentLength: 10 * 1024 * 1024, // 10MB max
-          headers: {
-            'User-Agent': 'Mozilla/5.0 (compatible; MealPlannerBot/1.0)',
-            'Accept': 'image/*',
-          },
-          validateStatus: (status) => status < 500, // Don't throw on 4xx errors
+        const response = await safeFetch(url, {
+          timeoutMs: 8000, // 8 second timeout
+          maxBytes: 10 * 1024 * 1024, // 10MB max
+          headers: { Accept: 'image/*' },
         });
-
-        // Handle non-2xx responses
-        if (response.status >= 400) {
-          throw new AppError(`Image source returned ${response.status}`, response.status);
-        }
 
         // Get content type from response or default to image/jpeg
         const contentType = response.headers['content-type'];
@@ -88,12 +81,15 @@ export const proxyImage = async (
         });
 
         // Send the image data
-        res.send(Buffer.from(response.data));
+        res.send(response.buffer);
         return;
       } catch (err: any) {
         lastError = err;
-        if (attempt < maxRetries && (!axios.isAxiosError(err) || err.code === 'ECONNABORTED')) {
-          // Retry on timeout or network errors, but not on 4xx/5xx responses
+        // Never retry our own validation failures (e.g. non-image content-type,
+        // disallowed host) — only retry genuinely transient network errors.
+        if (err instanceof AppError) break;
+        const transient = err instanceof SafeFetchError && /timeout|ECONNRESET|ENOTFOUND/.test(err.message);
+        if (attempt < maxRetries && transient) {
           logger.info(`Retry attempt ${attempt + 1} for image: ${url}`);
           await new Promise(resolve => setTimeout(resolve, 500 * (attempt + 1))); // Exponential backoff
           continue;
@@ -110,20 +106,20 @@ export const proxyImage = async (
       return;
     }
 
-    if (axios.isAxiosError(err)) {
+    if (err instanceof SafeFetchError) {
       const requestUrl = typeof url === 'string' ? url : 'unknown';
-      
-      if (err.code === 'ECONNABORTED') {
+      const httpMatch = err.message.match(/^HTTP (\d+)$/);
+
+      if (err.message.includes('timeout')) {
         logger.warn(`Image fetch timeout after retries: ${requestUrl}`);
         next(new AppError('Image fetch timeout', 504));
-      } else if (err.response) {
+      } else if (httpMatch) {
+        const status = Number(httpMatch[1]);
         // Don't log 404s as errors - they're expected for expired/invalid URLs
-        const status = err.response.status;
         if (status !== 404) {
           logger.warn(`Failed to fetch image from ${requestUrl}: ${status}`);
         }
-        // Return appropriate status code
-        next(new AppError(`Failed to fetch image: ${err.response.statusText || status}`, status >= 500 ? 502 : status));
+        next(new AppError(`Failed to fetch image: HTTP ${status}`, status >= 500 ? 502 : status));
       } else {
         logger.warn(`Failed to fetch image from ${requestUrl}: ${err.message}`);
         next(new AppError('Failed to fetch image from external source', 502));

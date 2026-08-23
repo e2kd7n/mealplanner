@@ -141,6 +141,7 @@ describe('LocalLogin', () => {
       });
       (visualAuthAPI.getVisualChallenge as any).mockResolvedValue({
         data: {
+          challengeId: 'test-challenge-id',
           images: [
             { id: 'stock-burger', title: 'Burger', imageUrl: '/visual-login/burger.svg' },
             { id: 'stock-pizza', title: 'Pizza', imageUrl: '/visual-login/pizza.svg' },
@@ -189,6 +190,7 @@ describe('LocalLogin', () => {
       });
       (visualAuthAPI.getVisualChallenge as any).mockResolvedValue({
         data: {
+          challengeId: 'test-challenge-id',
           images: [
             { id: 'stock-burger', title: 'Burger', imageUrl: '/visual-login/burger.svg' },
             { id: 'stock-pizza', title: 'Pizza', imageUrl: '/visual-login/pizza.svg' },
@@ -256,7 +258,10 @@ describe('LocalLogin', () => {
         data: { users: [{ id: 'm1', name: 'Alice' }] },
       });
       (visualAuthAPI.getVisualChallenge as any).mockResolvedValue({
-        data: { images: [{ id: 'stock-burger', title: 'Burger', imageUrl: '/visual-login/burger.svg' }] },
+        data: {
+          challengeId: 'test-challenge-id',
+          images: [{ id: 'stock-burger', title: 'Burger', imageUrl: '/visual-login/burger.svg' }],
+        },
       });
 
       renderWithProviders();

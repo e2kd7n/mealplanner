@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" width="200" height="200">
+  <rect width="200" height="200" rx="32" fill="#D35400"/>
+  <!-- Pretzel twist -->
+  <path d="M100 50
+           C 60 50, 45 80, 60 105
+           C 70 122, 90 110, 88 95
+           C 86 82, 70 85, 68 98
+           C 66 112, 78 128, 100 128
+           C 122 128, 134 112, 132 98
+           C 130 85, 114 82, 112 95
+           C 110 110, 130 122, 140 105
+           C 155 80, 140 50, 100 50 Z"
+        fill="none" stroke="#8B5A2B" stroke-width="16" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M100 128 L100 150" fill="none" stroke="#8B5A2B" stroke-width="16" stroke-linecap="round"/>
+  <!-- Salt -->
+  <circle cx="76" cy="62" r="2.5" fill="#FEFEFE"/>
+  <circle cx="100" cy="55" r="2.5" fill="#FEFEFE"/>
+  <circle cx="124" cy="62" r="2.5" fill="#FEFEFE"/>
+  <circle cx="100" cy="140" r="2.5" fill="#FEFEFE"/>
+  <circle cx="88" cy="112" r="2.5" fill="#FEFEFE"/>
+</svg>

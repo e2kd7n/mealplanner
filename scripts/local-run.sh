@@ -143,7 +143,11 @@ if ! podman run -d \
     -e PGDATA=/var/lib/postgresql/data/pgdata \
     -p 5432:5432 \
     -v meals-postgres-data:/var/lib/postgresql/data \
-    -v "$(pwd)/database/init:/docker-entrypoint-initdb.d:ro" \
+    -v "$(pwd)/database/init/01-init.sql:/docker-entrypoint-initdb.d/01-init.sql:ro" \
+    -v "$(pwd)/database/seed-dev/02-test-data.sql:/docker-entrypoint-initdb.d/02-test-data.sql:ro" \
+    -v "$(pwd)/database/seed-dev/03-additional-recipes.sql:/docker-entrypoint-initdb.d/03-additional-recipes.sql:ro" \
+    -v "$(pwd)/database/seed-dev/04-complete-recipe-data.sql:/docker-entrypoint-initdb.d/04-complete-recipe-data.sql:ro" \
+    -v "$(pwd)/database/seed-dev/05-enrich-existing-recipes.sql:/docker-entrypoint-initdb.d/05-enrich-existing-recipes.sql:ro" \
     docker.io/library/postgres:16-alpine >/dev/null 2>&1; then
     echo -e "${RED}❌ Failed to start PostgreSQL container${NC}"
     podman logs meals-postgres 2>/dev/null || true

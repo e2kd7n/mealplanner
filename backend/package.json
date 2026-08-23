@@ -64,6 +64,7 @@
     "express-rate-limit": "^8.6.1",
     "helmet": "^8.3.0",
     "html-entities": "^2.6.0",
+    "ioredis": "^5.11.1",
     "isomorphic-dompurify": "^2.36.0",
     "jsdom": "^25.0.1",
     "jsonwebtoken": "^9.0.3",

@@ -51,6 +51,7 @@ const LocalLogin: React.FC = () => {
   const [usersLoading, setUsersLoading] = useState(true);
   const [selectedUser, setSelectedUser] = useState<UserEntry | null>(null);
   const [challenge, setChallenge] = useState<ChallengeImage[]>([]);
+  const [challengeId, setChallengeId] = useState<string | null>(null);
   const [challengeLoading, setChallengeLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [verifying, setVerifying] = useState(false);
@@ -97,14 +98,19 @@ const LocalLogin: React.FC = () => {
     }
   };
 
+  const fetchChallenge = useCallback(async (user: UserEntry) => {
+    const res = await visualAuthAPI.getVisualChallenge(user.id);
+    setChallenge(res.data.images ?? []);
+    setChallengeId(res.data.challengeId ?? null);
+  }, []);
+
   const handleSelectUser = useCallback(async (user: UserEntry) => {
     setSelectedUser(user);
     setError(null);
     setChallengeLoading(true);
     setStep(1);
     try {
-      const res = await visualAuthAPI.getVisualChallenge(user.id);
-      setChallenge(res.data.images ?? []);
+      await fetchChallenge(user);
     } catch {
       setError('Visual login not set up yet. Ask the admin to assign a login image from Profile → Family Members.');
       setStep(0);
@@ -112,14 +118,14 @@ const LocalLogin: React.FC = () => {
     } finally {
       setChallengeLoading(false);
     }
-  }, []);
+  }, [fetchChallenge]);
 
   const handlePickImage = useCallback(async (imageId: string) => {
-    if (!selectedUser || verifying) return;
+    if (!selectedUser || !challengeId || verifying) return;
     setVerifying(true);
     setError(null);
     try {
-      const res = await visualAuthAPI.visualLogin({ memberId: selectedUser.id, recipeId: imageId });
+      const res = await visualAuthAPI.visualLogin({ memberId: selectedUser.id, challengeId, recipeId: imageId });
       const { user, memberName } = res.data;
       // See comment in the deviceLogin handler above — `displayName` tracks the
       // individual member, keeping `familyName` (household name) untouched.
@@ -127,15 +133,24 @@ const LocalLogin: React.FC = () => {
       const ftueDone = localStorage.getItem(`mealplanner_member_ftue_done_${selectedUser.id}`);
       navigate(ftueDone ? '/dashboard' : '/member-welcome', { replace: true });
     } catch {
-      setError('Wrong image — tap the one you chose during setup.');
+      // Each challenge is single-use, so a wrong (or stale/expired) guess needs a
+      // fresh one — fetch it now rather than leaving the tapped grid pointing at a
+      // challengeId the server has already discarded.
+      setError('Wrong image — showing a new set, tap the one you chose during setup.');
       setVerifying(false);
+      try {
+        await fetchChallenge(selectedUser);
+      } catch {
+        setError('Could not load a new challenge. Go back and try again.');
+      }
     }
-  }, [selectedUser, verifying, dispatch, navigate]);
+  }, [selectedUser, challengeId, verifying, dispatch, navigate, fetchChallenge]);
 
   const handleBack = () => {
     setStep(0);
     setSelectedUser(null);
     setChallenge([]);
+    setChallengeId(null);
     setError(null);
   };
 
@@ -220,7 +235,7 @@ const LocalLogin: React.FC = () => {
 
           {challengeLoading ? (
             <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 2 }}>
-              {Array.from({ length: 4 }).map((_, i) => (
+              {Array.from({ length: 8 }).map((_, i) => (
                 <Skeleton key={i} variant="rectangular" height={160} sx={{ borderRadius: 2 }} aria-label="Loading login image" />
               ))}
             </Box>
