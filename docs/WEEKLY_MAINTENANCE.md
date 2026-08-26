@@ -441,6 +441,15 @@ has no access to this laptop's filesystem:
    - On Windows, falls back to a robocopy mirror-of-empty trick if `git
      worktree remove` hits the MAX_PATH limit on deep `node_modules` trees
      (`core.longpaths` alone doesn't fix this — see global CLAUDE.md).
+   - **Also scans `.claude/worktrees/*` for orphaned directories** — plain
+     content left behind when a removal hit the MAX_PATH issue partway, or a
+     worktree that never finished registering with git. These have no
+     branch/PR to check, so the only signal is the directory's own content
+     age: one untouched for 7+ days is offered for removal (same robocopy
+     fallback); anything more recent is always left alone, since it could be
+     a worktree still mid-creation. Reported and removed separately from the
+     branch-based list above, with its own confirmation prompt, since
+     deleting an orphan has no git history to fall back on if it's wrong.
 2. **Verification — none needed from the cloud routine.** This is purely
    local-machine housekeeping; there's nothing here for a cloud agent to
    check, unlike secret rotation where GitHub-visible state (commit history)
@@ -575,8 +584,9 @@ Consider automating these tasks:
    above.
 6. **Worktree Hygiene** - Fully automated: `scripts/prune-worktrees.sh --apply`
    runs weekly via a local Windows Scheduled Task and removes only worktrees
-   whose branch is merged/closed with no uncommitted or unpushed work. See
-   Worktree Hygiene above.
+   whose branch is merged/closed with no uncommitted or unpushed work, plus
+   orphaned (non-worktree) directories under `.claude/worktrees/` that have
+   sat untouched for 7+ days. See Worktree Hygiene above.
 7. **Feedback/Error-Log Triage** - Fully automated:
    `scripts/feedback-log-triage.sh` runs weekly on the Pi via cron, clusters
    and dedupes recurring feedback/errors, and files `gh issue create` calls
