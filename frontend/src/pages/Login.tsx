@@ -166,7 +166,7 @@ const Login: React.FC = () => {
             </Button>
             <Box sx={{ textAlign: 'center', display: 'flex', flexDirection: 'column', gap: 1 }}>
               <Link component={RouterLink} to="/register" variant="body2">
-                Don't have an account? Sign Up
+                New to this household? Add your sign-in
               </Link>
               <Link component={RouterLink} to="/login" variant="body2">
                 Use quick visual login instead
