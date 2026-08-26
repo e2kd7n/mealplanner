@@ -265,8 +265,19 @@ ls ./data/frontend-dist | head -10 | sed 's/^/    /'
 
 # ── Hand off to pi-run.sh ───────────────────────────────────────────────────────
 
+# --force is required here, not optional: pi-run.sh's default (no-flag) path
+# exits early with just a status printout when meals-backend is already
+# running — which is true on every deploy after the very first one. That
+# early exit sits *before* the ClusterHAT block that syncs the rebuilt
+# backend out to the Zero W nodes, so without --force this script silently
+# updates only the Pi 4B's own container and leaves all 4 Zero Ws on
+# whatever code they last had — nginx's `backend_cluster` upstream serves
+# most traffic from them, so most requests would keep hitting old code
+# indefinitely with no error or warning. See the Aug 2026 security-audit
+# deploy for how this was found: a fix shipped to the Pi 4B container while
+# the vulnerable behavior stayed reachable on every Zero W.
 echo ""
 echo -e "${GREEN}  ✓ Image ready — starting services...${NC}"
 echo ""
-bash ./scripts/pi-run.sh
+bash ./scripts/pi-run.sh --force
 
