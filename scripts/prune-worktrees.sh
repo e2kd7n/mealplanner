@@ -2,6 +2,10 @@
 # Worktree hygiene: removes git worktrees that are safe to remove and
 # reports everything else for manual review. Never touches a worktree
 # with uncommitted changes or commits not reflected in a merged/closed PR.
+# Also detects orphaned directories under .claude/worktrees/ that AREN'T
+# registered git worktrees at all — leftovers from a removal that hit the
+# Windows MAX_PATH limit partway, or a worktree-creation that never fully
+# registered — which the git-worktree-list scan above can't see.
 #
 # Usage:
 #   prune-worktrees.sh <repo-path> [--apply]
@@ -11,7 +15,9 @@
 # Default is dry-run (report only). Pass --apply to actually remove
 # worktrees and delete their local/remote branches — this still asks for
 # confirmation once, listing everything that will be removed, before it
-# touches anything.
+# touches anything. Orphaned directories get their own separate
+# confirmation prompt (see below) since deleting them is unrecoverable —
+# there's no branch/commit to fall back on.
 #
 # "Safe to remove" = branch has a merged or closed PR, AND the worktree
 # has no uncommitted changes (besides .claude/settings.local.json, which
@@ -20,6 +26,12 @@
 #
 # A worktree locked by a session whose owning PID is no longer running
 # is treated as unlocked (stale lock) for the purposes of this check.
+#
+# Orphaned (non-worktree) directories have no git pointer at all, so
+# there's no branch/PR signal to check — only their content's own
+# modification time. One that hasn't changed in $STALE_ORPHAN_DAYS days is
+# offered for removal; anything more recent is always left alone (could be
+# a worktree mid-creation, or in-progress content dropped there by hand).
 
 set -uo pipefail
 
@@ -28,6 +40,10 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "$SCRIPT_DIR/utilities.sh"
 
 DEV_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
+
+# An orphaned directory younger than this is always left alone, no matter
+# what --apply says — it might be a worktree still mid-creation.
+STALE_ORPHAN_DAYS=7
 
 APPLY=""
 TARGETS=()
@@ -53,12 +69,104 @@ SAFE_REMOVE_BRANCHES=()
 NEEDS_REVIEW_COUNT=0
 KEEP_COUNT=0
 
+# Orphaned (non-worktree) directories collected the same way — no branch,
+# so nothing to key removal on but the directory path itself.
+ORPHAN_DIRS=()
+ORPHAN_AGE_DAYS=()
+ORPHAN_RECENT_COUNT=0
+
 section "Worktree Hygiene" "🧹"
+
+# `pwd` in Git Bash returns MSYS-style paths (/c/Users/...), but git.exe
+# always reports its own `git worktree list` paths Windows-style
+# (C:/Users/...) since it's a native Windows binary. Without normalizing,
+# string comparisons against git's output (skipping the repo root, matching
+# orphan dirs against the registered list) silently never match on Windows.
+# `pwd -W` is the Git-Bash builtin that returns the Windows-style form;
+# elsewhere (macOS/Linux/Pi) git and pwd already agree, so plain pwd is used.
+portable_pwd() {
+  if [ "$(detect_os)" = "windows" ]; then
+    pwd -W
+  else
+    pwd
+  fi
+}
+
+# Age in whole days since the newest file under a directory was modified
+# (falls back to the directory's own mtime if it has no files, e.g. empty).
+# Handles both GNU stat (Linux/Git-Bash) and BSD stat (macOS) since this
+# script is used across Windows, macOS and the Pi.
+dir_age_days() {
+  local d="$1" newest now
+  newest=$(find "$d" -type f -exec stat -c '%Y' {} \; 2>/dev/null | sort -n | tail -1)
+  if [ -z "$newest" ]; then
+    newest=$(stat -c '%Y' "$d" 2>/dev/null || stat -f '%m' "$d" 2>/dev/null || echo "")
+  fi
+  [ -z "$newest" ] && { echo 0; return; }
+  now=$(date +%s)
+  echo $(( (now - newest) / 86400 ))
+}
+
+# Shared delete: tries a normal recursive remove first, falls back to a
+# robocopy mirror-of-empty (Windows, dodges MAX_PATH) or plain rm -rf
+# (macOS/Linux, no MAX_PATH issue so nothing else should make this fail).
+force_remove_dir() {
+  local target="$1"
+  if rm -rf "$target" 2>/dev/null && [ ! -d "$target" ]; then
+    return 0
+  fi
+  if command -v robocopy >/dev/null 2>&1; then
+    echo -e "    ${DIM}plain removal failed, falling back to robocopy mirror (Windows)...${NC}"
+    local empty
+    empty=$(mktemp -d)
+    robocopy "$empty" "$target" /MIR /NFL /NDL /NJH /NJS >/dev/null 2>&1
+    rm -rf "$empty" 2>/dev/null
+    rmdir "$target" 2>/dev/null
+  else
+    echo -e "    ${DIM}plain removal failed, retrying rm -rf...${NC}"
+    rm -rf "$target" 2>/dev/null
+  fi
+}
+
+# Find directories under <repo>/.claude/worktrees/ that aren't in git's own
+# worktree list — i.e. plain content left behind by a removal that didn't
+# fully complete, or a worktree that never finished registering.
+scan_orphan_dirs() {
+  local repo="$1" registered="$2"
+  local wt_base="$repo/.claude/worktrees"
+  [ -d "$wt_base" ] || return
+
+  local any_orphan=0
+  local d
+  for d in "$wt_base"/*/; do
+    d="${d%/}"
+    [ -d "$d" ] || continue
+    grep -Fxq "$d" <<< "$registered" && continue
+
+    any_orphan=1
+    local age
+    age=$(dir_age_days "$d")
+    local size
+    size=$(du -sh "$d" 2>/dev/null | cut -f1)
+    if [ "$age" -ge "$STALE_ORPHAN_DAYS" ]; then
+      echo -e "  ${YELLOW}⚠️${NC}  orphan: ${d#"$repo"/} — not a registered git worktree, ${size:-?}, untouched ${age}d — candidate for removal"
+      ORPHAN_DIRS+=("$d")
+      ORPHAN_AGE_DAYS+=("$age")
+    else
+      echo -e "  ${BLUE}ℹ️${NC}  orphan: ${d#"$repo"/} — not a registered git worktree, ${size:-?}, modified ${age}d ago (too recent, left alone)"
+      (( ORPHAN_RECENT_COUNT++ ))
+    fi
+  done
+  [ "$any_orphan" = 1 ] && echo
+}
 
 prune_repo() {
   local repo="$1"
   cd "$repo" || return
   [ -d .git ] || return
+  # Re-derive repo in the same path representation git worktree list uses
+  # (see portable_pwd above) so later string comparisons actually match.
+  repo="$(portable_pwd)"
 
   local default_branch
   default_branch=$(git symbolic-ref refs/remotes/origin/HEAD 2>/dev/null | sed 's@^refs/remotes/origin/@@')
@@ -68,6 +176,9 @@ prune_repo() {
   local wt_list
   wt_list=$(git worktree list --porcelain)
   [ -z "$wt_list" ] && return
+
+  local registered_paths
+  registered_paths=$(grep '^worktree ' <<< "$wt_list" | sed 's/^worktree //')
 
   local any_extra=0
   echo -e "${CYAN}${BOLD}📂 ${repo}${NC} ${DIM}(default: ${default_branch})${NC}"
@@ -92,6 +203,8 @@ prune_repo() {
 
   [ "$any_extra" = 0 ] && echo -e "  ${DIM}(no extra worktrees)${NC}"
   echo
+
+  scan_orphan_dirs "$repo" "$registered_paths"
 }
 
 evaluate_worktree() {
@@ -137,29 +250,23 @@ remove_worktree() {
   local repo="$1" wt="$2" branch="$3"
   cd "$repo" || return
 
+  # git worktree remove's recursive delete hits Windows's MAX_PATH limit on
+  # deep node_modules trees even with core.longpaths set; force_remove_dir
+  # falls back to a robocopy mirror-of-empty trick there.
   if ! git worktree remove --force "$wt" 2>/dev/null; then
-    if command -v robocopy >/dev/null 2>&1; then
-      # Windows: git worktree remove's recursive delete hits MAX_PATH on
-      # deep node_modules trees even with core.longpaths set. robocopy's
-      # mirror-of-empty trick deletes via the long-path-aware Win32 API.
-      echo -e "    ${DIM}long-path removal failed, falling back to robocopy mirror (Windows)...${NC}"
-      local empty
-      empty=$(mktemp -d)
-      robocopy "$empty" "$wt" /MIR /NFL /NDL /NJH /NJS >/dev/null 2>&1
-      rm -rf "$empty" 2>/dev/null
-      rmdir "$wt" 2>/dev/null
-    else
-      # macOS/Linux: no MAX_PATH limit, so a plain rm -rf covers whatever
-      # else made git's own removal fail.
-      echo -e "    ${DIM}git worktree remove failed, falling back to rm -rf...${NC}"
-      rm -rf "$wt" 2>/dev/null
-    fi
+    force_remove_dir "$wt"
     git worktree prune
   fi
 
   git branch -D "$branch" 2>/dev/null
   git push origin --delete "$branch" 2>/dev/null
   echo -e "    ${GREEN}✓${NC}  removed worktree and branch: ${branch}"
+}
+
+remove_orphan_dir() {
+  local d="$1"
+  force_remove_dir "$d"
+  echo -e "    ${GREEN}✓${NC}  removed orphaned directory: ${d}"
 }
 
 section "Scanning" "🔍"
@@ -171,34 +278,58 @@ done
 section "Summary" "🍽️"
 
 safe_count=${#SAFE_REMOVE_BRANCHES[@]}
+orphan_count=${#ORPHAN_DIRS[@]}
 echo -e "  ${GREEN}✓${NC}  ${safe_count} safe to remove"
 echo -e "  ${YELLOW}⚠️${NC}  ${NEEDS_REVIEW_COUNT} need review"
 echo -e "  ${BLUE}ℹ️${NC}  ${KEEP_COUNT} kept (active or open PR)"
+echo -e "  ${YELLOW}⚠️${NC}  ${orphan_count} orphaned director$( [ "$orphan_count" = 1 ] && echo y || echo ies ) stale enough to remove"
+[ "$ORPHAN_RECENT_COUNT" -gt 0 ] && echo -e "  ${BLUE}ℹ️${NC}  ${ORPHAN_RECENT_COUNT} orphaned but too recent, left alone"
 
-if [ "$safe_count" -eq 0 ]; then
+if [ "$safe_count" -eq 0 ] && [ "$orphan_count" -eq 0 ]; then
   echo -e "\n  ${DIM}Nothing to remove.${NC}"
   exit 0
 fi
 
 if [ -z "$APPLY" ]; then
-  echo -e "\n  ${DIM}(dry run — pass --apply to remove the ✓ safe-remove worktrees above)${NC}"
+  echo -e "\n  ${DIM}(dry run — pass --apply to remove the ✓ safe-remove worktrees and stale orphaned directories above)${NC}"
   exit 0
 fi
 
-echo ""
-echo -e "  ${RED}⚠️  About to permanently remove ${safe_count} worktree(s) and their local/remote branches:${NC}"
-for i in "${!SAFE_REMOVE_BRANCHES[@]}"; do
-  echo -e "     ${RED}-${NC} ${SAFE_REMOVE_BRANCHES[$i]}  ${DIM}(${SAFE_REMOVE_WTS[$i]})${NC}"
-done
-echo ""
-read -p "  $(echo -e "${RED}Remove these now? (y/N):${NC}") " -n 1 -r
-echo
-if [[ ! $REPLY =~ ^[Yy]$ ]]; then
-  echo -e "  ${YELLOW}Aborted — nothing removed.${NC}"
-  exit 1
+if [ "$safe_count" -gt 0 ]; then
+  echo ""
+  echo -e "  ${RED}⚠️  About to permanently remove ${safe_count} worktree(s) and their local/remote branches:${NC}"
+  for i in "${!SAFE_REMOVE_BRANCHES[@]}"; do
+    echo -e "     ${RED}-${NC} ${SAFE_REMOVE_BRANCHES[$i]}  ${DIM}(${SAFE_REMOVE_WTS[$i]})${NC}"
+  done
+  echo ""
+  read -p "  $(echo -e "${RED}Remove these now? (y/N):${NC}") " -n 1 -r
+  echo
+  if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+    echo -e "  ${YELLOW}Aborted — no worktrees removed.${NC}"
+  else
+    echo ""
+    for i in "${!SAFE_REMOVE_BRANCHES[@]}"; do
+      remove_worktree "${SAFE_REMOVE_REPOS[$i]}" "${SAFE_REMOVE_WTS[$i]}" "${SAFE_REMOVE_BRANCHES[$i]}"
+    done
+  fi
 fi
 
-echo ""
-for i in "${!SAFE_REMOVE_BRANCHES[@]}"; do
-  remove_worktree "${SAFE_REMOVE_REPOS[$i]}" "${SAFE_REMOVE_WTS[$i]}" "${SAFE_REMOVE_BRANCHES[$i]}"
-done
+if [ "$orphan_count" -gt 0 ]; then
+  echo ""
+  echo -e "  ${RED}⚠️  About to permanently delete ${orphan_count} orphaned director$( [ "$orphan_count" = 1 ] && echo y || echo ies ) — these aren't git worktrees, so this is NOT recoverable via git:${NC}"
+  for i in "${!ORPHAN_DIRS[@]}"; do
+    echo -e "     ${RED}-${NC} ${ORPHAN_DIRS[$i]}  ${DIM}(untouched ${ORPHAN_AGE_DAYS[$i]}d)${NC}"
+  done
+  echo ""
+  read -p "  $(echo -e "${RED}Delete these now? (y/N):${NC}") " -n 1 -r
+  echo
+  if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+    echo -e "  ${YELLOW}Aborted — no orphaned directories removed.${NC}"
+    exit 1
+  fi
+
+  echo ""
+  for d in "${ORPHAN_DIRS[@]}"; do
+    remove_orphan_dir "$d"
+  done
+fi
