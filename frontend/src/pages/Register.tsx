@@ -23,6 +23,7 @@ import { Visibility, VisibilityOff, CheckCircle } from '@mui/icons-material';
 import { useAppDispatch, useAppSelector } from '../store/hooks';
 import { register, clearError } from '../store/slices/authSlice';
 import ErrorAlert from '../components/ErrorAlert';
+import api from '../services/api';
 
 const Register: React.FC = () => {
   const navigate = useNavigate();
@@ -33,6 +34,8 @@ const Register: React.FC = () => {
   // True when linked here from the end of the admin Welcome/Setup flow
   // ("Add a Household Member") rather than a standalone visit to /register.
   const fromFtue = Boolean((location.state as { fromFtue?: boolean } | null)?.fromFtue);
+
+  const [checking, setChecking] = useState(true);
 
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
@@ -51,6 +54,24 @@ const Register: React.FC = () => {
       navigate('/dashboard');
     }
   }, [isAuthenticated, navigate]);
+
+  // /register only makes sense once a household already exists on this
+  // install (it adds a sign-in to that household). On a fresh install with
+  // no users yet, send visitors to /welcome — the actual first-run flow —
+  // instead of letting them fill out a form for a household that isn't
+  // there yet.
+  useEffect(() => {
+    api.get('/auth/status').then((res) => {
+      if (!res.data.hasUsers) {
+        navigate('/welcome', { replace: true });
+      } else {
+        setChecking(false);
+      }
+    }).catch(() => {
+      // Server unreachable — let them try to register anyway
+      setChecking(false);
+    });
+  }, [navigate]);
 
   useEffect(() => {
     return () => {
@@ -136,6 +157,14 @@ const Register: React.FC = () => {
     return 'Strong';
   };
 
+  if (checking) {
+    return (
+      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '100vh' }}>
+        <CircularProgress />
+      </Box>
+    );
+  }
+
   return (
     <Container component="main" maxWidth="xs">
       <Box
@@ -151,12 +180,18 @@ const Register: React.FC = () => {
             Family Meal Planner
           </Typography>
           <Typography component="h2" variant="h6" align="center" color="text.secondary" gutterBottom>
-            {fromFtue ? 'Add a Household Member' : 'Create Account'}
+            {fromFtue ? 'Add a Household Member' : 'Join This Household'}
           </Typography>
-          {fromFtue && (
+          {fromFtue ? (
             <Typography variant="body2" align="center" color="text.secondary" sx={{ mb: 1 }}>
               Give another person in your household their own sign-in. You'll be
               switched to their account once it's created.
+            </Typography>
+          ) : (
+            <Typography variant="body2" align="center" color="text.secondary" sx={{ mb: 1 }}>
+              This household already has an admin set up. Add yourself as a
+              member to get your own sign-in and share the same recipes,
+              meal plans, and pantry.
             </Typography>
           )}
 
