@@ -2,8 +2,9 @@
 
 **Status:** ✅ Design collective drafting complete. ✅ Simulated engineering review received and
 addressed — see "Engineering review" below and the revised implementation plan in
-[`DATA_MODEL.md`](DATA_MODEL.md) §2. One new product decision flagged below. Still awaiting real
-human/engineering review.
+[`DATA_MODEL.md`](DATA_MODEL.md) §2. ✅ Standalone-list product decision (2026-08-12) now fully
+folded into [`DATA_MODEL.md`](DATA_MODEL.md) §3 and [`UX_INTERACTION.md`](UX_INTERACTION.md) §5 —
+see "Product decisions" below. Still awaiting real human/engineering review.
 
 **Tracks:** [#357](https://github.com/e2kd7n/mealplanner/issues/357) (this proposal) ·
 [#316](https://github.com/e2kd7n/mealplanner/issues/316) (original product decision) ·
@@ -45,8 +46,8 @@ flow), rather than adding a genuinely freeform `itemName` column. Reasoning: the
 indexing, dedup-by-name all depend on it), and `relationMode = "prisma"` (no DB-level FK/CHECK
 constraints) makes a freeform column's "exactly one of ingredientId/itemName" invariant unsafe to
 maintain in application code alone. Migration cost is a single metadata-only `ALTER TYPE ... ADD
-VALUE` — no table rewrite, no new index. For v1, ad-hoc items can only be added into an *existing*
-meal-plan-derived list — see "Product decisions needed" below.
+VALUE` — no table rewrite, no new index. Ad-hoc items can be added into an existing meal-plan-derived
+list *or* a standalone list — see "Product decisions" below.
 
 ### Accessibility: header-row control, live-region feedback, real text alternatives
 
@@ -77,9 +78,11 @@ conventions fight against. It also recommends:
   shell than that feature's dialog, since the two features have different interaction shapes
   (bounded batch edit vs. ambient single-item drip).
 - Explicit handling for typed names that match an item already on the list (highlight + live-region
-  message, not a silent quantity increment) and for the no-current-list case (disabled input with
-  an inline caption matching the existing empty-state CTA copy, rather than a control guaranteed to
-  fail on submit).
+  message, not a silent quantity increment) and for the no-current-list case (empty state now
+  offers "Generate from meal plan" *or* "Start a new list," instead of a dead end pointing only at
+  the meal planner).
+- A list switcher for when a standalone list and a meal-plan-derived list coexist, so neither one
+  silently drops out of view under the page's existing "most recent list wins" logic.
 
 ## Engineering review
 
@@ -107,16 +110,15 @@ All of the above have been folded into the revised `DATA_MODEL.md` §2. One item
 review is a genuine product/scope call rather than something either design or engineering should
 resolve — see the new item below.
 
-## Product decisions (resolved 2026-08-12)
+## Product decisions (resolved 2026-08-12, folded into the docs 2026-08-28)
 
 - **Standalone, non-meal-plan-derived grocery list: IN SCOPE for #357.** Overriding the
   data-model pass's "default to no for v1" recommendation — the user wants standalone list
-  support built now rather than deferred to a later feature. This expands #357's scope beyond
-  what `DATA_MODEL.md` §2 currently specs: `GroceryList.mealPlanId` needs to become optional, a
-  new list-creation entry point is needed, and a lifecycle without a source meal plan needs to be
-  defined (e.g. what "clearing"/archiving means for a list with no plan to fall out of). None of
-  that schema/UX work has been done yet — `DATA_MODEL.md` and `UX_INTERACTION.md` need a follow-up
-  revision pass before implementation starts. Tracked as a checklist item below.
+  support built now rather than deferred to a later feature. `GroceryList.mealPlanId` is now
+  nullable, a new list-creation entry point exists ("Start a new list" in the empty state), and a
+  lifecycle without a source meal plan is defined (one active standalone list at a time; a list
+  switcher covers the case where a standalone and a meal-plan-derived list coexist). Full design:
+  [`DATA_MODEL.md`](DATA_MODEL.md) §3 and [`UX_INTERACTION.md`](UX_INTERACTION.md) §5.
 
 - **Concurrent find-or-create race condition: tracked as a follow-up, not fixed in this PR.**
   Ships #357 on the existing plan; the race is a pre-existing bug in `findOrCreateIngredient`
@@ -124,13 +126,37 @@ resolve — see the new item below.
   [#369](https://github.com/e2kd7n/mealplanner/issues/369), which points back here for the
   technical detail already captured in `DATA_MODEL.md` §2.
 
-**Remaining before implementation:**
-- [ ] Revise `DATA_MODEL.md` §2 and `UX_INTERACTION.md` to cover standalone list creation/lifecycle
-- [ ] Race condition fix tracked separately in [#369](https://github.com/e2kd7n/mealplanner/issues/369)
+- **Duplicate-item-on-list guard: applies to every caller, backed by a DB constraint.** Resolved
+  the open question `DATA_MODEL.md` §2 originally left unanswered. See that section for why the
+  constraint is `@@unique([groceryListId, ingredientId, unit])`, not just
+  `[groceryListId, ingredientId]` — a flatter constraint would have broken
+  `generateFromMealPlan`'s existing legitimate same-ingredient-different-unit rows.
 
-*(This section reflects the state after the simulated engineering-review pass and the user's
-2026-08-12 scope decisions. It will be revised again if a real human/engineering review surfaces
-further product calls.)*
+**Pre-existing bugs surfaced while researching this revision — filed separately, not part of
+#357's scope:**
+- [#406](https://github.com/e2kd7n/mealplanner/issues/406) — frontend/backend route mismatch on
+  the primary "generate grocery list from meal plan" flow (likely 404s today).
+- [#407](https://github.com/e2kd7n/mealplanner/issues/407) — `createGroceryList` requires a `name`
+  the schema doesn't have (silently dropped); resolved *within* this revision by giving
+  `GroceryList` a real `name` column (`DATA_MODEL.md` §3) rather than fixing #407 in isolation.
+- [#408](https://github.com/e2kd7n/mealplanner/issues/408) — `POST /grocery-lists`'s Zod schema is
+  defined but never wired to the route.
+- [#409](https://github.com/e2kd7n/mealplanner/issues/409) — `MobileGroceryList.tsx` appears fully
+  orphaned.
+
+**Remaining before implementation:**
+- [x] Revise `DATA_MODEL.md` §3 and `UX_INTERACTION.md` to cover standalone list creation/lifecycle
+- [ ] Race condition fix tracked separately in [#369](https://github.com/e2kd7n/mealplanner/issues/369)
+- [ ] Pre-existing bugs [#406](https://github.com/e2kd7n/mealplanner/issues/406),
+      [#408](https://github.com/e2kd7n/mealplanner/issues/408),
+      [#409](https://github.com/e2kd7n/mealplanner/issues/409) — tracked separately, not blocking
+      (#407 is resolved as part of this revision's schema change, see above)
+- [ ] Real human/engineering review (see "Process" below)
+
+*(This section reflects the state after the simulated engineering-review pass, the user's
+2026-08-12 scope decisions, and the 2026-08-28 follow-up revision that actually implements those
+decisions in `DATA_MODEL.md`/`UX_INTERACTION.md`. It will be revised again if a real
+human/engineering review surfaces further product calls.)*
 
 ## Process (design → engineering → design)
 

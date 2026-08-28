@@ -4,11 +4,15 @@
 proposal. One of three parallel persona passes — see [`README.md`](README.md) for the synthesis
 and status. Written against
 [`DATA_MODEL.md`](DATA_MODEL.md) (resolved: every ad-hoc item becomes a real `household`-category
-`Ingredient` row via the existing find-or-create pattern, and ad-hoc entry is scoped to an
-*existing* meal-plan-derived list for v1) and [`ACCESSIBILITY.md`](ACCESSIBILITY.md) (header-row
-placement, `aria-live="polite"` feedback, a real text alternative for any "not from a recipe"
-marker, focus-returns-to-input after add). This section resolves the one open item accessibility
-left to me and covers the remaining shape questions.
+`Ingredient` row via the existing find-or-create pattern) and [`ACCESSIBILITY.md`](ACCESSIBILITY.md)
+(header-row placement, `aria-live="polite"` feedback, a real text alternative for any "not from a
+recipe" marker, focus-returns-to-input after add). This section resolves the one open item
+accessibility left to me and covers the remaining shape questions.
+**Revised post-2026-08-12:** standalone (non-meal-plan) grocery lists are now in scope for #357
+(see `README.md`'s "Product decisions"). The original "no current list" edge case below assumed
+standalone lists were out of scope for v1 — that assumption no longer holds, and this doc has been
+revised accordingly (see "No current grocery list exists" in §4 and the new "Creating and
+switching standalone lists" section).
 
 ## Recommendation: inline persistent row in the header action area, not a dialog
 
@@ -68,11 +72,12 @@ preserves that at-a-glance planning value instead of degrading it.
 color needed) and avoids the risk of a near-empty, rarely-populated eleventh card. I'm accepting
 that cost because the grouping logic's entire reason to exist is "tell me where to find this in
 the store," and silently violating that for the one category most likely to *not* be in the
-grocery aisle undermines the feature it's attached to. Name it "Household & Other" rather than
-"Household" alone if a later pass wants a single home for both genuinely-uncategorized food *and*
-non-food items rather than adding an eleventh mapping target — that's a naming/copy decision, not
-a structural one, and doesn't change the recommendation to keep it visually separate from the
-walk-the-store categories.
+grocery aisle undermines the feature it's attached to.
+
+**Naming — resolved: "Household & Other."** Use "Household & Other," not "Household" alone —
+it gives the card a single home for both genuinely-uncategorized food *and* non-food items rather
+than needing an eleventh mapping target later, and doesn't change the recommendation to keep it
+visually separate from the walk-the-store categories.
 
 ## 2. Interaction parity: full parity, nothing bespoke
 
@@ -91,6 +96,14 @@ land for both item types in the same change. For v1, ad-hoc items get a silent d
 as a field the user has to fill in during add — asking "how many, what unit" for "paper towels"
 mid-flow reintroduces exactly the friction the inline-row recommendation is trying to avoid, for a
 value nobody is going to act on differently than "1."
+
+**Price entry for ad-hoc items: never prompted, always silent.** Same reasoning as quantity —
+asking "how much does this cost" mid-flow for "paper towels" fights the low-friction burst-entry
+use case this whole feature is built around, and recipe-derived items don't surface a price-entry
+affordance either. Resolves the open question in `DATA_MODEL.md` §2: `estimatedPrice` is never a
+user-facing field at add-time. The newly-created `household`-category `Ingredient`'s
+`averagePrice` seeds at `0` and simply stays `0` until/unless something else in the app (there is
+no such flow today) updates it — same as any other ingredient created with no price data.
 
 **The "not from a recipe" differentiator:** use a visible-text `Chip` reading "Custom," placed
 where the existing category `Chip` pattern already lives in this file (`GroceryList.tsx:466-471`
@@ -153,14 +166,52 @@ ellipsis hides information from sighted users exactly as much as silent truncati
 everyone, and there's no good reason to trade legibility of a rare long entry for one extra line
 of card height.
 
-**No current grocery list exists.** Since standalone (non-meal-plan) lists are explicitly out of
-scope for v1 per the data-model pass, the header add-item control has nothing to attach an item
-to when `currentList` is null. Don't render a control that's guaranteed to fail on submit: keep it
-in the header per §"Recommendation" above, but disable it, with the disabled state carrying a
-short inline caption ("Add a grocery list from your meal planner first") rather than only a
-`disabled` attribute a screen-reader user might not get an explanation for — and make that caption
-text match the existing empty-state CTA copy ("Generate a grocery list from your meal plan to get
-started," `GroceryList.tsx:404-406`) so the two messages reinforce each other instead of reading
-as two different explanations for the same gap. The empty-state Card's "Go to Meal Planner" button
-remains the actual CTA that resolves the situation; the header caption's job is just to explain
-why the input next to it isn't usable yet, not to duplicate the CTA.
+**No current grocery list exists — revised now that standalone lists are in scope.** The header
+add-item control no longer needs to stay disabled in this state, since there's now always a way to
+give it something to attach an item to. Replace the single "Go to Meal Planner" empty-state CTA
+(`GroceryList.tsx:404-411`) with two side-by-side actions:
+
+- **"Generate from meal plan"** — the existing CTA, unchanged in behavior, just relabeled for
+  symmetry with the new second option.
+- **"Start a new list"** — creates a standalone `GroceryList` (`name` prompted for at creation,
+  see below) and makes it `currentList` immediately. This is the standalone-list creation entry
+  point; see "Creating and switching standalone lists" below for the full flow.
+
+Once *either* action produces a list, the header ad-hoc-add control enables per the original
+§"Recommendation" above — that part of the original design holds unchanged. The only thing that's
+changed is that "no list exists" is no longer a dead end requiring a trip to the meal planner.
+
+## 5. Creating and switching standalone lists
+
+New section, added for the standalone-list product decision (`README.md`, 2026-08-12).
+
+**Creating a standalone list.** Triggered from the empty-state "Start a new list" action above,
+or from a persistent "New list" action (see placement below) once a switcher exists. Creation
+prompts for a `name` (required — this is the one field standalone lists need that meal-plan-derived
+lists don't, see `DATA_MODEL.md` §3) via a small inline text prompt, not a full dialog — consistent
+with this doc's general bias against modal ceremony for a lightweight action. A sensible default
+placeholder like "New list" or the current date reduces the odds of this becoming its own point of
+friction; the field should still be required (an unnamed list is the exact ambiguity a switcher is
+meant to resolve).
+
+**One active standalone list at a time.** A user can have at most one non-`completed` standalone
+list open, mirroring how meal-plan-derived lists implicitly work today (`status` starts at
+`draft`). This keeps "New list" simple — it's an action for going from zero standalone lists to
+one, not for maintaining several in parallel, which the app has no other surface (shopping-trip
+organization, list merging) designed to support yet. If a user wants a fresh standalone list while
+one is still open, they mark the current one `completed` first (existing status transition,
+`updateGroceryList`) — no new lifecycle state needed for this.
+
+**Switcher.** With multiple lists able to coexist (a standalone list and a freshly-generated
+meal-plan list both `draft`/`shopping`), `GroceryList.tsx`'s current "most recent list wins, no
+switcher" heuristic (`GroceryList.tsx:129-131`, `orderBy: createdAt desc`, first result becomes
+`currentList`) would silently bury whichever list isn't newest — a user could lose track of an
+in-progress standalone list the moment they generate a meal-plan list, with no error and no
+indication anything happened. Resolve this with a compact list-select control in the page header,
+next to the existing Expand All / Collapse All / Refresh / Clear Checked row
+(`GroceryList.tsx:330-369`) — a `Select` populated from `GET /grocery-lists` filtered to
+non-`completed` status, showing each list's `name` (standalone) or derived meal-plan label (e.g.
+"Week of {weekStartDate}," meal-plan-derived) as its option text. Selecting a list sets
+`currentList` client-side (no new endpoint needed — `getGroceryListById` already exists). Only
+render the switcher when more than one non-`completed` list exists, so the common single-list case
+looks exactly as it does today — no new chrome for the default path.
