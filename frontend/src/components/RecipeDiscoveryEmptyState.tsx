@@ -298,7 +298,7 @@ const RecipeDiscoveryEmptyState: React.FC = () => {
           </Box>
         ) : apiKeyMissing ? (
           <Alert severity="info" action={
-            <Button size="small" color="inherit" onClick={() => navigate('/profile')}>
+            <Button size="small" color="inherit" onClick={() => navigate('/admin')}>
               Set up API Key
             </Button>
           }>
