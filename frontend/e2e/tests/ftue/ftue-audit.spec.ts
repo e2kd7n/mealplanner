@@ -230,45 +230,12 @@ test.describe('Dashboard (/dashboard)', () => {
     await page.waitForLoadState('networkidle');
   });
 
-  test('screenshots dashboard and checks for onboarding wizard', async ({ page }) => {
+  test('screenshots dashboard for visual regression', async ({ page }) => {
+    // The dashboard OnboardingWizard dialog this test used to walk through
+    // (#236/#237) was intentionally removed in #249: its preference steps
+    // were merged into the /setup wizard instead of showing a second,
+    // separate dialog on first dashboard visit. See #404.
     await screenshot(page, '05-dashboard');
-
-    // Check if OnboardingWizard dialog appeared
-    const dialog = page.locator('.MuiDialog-root');
-    const dialogVisible = await dialog.isVisible().catch(() => false);
-    if (dialogVisible) {
-      await screenshot(page, '05a-onboarding-wizard');
-
-      // #236 — Document redundant welcome screen
-      const wizardWelcome = dialog.getByText(/welcome to meal planner/i);
-      if (await wizardWelcome.isVisible().catch(() => false)) {
-        console.log('ISSUE #236: OnboardingWizard shows its own "Welcome" screen (redundant with Setup wizard Welcome)');
-      }
-
-      // Walk through all steps and screenshot
-      const nextBtn = dialog.getByRole('button', { name: /next/i });
-      for (let step = 1; step <= 3; step++) {
-        if (await nextBtn.isVisible().catch(() => false)) {
-          await nextBtn.click();
-          await page.waitForTimeout(500);
-          await screenshot(page, `05b-onboarding-step${step}`);
-        }
-      }
-
-      // #237 — Skip and check what gets persisted
-      const skipBtn = dialog.getByRole('button', { name: /skip/i });
-      if (await skipBtn.isVisible().catch(() => false)) {
-        await skipBtn.click();
-        await page.waitForTimeout(500);
-      } else {
-        // Close via X button
-        const closeBtn = dialog.getByLabel(/skip onboarding/i);
-        if (await closeBtn.isVisible().catch(() => false)) {
-          await closeBtn.click();
-          await page.waitForTimeout(500);
-        }
-      }
-    }
   });
 
   test('#244 — empty meal slot buttons should have adequate touch targets', async ({ page }) => {
