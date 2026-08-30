@@ -128,8 +128,9 @@ export default function Setup() {
     if (!trimmed) return;
     setMembers((prev) => [...prev, { name: trimmed, ageGroup: memberAgeGroup, canCook: memberCanCook }]);
     setMemberName('');
-    setMemberAgeGroup('adult');
-    setMemberCanCook(true);
+    // Age group and "can cook" are left as-is (not reset to defaults) so
+    // adding several members with the same profile back-to-back — e.g. a
+    // few kids in a row — only requires retyping the name each time (#403).
     setMemberNameTouched(false);
   };
 
@@ -225,6 +226,14 @@ export default function Setup() {
     advanceToNextMember(assigningMemberId!, savedMembers, newProcessed);
   };
 
+  const handleSkipAllVisualPasswords = () => {
+    const newProcessed = new Set(processedMemberIds);
+    savedMembers.forEach((m) => newProcessed.add(m.id));
+    setProcessedMemberIds(newProcessed);
+    setAssigningMemberId(null);
+    setActiveStep(2);
+  };
+
   const handleSavePreferences = async () => {
     setSaving(true);
     try {
@@ -300,6 +309,9 @@ export default function Setup() {
 
   const stepLabels = isMobile ? STEPS_SHORT : STEPS;
   const currentMemberName = savedMembers.find((m) => m.id === assigningMemberId)?.name;
+  const remainingUnassignedCount = savedMembers.filter(
+    (m) => !processedMemberIds.has(m.id) && !m.visualPasswordImageUrl
+  ).length;
 
   return (
     <Box
@@ -516,9 +528,16 @@ export default function Setup() {
                 <Button variant="text" color="inherit" onClick={handleBack} startIcon={<ArrowBackIcon />}>
                   Back
                 </Button>
-                <Button variant="text" color="inherit" onClick={handleSkipVisualPassword}>
-                  Skip for now
-                </Button>
+                <Box sx={{ display: 'flex', gap: 1 }}>
+                  {remainingUnassignedCount > 1 && (
+                    <Button variant="text" color="inherit" onClick={handleSkipAllVisualPasswords}>
+                      Skip remaining ({remainingUnassignedCount})
+                    </Button>
+                  )}
+                  <Button variant="text" color="inherit" onClick={handleSkipVisualPassword}>
+                    Skip for now
+                  </Button>
+                </Box>
               </Box>
             </Box>
           )}
