@@ -155,6 +155,7 @@ export const createFamilyMemberSchema = z.object({
   ageGroup: z.enum(['infant', 'toddler', 'child', 'teen', 'adult'], {
     message: 'Invalid age group',
   }),
+  canCook: z.boolean().optional(),
   dietaryRestrictions: z.array(z.enum(['vegetarian', 'vegan', 'gluten-free', 'dairy-free', 'nut-free'])).optional(),
   cookingSkillLevel: z.enum(['beginner', 'intermediate', 'advanced']).optional(),
   avoidedIngredients: z.array(z.string()).optional(),
