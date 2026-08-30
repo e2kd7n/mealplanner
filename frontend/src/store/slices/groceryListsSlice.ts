@@ -26,7 +26,8 @@ export interface GroceryListItem {
 
 export interface GroceryList {
   id: string;
-  mealPlanId: string;
+  mealPlanId?: string;
+  name?: string;
   status: 'draft' | 'shopping' | 'completed';
   totalEstimatedCost?: number;
   items: GroceryListItem[];

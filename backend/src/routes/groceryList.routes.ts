@@ -6,6 +6,12 @@
 
 import { Router } from 'express';
 import { authenticate } from '../middleware/auth';
+import { validate } from '../middleware/validate';
+import {
+  createGroceryListSchema,
+  addGroceryItemSchema,
+  updateGroceryItemSchema,
+} from '../validation/schemas';
 import {
   getGroceryLists,
   getGroceryListById,
@@ -42,7 +48,7 @@ router.get('/:id', getGroceryListById);
  * @desc    Create new grocery list
  * @access  Private
  */
-router.post('/', createGroceryList);
+router.post('/', validate(createGroceryListSchema), createGroceryList);
 
 /**
  * @route   POST /api/grocery-lists/from-meal-plan/:mealPlanId
@@ -70,14 +76,14 @@ router.delete('/:id', deleteGroceryList);
  * @desc    Add item to grocery list
  * @access  Private
  */
-router.post('/:id/items', addItemToList);
+router.post('/:id/items', validate(addGroceryItemSchema), addItemToList);
 
 /**
  * @route   PUT /api/grocery-lists/:listId/items/:itemId
  * @desc    Update grocery list item
  * @access  Private
  */
-router.put('/:listId/items/:itemId', updateListItem);
+router.put('/:listId/items/:itemId', validate(updateGroceryItemSchema), updateListItem);
 
 /**
  * @route   DELETE /api/grocery-lists/:listId/items/:itemId

@@ -107,17 +107,24 @@ export const updateGroceryListSchema = z.object({
   name: z.string().min(1, 'Name is required').max(100, 'Name too long').trim().optional(),
 });
 
-export const addGroceryItemSchema = z.object({
-  ingredientId: z.string().uuid('Invalid ingredient ID'),
-  quantity: z.number().positive('Quantity must be positive'),
-  unit: z.string().min(1, 'Unit is required'),
-  notes: z.string().optional(),
-});
+export const addGroceryItemSchema = z
+  .object({
+    ingredientId: z.string().uuid('Invalid ingredient ID').optional(),
+    ingredientName: z.string().trim().min(1).max(80, 'Name too long').optional(),
+    category: z.enum(['household']).optional(),
+    estimatedPrice: z.number().nonnegative('Price must be zero or positive').optional(),
+    quantity: z.number().positive('Quantity must be positive').optional(),
+    unit: z.string().min(1, 'Unit is required').optional(),
+    notes: z.string().optional(),
+  })
+  .refine((data) => data.ingredientId || data.ingredientName, {
+    message: 'Either ingredientId or ingredientName is required',
+  });
 
 export const updateGroceryItemSchema = z.object({
   quantity: z.number().positive('Quantity must be positive').optional(),
   unit: z.string().min(1, 'Unit is required').optional(),
-  purchased: z.boolean().optional(),
+  checked: z.boolean().optional(),
   notes: z.string().optional(),
 });
 

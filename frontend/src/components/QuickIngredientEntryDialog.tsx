@@ -84,7 +84,7 @@ const QuickIngredientEntryDialog: React.FC<QuickIngredientEntryDialogProps> = ({
     }
     try {
       const response = await api.get('/ingredients/search/suggestions', {
-        params: { q: text.trim(), limit: 8 },
+        params: { q: text.trim(), limit: 8, context: 'recipe' },
       });
       setOptionsByRow((prev) => ({ ...prev, [rowId]: response.data?.data || [] }));
     } catch {
