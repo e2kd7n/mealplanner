@@ -199,14 +199,15 @@ model PlannedMeal {
 
 model GroceryList {
   id                 String            @id @default(uuid())
-  mealPlanId         String            @map("meal_plan_id")
+  mealPlanId         String?           @map("meal_plan_id")
+  name               String?
   userId             String            @map("user_id")
   status             GroceryListStatus
   totalEstimatedCost Decimal?          @map("total_estimated_cost") @db.Decimal(10, 2)
   createdAt          DateTime          @default(now()) @map("created_at")
   updatedAt          DateTime          @updatedAt @map("updated_at")
   items              GroceryListItem[]
-  mealPlan           MealPlan          @relation(fields: [mealPlanId], references: [id], onDelete: Cascade)
+  mealPlan           MealPlan?         @relation(fields: [mealPlanId], references: [id], onDelete: Cascade)
   user               User              @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
@@ -228,6 +229,7 @@ model GroceryListItem {
   groceryList    GroceryList @relation(fields: [groceryListId], references: [id], onDelete: Cascade)
   ingredient     Ingredient  @relation(fields: [ingredientId], references: [id], onDelete: Cascade)
 
+  @@unique([groceryListId, ingredientId, unit])
   @@map("grocery_list_items")
 }
 
@@ -399,6 +401,7 @@ enum IngredientCategory {
   grains
   pantry
   spices
+  household
   other
 }
 

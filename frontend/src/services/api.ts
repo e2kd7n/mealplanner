@@ -240,23 +240,25 @@ export const groceryListAPI = {
   getById: (id: string) =>
     api.get(`/grocery-lists/${id}`),
   
-  create: (data: { mealPlanId: string }) =>
+  create: (data: { mealPlanId?: string; name: string }) =>
     api.post('/grocery-lists', data),
-  
+
   update: (id: string, data: Record<string, unknown>) =>
     api.put(`/grocery-lists/${id}`, data),
-  
+
   delete: (id: string) =>
     api.delete(`/grocery-lists/${id}`),
-  
+
   generateFromMealPlan: (mealPlanId: string) =>
     api.post('/grocery-lists/generate', { mealPlanId }),
-  
+
   addItem: (listId: string, data: {
-    ingredientId: string;
-    quantity: number;
-    unit: string;
-    estimatedPrice: number;
+    ingredientId?: string;
+    ingredientName?: string;
+    category?: 'household';
+    quantity?: number;
+    unit?: string;
+    estimatedPrice?: number;
     notes?: string;
   }) => api.post(`/grocery-lists/${listId}/items`, data),
   

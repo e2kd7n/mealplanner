@@ -432,7 +432,7 @@ export const getSearchSuggestions = async (
   next: NextFunction
 ): Promise<void> => {
   try {
-    const { q, limit = '10' } = req.query;
+    const { q, limit = '10', context = 'recipe' } = req.query;
 
     if (!q || (q as string).length < 2) {
       res.json({
@@ -444,8 +444,13 @@ export const getSearchSuggestions = async (
 
     const limitNum = parseInt(limit as string);
     const searchTerm = q as string;
+    // Recipe-authoring suggestions exclude ad-hoc 'household' ingredients (issue #328's
+    // quick-add flow, this endpoint's original caller); grocery ad-hoc entry (issue #357)
+    // needs the opposite — it must see existing household ingredients to dedup against
+    // them, so it passes context=grocery and gets no category filter.
+    const excludeHousehold = context !== 'grocery';
 
-    const cacheKey = `ingredient:suggestions:${searchTerm}:${limit}`;
+    const cacheKey = `ingredient:suggestions:${searchTerm}:${limit}:${context}`;
     const cached = await cacheGet(cacheKey);
     if (cached) {
       res.json(cached);
@@ -455,6 +460,7 @@ export const getSearchSuggestions = async (
     const ingredients = await prisma.ingredient.findMany({
       where: {
         name: { contains: searchTerm, mode: 'insensitive' },
+        ...(excludeHousehold && { category: { not: 'household' } }),
       },
       select: {
         id: true,

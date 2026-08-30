@@ -4,7 +4,7 @@
  */
 
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router';
 import {
   Container,
@@ -28,6 +28,10 @@ import {
   Avatar,
   Skeleton,
   Snackbar,
+  Autocomplete,
+  TextField,
+  Select,
+  MenuItem,
 } from '@mui/material';
 import {
   Delete as DeleteIcon,
@@ -45,6 +49,8 @@ import {
   LocalCafe as BeveragesIcon,
   Fastfood as SnacksIcon,
   Category as OtherIcon,
+  Home as HouseholdIcon,
+  Add as AddIcon,
 } from '@mui/icons-material';
 import ConfirmDialog from '../components/ConfirmDialog';
 import { useConfirmDialog } from '../hooks/useConfirmDialog';
@@ -71,7 +77,8 @@ interface GroceryItem {
 
 interface GroceryList {
   id: string;
-  mealPlanId: string;
+  mealPlanId: string | null;
+  name: string | null;
   userId: string;
   status: 'draft' | 'shopping' | 'completed';
   totalEstimatedCost: number | null;
@@ -80,7 +87,16 @@ interface GroceryList {
   items: GroceryItem[];
 }
 
-// Category configuration with icons and display order
+interface IngredientSuggestion {
+  id: string;
+  name: string;
+  category: string;
+  unit: string;
+}
+
+// Category configuration with icons and display order. "household" is
+// rendered last and only appears once it has items (issue #357 ad-hoc entry) —
+// see the "only render if non-empty" check at each card below.
 const CATEGORY_CONFIG = [
   { key: 'produce', label: 'Produce', icon: ProduceIcon, color: '#4caf50', emoji: '🥬' },
   { key: 'dairy', label: 'Dairy & Eggs', icon: DairyIcon, color: '#2196f3', emoji: '🥛' },
@@ -92,7 +108,11 @@ const CATEGORY_CONFIG = [
   { key: 'snacks', label: 'Snacks', icon: SnacksIcon, color: '#ff5722', emoji: '🍿' },
   { key: 'spices', label: 'Spices & Seasonings', icon: OtherIcon, color: '#607d8b', emoji: '🌶️' },
   { key: 'other', label: 'Other', icon: OtherIcon, color: '#9e9e9e', emoji: '📦' },
+  { key: 'household', label: 'Household & Other', icon: HouseholdIcon, color: '#8d6e63', emoji: '🏠' },
 ];
+
+const ADHOC_NAME_MAX_LENGTH = 80;
+const ADHOC_NAME_WARN_LENGTH = 60;
 
 // Map ingredient categories to store categories
 const mapIngredientCategoryToStore = (ingredientCategory: string): string => {
@@ -103,6 +123,7 @@ const mapIngredientCategoryToStore = (ingredientCategory: string): string => {
     'grains': 'grains',
     'pantry': 'pantry',
     'spices': 'spices',
+    'household': 'household',
     'other': 'other',
   };
   return mapping[ingredientCategory.toLowerCase()] || 'other';
@@ -111,7 +132,7 @@ const mapIngredientCategoryToStore = (ingredientCategory: string): string => {
 const GroceryList: React.FC = () => {
   const navigate = useNavigate();
   const { confirm, confirmDialogProps } = useConfirmDialog();
-  const [, setGroceryLists] = useState<GroceryList[]>([]);
+  const [groceryLists, setGroceryLists] = useState<GroceryList[]>([]);
   const [currentList, setCurrentList] = useState<GroceryList | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -125,6 +146,21 @@ const GroceryList: React.FC = () => {
     setSnackbar({ open: true, message, severity });
   };
 
+  // Ad-hoc item entry (issue #357)
+  const [adHocText, setAdHocText] = useState('');
+  const [adHocOptions, setAdHocOptions] = useState<IngredientSuggestion[]>([]);
+  const [adHocSelected, setAdHocSelected] = useState<IngredientSuggestion | null>(null);
+  const [adHocSubmitting, setAdHocSubmitting] = useState(false);
+  const [liveMessage, setLiveMessage] = useState('');
+  const [highlightedItemId, setHighlightedItemId] = useState<string | null>(null);
+  const adHocInputRef = useRef<HTMLInputElement>(null);
+  const adHocDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Standalone list creation (issue #357)
+  const [showNewListPrompt, setShowNewListPrompt] = useState(false);
+  const [newListName, setNewListName] = useState('');
+  const [newListSubmitting, setNewListSubmitting] = useState(false);
+
   const fetchGroceryLists = async () => {
     try {
       setLoading(true);
@@ -132,11 +168,12 @@ const GroceryList: React.FC = () => {
 
       const response = await api.get('/grocery-lists');
       const data = response.data;
-      setGroceryLists(data.data || []);
+      const lists: GroceryList[] = data.data || [];
+      setGroceryLists(lists);
 
       // Set the most recent list as current
-      if (data.data && data.data.length > 0) {
-        setCurrentList(data.data[0]);
+      if (lists.length > 0) {
+        setCurrentList(lists[0]);
       }
     } catch (err) {
       if (import.meta.env.DEV) console.error('Error fetching grocery lists:', err);
@@ -144,6 +181,86 @@ const GroceryList: React.FC = () => {
     } finally {
       setLoading(false);
     }
+  };
+
+  const switchableLists = groceryLists.filter((l) => l.status !== 'completed');
+
+  const fetchAdHocSuggestions = useCallback(async (text: string) => {
+    if (text.trim().length < 2) {
+      setAdHocOptions([]);
+      return;
+    }
+    try {
+      const response = await api.get('/ingredients/search/suggestions', {
+        params: { q: text.trim(), limit: 8, context: 'grocery' },
+      });
+      setAdHocOptions(response.data?.data || []);
+    } catch {
+      setAdHocOptions([]);
+    }
+  }, []);
+
+  const handleAdHocTextChange = (text: string) => {
+    setAdHocText(text);
+    setAdHocSelected(null);
+    if (adHocDebounceRef.current) clearTimeout(adHocDebounceRef.current);
+    adHocDebounceRef.current = setTimeout(() => fetchAdHocSuggestions(text), 300);
+  };
+
+  const handleAddAdHocItem = async () => {
+    if (!currentList || !adHocText.trim() || adHocSubmitting) return;
+
+    const trimmed = adHocText.trim();
+    setAdHocSubmitting(true);
+    try {
+      const response = await api.post(`/grocery-lists/${currentList.id}/items`, adHocSelected
+        ? { ingredientId: adHocSelected.id }
+        : { ingredientName: trimmed, category: 'household' });
+      const { data: item, alreadyOnList } = response.data;
+
+      if (alreadyOnList) {
+        setHighlightedItemId(item.id);
+        setLiveMessage(`${item.ingredient.name} is already on your list.`);
+        setTimeout(() => setHighlightedItemId(null), 1500);
+      } else {
+        setCurrentList({ ...currentList, items: [...currentList.items, item] });
+        setLiveMessage(`${item.ingredient.name} added.`);
+      }
+
+      setAdHocText('');
+      setAdHocSelected(null);
+      setAdHocOptions([]);
+      adHocInputRef.current?.focus();
+    } catch (err) {
+      if (import.meta.env.DEV) console.error('Error adding ad-hoc item:', err);
+      showSnackbar('Failed to add item. Please try again.', 'error');
+    } finally {
+      setAdHocSubmitting(false);
+    }
+  };
+
+  const handleStartNewList = async () => {
+    if (!newListName.trim() || newListSubmitting) return;
+
+    setNewListSubmitting(true);
+    try {
+      const response = await api.post('/grocery-lists', { name: newListName.trim() });
+      const newList: GroceryList = { ...response.data.data, items: [] };
+      setGroceryLists((prev) => [newList, ...prev]);
+      setCurrentList(newList);
+      setShowNewListPrompt(false);
+      setNewListName('');
+    } catch (err) {
+      if (import.meta.env.DEV) console.error('Error creating grocery list:', err);
+      showSnackbar('Failed to create list. Please try again.', 'error');
+    } finally {
+      setNewListSubmitting(false);
+    }
+  };
+
+  const handleSwitchList = (listId: string) => {
+    const list = switchableLists.find((l) => l.id === listId);
+    if (list) setCurrentList(list);
   };
 
   // Fetch grocery lists on mount
@@ -377,6 +494,84 @@ const GroceryList: React.FC = () => {
           </Stack>
         </Box>
 
+        {/* List switcher + ad-hoc add row (issue #357) */}
+        <Stack direction="row" spacing={1} sx={{ mb: 3, flexWrap: 'wrap', alignItems: 'flex-start' }}>
+          {switchableLists.length > 1 && (
+            <Select
+              size="small"
+              value={currentList?.id ?? ''}
+              onChange={(e) => handleSwitchList(e.target.value)}
+              aria-label="Switch grocery list"
+              sx={{ minWidth: 180 }}
+            >
+              {switchableLists.map((list) => (
+                <MenuItem key={list.id} value={list.id}>
+                  {list.name || (list.mealPlanId ? 'Meal plan list' : 'Untitled list')}
+                </MenuItem>
+              ))}
+            </Select>
+          )}
+          <Autocomplete
+            freeSolo
+            options={adHocOptions}
+            getOptionLabel={(option) => (typeof option === 'string' ? option : option.name)}
+            filterOptions={(options) => options}
+            inputValue={adHocText}
+            onInputChange={(_, value, reason) => {
+              if (reason === 'input') handleAdHocTextChange(value);
+            }}
+            onChange={(_, value) => {
+              if (value && typeof value !== 'string') {
+                setAdHocText(value.name);
+                setAdHocSelected(value);
+              }
+            }}
+            disabled={!currentList}
+            sx={{ minWidth: 260, flexGrow: 1, maxWidth: 400 }}
+            renderInput={(params) => (
+              <TextField
+                {...params}
+                inputRef={adHocInputRef}
+                size="small"
+                placeholder="Add an item (e.g. paper towels)"
+                aria-label="Add a grocery item"
+                helperText={
+                  !currentList
+                    ? 'Generate a grocery list from your meal planner, or start a new list, first.'
+                    : adHocText.trim().length > 0 && !adHocSelected
+                      ? `Will create "${adHocText.trim()}" as a new item`
+                      : adHocText.length > ADHOC_NAME_WARN_LENGTH
+                        ? `${adHocText.length}/${ADHOC_NAME_MAX_LENGTH}`
+                        : ' '
+                }
+                inputProps={{ ...params.inputProps, maxLength: ADHOC_NAME_MAX_LENGTH }}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault();
+                    handleAddAdHocItem();
+                  }
+                }}
+              />
+            )}
+          />
+          <Button
+            variant="outlined"
+            startIcon={<AddIcon />}
+            onClick={handleAddAdHocItem}
+            disabled={!currentList || !adHocText.trim() || adHocSubmitting}
+            aria-label="Add item to grocery list"
+          >
+            Add
+          </Button>
+        </Stack>
+        <Box
+          role="status"
+          aria-live="polite"
+          sx={{ position: 'absolute', width: 1, height: 1, overflow: 'hidden', clip: 'rect(0 0 0 0)' }}
+        >
+          {liveMessage}
+        </Box>
+
         {/* Progress */}
         {currentList && (
           <Card sx={{ mb: 3, bgcolor: 'primary.main', color: 'primary.contrastText' }}>
@@ -403,7 +598,7 @@ const GroceryList: React.FC = () => {
         )}
 
         {/* Empty State */}
-        {!currentList || items.length === 0 ? (
+        {!currentList ? (
           <Card>
             <CardContent sx={{ textAlign: 'center', py: 8 }}>
               <ShoppingCartIcon sx={{ fontSize: 64, color: 'text.primary', mb: 2 }} aria-hidden="true" />
@@ -411,13 +606,56 @@ const GroceryList: React.FC = () => {
                 Your grocery list is empty
               </Typography>
               <Typography variant="body2" sx={{ mb: 3, color: 'text.primary' }}>
-                Generate a grocery list from your meal plan to get started
+                Generate a list from your meal plan, or start a new one from scratch
               </Typography>
-              <Button
-                variant="contained"
-                onClick={() => navigate('/meal-planner')}
-              >
-                Go to Meal Planner
+              {showNewListPrompt ? (
+                <Stack direction="row" spacing={1} sx={{ justifyContent: 'center', maxWidth: 400, mx: 'auto' }}>
+                  <TextField
+                    size="small"
+                    autoFocus
+                    placeholder="List name"
+                    value={newListName}
+                    onChange={(e) => setNewListName(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') { e.preventDefault(); handleStartNewList(); }
+                    }}
+                    aria-label="New list name"
+                  />
+                  <Button
+                    variant="contained"
+                    onClick={handleStartNewList}
+                    disabled={!newListName.trim() || newListSubmitting}
+                  >
+                    Create
+                  </Button>
+                  <Button variant="text" onClick={() => { setShowNewListPrompt(false); setNewListName(''); }}>
+                    Cancel
+                  </Button>
+                </Stack>
+              ) : (
+                <Stack direction="row" spacing={1} sx={{ justifyContent: 'center' }}>
+                  <Button variant="contained" onClick={() => navigate('/meal-planner')}>
+                    Generate from Meal Plan
+                  </Button>
+                  <Button variant="outlined" onClick={() => setShowNewListPrompt(true)}>
+                    Start a New List
+                  </Button>
+                </Stack>
+              )}
+            </CardContent>
+          </Card>
+        ) : items.length === 0 ? (
+          <Card>
+            <CardContent sx={{ textAlign: 'center', py: 8 }}>
+              <ShoppingCartIcon sx={{ fontSize: 64, color: 'text.primary', mb: 2 }} aria-hidden="true" />
+              <Typography variant="h6" component="h2" sx={{ color: 'text.primary' }} gutterBottom>
+                {currentList.name || 'This list'} is empty
+              </Typography>
+              <Typography variant="body2" sx={{ mb: 3, color: 'text.primary' }}>
+                Add your first item using the field above, or generate one from your meal plan
+              </Typography>
+              <Button variant="contained" onClick={() => navigate('/meal-planner')}>
+                Generate from Meal Plan
               </Button>
             </CardContent>
           </Card>
@@ -512,6 +750,8 @@ const GroceryList: React.FC = () => {
                               sx={{
                                 borderRadius: 1,
                                 mb: 0.5,
+                                transition: 'background-color 0.3s',
+                                bgcolor: highlightedItemId === item.id ? `${categoryConfig.color}30` : undefined,
                                 '&:hover': {
                                   bgcolor: `${categoryConfig.color}10`,
                                 }
@@ -533,7 +773,14 @@ const GroceryList: React.FC = () => {
                                 />
                               </ListItemIcon>
                               <ListItemText
-                                primary={item.ingredient.name}
+                                primary={
+                                  <Stack direction="row" spacing={1} sx={{ alignItems: 'center' }}>
+                                    <span>{item.ingredient.name}</span>
+                                    {item.ingredient.category === 'household' && (
+                                      <Chip label="Custom" size="small" variant="outlined" />
+                                    )}
+                                  </Stack>
+                                }
                                 secondary={`${item.quantity} ${item.unit}`}
                                 sx={{
                                   textDecoration: item.isChecked ? 'line-through' : 'none',

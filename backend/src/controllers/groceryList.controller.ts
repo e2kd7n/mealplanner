@@ -9,6 +9,7 @@ import prisma from '../utils/prisma';
 import { AppError } from '../middleware/errorHandler';
 import logger from '../utils/logger';
 import { cacheGet, cacheSet, cacheDelPattern } from '../utils/cache';
+import { findOrCreateIngredient } from '../services/ingredient.service';
 
 /**
  * Extract and validate user ID from request
@@ -201,11 +202,6 @@ export const createGroceryList = async (
 
     const { name, mealPlanId } = req.body;
 
-    // Validate required fields
-    if (!name || typeof name !== 'string' || !name.trim()) {
-      throw new AppError('Name is required', 400);
-    }
-
     // If meal plan ID provided, verify it exists and belongs to user
     if (mealPlanId) {
       const mealPlan = await prisma.mealPlan.findUnique({
@@ -221,6 +217,7 @@ export const createGroceryList = async (
       data: {
         userId,
         mealPlanId,
+        name,
         status: 'draft',
       },
     });
@@ -505,12 +502,8 @@ export const addItemToList = async (
     const userId = getUserId(req);
 
     const { id } = req.params as { id: string };
-    const { ingredientId, quantity, unit, notes } = req.body;
-
-    // Validate required fields
-    if (!ingredientId || !quantity || !unit) {
-      throw new AppError('Ingredient ID, quantity, and unit are required', 400);
-    }
+    const { ingredientId, ingredientName, category, estimatedPrice, quantity, unit, notes } =
+      req.body;
 
     // Check if grocery list exists and belongs to user
     const groceryList = await prisma.groceryList.findFirst({
@@ -524,36 +517,64 @@ export const addItemToList = async (
       throw new AppError('Grocery list not found', 404);
     }
 
-    // Check if ingredient exists
-    const ingredient = await prisma.ingredient.findUnique({
-      where: { id: ingredientId },
+    // Ad-hoc entry (issue #357): resolve by id, or by name — creating the
+    // ingredient if no match exists. category/estimatedPrice only apply if a
+    // new Ingredient row ends up being created; an existing match keeps its
+    // own category untouched. Quantity/unit are never prompted for on the
+    // ad-hoc path — default to a single generic unit, matching how recipe
+    // quick-add (#328) already defaults an omitted unit.
+    const resolvedUnit = unit || 'item';
+    const ingredient = await findOrCreateIngredient(
+      ingredientId,
+      ingredientName,
+      resolvedUnit,
+      category,
+      estimatedPrice
+    );
+    const fullIngredient = await prisma.ingredient.findUniqueOrThrow({
+      where: { id: ingredient.id },
     });
 
-    if (!ingredient) {
-      throw new AppError('Ingredient not found', 404);
+    let item;
+    let alreadyOnList = false;
+    try {
+      item = await prisma.groceryListItem.create({
+        data: {
+          groceryListId: id,
+          ingredientId: ingredient.id,
+          quantity: quantity ?? 1,
+          unit: resolvedUnit,
+          estimatedPrice: fullIngredient.averagePrice,
+          isChecked: false,
+          notes,
+        },
+        include: {
+          ingredient: true,
+        },
+      });
+    } catch (error) {
+      // Unique constraint on (groceryListId, ingredientId, unit) — this
+      // exact ingredient+unit is already on the list. Rather than erroring,
+      // treat it as a no-op and return the existing row: this is also what
+      // drives the "already on your list" UX (a 200, not a 201).
+      if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
+        item = await prisma.groceryListItem.findFirstOrThrow({
+          where: { groceryListId: id, ingredientId: ingredient.id, unit: resolvedUnit },
+          include: { ingredient: true },
+        });
+        alreadyOnList = true;
+      } else {
+        throw error;
+      }
     }
-
-    const item = await prisma.groceryListItem.create({
-      data: {
-        groceryListId: id,
-        ingredientId,
-        quantity,
-        unit,
-        estimatedPrice: ingredient.averagePrice,
-        isChecked: false,
-        notes,
-      },
-      include: {
-        ingredient: true,
-      },
-    });
 
     logger.info(`Item added to grocery list ${id}: ${item.id} by user ${userId}`);
     await cacheDelPattern(`grocery-lists:${userId}:*`);
 
-    res.status(201).json({
+    res.status(alreadyOnList ? 200 : 201).json({
       success: true,
       data: item,
+      alreadyOnList,
     });
   } catch (error) {
     next(error);
