@@ -366,6 +366,7 @@ export const familyMemberAPI = {
   create: (data: {
     name: string;
     ageGroup: string;
+    canCook?: boolean;
     dietaryRestrictions?: string[];
     cookingSkillLevel?: string;
     avoidedIngredients?: string[];

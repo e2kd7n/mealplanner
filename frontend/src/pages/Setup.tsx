@@ -35,6 +35,7 @@ import {
   FormControlLabel,
   RadioGroup,
   Radio,
+  Checkbox,
   useMediaQuery,
   useTheme,
   Skeleton,
@@ -64,6 +65,7 @@ const CUISINE_OPTIONS = [
 interface PendingMember {
   name: string;
   ageGroup: 'adult' | 'teen' | 'child';
+  canCook: boolean;
 }
 
 interface StockImage {
@@ -89,6 +91,7 @@ export default function Setup() {
   const [savedMembers, setSavedMembers] = useState<SavedMember[]>([]);
   const [memberName, setMemberName] = useState('');
   const [memberAgeGroup, setMemberAgeGroup] = useState<'adult' | 'teen' | 'child'>('adult');
+  const [memberCanCook, setMemberCanCook] = useState(true);
   const [membersLoading, setMembersLoading] = useState(false);
   const [membersError, setMembersError] = useState('');
   const [memberNameTouched, setMemberNameTouched] = useState(false);
@@ -123,9 +126,10 @@ export default function Setup() {
     setMemberNameTouched(true);
     const trimmed = memberName.trim();
     if (!trimmed) return;
-    setMembers((prev) => [...prev, { name: trimmed, ageGroup: memberAgeGroup }]);
+    setMembers((prev) => [...prev, { name: trimmed, ageGroup: memberAgeGroup, canCook: memberCanCook }]);
     setMemberName('');
     setMemberAgeGroup('adult');
+    setMemberCanCook(true);
     setMemberNameTouched(false);
   };
 
@@ -151,6 +155,7 @@ export default function Setup() {
         familyMemberAPI.create({
           name: m.name,
           ageGroup: m.ageGroup,
+          canCook: m.canCook,
           dietaryRestrictions: [],
         })
       )
@@ -169,7 +174,7 @@ export default function Setup() {
     });
 
     setSavedMembers((prev) => [...prev, ...newSaved]);
-    setMembers(failed.map((name) => ({ name, ageGroup: 'adult' as const })));
+    setMembers(failed.map((name) => ({ name, ageGroup: 'adult' as const, canCook: true })));
 
     if (failed.length > 0) {
       setMembersError(`Could not save: ${failed.join(', ')}. You can retry or skip.`);
@@ -400,13 +405,28 @@ export default function Setup() {
                 </Button>
               </Box>
 
+              <FormControlLabel
+                sx={{ mb: 1 }}
+                control={
+                  <Checkbox
+                    size="small"
+                    checked={memberCanCook}
+                    onChange={(e) => setMemberCanCook(e.target.checked)}
+                  />
+                }
+                label="Can cook (will appear in the meal planner's chef assignment dropdown)"
+              />
+
               {members.length > 0 && (
                 <List dense sx={{ mb: 2, borderRadius: 1, border: 1, borderColor: 'divider' }}>
                   {members.map((m, i) => (
                     <ListItem key={i} divider={i < members.length - 1}>
                       <ListItemText
                         primary={m.name}
-                        secondary={m.ageGroup.charAt(0).toUpperCase() + m.ageGroup.slice(1)}
+                        secondary={
+                          m.ageGroup.charAt(0).toUpperCase() + m.ageGroup.slice(1) +
+                          (m.canCook ? ' • Can cook' : '')
+                        }
                       />
                       <ListItemSecondaryAction>
                         <IconButton edge="end" size="small" onClick={() => handleRemoveMember(i)}>
