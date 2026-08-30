@@ -380,6 +380,15 @@ describe('Family Member Schemas', () => {
       });
       expect(result.success).toBe(true);
     });
+
+    it('accepts canCook', () => {
+      const result = createFamilyMemberSchema.safeParse({
+        name: 'Alice',
+        ageGroup: 'adult',
+        canCook: true,
+      });
+      expect(result.success).toBe(true);
+    });
   });
 });
 
