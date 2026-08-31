@@ -544,7 +544,10 @@ const GroceryList: React.FC = () => {
                         ? `${adHocText.length}/${ADHOC_NAME_MAX_LENGTH}`
                         : ' '
                 }
-                inputProps={{ ...params.inputProps, maxLength: ADHOC_NAME_MAX_LENGTH }}
+                slotProps={{
+                  ...params.slotProps,
+                  htmlInput: { ...params.slotProps?.htmlInput, maxLength: ADHOC_NAME_MAX_LENGTH },
+                }}
                 onKeyDown={(e) => {
                   if (e.key === 'Enter') {
                     e.preventDefault();

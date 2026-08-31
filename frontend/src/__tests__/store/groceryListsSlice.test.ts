@@ -88,7 +88,7 @@ describe('groceryListsSlice', () => {
     it('prepends new list and sets as current', () => {
       const state = groceryListsReducer(
         initialState,
-        createGroceryList.fulfilled(mockList, '', { mealPlanId: 'plan-1' })
+        createGroceryList.fulfilled(mockList, '', { mealPlanId: 'plan-1', name: 'Plan 1 List' })
       );
       expect(state.groceryLists[0]).toEqual(mockList);
       expect(state.currentList).toEqual(mockList);
