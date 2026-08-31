@@ -1,12 +1,14 @@
 # Issue Prioritization
 
-**Last Updated:** 2026-08-26 13:02:32 UTC / 2026-08-26 08:02:32 CDT (manual edit, not via `update-issue-priorities.sh` — built against a live `gh issue list` snapshot; see note in "How to Update Priorities")
+**Last Updated:** 2026-08-31 (weekly maintenance — manual edit against live GitHub state; `update-issue-priorities.sh` requires `gh` CLI not available in cloud environment)
 
 This file reflects the current state of GitHub issues organized by milestone and priority within each milestone.
 
 **Priority is within a milestone** — P0/P1 issues in the active milestone take precedence over all issues in future milestones.
 
-## 🎯 August 2026 (due 2026-08-30)
+## 🎯 August 2026 (due 2026-08-30) — CLOSED
+
+> Milestone ended 2026-08-30. Remaining open issues below carry over to the next milestone.
 
 ### 🔴 P0 - CRITICAL
 **No issues** ✅
@@ -22,8 +24,6 @@ This file reflects the current state of GitHub issues organized by milestone and
 - #200 - Pi: move Postgres data volume to USB SSD
 
 ### 📋 P4 - FUTURE
-- #357 - design: ad-hoc/custom grocery item entry — needs UX design before implementation
-- #355 - ux: clarify that /register is for adding household members, not first-run setup
 - #19 - Implement Grocery List Regeneration and Sync Detection
 
 ### ⚠️ Unprioritized (need P-label)
@@ -37,10 +37,6 @@ These issues need to be assigned to a milestone and prioritized.
 
 ### 🔴 P1 - HIGH
 - #399 - security: 2 remaining ws vulns via socket.io-adapter transitive dep
-- #401 - fix(ftue): family members added via Setup wizard default to canCook=false — cook-assignment dropdown empty for every new household
-- #402 - fix(ftue): 'Set up API Key' empty-state button links to /profile instead of /admin
-
-> All three P1s above are sitting outside any milestone while August 2026 closes in 4 days with no P0/P1 currently assigned to it — worth deciding whether any belong in this milestone's remaining scope.
 
 ### 🟡 P2 - MEDIUM
 - #116 - [P2][UX] Add Cost Tracking for Budget-Conscious Users
@@ -48,8 +44,6 @@ These issues need to be assigned to a milestone and prioritized.
 ### 🟢 P3 - LOW
 - #84 - [P3][Feature] Add recipe document upload (PDF, images, DOCX)
 - #170 - ✨ Add photo capture and PDF upload for recipe creation
-- #403 - enhancement(ftue): no bulk/quick-add for family members in Setup wizard
-- #404 - test-debt: ftue-audit.spec.ts asserts against a removed OnboardingWizard dashboard dialog
 - #14 - Implement Nutrition Guideline Warnings
 - #13 - Implement Nutrition Dashboard
 - #12 - Integrate Nutrition Database for Auto-Population
@@ -61,6 +55,12 @@ These issues need to be assigned to a milestone and prioritized.
 - #64 - Implement Advanced Features (Nutrition Tracking, etc.)
 - #63 - Evaluate Scaling Strategy
 - #20 - Implement Pantry Integration with Grocery Lists
+
+### ⚠️ Unprioritized — Grocery List Follow-ups (filed 2026-08-28, from #357/#412)
+- #406 - Grocery list generation likely 404s: frontend/backend route mismatch (**bug, P1 candidate**)
+- #407 - createGroceryList requires a 'name' field the GroceryList schema doesn't have (**bug, P1 candidate**)
+- #408 - POST /grocery-lists has a Zod schema defined but never wired in (**bug, P2 candidate**)
+- #409 - MobileGroceryList.tsx appears fully orphaned (**cleanup, P3 candidate**)
 
 ## 📝 Workspace TODOs & Tasks
 Code comments and inline tasks found in the workspace that may need attention.
@@ -116,16 +116,7 @@ Code comments and inline tasks found in the workspace that may need attention.
 3. Regenerate this file:         `./scripts/update-issue-priorities.sh`
 4. Commit:                       `git add ISSUE_PRIORITIES.md && git commit -m "chore: update issue priorities"`
 
-**Note (2026-08-26):** Built by hand against a live `gh issue list --state open` snapshot instead
-of running the script, per this file's standing caution that `update-issue-priorities.sh`
-auto-closes issues on a commit-message heuristic that has produced confirmed false-closes
-before (see #210 history) — review what it would close before ever running it unattended.
-This pass also dropped the entire `#379`-`#391` CLI-script-style-guide block from "Without
-Milestone Assignment," which the prior committed version still listed as open — all of it
-closed with the epic on 2026-08-20, and the doc had drifted stale since. Added `#399`,
-`#401`-`#404` (new since the last update); `#401`/`#402` came out of a simulated FTUE
-tester-panel pass across four household sizes (solo, couple, family of 4, family of 5) that
-also left a supporting repro comment on `#355`.
+**Note (2026-08-31):** Updated by the weekly maintenance cloud routine against a live GitHub MCP snapshot. The `update-issue-priorities.sh` script requires `gh` CLI which is not available in the cloud maintenance environment. Changes this pass: closed #357 (ad-hoc grocery entry implemented), removed closed issues #355/#401/#402/#403/#404 from tracking, added new open issues #406–#409 (grocery list follow-ups filed 2026-08-28), flagged stale issues #63/#84/#170.
 
 ## Managing Workspace TODOs
 
