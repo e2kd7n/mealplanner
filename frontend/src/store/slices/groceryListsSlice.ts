@@ -76,7 +76,7 @@ export const fetchGroceryListById = createAsyncThunk(
 
 export const createGroceryList = createAsyncThunk(
   'groceryLists/createGroceryList',
-  async (data: { mealPlanId: string }, { rejectWithValue }) => {
+  async (data: { mealPlanId?: string; name: string }, { rejectWithValue }) => {
     try {
       const response = await groceryListAPI.create(data);
       return response.data.data;
