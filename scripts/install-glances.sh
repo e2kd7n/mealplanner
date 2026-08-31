@@ -52,7 +52,7 @@ Description=Glances monitoring
 After=network.target
 
 [Service]
-ExecStart=${GLANCES_BIN} -w --port ${GLANCES_PORT} --url-prefix /monitoring --disable-plugin docker
+ExecStart=${GLANCES_BIN} -w --bind 127.0.0.1 --port ${GLANCES_PORT} --url-prefix /monitoring --disable-plugin docker
 Restart=on-failure
 User=${CURRENT_USER}
 
@@ -68,12 +68,12 @@ echo -e "  ${GREEN}✓${NC}  glances enabled at boot"
 
 step "Starting service"
 sudo systemctl restart glances
-echo -e "  ${GREEN}✓${NC}  Pi 4B — http://${PI4B_IP}:8080/monitoring"
+echo -e "  ${GREEN}✓${NC}  Pi 4B — http://${PI4B_IP}/monitoring"
 
 if [ "$CLUSTERHAT" = false ]; then
     section "Summary" "🍽️"
     echo -e "${BLUE}Monitoring dashboard:${NC}"
-    echo -e "  ${GREEN}http://${PI4B_IP}:8080/monitoring${NC}"
+    echo -e "  ${GREEN}http://${PI4B_IP}/monitoring${NC}"
     echo ""
     exit 0
 fi
@@ -130,6 +130,6 @@ done
 
 section "Summary" "🍽️"
 echo -e "${BLUE}Monitoring dashboard:${NC}"
-echo -e "  ${GREEN}http://${PI4B_IP}:8080/monitoring${NC}"
+echo -e "  ${GREEN}http://${PI4B_IP}/monitoring${NC}"
 echo -e "  ${YELLOW}Browse Zero W nodes via the Connections menu in the dashboard${NC}"
 echo ""

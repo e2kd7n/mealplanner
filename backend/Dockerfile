@@ -151,7 +151,8 @@ COPY --from=frontend-builder /frontend/dist ./public
 
 COPY backend/docker-entrypoint.sh /app/docker-entrypoint.sh
 RUN mkdir -p /app/uploads /app/backups /app/images && \
-    chmod +x /app/docker-entrypoint.sh
+    chmod +x /app/docker-entrypoint.sh && \
+    chown -R node:node /app
 
 ENV NODE_ENV=production
 
@@ -159,5 +160,7 @@ EXPOSE 3000
 
 HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
   CMD wget --no-verbose --tries=1 --spider http://127.0.0.1:3000/health || exit 1
+
+USER node
 
 ENTRYPOINT ["/app/docker-entrypoint.sh"]
