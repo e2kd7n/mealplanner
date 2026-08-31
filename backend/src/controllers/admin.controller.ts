@@ -230,6 +230,9 @@ export async function resetUserPassword(
       data: { passwordHash },
     });
 
+    // Revoke existing sessions so a stolen refresh token doesn't survive the reset
+    await prisma.authSession.deleteMany({ where: { userId: id } });
+
     logger.warn(`Admin ${req.user?.userId} reset password for user ${id} (${user.email})`);
 
     res.json({
@@ -309,8 +312,8 @@ export async function unblockUser(
 
     const user = await prisma.user.findUnique({
       where: { id },
-      select: { id: true, email: true, isBlocked: true },
-    }) as { id: string; email: string; isBlocked: boolean } | null;
+      select: { id: true, email: true, role: true, isBlocked: true },
+    }) as { id: string; email: string; role: string; isBlocked: boolean } | null;
 
     if (!user) {
       throw new AppError('User not found', 404);
@@ -318,6 +321,14 @@ export async function unblockUser(
 
     if (!user.isBlocked) {
       throw new AppError('User is not blocked', 400);
+    }
+
+    // Prevent non-superadmins from unblocking admins
+    const adminUser = req.user as any;
+    if (user.role === 'admin' || user.role === 'superadmin') {
+      if (adminUser.role !== 'superadmin') {
+        throw new AppError('Only superadmins can unblock admin accounts', 403);
+      }
     }
 
     await prisma.user.update({

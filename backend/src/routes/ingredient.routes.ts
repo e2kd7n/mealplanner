@@ -5,7 +5,7 @@
 
 
 import { Router } from 'express';
-import { authenticate } from '../middleware/auth';
+import { authenticate, optionalAuthenticate } from '../middleware/auth';
 import { requireAdmin } from '../middleware/admin';
 import {
   getIngredients,
@@ -31,9 +31,9 @@ router.get('/categories', getCategories);
 /**
  * @route   GET /api/ingredients/search/suggestions
  * @desc    Get ingredient search suggestions
- * @access  Public
+ * @access  Public (household ingredients only included for authenticated callers, see controller)
  */
-router.get('/search/suggestions', getSearchSuggestions);
+router.get('/search/suggestions', optionalAuthenticate, getSearchSuggestions);
 
 /**
  * @route   GET /api/ingredients/similar

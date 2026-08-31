@@ -3,6 +3,7 @@ packages:
 
 overrides:
   deepmerge-ts: 8.0.0
+  ws: '>=8.21.0'
 
 allowBuilds:
   '0': '@prisma/client'

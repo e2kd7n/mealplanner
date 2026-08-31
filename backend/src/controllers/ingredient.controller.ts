@@ -447,10 +447,15 @@ export const getSearchSuggestions = async (
     // Recipe-authoring suggestions exclude ad-hoc 'household' ingredients (issue #328's
     // quick-add flow, this endpoint's original caller); grocery ad-hoc entry (issue #357)
     // needs the opposite — it must see existing household ingredients to dedup against
-    // them, so it passes context=grocery and gets no category filter.
-    const excludeHousehold = context !== 'grocery';
+    // them, so it passes context=grocery and gets no category filter. Only for an
+    // authenticated caller though — this endpoint is otherwise public, and household
+    // ingredient names can contain another family's freeform grocery entries.
+    const excludeHousehold = !(context === 'grocery' && req.user);
 
-    const cacheKey = `ingredient:suggestions:${searchTerm}:${limit}:${context}`;
+    // Key on excludeHousehold (not the raw context param) so an authenticated
+    // response including household items can never be served from cache to an
+    // unauthenticated caller reusing the same context=grocery query.
+    const cacheKey = `ingredient:suggestions:${searchTerm}:${limit}:${excludeHousehold}`;
     const cached = await cacheGet(cacheKey);
     if (cached) {
       res.json(cached);
