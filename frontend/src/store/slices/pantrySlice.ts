@@ -63,18 +63,6 @@ export const fetchPantryItems = createAsyncThunk(
   }
 );
 
-export const fetchPantryItemById = createAsyncThunk(
-  'pantry/fetchPantryItemById',
-  async (id: string, { rejectWithValue }) => {
-    try {
-      const response = await pantryAPI.getById(id);
-      return response.data.data;
-    } catch (error: unknown) {
-      return rejectWithValue(getApiErrorMessage(error, 'Failed to fetch pantry item'));
-    }
-  }
-);
-
 export const fetchLowStockItems = createAsyncThunk(
   'pantry/fetchLowStockItems',
   async (_, { rejectWithValue }) => {
@@ -167,24 +155,6 @@ const pantrySlice = createSlice({
         state.items = action.payload;
       })
       .addCase(fetchPantryItems.rejected, (state, action) => {
-        state.loading = false;
-        state.error = action.payload as string;
-      })
-      // Fetch pantry item by ID
-      .addCase(fetchPantryItemById.pending, (state) => {
-        state.loading = true;
-        state.error = null;
-      })
-      .addCase(fetchPantryItemById.fulfilled, (state, action) => {
-        state.loading = false;
-        const index = state.items.findIndex(item => item.id === action.payload.id);
-        if (index !== -1) {
-          state.items[index] = action.payload;
-        } else {
-          state.items.push(action.payload);
-        }
-      })
-      .addCase(fetchPantryItemById.rejected, (state, action) => {
         state.loading = false;
         state.error = action.payload as string;
       })

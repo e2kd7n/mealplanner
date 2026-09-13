@@ -62,18 +62,6 @@ export const fetchGroceryLists = createAsyncThunk(
   }
 );
 
-export const fetchGroceryListById = createAsyncThunk(
-  'groceryLists/fetchGroceryListById',
-  async (id: string, { rejectWithValue }) => {
-    try {
-      const response = await groceryListAPI.getById(id);
-      return response.data.data;
-    } catch (error: unknown) {
-      return rejectWithValue(getApiErrorMessage(error, 'Failed to fetch grocery list'));
-    }
-  }
-);
-
 export const createGroceryList = createAsyncThunk(
   'groceryLists/createGroceryList',
   async (data: { mealPlanId?: string; name: string }, { rejectWithValue }) => {
@@ -82,30 +70,6 @@ export const createGroceryList = createAsyncThunk(
       return response.data.data;
     } catch (error: unknown) {
       return rejectWithValue(getApiErrorMessage(error, 'Failed to create grocery list'));
-    }
-  }
-);
-
-export const generateGroceryList = createAsyncThunk(
-  'groceryLists/generateGroceryList',
-  async (mealPlanId: string, { rejectWithValue }) => {
-    try {
-      const response = await groceryListAPI.generateFromMealPlan(mealPlanId);
-      return response.data.data;
-    } catch (error: unknown) {
-      return rejectWithValue(getApiErrorMessage(error, 'Failed to generate grocery list'));
-    }
-  }
-);
-
-export const updateGroceryList = createAsyncThunk(
-  'groceryLists/updateGroceryList',
-  async ({ id, data }: { id: string; data: Record<string, unknown> }, { rejectWithValue }) => {
-    try {
-      const response = await groceryListAPI.update(id, data);
-      return response.data.data;
-    } catch (error: unknown) {
-      return rejectWithValue(getApiErrorMessage(error, 'Failed to update grocery list'));
     }
   }
 );
@@ -209,19 +173,6 @@ const groceryListsSlice = createSlice({
         state.loading = false;
         state.error = action.payload as string;
       })
-      // Fetch grocery list by ID
-      .addCase(fetchGroceryListById.pending, (state) => {
-        state.loading = true;
-        state.error = null;
-      })
-      .addCase(fetchGroceryListById.fulfilled, (state, action) => {
-        state.loading = false;
-        state.currentList = action.payload;
-      })
-      .addCase(fetchGroceryListById.rejected, (state, action) => {
-        state.loading = false;
-        state.error = action.payload as string;
-      })
       // Create grocery list
       .addCase(createGroceryList.pending, (state) => {
         state.loading = true;
@@ -235,30 +186,6 @@ const groceryListsSlice = createSlice({
       .addCase(createGroceryList.rejected, (state, action) => {
         state.loading = false;
         state.error = action.payload as string;
-      })
-      // Generate grocery list
-      .addCase(generateGroceryList.pending, (state) => {
-        state.loading = true;
-        state.error = null;
-      })
-      .addCase(generateGroceryList.fulfilled, (state, action) => {
-        state.loading = false;
-        state.groceryLists.unshift(action.payload);
-        state.currentList = action.payload;
-      })
-      .addCase(generateGroceryList.rejected, (state, action) => {
-        state.loading = false;
-        state.error = action.payload as string;
-      })
-      // Update grocery list
-      .addCase(updateGroceryList.fulfilled, (state, action) => {
-        const index = state.groceryLists.findIndex(gl => gl.id === action.payload.id);
-        if (index !== -1) {
-          state.groceryLists[index] = action.payload;
-        }
-        if (state.currentList?.id === action.payload.id) {
-          state.currentList = action.payload;
-        }
       })
       // Delete grocery list
       .addCase(deleteGroceryList.fulfilled, (state, action) => {
