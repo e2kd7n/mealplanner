@@ -2,6 +2,18 @@
 # Common utility functions for Pi scripts
 # Source this file in other scripts: source "$(dirname "$0")/utilities.sh"
 
+# A non-interactive SSH command (`ssh host "command"` — cron, automation, a
+# deploy driven from elsewhere) gets a minimal PATH that omits /usr/sbin and
+# /sbin entirely; only interactive/login shells pick up the fuller PATH via
+# /etc/profile. clusterctrl (ClusterHAT) lives in /usr/sbin, so any script
+# that sources this file needs it on PATH regardless of invocation — without
+# this, `pi-run.sh --force` tore down containers and then failed to bring
+# them back up because `command -v clusterctrl` found nothing (issue #418).
+case ":$PATH:" in
+    *:/usr/sbin:*) ;;
+    *) export PATH="/usr/sbin:/sbin:$PATH" ;;
+esac
+
 # Colors for output — blank when $NO_COLOR is set (https://no-color.org) or
 # stdout isn't a TTY (piped to a log file, cron, CI). Every script that
 # sources this file gets the fallback for free; nothing else to change.
