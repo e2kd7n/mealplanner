@@ -143,35 +143,6 @@ export const deleteRecipe = createAsyncThunk(
   }
 );
 
-export const rateRecipe = createAsyncThunk(
-  'recipes/rateRecipe',
-  async ({ id, rating, notes, wouldMakeAgain }: {
-    id: string;
-    rating: number;
-    notes?: string;
-    wouldMakeAgain: boolean;
-  }, { rejectWithValue }) => {
-    try {
-      const response = await recipeAPI.rate(id, { rating, notes, wouldMakeAgain });
-      return response.data.data;
-    } catch (error: unknown) {
-      return rejectWithValue(getApiErrorMessage(error, 'Failed to rate recipe'));
-    }
-  }
-);
-
-export const searchRecipes = createAsyncThunk(
-  'recipes/searchRecipes',
-  async (query: string, { rejectWithValue }) => {
-    try {
-      const response = await recipeAPI.search(query);
-      return response.data.data;
-    } catch (error: unknown) {
-      return rejectWithValue(getApiErrorMessage(error, 'Failed to search recipes'));
-    }
-  }
-);
-
 const recipesSlice = createSlice({
   name: 'recipes',
   initialState,
@@ -269,25 +240,6 @@ const recipesSlice = createSlice({
         if (state.currentRecipe?.id === action.payload) {
           state.currentRecipe = null;
         }
-      })
-      // Rate recipe
-      .addCase(rateRecipe.fulfilled, (state, action) => {
-        if (state.currentRecipe) {
-          state.currentRecipe = { ...state.currentRecipe, ...action.payload };
-        }
-      })
-      // Search recipes
-      .addCase(searchRecipes.pending, (state) => {
-        state.loading = true;
-        state.error = null;
-      })
-      .addCase(searchRecipes.fulfilled, (state, action) => {
-        state.loading = false;
-        state.recipes = action.payload;
-      })
-      .addCase(searchRecipes.rejected, (state, action) => {
-        state.loading = false;
-        state.error = action.payload as string;
       });
   },
 });
