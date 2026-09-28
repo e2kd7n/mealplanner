@@ -1,33 +1,14 @@
 # Issue Prioritization
 
-**Last Updated:** 2026-08-31 (weekly maintenance — manual edit against live GitHub state; `update-issue-priorities.sh` requires `gh` CLI not available in cloud environment)
+**Last Updated:** 2026-09-28 (weekly maintenance — manual edit against live GitHub state; `update-issue-priorities.sh` requires `gh` CLI not available in cloud environment)
 
 This file reflects the current state of GitHub issues organized by milestone and priority within each milestone.
 
 **Priority is within a milestone** — P0/P1 issues in the active milestone take precedence over all issues in future milestones.
 
-## 🎯 August 2026 (due 2026-08-30) — CLOSED
+## 🎯 Active Milestone — None
 
-> Milestone ended 2026-08-30. Remaining open issues below carry over to the next milestone.
-
-### 🔴 P0 - CRITICAL
-**No issues** ✅
-
-### 🔴 P1 - HIGH
-**No issues** ✅
-
-### 🟡 P2 - MEDIUM
-**No issues** ✅
-
-### 🟢 P3 - LOW
-- #307 - accessibility: missing aria-labels on icon-only buttons in CreateRecipe and Profile (one destructive)
-- #200 - Pi: move Postgres data volume to USB SSD
-
-### 📋 P4 - FUTURE
-- #19 - Implement Grocery List Regeneration and Sync Detection
-
-### ⚠️ Unprioritized (need P-label)
-- #261 - perf(e2e): use Playwright storageState to avoid per-test UI login in FTUE suite
+No active milestone is currently set. Issues below are either unassigned or carry over from the closed August 2026 milestone.
 
 ---
 
@@ -36,12 +17,16 @@ This file reflects the current state of GitHub issues organized by milestone and
 These issues need to be assigned to a milestone and prioritized.
 
 ### 🔴 P1 - HIGH
-- #399 - security: 2 remaining ws vulns via socket.io-adapter transitive dep
+- #417 - security: backend HIGH vulns in deepmerge-ts + mysql2 (transitive via prisma) require breaking prisma upgrade (**requires Prisma major version upgrade — non-breaking fix not available**)
+- #406 - Grocery list generation likely 404s: frontend/backend route mismatch (**P1 candidate — unaddressed for 31 days, fix is straightforward**)
 
 ### 🟡 P2 - MEDIUM
 - #116 - [P2][UX] Add Cost Tracking for Budget-Conscious Users
 
 ### 🟢 P3 - LOW
+- #307 - accessibility: missing aria-labels on icon-only buttons in CreateRecipe and Profile (one destructive)
+- #261 - perf(e2e): use Playwright storageState to avoid per-test UI login in FTUE suite
+- #200 - Pi: move Postgres data volume to USB SSD
 - #84 - [P3][Feature] Add recipe document upload (PDF, images, DOCX)
 - #170 - ✨ Add photo capture and PDF upload for recipe creation
 - #14 - Implement Nutrition Guideline Warnings
@@ -55,17 +40,27 @@ These issues need to be assigned to a milestone and prioritized.
 - #64 - Implement Advanced Features (Nutrition Tracking, etc.)
 - #63 - Evaluate Scaling Strategy
 - #20 - Implement Pantry Integration with Grocery Lists
+- #19 - Implement Grocery List Regeneration and Sync Detection
 
-### ⚠️ Unprioritized — Grocery List Follow-ups (filed 2026-08-28, from #357/#412)
-- #406 - Grocery list generation likely 404s: frontend/backend route mismatch (**bug, P1 candidate**)
-- #407 - createGroceryList requires a 'name' field the GroceryList schema doesn't have (**bug, P1 candidate**)
-- #408 - POST /grocery-lists has a Zod schema defined but never wired in (**bug, P2 candidate**)
-- #409 - MobileGroceryList.tsx appears fully orphaned (**cleanup, P3 candidate**)
+### ⚠️ Unprioritized (need P-label)
+- #416 - Verify maintenance-script logs actually get pruned automatically (needs investigation + automation)
 
 ## 📝 Workspace TODOs & Tasks
 Code comments and inline tasks found in the workspace that may need attention.
 
 **No TODO/FIXME/HACK comments found in code** ✅
+
+---
+
+## Recently Closed (for reference)
+- #419 - security: multer HIGH vulns ≤2.2.0 — resolved by multer 2.4.0 upgrade (closed 2026-09-21)
+- #399 - security: ws vulns via socket.io-adapter — resolved by ws override in 57231f5 (closed 2026-09-21)
+- #418 - clusterctrl not on PATH over non-interactive SSH (closed 2026-09-13)
+- #407 - createGroceryList name field bug (closed 2026-09-14)
+- #408 - POST /grocery-lists Zod schema never wired in (closed 2026-09-14)
+- #409 - MobileGroceryList.tsx orphaned (closed 2026-09-14)
+
+---
 
 ## Priority System (Milestone-Aware)
 
@@ -116,7 +111,7 @@ Code comments and inline tasks found in the workspace that may need attention.
 3. Regenerate this file:         `./scripts/update-issue-priorities.sh`
 4. Commit:                       `git add ISSUE_PRIORITIES.md && git commit -m "chore: update issue priorities"`
 
-**Note (2026-08-31):** Updated by the weekly maintenance cloud routine against a live GitHub MCP snapshot. The `update-issue-priorities.sh` script requires `gh` CLI which is not available in the cloud maintenance environment. Changes this pass: closed #357 (ad-hoc grocery entry implemented), removed closed issues #355/#401/#402/#403/#404 from tracking, added new open issues #406–#409 (grocery list follow-ups filed 2026-08-28), flagged stale issues #63/#84/#170.
+**Note (2026-09-28):** Updated by the weekly maintenance cloud routine against a live GitHub MCP snapshot. The `update-issue-priorities.sh` script requires `gh` CLI which is not available in the cloud maintenance environment. Changes this pass: removed closed #399/#407/#408/#409, added #417 (mysql2 HIGH via prisma), moved #406 up to P1 section, updated last-updated date.
 
 ## Managing Workspace TODOs
 
