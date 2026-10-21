@@ -44,7 +44,7 @@ test.describe('Grocery List — empty state', () => {
       (window as unknown as { __navMarker: string }).__navMarker = 'still-here';
     });
 
-    await authenticatedPage.getByRole('button', { name: 'Go to Meal Planner' }).click();
+    await authenticatedPage.getByRole('button', { name: 'Generate from Meal Plan' }).click();
     await expect(authenticatedPage).toHaveURL(/\/meal-planner$/);
 
     const markerSurvived = await authenticatedPage.evaluate(
