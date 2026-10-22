@@ -30,9 +30,11 @@ FORCE=false
 LOG_DIR="./data/maintenance-logs"
 LOG_RETENTION_DAYS=14
 mkdir -p "$LOG_DIR"
-LOG_FILE="$LOG_DIR/auto-update-$(date '+%Y-%m-%d-%H%M%S').log"
+LOG_FILE="${AUTO_UPDATE_LOG_FILE:-$LOG_DIR/auto-update-$(date '+%Y-%m-%d-%H%M%S').log}"
 STATUS_FILE="$LOG_DIR/auto-update-status.txt"
-exec > >(tee -a "$LOG_FILE") 2>&1
+# On a re-exec after a self-update (see Repo Sync below) stdout is already the
+# tee pipe inherited from the first process — teeing again would double lines.
+[ -z "${AUTO_UPDATE_REEXEC:-}" ] && exec > >(tee -a "$LOG_FILE") 2>&1
 find "$LOG_DIR" -maxdepth 1 -name 'auto-update-*.log' -mtime +"$LOG_RETENTION_DAYS" -delete 2>/dev/null || true
 
 # Timestamped log line. When run under cron/systemd (non-TTY), utilities.sh
@@ -58,13 +60,49 @@ trap _on_exit EXIT
 
 section "Meal Planner Auto-Update" "📥"
 
-section "Pre-flight Check" "🔍"
-
-# Git state check — uses cached fetch state, no network call
-BEHIND=$(git rev-list --count HEAD..origin/main 2>/dev/null || echo 0)
-if [ "${BEHIND}" -gt 0 ]; then
-    warn "Local repo is ${BEHIND} commit(s) behind origin/main — config changes won't take effect until 'git pull' is run"
+# ── Repo Sync ──────────────────────────────────────────────────────────────────
+# The image pull below only updates app code. Scripts, compose files and nginx
+# config live in this checkout and used to reach the Pi only via a manual
+# `git pull`. Fast-forward only: if local edits conflict with incoming changes
+# the merge refuses, and we warn and carry on with the image update rather than
+# fail the whole run.
+[ "${AUTO_UPDATE_CONFIG_CHANGED:-0}" = 1 ] && FORCE=true
+if [ -z "${AUTO_UPDATE_REEXEC:-}" ]; then
+    section "Repo Sync" "🔄"
+    if ! git fetch origin main --quiet; then
+        warn "git fetch failed — continuing with the current checkout"
+    else
+        BEHIND=$(git rev-list --count HEAD..origin/main)
+        if [ "$BEHIND" -eq 0 ]; then
+            log "Checkout is up to date with origin/main ($(git rev-parse --short HEAD))."
+        else
+            OLD_HEAD=$(git rev-parse HEAD)
+            if git merge --ff-only --quiet origin/main; then
+                log "Fast-forwarded ${BEHIND} commit(s): ${OLD_HEAD:0:7} → $(git rev-parse --short HEAD)"
+                CHANGED_FILES=$(git diff --name-only "$OLD_HEAD" HEAD)
+                # Compose/nginx changes only take effect when containers restart,
+                # so redeploy even if the image itself turns out unchanged.
+                if grep -qE '^(podman-compose[^/]*\.ya?ml|nginx/)' <<<"$CHANGED_FILES"; then
+                    log "Compose/nginx config changed — containers will be restarted."
+                    FORCE=true
+                fi
+                # Re-run the updated version of this script so tonight's run uses
+                # the new logic, not the copy bash already has in memory.
+                if grep -qE '^scripts/(pi-auto-update|utilities)\.sh$' <<<"$CHANGED_FILES"; then
+                    log "Auto-update script changed — re-running the new version."
+                    AUTO_UPDATE_REEXEC=1 AUTO_UPDATE_LOG_FILE="$LOG_FILE" \
+                        AUTO_UPDATE_CONFIG_CHANGED=$([ "$FORCE" = true ] && echo 1 || echo 0) \
+                        exec bash "$SCRIPT_DIR/$(basename "$0")" "$@"
+                fi
+            else
+                warn "Can't fast-forward ${BEHIND} commit(s) — local changes conflict. Resolve by hand:"
+                git status --short
+            fi
+        fi
+    fi
 fi
+
+section "Pre-flight Check" "🔍"
 
 # Disk check — warn but do not block unattended runs
 DISK_USAGE=$(df / | awk 'NR==2 {print $5}' | tr -d '%')
