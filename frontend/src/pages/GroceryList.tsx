@@ -534,7 +534,6 @@ const GroceryList: React.FC = () => {
                 inputRef={adHocInputRef}
                 size="small"
                 placeholder="Add an item (e.g. paper towels)"
-                aria-label="Add a grocery item"
                 helperText={
                   !currentList
                     ? 'Generate a grocery list from your meal planner, or start a new list, first.'
@@ -546,7 +545,13 @@ const GroceryList: React.FC = () => {
                 }
                 slotProps={{
                   ...params.slotProps,
-                  htmlInput: { ...params.slotProps?.htmlInput, maxLength: ADHOC_NAME_MAX_LENGTH },
+                  // aria-label goes on the <input> itself; on the TextField it lands on
+                  // the wrapper div and axe flags the input as label-title-only.
+                  htmlInput: {
+                    ...params.slotProps?.htmlInput,
+                    maxLength: ADHOC_NAME_MAX_LENGTH,
+                    'aria-label': 'Add a grocery item',
+                  },
                 }}
                 onKeyDown={(e) => {
                   if (e.key === 'Enter') {

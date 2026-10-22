@@ -85,6 +85,10 @@ const RecipeDetail: React.FC = () => {
   // Delete confirmation dialog state
   const [openDeleteDialog, setOpenDeleteDialog] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  // The store clears currentRecipe as soon as a delete succeeds, so without
+  // this the page falls into the "Recipe not found" branch (which has no
+  // Snackbar) for the delay before navigating back to /recipes.
+  const [justDeleted, setJustDeleted] = useState(false);
 
   // Snackbar notification state
   const [snackbar, setSnackbar] = useState<{ open: boolean; message: string; severity: 'success' | 'error' | 'info' }>({
@@ -246,6 +250,7 @@ const RecipeDetail: React.FC = () => {
     try {
       await dispatch(deleteRecipe(recipe.id)).unwrap();
       setOpenDeleteDialog(false);
+      setJustDeleted(true);
       showSnackbar(`Successfully deleted "${recipe.title}"`, 'success');
       setTimeout(() => navigate('/recipes'), 1200);
     } catch (error: unknown) {
@@ -342,6 +347,24 @@ const RecipeDetail: React.FC = () => {
         </Box>
       </Container>
     );
+  }
+
+  // Snackbar for notifications
+  const snackbarElement = (
+    <Snackbar
+      open={snackbar.open}
+      autoHideDuration={6000}
+      onClose={() => setSnackbar({ ...snackbar, open: false })}
+      anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+    >
+      <Alert onClose={() => setSnackbar({ ...snackbar, open: false })} severity={snackbar.severity} sx={{ width: '100%' }}>
+        {snackbar.message}
+      </Alert>
+    </Snackbar>
+  );
+
+  if (!recipe && justDeleted) {
+    return <Container maxWidth="lg">{snackbarElement}</Container>;
   }
 
   if (error) {
@@ -859,17 +882,7 @@ const RecipeDetail: React.FC = () => {
         </DialogActions>
       </Dialog>
 
-      {/* Snackbar for notifications */}
-      <Snackbar
-        open={snackbar.open}
-        autoHideDuration={6000}
-        onClose={() => setSnackbar({ ...snackbar, open: false })}
-        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
-      >
-        <Alert onClose={() => setSnackbar({ ...snackbar, open: false })} severity={snackbar.severity} sx={{ width: '100%' }}>
-          {snackbar.message}
-        </Alert>
-      </Snackbar>
+      {snackbarElement}
     </Container>
   );
 };

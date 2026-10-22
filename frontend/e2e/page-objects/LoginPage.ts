@@ -26,7 +26,7 @@ export class LoginPage {
     this.passwordInput = page.locator('#password');
     this.loginButton = page.getByRole('button', { name: /sign in/i });
     this.errorMessage = page.getByRole('alert');
-    this.registerLink = page.getByRole('link', { name: /don't have an account\? sign up/i });
+    this.registerLink = page.getByRole('link', { name: /new to this household\? add your sign-in/i });
     this.testLoginButton = page.getByRole('button', { name: /quick test login/i });
   }
 
