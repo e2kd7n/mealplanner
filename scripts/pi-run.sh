@@ -123,9 +123,13 @@ deploy_to_zero() {
     # and rsynced in below instead. `set -o pipefail` ensures a failed
     # install actually fails this SSH command (and thus the script's
     # `set -e`) instead of the exit status coming from `tail` — see #288.
+    # optimistic-repeat-install=false: pnpm 10+ otherwise skips the install
+    # ("Already up to date") when package.json is unchanged, ignoring
+    # lockfile-only bumps — the Zeros silently stayed on stale transitive
+    # deps (e.g. proxy-addr 2.0.7 after #423) across several deploys.
     echo -e "    ${YELLOW}Installing deps on p${slot} (slow on first run)...${NC}"
     ssh $ssh_opts "${ZERO_USER}@${ip}" \
-        'set -o pipefail; cd /opt/mealplanner && pnpm install --frozen-lockfile --ignore-scripts 2>&1 | tail -5'
+        'set -o pipefail; cd /opt/mealplanner && pnpm install --frozen-lockfile --ignore-scripts --config.optimistic-repeat-install=false 2>&1 | tail -5'
 
     # Copy the pre-generated Prisma client instead of running `prisma
     # generate` on this architecture (see comment above and #281). It's
