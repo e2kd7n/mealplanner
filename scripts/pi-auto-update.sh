@@ -22,6 +22,19 @@ GHCR_TOKEN_FILE="./secrets/ghcr_token.txt"
 FORCE=false
 [ "${1:-}" = "--force" ] && FORCE=true
 
+# Keep a per-run log on disk. pi4's journald is Storage=volatile (SD-card wear),
+# and its RAM journal rotates a 01:30 run's output away within hours, so failed
+# nightly runs were undiagnosable after the fact. One small file per run is far
+# less write traffic than making the whole journal persistent. stdout still
+# reaches the journal (and the terminal on manual runs) via tee.
+LOG_DIR="./data/maintenance-logs"
+LOG_RETENTION_DAYS=14
+mkdir -p "$LOG_DIR"
+LOG_FILE="$LOG_DIR/auto-update-$(date '+%Y-%m-%d-%H%M%S').log"
+STATUS_FILE="$LOG_DIR/auto-update-status.txt"
+exec > >(tee -a "$LOG_FILE") 2>&1
+find "$LOG_DIR" -maxdepth 1 -name 'auto-update-*.log' -mtime +"$LOG_RETENTION_DAYS" -delete 2>/dev/null || true
+
 # Timestamped log line. When run under cron/systemd (non-TTY), utilities.sh
 # already blanks the color vars, so this degrades to plain text automatically.
 log()  { echo -e "${DIM}[$(date '+%Y-%m-%d %H:%M:%S')]${NC} $*"; }
@@ -38,6 +51,8 @@ _on_exit() {
         log "Pruning dangling images left by failed update..."
         podman image prune -f 2>/dev/null || true
     fi
+    # One-line last-run summary: `cat data/maintenance-logs/auto-update-status.txt`
+    echo "$(date '+%Y-%m-%d %H:%M:%S') exit=$exit_code log=$(basename "$LOG_FILE")" > "$STATUS_FILE"
 }
 trap _on_exit EXIT
 
