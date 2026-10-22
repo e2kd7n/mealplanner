@@ -101,12 +101,9 @@ export function hashSessionToken(token: string): string {
   return crypto.createHash('sha256').update(token).digest('hex');
 }
 
+// req.ip already honours the app's `trust proxy` setting (see index.ts). The
+// leftmost X-Forwarded-For entry is client-supplied and must not be trusted.
 export function getClientIp(req: Request): string | undefined {
-  const forwardedFor = req.headers['x-forwarded-for'];
-  if (typeof forwardedFor === 'string' && forwardedFor.trim()) {
-    return forwardedFor.split(',')[0]?.trim();
-  }
-
   return req.ip || undefined;
 }
 

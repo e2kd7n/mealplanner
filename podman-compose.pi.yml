@@ -107,6 +107,10 @@ services:
       - spoonacular_api_key
       - edamam_app_id
       - edamam_app_key
+    # Loopback only — reached by the host-networked nginx's @backend_local
+    # fallback, never directly from the LAN.
+    ports:
+      - "127.0.0.1:3000:3000"
     volumes:
       - ./data/uploads:/app/uploads
       - ./data/backups:/app/backups
@@ -136,16 +140,14 @@ services:
     depends_on:
       backend:
         condition: service_healthy
-    ports:
-      - "80:80"
+    # Host networking (binds :80 directly) so nginx sees real client IPs —
+    # rootless Podman's published-port proxy rewrites every source address to
+    # the container's own IP. See the header comment in nginx/default.conf.
+    network_mode: host
     volumes:
       - ./nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
       - ./data/frontend-dist:/usr/share/nginx/html:ro
       - ./data/images:/usr/share/nginx/html/images:ro
-    networks:
-      meals-network:
-        aliases:
-          - nginx
     deploy:
       resources:
         limits:
