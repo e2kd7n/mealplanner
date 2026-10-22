@@ -5,6 +5,9 @@
 #
 #   ./scripts/pi-auto-update.sh          # update only if a newer image exists
 #   ./scripts/pi-auto-update.sh --force  # pull and redeploy unconditionally
+#
+# Logs: data/maintenance-logs/auto-update-<timestamp>.log (14 days), plus a
+# one-line last-run summary in data/maintenance-logs/auto-update-status.txt.
 
 set -euo pipefail
 
