@@ -66,6 +66,12 @@ const USE_HTTPS = process.env.USE_HTTPS === 'true';
 const SSL_KEY_PATH = process.env.SSL_KEY_PATH || '/app/certs/key.pem';
 const SSL_CERT_PATH = process.env.SSL_CERT_PATH || '/app/certs/cert.pem';
 
+// Exactly one reverse proxy (nginx) sits in front of every backend in
+// production, and it overwrites X-Forwarded-For with the real client address.
+// Trusting one hop makes req.ip that client, so per-IP rate limits apply per
+// device instead of to nginx's single address (i.e. the whole household).
+app.set('trust proxy', 1);
+
 // Security middleware
 app.use(helmet());
 app.use(cors({
