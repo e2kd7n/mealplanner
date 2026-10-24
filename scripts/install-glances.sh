@@ -16,6 +16,9 @@ ZERO_USER="pi"
 ZEROS=(p1 p2 p3 p4)
 GLANCES_PORT=61208
 PI4B_IP="192.168.4.110"
+# ClusterHAT bridge IP: reachable from the meals-nginx container (rootless Podman),
+# not from the LAN. 127.0.0.1 would be unreachable from inside the container.
+GLANCES_BIND="172.19.181.254"
 ZERO_IPS=(172.19.181.1 172.19.181.2 172.19.181.3 172.19.181.4)
 
 for arg in "$@"; do
@@ -31,7 +34,7 @@ section "Install Glances" "🩺"
 # Pi 4B
 # ---------------------------------------------------------------------------
 
-steps_init 4
+steps_init 5
 
 step "Installing Glances package"
 if command -v glances &>/dev/null; then
@@ -45,20 +48,48 @@ fi
 GLANCES_BIN=$(command -v glances)
 CURRENT_USER=$(whoami)
 
+step "Setting dashboard password"
+# Glances --password reads ~/.config/glances/glances.pwd; write it via Glances'
+# own module (same salted hash it would store) so the service never prompts.
+if [ -f "$HOME/.config/glances/glances.pwd" ]; then
+    echo -e "  ${BLUE}ℹ️  already set (delete ~/.config/glances/glances.pwd to change)${NC}"
+else
+    read -r -s -p "  Password for http://${PI4B_IP}/monitoring (user: glances): " GLANCES_PW; echo
+    read -r -s -p "  Confirm: " GLANCES_PW2; echo
+    if [ -z "$GLANCES_PW" ] || [ "$GLANCES_PW" != "$GLANCES_PW2" ]; then
+        echo -e "  ${RED}✗ passwords empty or don't match${NC}"
+        exit 1
+    fi
+    printf '%s' "$GLANCES_PW" | python3 -c '
+import sys
+from glances.password import GlancesPassword
+p = GlancesPassword(username="glances")
+p.save_password(p.hash_password(p.sha256_hash(sys.stdin.read())))'
+    chmod 600 "$HOME/.config/glances/glances.pwd"
+    unset GLANCES_PW GLANCES_PW2
+    echo -e "  ${GREEN}✓${NC}  saved to ~/.config/glances/glances.pwd"
+fi
+
 step "Writing systemd unit"
+# Glances 3.3 has no --url-prefix; nginx strips /monitoring/ instead.
 sudo tee /etc/systemd/system/glances.service > /dev/null << EOF
 [Unit]
 Description=Glances monitoring
-After=network.target
+# GLANCES_BIND lives on the ClusterHAT bridge; wait for the network to be up
+After=network-online.target
+Wants=network-online.target
 
 [Service]
-ExecStart=${GLANCES_BIN} -w --bind 127.0.0.1 --port ${GLANCES_PORT} --url-prefix /monitoring --disable-plugin docker
+ExecStart=${GLANCES_BIN} -w --bind ${GLANCES_BIND} --port ${GLANCES_PORT} --password --disable-plugin docker
 Restart=on-failure
+RestartSec=10
 User=${CURRENT_USER}
 
 [Install]
 WantedBy=multi-user.target
 EOF
+# A leftover drop-in (2026-10-22 hotfix bound to 127.0.0.1) would override ExecStart
+sudo rm -f /etc/systemd/system/glances.service.d/override.conf
 echo -e "  ${GREEN}✓${NC}  /etc/systemd/system/glances.service written"
 
 step "Enabling service"
