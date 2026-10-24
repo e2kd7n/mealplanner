@@ -59,10 +59,24 @@ vi.mock('../../utils/logger', () => ({
 vi.mock('../../utils/visualChallengeStore', () => ({
   createVisualChallenge: vi.fn(async () => 'mock-challenge-id'),
   consumeVisualChallenge: vi.fn(),
+  recordVisualFailure: vi.fn(async () => 1),
+  isVisualLoginLocked: vi.fn(async () => false),
+  clearVisualFailures: vi.fn(async () => undefined),
+  VISUAL_MAX_FAILURES: 3,
+}));
+
+vi.mock('../../utils/secrets', () => ({
+  getSessionSecret: vi.fn(() => 'test-session-secret'),
 }));
 
 import prisma from '../../utils/prisma';
-import { createVisualChallenge, consumeVisualChallenge } from '../../utils/visualChallengeStore';
+import {
+  createVisualChallenge,
+  consumeVisualChallenge,
+  recordVisualFailure,
+  isVisualLoginLocked,
+  clearVisualFailures,
+} from '../../utils/visualChallengeStore';
 
 function mockReqResNext(overrides: Partial<Request> = {}): {
   req: Request;
@@ -228,6 +242,52 @@ describe('getVisualChallenge', () => {
     expect(error.statusCode).toBe(400);
   });
 
+  it('shows the same image set on every challenge for a member, so intersecting them reveals nothing', async () => {
+    (prisma.familyMember.findUnique as any).mockResolvedValue({
+      visualPasswordRecipeId: null,
+      visualPasswordImageUrl: '/visual-login/burger.svg',
+    });
+
+    const sets: string[] = [];
+    for (let i = 0; i < 10; i++) {
+      const { req, res, next } = mockReqResNext({ params: { userId: 'member-1' } } as any);
+      await getVisualChallenge(req, res, next);
+      const ids = (res.json as any).mock.calls[0][0].images.map((img: any) => img.id).sort();
+      sets.push(ids.join(','));
+    }
+
+    expect(new Set(sets).size).toBe(1);
+  });
+
+  it('gives different members different decoy sets', async () => {
+    (prisma.familyMember.findUnique as any).mockResolvedValue({
+      visualPasswordRecipeId: null,
+      visualPasswordImageUrl: '/visual-login/burger.svg',
+    });
+
+    const setFor = async (memberId: string) => {
+      const { req, res, next } = mockReqResNext({ params: { userId: memberId } } as any);
+      await getVisualChallenge(req, res, next);
+      return (res.json as any).mock.calls[0][0].images.map((img: any) => img.id).sort().join(',');
+    };
+
+    expect(await setFor('member-1')).not.toBe(await setFor('member-2'));
+  });
+
+  it('refuses to issue a challenge while the member is locked out', async () => {
+    (prisma.familyMember.findUnique as any).mockResolvedValue({
+      visualPasswordRecipeId: null,
+      visualPasswordImageUrl: '/visual-login/burger.svg',
+    });
+    (isVisualLoginLocked as any).mockResolvedValueOnce(true);
+    const { req, res, next } = mockReqResNext({ params: { userId: 'member-1' } } as any);
+
+    await getVisualChallenge(req, res, next);
+
+    expect((next as any).mock.calls[0][0].statusCode).toBe(429);
+    expect(createVisualChallenge).not.toHaveBeenCalled();
+  });
+
   it('returns 500 when stock image URL no longer matches known images', async () => {
     (prisma.familyMember.findUnique as any).mockResolvedValue({
       visualPasswordRecipeId: null,
@@ -279,10 +339,11 @@ describe('visualLogin', () => {
     expect(result.memberName).toBe('Tracy');
     expect(result.user.email).toBe('admin@example.com');
     expect(consumeVisualChallenge).toHaveBeenCalledWith('chal-1');
+    expect(clearVisualFailures).toHaveBeenCalledWith('member-1');
     expect(next).not.toHaveBeenCalled();
   });
 
-  it('fails with wrong stock image selection', async () => {
+  it('fails with wrong stock image selection and counts it against the member', async () => {
     // The challenge's real correct answer is 'stock-burger'; the caller guesses 'stock-pizza'.
     (consumeVisualChallenge as any).mockResolvedValue({ memberId: 'member-1', correctId: 'stock-burger' });
 
@@ -295,6 +356,23 @@ describe('visualLogin', () => {
     expect(next).toHaveBeenCalled();
     const error = (next as any).mock.calls[0][0];
     expect(error.statusCode).toBe(401);
+    expect(recordVisualFailure).toHaveBeenCalledWith('member-1');
+    expect(clearVisualFailures).not.toHaveBeenCalled();
+  });
+
+  it('rejects even a correct pick while the member is locked out', async () => {
+    (isVisualLoginLocked as any).mockResolvedValueOnce(true);
+    (consumeVisualChallenge as any).mockResolvedValue({ memberId: 'member-1', correctId: 'stock-burger' });
+
+    const { req, res, next } = mockReqResNext({
+      body: { memberId: 'member-1', challengeId: 'chal-1', recipeId: 'stock-burger' },
+    } as any);
+
+    await visualLogin(req, res, next);
+
+    expect((next as any).mock.calls[0][0].statusCode).toBe(429);
+    expect(consumeVisualChallenge).not.toHaveBeenCalled();
+    expect(prisma.authSession.create).not.toHaveBeenCalled();
   });
 
   it('fails when the challenge is missing, expired, or already used', async () => {
@@ -309,6 +387,8 @@ describe('visualLogin', () => {
     const error = (next as any).mock.calls[0][0];
     expect(error.statusCode).toBe(401);
     expect(prisma.familyMember.findUnique).not.toHaveBeenCalled();
+    // Not a guess at the answer, so it doesn't count toward the lockout.
+    expect(recordVisualFailure).not.toHaveBeenCalled();
   });
 
   it('fails when the challenge was issued for a different member', async () => {
