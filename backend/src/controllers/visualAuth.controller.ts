@@ -15,7 +15,15 @@ import {
   hashSessionToken,
   getClientIp,
 } from '../utils/authCookies';
-import { createVisualChallenge, consumeVisualChallenge } from '../utils/visualChallengeStore';
+import {
+  createVisualChallenge,
+  consumeVisualChallenge,
+  recordVisualFailure,
+  isVisualLoginLocked,
+  clearVisualFailures,
+  VISUAL_MAX_FAILURES,
+} from '../utils/visualChallengeStore';
+import { getSessionSecret } from '../utils/secrets';
 
 const DEVICE_COOKIE_NAME = 'mealplanner_device';
 const DEVICE_TOKEN_DAYS = 14;
@@ -63,6 +71,35 @@ function setDeviceCookie(res: Response, token: string): void {
     expires,
     path: '/',
   });
+}
+
+/**
+ * Pick `count` decoys for a member deterministically, so every challenge for that
+ * member shows the same image set (only the order changes). Drawing a fresh random
+ * set per request let anyone fetch a handful of challenges and intersect them —
+ * the one image present every time is the answer, recovered without a single guess.
+ *
+ * Ranked by an HMAC keyed with a server secret rather than a plain hash: with a
+ * public ranking, an attacker could recompute the set for each of the 8 candidates
+ * and see which one reproduces the set they were shown.
+ */
+function stableDecoys<T extends { id: string }>(pool: T[], memberId: string, correctId: string, count: number): T[] {
+  const secret = getSessionSecret();
+  return pool
+    .map((item) => ({
+      item,
+      rank: crypto.createHmac('sha256', secret).update(`${memberId}:${correctId}:${item.id}`).digest('hex'),
+    }))
+    .sort((a, b) => (a.rank < b.rank ? -1 : a.rank > b.rank ? 1 : 0))
+    .slice(0, count)
+    .map(({ item }) => item);
+}
+
+function lockedOutError(): AppError {
+  return new AppError(
+    'Too many incorrect picks for this person — visual login is paused for 15 minutes. Use email and password instead.',
+    429
+  );
 }
 
 /** Shuffle array in-place (Fisher-Yates) */
@@ -127,16 +164,23 @@ export async function getVisualChallenge(req: Request, res: Response, next: Next
       throw new AppError('Family member not found', 404);
     }
 
+    if (await isVisualLoginLocked(memberId)) {
+      throw lockedOutError();
+    }
+
     // Stock image visual password
     if (member.visualPasswordImageUrl) {
       const correct = STOCK_IMAGES.find((s) => s.imageUrl === member.visualPasswordImageUrl);
       if (!correct) {
         throw new AppError('Visual password image not found', 500);
       }
-      const decoys = STOCK_IMAGES.filter((s) => s.imageUrl !== member.visualPasswordImageUrl);
-      shuffle(decoys);
-      const images = [correct, ...decoys.slice(0, VISUAL_CHALLENGE_SIZE - 1)];
-      shuffle(images);
+      const decoys = stableDecoys(
+        STOCK_IMAGES.filter((s) => s.imageUrl !== member.visualPasswordImageUrl),
+        memberId,
+        correct.id,
+        VISUAL_CHALLENGE_SIZE - 1
+      );
+      const images = shuffle([correct, ...decoys]);
 
       const challengeId = await createVisualChallenge(memberId, correct.id);
       res.json({ challengeId, images: images.map(({ id, title, imageUrl }) => ({ id, title, imageUrl })) });
@@ -158,20 +202,22 @@ export async function getVisualChallenge(req: Request, res: Response, next: Next
       throw new AppError('Visual password recipe not found', 500);
     }
 
-    const decoys = await withRetry(() =>
+    // Previously "the 7 newest recipes" — identical for every member, so comparing
+    // two members' challenges exposed each one's answer as the odd one out. The
+    // stable per-member pick still shifts slowly as recipes are added or removed;
+    // acceptable for this legacy path, which new setups no longer use.
+    const decoyPool = await withRetry(() =>
       prisma.recipe.findMany({
         where: {
           id: { not: member.visualPasswordRecipeId! },
           imageUrl: { not: null },
         },
         select: { id: true, title: true, imageUrl: true },
-        take: VISUAL_CHALLENGE_SIZE - 1,
-        orderBy: { createdAt: 'desc' },
       })
     );
+    const decoys = stableDecoys(decoyPool, memberId, correctRecipe.id, VISUAL_CHALLENGE_SIZE - 1);
 
-    const images = [correctRecipe, ...decoys].slice(0, VISUAL_CHALLENGE_SIZE);
-    shuffle(images);
+    const images = shuffle([correctRecipe, ...decoys]);
 
     const challengeId = await createVisualChallenge(memberId, correctRecipe.id);
     res.json({ challengeId, images: images.map(({ id, title, imageUrl }) => ({ id, title, imageUrl })) });
@@ -202,11 +248,21 @@ export async function visualLogin(req: Request, res: Response, next: NextFunctio
       throw new AppError('memberId, challengeId and recipeId are required', 400);
     }
 
+    if (await isVisualLoginLocked(memberId)) {
+      throw lockedOutError();
+    }
+
     const challenge = await consumeVisualChallenge(challengeId);
-    if (!challenge || challenge.memberId !== memberId || challenge.correctId !== imageId) {
-      logger.warn('Visual login challenge invalid, expired, already used, or answer mismatch', { memberId });
+    if (!challenge || challenge.memberId !== memberId) {
+      logger.warn('Visual login challenge invalid, expired, already used, or for another member', { memberId });
       throw new AppError('Invalid or expired login attempt — please try again', 401);
     }
+    if (challenge.correctId !== imageId) {
+      const failures = await recordVisualFailure(memberId);
+      logger.warn('Visual login wrong answer', { memberId, failures, max: VISUAL_MAX_FAILURES });
+      throw new AppError('Invalid or expired login attempt — please try again', 401);
+    }
+    await clearVisualFailures(memberId);
 
     const member = await withRetry(() =>
       prisma.familyMember.findUnique({

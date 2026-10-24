@@ -94,3 +94,88 @@ export async function consumeVisualChallenge(challengeId: string): Promise<Visua
   memoryStore.delete(key);
   return entry.expiresAt > Date.now() ? entry.record : null;
 }
+
+/**
+ * Per-member failed-guess counter. A visual password is one image out of the
+ * challenge set (~3 bits), so per-IP rate limiting alone still lets a patient
+ * guesser through in minutes; capping wrong answers per *member* bounds that no
+ * matter how many devices or backend nodes the guesses are spread across.
+ * Shared via Redis for the same cross-node reason as the challenges above.
+ */
+export const VISUAL_MAX_FAILURES = 3;
+const FAILURE_WINDOW_SECONDS = 15 * 60;
+const FAILURE_PREFIX = 'visual-failures:';
+
+const failureMemory = new Map<string, { count: number; expiresAt: number }>();
+
+function failureMemoryGet(memberId: string): number {
+  const entry = failureMemory.get(memberId);
+  if (!entry) return 0;
+  if (entry.expiresAt <= Date.now()) {
+    failureMemory.delete(memberId);
+    return 0;
+  }
+  return entry.count;
+}
+
+/** Record a wrong answer for this member; returns the failure count in the current window. */
+export async function recordVisualFailure(memberId: string): Promise<number> {
+  const key = FAILURE_PREFIX + memberId;
+
+  if (isRedisConfigured()) {
+    const redis = getRedisClient();
+    if (redis) {
+      try {
+        const count = await redis.incr(key);
+        // Fixed window from the first failure — later failures don't extend it.
+        if (count === 1) await redis.expire(key, FAILURE_WINDOW_SECONDS);
+        return count;
+      } catch (err) {
+        logger.warn('Redis INCR failed for visual-login failure count, falling back to in-memory store', {
+          error: err instanceof Error ? err.message : String(err),
+        });
+      }
+    }
+  }
+
+  const count = failureMemoryGet(memberId) + 1;
+  const expiresAt = failureMemory.get(memberId)?.expiresAt ?? Date.now() + FAILURE_WINDOW_SECONDS * 1000;
+  failureMemory.set(memberId, { count, expiresAt });
+  return count;
+}
+
+/** True once a member has hit VISUAL_MAX_FAILURES wrong answers in the current window. */
+export async function isVisualLoginLocked(memberId: string): Promise<boolean> {
+  if (isRedisConfigured()) {
+    const redis = getRedisClient();
+    if (redis) {
+      try {
+        const raw = await redis.get(FAILURE_PREFIX + memberId);
+        return Number(raw || 0) >= VISUAL_MAX_FAILURES;
+      } catch (err) {
+        logger.warn('Redis GET failed for visual-login failure count, checking in-memory fallback', {
+          error: err instanceof Error ? err.message : String(err),
+        });
+      }
+    }
+  }
+
+  return failureMemoryGet(memberId) >= VISUAL_MAX_FAILURES;
+}
+
+/** Clear a member's failure count after a successful login. */
+export async function clearVisualFailures(memberId: string): Promise<void> {
+  failureMemory.delete(memberId);
+  if (isRedisConfigured()) {
+    const redis = getRedisClient();
+    if (redis) {
+      try {
+        await redis.del(FAILURE_PREFIX + memberId);
+      } catch (err) {
+        logger.warn('Redis DEL failed for visual-login failure count', {
+          error: err instanceof Error ? err.message : String(err),
+        });
+      }
+    }
+  }
+}

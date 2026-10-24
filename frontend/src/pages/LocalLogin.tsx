@@ -41,6 +41,17 @@ interface ChallengeImage {
 
 const STEPS = ['Who are you?', 'Pick your image'];
 
+/** The server's explanation when visual login is paused (429), else null. */
+function lockoutMessage(err: unknown): string | null {
+  const response = (err as { response?: { status?: number; data?: { error?: { message?: string } | string; message?: string } } })
+    .response;
+  if (response?.status !== 429) return null;
+  const { error, message } = response.data ?? {};
+  return (typeof error === 'object' ? error?.message : undefined)
+    ?? message
+    ?? 'Too many tries — wait 15 minutes, or sign in with email and password.';
+}
+
 const LocalLogin: React.FC = () => {
   const navigate = useNavigate();
   const dispatch = useAppDispatch();
@@ -104,6 +115,14 @@ const LocalLogin: React.FC = () => {
     setChallengeId(res.data.challengeId ?? null);
   }, []);
 
+  const handleBack = useCallback(() => {
+    setStep(0);
+    setSelectedUser(null);
+    setChallenge([]);
+    setChallengeId(null);
+    setError(null);
+  }, []);
+
   const handleSelectUser = useCallback(async (user: UserEntry) => {
     setSelectedUser(user);
     setError(null);
@@ -111,8 +130,9 @@ const LocalLogin: React.FC = () => {
     setStep(1);
     try {
       await fetchChallenge(user);
-    } catch {
-      setError('Visual login not set up yet. Ask the admin to assign a login image from Profile → Family Members.');
+    } catch (err) {
+      setError(lockoutMessage(err)
+        ?? 'Visual login not set up yet. Ask the admin to assign a login image from Profile → Family Members.');
       setStep(0);
       setSelectedUser(null);
     } finally {
@@ -132,27 +152,31 @@ const LocalLogin: React.FC = () => {
       dispatch(setCredentials({ user: { ...user, displayName: memberName ?? user.name } }));
       const ftueDone = localStorage.getItem(`mealplanner_member_ftue_done_${selectedUser.id}`);
       navigate(ftueDone ? '/dashboard' : '/member-welcome', { replace: true });
-    } catch {
+    } catch (err) {
+      setVerifying(false);
+      const locked = lockoutMessage(err);
+      if (locked) {
+        handleBack();
+        setError(locked);
+        return;
+      }
       // Each challenge is single-use, so a wrong (or stale/expired) guess needs a
       // fresh one — fetch it now rather than leaving the tapped grid pointing at a
-      // challengeId the server has already discarded.
-      setError('Wrong image — showing a new set, tap the one you chose during setup.');
-      setVerifying(false);
+      // challengeId the server has already discarded. Same images, new order.
+      setError('Wrong image — tap the one you chose during setup.');
       try {
         await fetchChallenge(selectedUser);
-      } catch {
-        setError('Could not load a new challenge. Go back and try again.');
+      } catch (refetchErr) {
+        const lockedNow = lockoutMessage(refetchErr);
+        if (lockedNow) {
+          handleBack();
+          setError(lockedNow);
+        } else {
+          setError('Could not load a new challenge. Go back and try again.');
+        }
       }
     }
-  }, [selectedUser, challengeId, verifying, dispatch, navigate, fetchChallenge]);
-
-  const handleBack = () => {
-    setStep(0);
-    setSelectedUser(null);
-    setChallenge([]);
-    setChallengeId(null);
-    setError(null);
-  };
+  }, [selectedUser, challengeId, verifying, dispatch, navigate, fetchChallenge, handleBack]);
 
   return (
     <Container component="main" maxWidth="sm" sx={{ py: 6 }}>
