@@ -19,6 +19,8 @@ PI4B_IP="192.168.4.110"
 # ClusterHAT bridge IP: reachable from the meals-nginx container (rootless Podman),
 # not from the LAN. 127.0.0.1 would be unreachable from inside the container.
 GLANCES_BIND="172.19.181.254"
+GLANCES_VENV="/opt/glances"
+GLANCES_VERSION="3.4.0.5"   # 3.x: API v3, relative web UI paths (nginx strips /monitoring/)
 ZERO_IPS=(172.19.181.1 172.19.181.2 172.19.181.3 172.19.181.4)
 
 for arg in "$@"; do
@@ -36,23 +38,29 @@ section "Install Glances" "🩺"
 
 steps_init 5
 
-step "Installing Glances package"
-if command -v glances &>/dev/null; then
-    echo -e "  ${BLUE}ℹ️  already installed: $(glances --version 2>&1 | head -1)${NC}"
+step "Installing Glances (PyPI, in ${GLANCES_VENV})"
+# Not Debian's apt package: it strips the built web UI (static/public/glances.js),
+# so the dashboard loads as a blank page.
+if [ "$("${GLANCES_VENV}/bin/glances" -V 2>/dev/null | head -1 | awk '{print $2}')" = "v${GLANCES_VERSION}" ]; then
+    echo -e "  ${BLUE}ℹ️  already installed: Glances v${GLANCES_VERSION}${NC}"
 else
-    start_spinner "Installing glances via apt"
-    sudo apt install glances -y &>/dev/null
+    start_spinner "Installing glances[web]==${GLANCES_VERSION}"
+    sudo apt install python3-venv -y &>/dev/null
+    sudo python3 -m venv "${GLANCES_VENV}"
+    sudo "${GLANCES_VENV}/bin/pip" install -q "glances[web]==${GLANCES_VERSION}"
     stop_spinner ok
 fi
 
-GLANCES_BIN=$(command -v glances)
+GLANCES_BIN="${GLANCES_VENV}/bin/glances"
 CURRENT_USER=$(whoami)
 
 step "Setting dashboard password"
 # Glances --password reads ~/.config/glances/glances.pwd; write it via Glances'
 # own module (same salted hash it would store) so the service never prompts.
-if [ -f "$HOME/.config/glances/glances.pwd" ]; then
-    echo -e "  ${BLUE}ℹ️  already set (delete ~/.config/glances/glances.pwd to change)${NC}"
+# 3.4 stores salt$<256 hex chars> (PBKDF2); anything else is a stale 3.3 file.
+PWD_FILE="$HOME/.config/glances/glances.pwd"
+if [ -f "$PWD_FILE" ] && [ "$(cut -d'$' -f2 "$PWD_FILE" | tr -d '\n' | wc -c)" -eq 256 ]; then
+    echo -e "  ${BLUE}ℹ️  already set (delete ${PWD_FILE} to change)${NC}"
 else
     read -r -s -p "  Password for http://${PI4B_IP}/monitoring (user: glances): " GLANCES_PW; echo
     read -r -s -p "  Confirm: " GLANCES_PW2; echo
@@ -60,18 +68,18 @@ else
         echo -e "  ${RED}✗ passwords empty or don't match${NC}"
         exit 1
     fi
-    printf '%s' "$GLANCES_PW" | python3 -c '
+    printf '%s' "$GLANCES_PW" | "${GLANCES_VENV}/bin/python" -c '
 import sys
 from glances.password import GlancesPassword
 p = GlancesPassword(username="glances")
-p.save_password(p.hash_password(p.sha256_hash(sys.stdin.read())))'
-    chmod 600 "$HOME/.config/glances/glances.pwd"
+p.save_password(p.hash_password(p.get_hash(sys.stdin.read())))'
+    chmod 600 "$PWD_FILE"
     unset GLANCES_PW GLANCES_PW2
-    echo -e "  ${GREEN}✓${NC}  saved to ~/.config/glances/glances.pwd"
+    echo -e "  ${GREEN}✓${NC}  saved to ${PWD_FILE}"
 fi
 
 step "Writing systemd unit"
-# Glances 3.3 has no --url-prefix; nginx strips /monitoring/ instead.
+# Glances 3.x has no --url-prefix; nginx strips /monitoring/ instead.
 sudo tee /etc/systemd/system/glances.service > /dev/null << EOF
 [Unit]
 Description=Glances monitoring
