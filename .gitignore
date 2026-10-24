@@ -67,6 +67,10 @@ data/feedback-exports/*
 !data/feedback-exports/README.md
 data/maintenance-logs/*
 !data/maintenance-logs/.gitkeep
+# Built PWA extracted from the backend image (extract_frontend_from_image) + its staging
+data/frontend-dist/
+data/.frontend-dist.new/
+data/.frontend-dist.manifest
 
 # Ad hoc feedback analysis output — retired 2026-08-19, superseded by
 # scripts/feedback-log-triage.sh (which archives its own output privately,
