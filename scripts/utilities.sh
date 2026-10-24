@@ -115,16 +115,55 @@ detect_os() {
 # Extract the compiled React frontend from the backend image into ./data/frontend-dist/.
 # Nginx serves these static files directly on the Pi — there is no frontend container.
 # Uses podman create/cp/rm so the container never runs and no volume mount is needed.
+#
+# Updates the live directory in place without ever leaving it empty — wiping it
+# first made nginx answer 403 for / mid-deploy. It can't be swapped by renaming a
+# new directory over it either: nginx bind-mounts this directory and would keep
+# serving the old inode. Instead: stage, rename(2) each file in (atomic per file;
+# hashed assets first, index.html last), then prune files the new build dropped.
 # Usage: extract_frontend_from_image [image_name]
 extract_frontend_from_image() {
     local image="${1:-meals-backend:latest}"
-    mkdir -p ./data/frontend-dist
-    rm -rf ./data/frontend-dist/*
-    local cid
+    local live=./data/frontend-dist
+    local stage=./data/.frontend-dist.new
+    local manifest=./data/.frontend-dist.manifest
+    local cid f
+
+    rm -rf "$stage"
+    mkdir -p "$stage" "$live"
     cid=$(podman create "$image")
-    podman cp "$cid:/app/public/." ./data/frontend-dist/
+    if ! podman cp "$cid:/app/public/." "$stage/"; then
+        podman rm "$cid" >/dev/null
+        rm -rf "$stage"
+        echo -e "${RED}✗ couldn't copy /app/public from ${image} — ${live} left unchanged${NC}" >&2
+        return 1
+    fi
     podman rm "$cid" >/dev/null
-    echo -e "${GREEN}✓ Extracted $(ls ./data/frontend-dist | wc -l) files → ./data/frontend-dist/${NC}"
+
+    if [ ! -f "$stage/index.html" ]; then
+        echo -e "${RED}✗ ${image} has no /app/public/index.html — ${live} left unchanged${NC}" >&2
+        rm -rf "$stage"
+        return 1
+    fi
+
+    (cd "$stage" && find . -type f | sort) > "$manifest"
+
+    (cd "$stage" && find . -mindepth 1 -type d) | while IFS= read -r f; do
+        mkdir -p "$live/$f"
+    done
+    { grep -vx './index.html' "$manifest" || true; } | while IFS= read -r f; do
+        mv -f "$stage/$f" "$live/$f"
+    done
+    mv -f "$stage/index.html" "$live/index.html"
+
+    # images/ is the mountpoint nginx uses for ./data/images — never prune it
+    (cd "$live" && find . -type f ! -path './images/*' | sort) | comm -23 - "$manifest" | while IFS= read -r f; do
+        rm -f "$live/$f"
+    done
+    find "$live" -mindepth 1 -type d -empty ! -path "$live/images" -delete
+
+    echo -e "${GREEN}✓ Extracted $(wc -l < "$manifest") files → ${live}/${NC}"
+    rm -rf "$stage" "$manifest"
 }
 
 # Check if running as root
