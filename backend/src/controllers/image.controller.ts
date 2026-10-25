@@ -6,6 +6,8 @@
 import { Request, Response, NextFunction } from 'express';
 import path from 'path';
 import fs from 'fs/promises';
+import crypto from 'crypto';
+import { IMAGES_DIR, detectImageType, readFileHead, moveFile } from '../utils/imageStorage';
 import { logger } from '../utils/logger';
 import { AppError } from '../middleware/errorHandler';
 import { sanitizeUrl } from '../utils/sanitize';
@@ -147,37 +149,27 @@ export const uploadImage = async (
     }
 
     const file = req.file;
-    
-    // Validate file type
-    const allowedMimeTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'image/gif'];
-    if (!allowedMimeTypes.includes(file.mimetype)) {
-      // Delete the uploaded file
-      await fs.unlink(file.path);
-      throw new AppError('Invalid file type. Only JPEG, PNG, WebP, and GIF images are allowed', 400);
-    }
 
     // Validate file size (max 5MB)
     const maxSize = 5 * 1024 * 1024; // 5MB
     if (file.size > maxSize) {
-      await fs.unlink(file.path);
       throw new AppError('File too large. Maximum size is 5MB', 400);
     }
 
-    // Generate a unique filename
-    const ext = path.extname(file.originalname);
-    const timestamp = Date.now();
-    const randomStr = Math.random().toString(36).substring(2, 15);
-    const newFilename = `recipe-${timestamp}-${randomStr}${ext}`;
-    
-    // Move file to images directory
-    const imagesDir = path.join(process.cwd(), '..', 'data', 'images');
-    const newPath = path.join(imagesDir, newFilename);
-    
-    // Ensure images directory exists
-    await fs.mkdir(imagesDir, { recursive: true });
-    
-    // Move the file
-    await fs.rename(file.path, newPath);
+    // Validate by content, not by the client's Content-Type or filename —
+    // both are attacker-controlled (see detectImageType). The extension comes
+    // from what the bytes actually are, so nothing but these four image types
+    // can ever be written into the directory nginx serves.
+    const detected = detectImageType(await readFileHead(file.path));
+    if (!detected) {
+      throw new AppError('Invalid file type. Only JPEG, PNG, WebP, and GIF images are allowed', 400);
+    }
+
+    const newFilename = `recipe-${Date.now()}-${crypto.randomBytes(8).toString('hex')}${detected.ext}`;
+    const newPath = path.join(IMAGES_DIR, newFilename);
+
+    await fs.mkdir(IMAGES_DIR, { recursive: true });
+    await moveFile(file.path, newPath);
 
     // Return the image URL
     const imageUrl = `/images/${newFilename}`;
@@ -190,7 +182,7 @@ export const uploadImage = async (
         imageUrl,
         filename: newFilename,
         size: file.size,
-        mimeType: file.mimetype,
+        mimeType: detected.mime,
       },
     });
   } catch (err: any) {
@@ -224,15 +216,14 @@ export const deleteImage = async (
 ): Promise<void> => {
   try {
     const { filename } = req.params;
+    const filenameStr = Array.isArray(filename) ? filename[0] : filename;
 
-    // Validate filename (prevent directory traversal)
-    if (!filename || filename.includes('..') || filename.includes('/')) {
+    // Plain filenames only — no separators (either slash), no dot-dot, no NUL.
+    if (!filenameStr || !/^[A-Za-z0-9._-]+$/.test(filenameStr) || filenameStr.includes('..')) {
       throw new AppError('Invalid filename', 400);
     }
 
-    const imagesDir = path.join(process.cwd(), '..', 'data', 'images');
-    const filenameStr = Array.isArray(filename) ? filename[0] : filename;
-    const filePath = path.join(imagesDir, filenameStr);
+    const filePath = path.join(IMAGES_DIR, filenameStr);
 
     // Check if file exists
     try {

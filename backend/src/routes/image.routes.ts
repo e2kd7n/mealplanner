@@ -5,24 +5,23 @@
 
 import { Router } from 'express';
 import multer from 'multer';
-import path from 'path';
+import crypto from 'crypto';
+import fs from 'fs';
 import { proxyImage, uploadImage, deleteImage } from '../controllers/image.controller';
 import { authenticate } from '../middleware/auth';
+import { UPLOADS_DIR } from '../utils/imageStorage';
 
 const router: Router = Router();
 
 // Configure multer for file uploads
 const storage = multer.diskStorage({
   destination: (_req, _file, cb) => {
-    // Temporary upload directory
-    cb(null, path.join(process.cwd(), '..', 'data', 'uploads'));
+    // Temporary upload directory; the controller validates and moves the file
+    fs.mkdir(UPLOADS_DIR, { recursive: true }, (err) => cb(err, UPLOADS_DIR));
   },
-  filename: (_req, file, cb) => {
-    // Use original filename with timestamp prefix
-    const timestamp = Date.now();
-    const ext = path.extname(file.originalname);
-    const basename = path.basename(file.originalname, ext);
-    cb(null, `${timestamp}-${basename}${ext}`);
+  filename: (_req, _file, cb) => {
+    // Never reuse the client's filename — it's untrusted input
+    cb(null, `upload-${Date.now()}-${crypto.randomBytes(8).toString('hex')}`);
   },
 });
 
