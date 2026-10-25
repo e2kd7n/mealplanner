@@ -165,9 +165,9 @@ const Login: React.FC = () => {
               {loading ? 'Signing In...' : 'Sign In'}
             </Button>
             <Box sx={{ textAlign: 'center', display: 'flex', flexDirection: 'column', gap: 1 }}>
-              <Link component={RouterLink} to="/register" variant="body2">
-                New to this household? Add your sign-in
-              </Link>
+              <Typography variant="body2" color="text.secondary">
+                New to this household? Ask your admin to add your sign-in.
+              </Typography>
               <Link component={RouterLink} to="/login" variant="body2">
                 Use quick visual login instead
               </Link>

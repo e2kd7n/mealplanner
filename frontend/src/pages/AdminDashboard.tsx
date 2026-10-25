@@ -48,6 +48,7 @@ import {
   CheckCircle as CheckCircleIcon,
   Cancel as CancelIcon,
   Key as KeyIcon,
+  PersonAdd as PersonAddIcon,
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router';
 import api from '../services/api';
@@ -447,13 +448,22 @@ export default function AdminDashboard() {
       <Paper sx={{ p: 3 }}>
         <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
           <Typography variant="h5">User Management</Typography>
-          <Button
-            startIcon={<RefreshIcon />}
-            onClick={loadData}
-            disabled={loading}
-          >
-            Refresh
-          </Button>
+          <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
+            <Button
+              variant="contained"
+              startIcon={<PersonAddIcon />}
+              onClick={() => navigate('/register')}
+            >
+              Add household member
+            </Button>
+            <Button
+              startIcon={<RefreshIcon />}
+              onClick={loadData}
+              disabled={loading}
+            >
+              Refresh
+            </Button>
+          </Box>
         </Box>
 
         {/* Filters */}
