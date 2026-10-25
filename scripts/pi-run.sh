@@ -127,9 +127,12 @@ deploy_to_zero() {
     # ("Already up to date") when package.json is unchanged, ignoring
     # lockfile-only bumps — the Zeros silently stayed on stale transitive
     # deps (e.g. proxy-addr 2.0.7 after #423) across several deploys.
+    # modules-cache-max-age=0: drop packages the lockfile no longer references
+    # now, not after pnpm's default 7 days — otherwise a bumped dep's old
+    # version (e.g. dompurify 3.4.13 after #430) lingers in node_modules/.pnpm.
     echo -e "    ${YELLOW}Installing deps on p${slot} (slow on first run)...${NC}"
     ssh $ssh_opts "${ZERO_USER}@${ip}" \
-        'set -o pipefail; cd /opt/mealplanner && pnpm install --frozen-lockfile --ignore-scripts --config.optimistic-repeat-install=false 2>&1 | tail -5'
+        'set -o pipefail; cd /opt/mealplanner && pnpm install --frozen-lockfile --ignore-scripts --config.optimistic-repeat-install=false --config.modules-cache-max-age=0 2>&1 | tail -5'
 
     # Copy the pre-generated Prisma client instead of running `prisma
     # generate` on this architecture (see comment above and #281). It's
@@ -559,17 +562,14 @@ if podman ps | grep -q "meals-backend"; then
         "white_check_mark,rocket" || true
     echo ""
 
+    # Prints the access, health and monitoring URLs for the detected mode
+    # (on the Pi: http://meals.local/ via the pi4 front door).
     if [ -f "./scripts/check-deployment-mode.sh" ]; then
         bash ./scripts/check-deployment-mode.sh || true
     else
         echo -e "${BLUE}Access the application:${NC}"
-        echo -e "   🌐 Web: http://$(hostname -I | awk '{print $1}'):8080"
-        echo -e "   🌐 Local: http://localhost:8080"
-        echo ""
-    fi
-
-    if command -v glances &>/dev/null; then
-        echo -e "   📊 Monitoring: http://$(hostname 2>/dev/null).local:8080/monitoring"
+        echo -e "   🌐 Web: http://meals.local/  (pi4 front door → nginx on 127.0.0.1:8080)"
+        echo -e "   📊 Monitoring: http://meals.local/monitoring/"
         echo ""
     fi
 

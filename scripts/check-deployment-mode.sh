@@ -63,6 +63,25 @@ if check_port 5173; then
     exit 0
 fi
 
+# Pi production (podman-compose.pi.yml): nginx runs with host networking on
+# 127.0.0.1:8080 behind the pi4 front door (pi-scripts repo), which owns :80.
+# Must come before the 8080 check — that port is loopback-only here, so the
+# container-mode URLs below would be wrong.
+if command -v podman &> /dev/null \
+    && [ "$(podman inspect meals-nginx --format '{{.HostConfig.NetworkMode}}' 2>/dev/null)" = "host" ]; then
+    echo -e "${GREEN}✅ PI PRODUCTION MODE is running${NC} (behind the pi4 front door)"
+    echo ""
+    echo -e "${BLUE}📱 Access your application at:${NC}"
+    echo -e "   ${GREEN}👉 http://meals.local/${NC}"
+    echo -e "   ${GREEN}👉 http://pi4/<path>${NC}  (old links; http://pi4/ itself is the Pi dashboard)"
+    echo ""
+    echo -e "${BLUE}❤️  Health Check:${NC} http://meals.local/health"
+    echo -e "${BLUE}📊 Monitoring:${NC}   http://meals.local/monitoring/  (user: glances)"
+    echo -e "${BLUE}🛑 To stop:${NC}      ./scripts/pi-stop.sh"
+    echo ""
+    exit 0
+fi
+
 # Check for container mode (nginx on 8080)
 if check_port 8080; then
     # Prefer mDNS hostname (works on all LAN clients without DNS config).
