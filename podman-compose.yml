@@ -70,6 +70,9 @@ services:
       POSTGRES_DB: meal_planner
       POSTGRES_USER: mealplanner
       CORS_ORIGIN: http://localhost:8080,http://raspberrypi.local:8080,https://localhost:8443,https://raspberrypi.local:8443
+      # The bind mounts below — ./data/images is what nginx serves as /images/
+      IMAGES_DIR: /app/images
+      UPLOADS_DIR: /app/uploads
     secrets:
       - postgres_password
       - jwt_secret

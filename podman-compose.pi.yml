@@ -98,6 +98,9 @@ services:
       REDIS_PORT: 6379
       CORS_ORIGIN: http://meals.local,http://pi4,http://pi4.local,http://localhost,http://raspberrypi.local,https://localhost:8443,https://raspberrypi.local:8443
       NODE_OPTIONS: --max-old-space-size=256
+      # The bind mounts below — ./data/images is what nginx serves as /images/
+      IMAGES_DIR: /app/images
+      UPLOADS_DIR: /app/uploads
     secrets:
       - postgres_password
       - jwt_secret
