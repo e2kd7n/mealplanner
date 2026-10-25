@@ -154,6 +154,12 @@ deploy_to_zero() {
     # was failing with "Required secret not found" under the old raw-value
     # .env, breaking every CSRF-token request once the Zero Ws started
     # taking real traffic for the first time.
+    # The backend runs as a dedicated, unprivileged `mealplanner` system user
+    # (no shell, no sudo) rather than root — see the unit below. It only needs
+    # to *read* its secrets, via group membership; the code and secrets stay
+    # owned by ${ZERO_USER}, so a compromised backend can't rewrite itself.
+    ssh $ssh_opts "${ZERO_USER}@${ip}" \
+        'id -u mealplanner >/dev/null 2>&1 || sudo useradd --system --no-create-home --home-dir /opt/mealplanner --shell /usr/sbin/nologin mealplanner'
     ssh $ssh_opts "${ZERO_USER}@${ip}" 'mkdir -p /opt/mealplanner/secrets && chmod 700 /opt/mealplanner/secrets'
     local tmp_secrets
     tmp_secrets=$(mktemp -d)
@@ -162,7 +168,9 @@ deploy_to_zero() {
         cp "secrets/${s}.txt" "$tmp_secrets/${s}"
     done
     rsync -az "$tmp_secrets/" "${ZERO_USER}@${ip}:/opt/mealplanner/secrets/"
-    ssh $ssh_opts "${ZERO_USER}@${ip}" 'chmod 600 /opt/mealplanner/secrets/*'
+    ssh $ssh_opts "${ZERO_USER}@${ip}" \
+        'sudo chgrp mealplanner /opt/mealplanner/secrets /opt/mealplanner/secrets/* \
+         && chmod 750 /opt/mealplanner/secrets && chmod 640 /opt/mealplanner/secrets/*'
     rm -rf "$tmp_secrets"
 
     # Write .env via a local temp file so secrets never appear in argv/SSH args
@@ -186,6 +194,9 @@ JWT_SECRET_FILE=/opt/mealplanner/secrets/jwt_secret
 JWT_REFRESH_SECRET_FILE=/opt/mealplanner/secrets/jwt_refresh_secret
 SESSION_SECRET_FILE=/opt/mealplanner/secrets/session_secret
 NODE_OPTIONS=--max-old-space-size=128
+# Created by the unit's LogsDirectory= and owned by the service user; the
+# production default (/mealplanner/logs) is only writable by root.
+LOG_DIR=/var/log/mealplanner
 EOF
     # backend/src/utils/validateEnv.ts is a separate startup check that only
     # looks at the plain env var (it doesn't know about the {NAME}_FILE
@@ -220,6 +231,18 @@ StartLimitBurst=10
 
 [Service]
 Type=simple
+# Unprivileged service user (created above) instead of root, plus systemd
+# sandboxing: a compromised backend can't gain privileges, read home dirs,
+# or write to /usr, /boot or /etc. /opt/mealplanner stays read-only to it
+# by ownership. EnvironmentFile is read by systemd before dropping
+# privileges, so .env can stay 600 and owned by the SSH user.
+User=mealplanner
+Group=mealplanner
+LogsDirectory=mealplanner
+NoNewPrivileges=yes
+PrivateTmp=yes
+ProtectHome=yes
+ProtectSystem=full
 WorkingDirectory=/opt/mealplanner
 EnvironmentFile=/opt/mealplanner/.env
 # --optimize-for-size must be a direct node flag, not NODE_OPTIONS — Node's
