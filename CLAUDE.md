@@ -198,23 +198,29 @@ The frontend is **not** a separate container on the Pi. The React PWA is pre-bui
 served directly by Nginx from `./data/frontend-dist/`. This saves 100MB RAM vs running
 a dedicated frontend container.
 
-### Production Access — Port 80 (NOT 8080)
+### Production Access — `http://meals.local/` via the pi4 front door
 
-**Mealplanner is reachable at `http://192.168.4.110/` or `http://raspberrypi.local/` —
-host port 80.** `podman-compose.pi.yml` maps `"80:80"`.
+**Mealplanner is reachable at `http://meals.local/`.** Old `http://pi4/<path>` links
+(and copies of the PWA installed from there) still work: every path except `/` is
+proxied through. `http://pi4/` itself is now the pi4 home dashboard.
 
-This is *not* the same as the local container-mode port (`./scripts/deploy-podman.sh`
-uses `:8080` — see "Running the App" above). Don't confuse the two.
+Since 2026-10-25 nginx doesn't own a public port. It listens on **`127.0.0.1:8080`**
+(host networking, `nginx/default.conf`), and the **pi4 front door** forwards to it.
+The front door is a Caddy container in the separate `pi-scripts` repo
+(`pi4/front-door/`) that owns `:80`/`:443` for every app on the Pi. Routing,
+`meals.local` mDNS alias, the dashboard tile and the Pi's host firewall all live there,
+not here. nginx trusts `X-Forwarded-For` from `127.0.0.1` (`real_ip`), so `$remote_addr`
+is still the real client.
 
-Port 80 was chosen (changed from `8080` in commit `2098cf9`, 2026-05-21) so Nginx can
-host **both** `mealplanner` and `ride-optimizer` on the same port via name-based virtual
-hosts (`server_name` blocks in `nginx/default.conf`). Raw IP / unmatched-host requests
-fall through to the `mealplanner` server block (listed first = default).
+This loopback `8080` is unrelated to the local container-mode port
+(`./scripts/deploy-podman.sh` publishes `8080:80`) — same number, different setup.
 
-**If you ever change this port mapping again:** `git grep` the old port number across
-the whole repo (compose files, `CORS_ORIGIN`, docs) and fix every hit in the same
-commit — `CORS_ORIGIN` was left stale pointing at `:8080` after the 2098cf9 change and
-had to be corrected later.
+History: nginx held host port 80 from `2098cf9` (2026-05-21) to 2026-10-25 and also
+answered for `ride-optimizer` via a `server_name ride` block, now removed.
+
+**If you ever change this port again:** `git grep` it across the whole repo (compose
+healthcheck, `CORS_ORIGIN`, docs), and update `pi4/front-door/Caddyfile` and
+`apps.json` in pi-scripts in step. `CORS_ORIGIN` was left stale once before.
 
 ### ClusterHAT Networking
 

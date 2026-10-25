@@ -96,7 +96,7 @@ services:
       POSTGRES_USER: mealplanner
       REDIS_HOST: redis
       REDIS_PORT: 6379
-      CORS_ORIGIN: http://localhost,http://raspberrypi.local,https://localhost:8443,https://raspberrypi.local:8443
+      CORS_ORIGIN: http://meals.local,http://pi4,http://pi4.local,http://localhost,http://raspberrypi.local,https://localhost:8443,https://raspberrypi.local:8443
       NODE_OPTIONS: --max-old-space-size=256
     secrets:
       - postgres_password
@@ -140,9 +140,9 @@ services:
     depends_on:
       backend:
         condition: service_healthy
-    # Host networking (binds :80 directly) so nginx sees real client IPs —
-    # rootless Podman's published-port proxy rewrites every source address to
-    # the container's own IP. See the header comment in nginx/default.conf.
+    # Host networking, listening on 127.0.0.1:8080 only: the pi4 front door
+    # (pi-scripts repo) owns the public :80 and proxies http://meals.local/
+    # here. See the header comment in nginx/default.conf.
     network_mode: host
     volumes:
       - ./nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
@@ -157,7 +157,7 @@ services:
           memory: 24M
           cpus: '0.25'
     healthcheck:
-      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://127.0.0.1:80/health"]
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://127.0.0.1:8080/health"]
       interval: 30s
       timeout: 10s
       retries: 3
