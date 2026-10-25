@@ -15,7 +15,8 @@ export class LoginPage {
   readonly passwordInput: Locator;
   readonly loginButton: Locator;
   readonly errorMessage: Locator;
-  readonly registerLink: Locator;
+  readonly selfSignupLink: Locator;
+  readonly askAdminHint: Locator;
   readonly testLoginButton: Locator;
 
   constructor(page: Page) {
@@ -26,7 +27,9 @@ export class LoginPage {
     this.passwordInput = page.locator('#password');
     this.loginButton = page.getByRole('button', { name: /sign in/i });
     this.errorMessage = page.getByRole('alert');
-    this.registerLink = page.getByRole('link', { name: /new to this household\? add your sign-in/i });
+    // Self-serve sign-up was removed: only an admin can add sign-ins now.
+    this.selfSignupLink = page.getByRole('link', { name: /add your sign-in/i });
+    this.askAdminHint = page.getByText(/ask your admin to add your sign-in/i);
     this.testLoginButton = page.getByRole('button', { name: /quick test login/i });
   }
 
@@ -49,9 +52,5 @@ export class LoginPage {
   async expectError(message: string) {
     await this.errorMessage.waitFor({ state: 'visible' });
     await this.page.waitForSelector(`text=${message}`);
-  }
-
-  async navigateToRegister() {
-    await this.registerLink.click();
   }
 }

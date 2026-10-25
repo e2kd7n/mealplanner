@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, waitFor } from '@testing-library/react';
+import { render, screen, waitFor, fireEvent } from '@testing-library/react';
 import { Provider } from 'react-redux';
 import { MemoryRouter } from 'react-router';
 import { ThemeProvider } from '@mui/material/styles';
@@ -16,21 +16,21 @@ vi.mock('react-router', async () => {
 });
 
 vi.mock('../../services/api', () => {
-  const api = { get: vi.fn() };
+  const api = { get: vi.fn(), post: vi.fn() };
   return { default: api };
 });
 
 import api from '../../services/api';
 
-function createStore() {
+function createStore(role: string | null) {
   return configureStore({
     reducer: {
       auth: authReducer,
     } as any,
     preloadedState: {
       auth: {
-        user: null,
-        isAuthenticated: false,
+        user: role ? { id: 'u1', email: 'me@example.com', familyName: 'Fam', role } : null,
+        isAuthenticated: Boolean(role),
         loading: false,
         error: null,
       },
@@ -38,9 +38,12 @@ function createStore() {
   });
 }
 
-function renderRegister(initialEntry: string | { pathname: string; state?: unknown }) {
+function renderRegister(
+  initialEntry: string | { pathname: string; state?: unknown },
+  role: string | null = null
+) {
   return render(
-    <Provider store={createStore()}>
+    <Provider store={createStore(role)}>
       <ThemeProvider theme={theme}>
         <MemoryRouter initialEntries={[initialEntry]}>
           <Register />
@@ -50,20 +53,26 @@ function renderRegister(initialEntry: string | { pathname: string; state?: unkno
   );
 }
 
+function fillForm() {
+  fireEvent.change(document.querySelector('#name')!, { target: { value: 'Kid' } });
+  fireEvent.change(document.querySelector('#email')!, { target: { value: 'kid@example.com' } });
+  fireEvent.change(document.querySelector('#password')!, { target: { value: 'Str0ng!Password' } });
+  fireEvent.change(document.querySelector('#confirmPassword')!, { target: { value: 'Str0ng!Password' } });
+}
+
 beforeEach(() => {
   vi.clearAllMocks();
+  (api.get as any).mockResolvedValue({ data: { hasUsers: true } });
 });
 
 describe('Register', () => {
-  it('shows household-joining copy on a standalone visit once a household exists (#355)', async () => {
-    (api.get as any).mockResolvedValue({ data: { hasUsers: true } });
+  it('tells a signed-out visitor that sign-ups are closed', async () => {
     renderRegister('/register');
     await waitFor(() => {
-      expect(screen.getByRole('heading', { name: 'Join This Household' })).toBeInTheDocument();
+      expect(screen.getByText(/sign-ups are closed/i)).toBeInTheDocument();
     });
-    expect(screen.getByText(/this household already has an admin set up/i)).toBeInTheDocument();
     expect(screen.getByText(/already have an account\? sign in/i)).toBeInTheDocument();
-    expect(mockNavigate).not.toHaveBeenCalled();
+    expect(document.querySelector('#password')).toBeNull();
   });
 
   it('redirects to /welcome when no household exists yet (#355)', async () => {
@@ -74,23 +83,56 @@ describe('Register', () => {
     });
   });
 
-  it('shows household-member copy when linked from the FTUE flow (#356)', async () => {
-    (api.get as any).mockResolvedValue({ data: { hasUsers: true } });
-    renderRegister({ pathname: '/register', state: { fromFtue: true } });
+  it('does not let a signed-in non-admin add sign-ins', async () => {
+    renderRegister('/register', 'user');
+    await waitFor(() => {
+      expect(screen.getByText(/sign-ups are closed/i)).toBeInTheDocument();
+    });
+    expect(screen.getByText(/back to dashboard/i)).toBeInTheDocument();
+    expect(document.querySelector('#password')).toBeNull();
+  });
+
+  it('shows the add-member form to an admin coming from the FTUE flow (#356)', async () => {
+    renderRegister({ pathname: '/register', state: { fromFtue: true } }, 'admin');
     await waitFor(() => {
       expect(screen.getByText('Add a Household Member')).toBeInTheDocument();
     });
-    expect(screen.getByText(/switched to their account once it's created/i)).toBeInTheDocument();
+    expect(screen.getByText(/you'll stay signed in as yourself/i)).toBeInTheDocument();
     expect(screen.getByText(/skip for now — go to dashboard/i)).toBeInTheDocument();
-    expect(screen.queryByText(/already have an account\? sign in/i)).not.toBeInTheDocument();
+    expect(document.querySelector('#password')).not.toBeNull();
   });
 
-  it('lets a visitor register anyway if the status check fails', async () => {
-    (api.get as any).mockRejectedValue(new Error('network error'));
-    renderRegister('/register');
+  it('creates the sign-in via the admin endpoint and keeps the admin signed in', async () => {
+    (api.post as any).mockResolvedValue({ data: { user: { email: 'kid@example.com' } } });
+    renderRegister('/register', 'admin');
+    await waitFor(() => expect(document.querySelector('#password')).not.toBeNull());
+
+    fillForm();
+    fireEvent.click(screen.getByRole('button', { name: /create sign-in/i }));
+
     await waitFor(() => {
-      expect(screen.getByRole('heading', { name: 'Join This Household' })).toBeInTheDocument();
+      expect(screen.getByText(/sign-in created for kid@example.com/i)).toBeInTheDocument();
+    });
+    expect(api.post).toHaveBeenCalledWith('/admin/users', {
+      familyName: 'Kid',
+      email: 'kid@example.com',
+      password: 'Str0ng!Password',
     });
     expect(mockNavigate).not.toHaveBeenCalled();
+  });
+
+  it("shows the server's reason when the sign-in can't be created", async () => {
+    (api.post as any).mockRejectedValue({
+      response: { data: { error: { message: 'User with this email already exists' } } },
+    });
+    renderRegister('/register', 'admin');
+    await waitFor(() => expect(document.querySelector('#password')).not.toBeNull());
+
+    fillForm();
+    fireEvent.click(screen.getByRole('button', { name: /create sign-in/i }));
+
+    await waitFor(() => {
+      expect(screen.getByText(/already exists/i)).toBeInTheDocument();
+    });
   });
 });

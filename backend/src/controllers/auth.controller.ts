@@ -35,7 +35,7 @@ function getWeekStartDate(): Date {
 /**
  * Create initial meal plan for new user
  */
-async function createInitialMealPlan(userId: string): Promise<void> {
+export async function createInitialMealPlan(userId: string): Promise<void> {
   try {
     const weekStartDate = getWeekStartDate();
     
@@ -186,7 +186,7 @@ function validatePassword(password: string): void {
 /**
  * Validate registration input
  */
-function validateRegistrationInput(email: string, password: string, familyName: string): void {
+export function validateRegistrationInput(email: string, password: string, familyName: string): void {
   validateEmail(email);
   validatePassword(password);
   
@@ -198,7 +198,7 @@ function validateRegistrationInput(email: string, password: string, familyName: 
 /**
  * Format user response (removes sensitive data)
  */
-function formatUserResponse(user: { id: string; email: string; familyName: string; role: string }) {
+export function formatUserResponse(user: { id: string; email: string; familyName: string; role: string }) {
   return {
     id: user.id,
     email: user.email,
@@ -219,7 +219,7 @@ function maskEmail(email: string): string {
  * Ensure user with given email does not exist
  * @throws {AppError} If user already exists
  */
-async function ensureUserNotExists(email: string): Promise<void> {
+export async function ensureUserNotExists(email: string): Promise<void> {
   const existingUser = await prisma.user.findUnique({
     where: { email },
   });
@@ -330,21 +330,33 @@ export async function register(
     // Validate normalized inputs
     validateRegistrationInput(normalizedEmail, password, normalizedFamilyName);
 
+    // Cheap early exit before the bcrypt work below — and before the "already
+    // exists" check, so a closed install can't be used to probe which emails
+    // have accounts. The transaction re-checks to close the race.
+    if ((await withRetry(() => prisma.user.count())) > 0) {
+      throw new AppError('Sign-ups are closed. Ask your household admin to add you.', 403);
+    }
+
     await ensureUserNotExists(normalizedEmail);
 
     const passwordHash = await bcrypt.hash(password, 12);
 
-    // Serializable isolation prevents two simultaneous first-time registrations
-    // from both seeing count=0 and both receiving the admin role.
+    // Public sign-up exists only to create the first (admin) account on a fresh
+    // install. After that, anyone who could reach the app — guests on the Wi-Fi
+    // included — could otherwise give themselves a login; further accounts are
+    // created by an admin via POST /api/admin/users. Serializable isolation
+    // prevents two simultaneous first-run sign-ups from both seeing count=0.
     const user = await withRetry(() =>
       prisma.$transaction(async (tx) => {
-        const role = (await tx.user.count()) === 0 ? UserRole.admin : UserRole.user;
+        if ((await tx.user.count()) > 0) {
+          throw new AppError('Sign-ups are closed. Ask your household admin to add you.', 403);
+        }
         return tx.user.create({
           data: {
             email: normalizedEmail,
             passwordHash,
             familyName: normalizedFamilyName,
-            role,
+            role: UserRole.admin,
           },
         });
       }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable })

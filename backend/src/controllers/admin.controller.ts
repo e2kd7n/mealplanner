@@ -8,6 +8,58 @@ import prisma from '../utils/prisma';
 import { AppError } from '../middleware/errorHandler';
 import { logger } from '../utils/logger';
 import bcrypt from 'bcryptjs';
+import { UserRole } from '@prisma/client';
+import {
+  validateRegistrationInput,
+  ensureUserNotExists,
+  createInitialMealPlan,
+  formatUserResponse,
+} from './auth.controller';
+
+/**
+ * Create an email sign-in for another household member
+ * POST /api/admin/users
+ *
+ * The only way to add an account once the first (admin) one exists — public
+ * sign-up is closed after first run (see register in auth.controller). Always
+ * creates a regular user; promoting to admin stays a separate superadmin action.
+ * Unlike register, this does not sign the caller in as the new account.
+ */
+export async function createUser(
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void> {
+  try {
+    const { email, password, familyName } = req.body as { email: string; password: string; familyName: string };
+    const normalizedEmail = email.toLowerCase().trim();
+    const normalizedFamilyName = familyName.trim();
+
+    validateRegistrationInput(normalizedEmail, password, normalizedFamilyName);
+    await ensureUserNotExists(normalizedEmail);
+
+    const passwordHash = await bcrypt.hash(password, 12);
+    const user = await prisma.user.create({
+      data: {
+        email: normalizedEmail,
+        passwordHash,
+        familyName: normalizedFamilyName,
+        role: UserRole.user,
+      },
+    });
+
+    await createInitialMealPlan(user.id);
+
+    logger.info(`Admin ${req.user?.userId} created user ${user.id}`);
+
+    res.status(201).json({
+      message: 'User created',
+      user: formatUserResponse(user),
+    });
+  } catch (error) {
+    next(error);
+  }
+}
 
 /**
  * Get all users with pagination

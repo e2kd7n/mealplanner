@@ -38,10 +38,10 @@ test.describe('Login Flow', () => {
     await expect(page).toHaveURL(/.*login/);
   });
 
-  test('should navigate to register page', async ({ page, loginPage }) => {
+  test('should not offer self-serve sign-up', async ({ loginPage }) => {
     await loginPage.goto();
-    await loginPage.navigateToRegister();
 
-    await expect(page).toHaveURL(/.*register/);
+    await expect(loginPage.selfSignupLink).toHaveCount(0);
+    await expect(loginPage.askAdminHint).toBeVisible();
   });
 });

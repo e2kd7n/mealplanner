@@ -1,7 +1,10 @@
 import { Router } from 'express';
 import { authenticate } from '../middleware/auth';
 import { requireAdmin, requireSuperAdmin } from '../middleware/admin';
+import { validate } from '../middleware/validate';
+import { registerSchema } from '../validation/schemas';
 import {
+  createUser,
   getAllUsers,
   getUserById,
   updateUserRole,
@@ -23,6 +26,13 @@ router.use(authenticate);
  * @access  Admin, SuperAdmin
  */
 router.get('/users', requireAdmin, getAllUsers);
+
+/**
+ * @route   POST /api/admin/users
+ * @desc    Create an email sign-in for another household member
+ * @access  Admin, SuperAdmin
+ */
+router.post('/users', requireAdmin, validate(registerSchema), createUser);
 
 /**
  * @route   GET /api/admin/users/:id

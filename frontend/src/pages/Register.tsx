@@ -7,6 +7,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation, Link as RouterLink } from 'react-router';
 import {
+  Alert,
   Box,
   Button,
   Container,
@@ -20,22 +21,32 @@ import {
   LinearProgress,
 } from '@mui/material';
 import { Visibility, VisibilityOff, CheckCircle } from '@mui/icons-material';
-import { useAppDispatch, useAppSelector } from '../store/hooks';
-import { register, clearError } from '../store/slices/authSlice';
+import { useAppSelector } from '../store/hooks';
 import ErrorAlert from '../components/ErrorAlert';
 import api from '../services/api';
 
+/**
+ * Add a Household Member — admin only.
+ *
+ * Public sign-up closes once the first (admin) account exists, so anyone who
+ * can reach the app (guests on the Wi-Fi included) can't give themselves a
+ * login. Further email sign-ins are created here by a signed-in admin, who
+ * stays signed in as themselves afterwards.
+ */
 const Register: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const dispatch = useAppDispatch();
-  const { isAuthenticated, loading, error } = useAppSelector((state) => state.auth);
+  const { isAuthenticated, user, loading: authLoading } = useAppSelector((state) => state.auth);
+  const isAdmin = user?.role === 'admin' || user?.role === 'superadmin';
 
   // True when linked here from the end of the admin Welcome/Setup flow
-  // ("Add a Household Member") rather than a standalone visit to /register.
+  // ("Add a Household Member") rather than from the Admin page.
   const fromFtue = Boolean((location.state as { fromFtue?: boolean } | null)?.fromFtue);
 
   const [checking, setChecking] = useState(true);
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [created, setCreated] = useState<string | null>(null);
 
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
@@ -49,17 +60,8 @@ const Register: React.FC = () => {
   const [passwordTouched, setPasswordTouched] = useState(false);
   const [confirmPasswordTouched, setConfirmPasswordTouched] = useState(false);
 
-  useEffect(() => {
-    if (isAuthenticated) {
-      navigate('/dashboard');
-    }
-  }, [isAuthenticated, navigate]);
-
-  // /register only makes sense once a household already exists on this
-  // install (it adds a sign-in to that household). On a fresh install with
-  // no users yet, send visitors to /welcome — the actual first-run flow —
-  // instead of letting them fill out a form for a household that isn't
-  // there yet.
+  // On a fresh install with no users yet, send visitors to /welcome — the
+  // actual first-run flow, which is the only place public sign-up still works.
   useEffect(() => {
     api.get('/auth/status').then((res) => {
       if (!res.data.hasUsers) {
@@ -68,16 +70,9 @@ const Register: React.FC = () => {
         setChecking(false);
       }
     }).catch(() => {
-      // Server unreachable — let them try to register anyway
       setChecking(false);
     });
   }, [navigate]);
-
-  useEffect(() => {
-    return () => {
-      dispatch(clearError());
-    };
-  }, [dispatch]);
 
   const validateEmail = (email: string): boolean => {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -107,42 +102,56 @@ const Register: React.FC = () => {
     setPasswordStrength(calculatePasswordStrength(pwd));
   };
 
+  const resetForm = () => {
+    setName('');
+    setEmail('');
+    setPassword('');
+    setConfirmPassword('');
+    setPasswordStrength(0);
+    setPasswordTouched(false);
+    setConfirmPasswordTouched(false);
+    setValidationError('');
+    setError(null);
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setValidationError('');
+    setError(null);
 
-    // Validate email
     if (!validateEmail(email)) {
       setEmailError('Please enter a valid email address');
       return;
     }
-
-    // Validate password match
     if (password !== confirmPassword) {
       setValidationError('Passwords do not match');
       return;
     }
-
-    // Validate password strength
     if (password.length < 8) {
       setValidationError('Password must be at least 8 characters for better security');
       return;
     }
-
     if (passwordStrength < 50) {
       setValidationError('Please choose a stronger password (mix of uppercase, lowercase, numbers, and symbols)');
       return;
     }
 
-    await dispatch(register({ familyName: name, email, password }));
-  };
-
-  const togglePasswordVisibility = () => {
-    setShowPassword(!showPassword);
-  };
-
-  const toggleConfirmPasswordVisibility = () => {
-    setShowConfirmPassword(!showConfirmPassword);
+    setSubmitting(true);
+    try {
+      const res = await api.post('/admin/users', { familyName: name, email, password });
+      setCreated(res.data.user?.email ?? email);
+      resetForm();
+    } catch (err) {
+      const data = (err as { response?: { data?: { error?: { message?: string } | string; message?: string } } })
+        .response?.data;
+      setError(
+        (typeof data?.error === 'object' ? data.error?.message : data?.error)
+          ?? data?.message
+          ?? 'Could not create the sign-in'
+      );
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   const getPasswordStrengthColor = () => {
@@ -157,11 +166,43 @@ const Register: React.FC = () => {
     return 'Strong';
   };
 
-  if (checking) {
+  if (checking || authLoading) {
     return (
       <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '100vh' }}>
         <CircularProgress />
       </Box>
+    );
+  }
+
+  const header = (
+    <>
+      <Typography component="h1" variant="h4" align="center" gutterBottom>
+        Family Meal Planner
+      </Typography>
+      <Typography component="h2" variant="h6" align="center" color="text.secondary" gutterBottom>
+        Add a Household Member
+      </Typography>
+    </>
+  );
+
+  if (!isAdmin) {
+    return (
+      <Container component="main" maxWidth="xs">
+        <Box sx={{ marginTop: 8 }}>
+          <Paper elevation={3} sx={{ p: 4, width: '100%' }}>
+            {header}
+            <Alert severity="info" sx={{ mt: 2, mb: 2 }}>
+              Sign-ups are closed. Ask your household admin to create a sign-in for you
+              from the Admin page.
+            </Alert>
+            <Box sx={{ textAlign: 'center' }}>
+              <Link component={RouterLink} to={isAuthenticated ? '/dashboard' : '/login'} variant="body2">
+                {isAuthenticated ? 'Back to Dashboard' : 'Already have an account? Sign In'}
+              </Link>
+            </Box>
+          </Paper>
+        </Box>
+      </Container>
     );
   }
 
@@ -176,34 +217,27 @@ const Register: React.FC = () => {
         }}
       >
         <Paper elevation={3} sx={{ p: 4, width: '100%' }}>
-          <Typography component="h1" variant="h4" align="center" gutterBottom>
-            Family Meal Planner
+          {header}
+          <Typography variant="body2" align="center" color="text.secondary" sx={{ mb: 1 }}>
+            Give another person in your household their own sign-in. You'll stay
+            signed in as yourself; they can sign in with these details right away.
           </Typography>
-          <Typography component="h2" variant="h6" align="center" color="text.secondary" gutterBottom>
-            {fromFtue ? 'Add a Household Member' : 'Join This Household'}
-          </Typography>
-          {fromFtue ? (
-            <Typography variant="body2" align="center" color="text.secondary" sx={{ mb: 1 }}>
-              Give another person in your household their own sign-in. You'll be
-              switched to their account once it's created.
-            </Typography>
-          ) : (
-            <Typography variant="body2" align="center" color="text.secondary" sx={{ mb: 1 }}>
-              This household already has an admin set up. Add yourself as a
-              member to get your own sign-in and share the same recipes,
-              meal plans, and pantry.
-            </Typography>
+
+          {created && (
+            <Alert severity="success" sx={{ mt: 2 }} onClose={() => setCreated(null)}>
+              Sign-in created for {created}.
+            </Alert>
           )}
 
           {(error || validationError) && (
             <ErrorAlert
-              error={validationError || error || 'Registration failed'}
-              title="Registration Failed"
+              error={validationError || error || 'Could not create the sign-in'}
+              title="Couldn't Add Member"
               onClose={() => {
-                dispatch(clearError());
+                setError(null);
                 setValidationError('');
               }}
-              additionalContext={fromFtue ? 'Admin attempted to add household member from FTUE' : 'User attempted to register'}
+              additionalContext={fromFtue ? 'Admin attempted to add household member from FTUE' : 'Admin attempted to add household member'}
               sx={{ mt: 2, mb: 2 }}
             />
           )}
@@ -214,14 +248,14 @@ const Register: React.FC = () => {
               required
               fullWidth
               id="name"
-              label="Family Name"
+              label="Name"
               name="name"
-              autoComplete="name"
+              autoComplete="off"
               autoFocus
               value={name}
               onChange={(e) => setName(e.target.value)}
-              disabled={loading}
-              helperText="Enter your family name (e.g., Smith Family)"
+              disabled={submitting}
+              helperText="Their name, as it should appear in the app"
             />
             <TextField
               margin="normal"
@@ -230,7 +264,7 @@ const Register: React.FC = () => {
               id="email"
               label="Email Address"
               name="email"
-              autoComplete="email"
+              autoComplete="off"
               value={email}
               onChange={(e) => {
                 setEmail(e.target.value);
@@ -238,8 +272,8 @@ const Register: React.FC = () => {
               }}
               onBlur={handleEmailBlur}
               error={!!emailError}
-              helperText={emailError || 'We\'ll use this for your account login'}
-              disabled={loading}
+              helperText={emailError || 'They\'ll use this to sign in'}
+              disabled={submitting}
             />
             <TextField
               margin="normal"
@@ -253,7 +287,7 @@ const Register: React.FC = () => {
               value={password}
               onChange={(e) => handlePasswordChange(e.target.value)}
               onBlur={() => setPasswordTouched(true)}
-              disabled={loading}
+              disabled={submitting}
               error={passwordTouched && password.length > 0 && passwordStrength < 50}
               helperText="At least 8 characters with mix of letters, numbers, and symbols"
               slotProps={{
@@ -262,10 +296,10 @@ const Register: React.FC = () => {
                     <InputAdornment position="end">
                       <IconButton
                         aria-label="toggle password visibility"
-                        onClick={togglePasswordVisibility}
+                        onClick={() => setShowPassword(!showPassword)}
                         onMouseDown={(e) => e.preventDefault()}
                         edge="end"
-                        disabled={loading}
+                        disabled={submitting}
                       >
                         {showPassword ? <VisibilityOff /> : <Visibility />}
                       </IconButton>
@@ -313,12 +347,12 @@ const Register: React.FC = () => {
               value={confirmPassword}
               onChange={(e) => setConfirmPassword(e.target.value)}
               onBlur={() => setConfirmPasswordTouched(true)}
-              disabled={loading}
+              disabled={submitting}
               error={confirmPasswordTouched && confirmPassword.length > 0 && password !== confirmPassword}
               helperText={
                 confirmPasswordTouched && confirmPassword.length > 0 && password !== confirmPassword
                   ? 'Passwords do not match'
-                  : 'Re-enter your password to confirm'
+                  : 'Re-enter the password to confirm'
               }
               slotProps={{
                 input: {
@@ -326,10 +360,10 @@ const Register: React.FC = () => {
                     <InputAdornment position="end">
                       <IconButton
                         aria-label="toggle confirm password visibility"
-                        onClick={toggleConfirmPasswordVisibility}
+                        onClick={() => setShowConfirmPassword(!showConfirmPassword)}
                         onMouseDown={(e) => e.preventDefault()}
                         edge="end"
-                        disabled={loading}
+                        disabled={submitting}
                       >
                         {showConfirmPassword ? <VisibilityOff /> : <Visibility />}
                       </IconButton>
@@ -343,21 +377,15 @@ const Register: React.FC = () => {
               fullWidth
               variant="contained"
               sx={{ mt: 3, mb: 2 }}
-              disabled={loading || !!emailError || passwordStrength < 50 || password !== confirmPassword}
-              startIcon={loading ? <CircularProgress size={20} color="inherit" /> : null}
+              disabled={submitting || !!emailError || passwordStrength < 50 || password !== confirmPassword}
+              startIcon={submitting ? <CircularProgress size={20} color="inherit" /> : null}
             >
-              {loading ? 'Creating Account...' : 'Create Account'}
+              {submitting ? 'Creating Sign-in...' : 'Create Sign-in'}
             </Button>
             <Box sx={{ textAlign: 'center' }}>
-              {fromFtue ? (
-                <Link component={RouterLink} to="/dashboard" variant="body2">
-                  Skip for now — go to Dashboard
-                </Link>
-              ) : (
-                <Link component={RouterLink} to="/login" variant="body2">
-                  Already have an account? Sign In
-                </Link>
-              )}
+              <Link component={RouterLink} to={fromFtue ? '/dashboard' : '/admin'} variant="body2">
+                {fromFtue ? 'Skip for now — go to Dashboard' : 'Back to Admin'}
+              </Link>
             </Box>
           </Box>
         </Paper>
