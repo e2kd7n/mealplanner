@@ -1,6 +1,6 @@
 # Issue Prioritization
 
-**Last Updated:** 2026-10-19 04:24:00 UTC / 2026-10-18 23:24:00 CDT
+**Last Updated:** 2026-10-25 09:17:10 UTC / 2026-10-25 04:17:10 CDT
 
 This file reflects the current state of GitHub issues organized by milestone and priority within each milestone.
 
@@ -18,16 +18,46 @@ This file reflects the current state of GitHub issues organized by milestone and
 **No issues** ✅
 
 ### 🟢 P3 - LOW
-**No issues** ✅
+- #307 - accessibility: missing aria-labels on icon-only buttons in CreateRecipe and Profile (one destructive)
+- #200 - Pi: move Postgres data volume to USB SSD
 
 ### 📋 P4 - FUTURE
-**No issues** ✅
+- #19 - Implement Grocery List Regeneration and Sync Detection
+
+### ⚠️ Unprioritized (need P-label)
+- #261 - perf(e2e): use Playwright storageState to avoid per-test UI login in FTUE suite
 
 ---
 
 ## ⚠️ Issues Without Milestone Assignment
 
 These issues need to be assigned to a milestone and prioritized.
+
+### 🔴 P1 - HIGH
+- #422 - security: HIGH vuln in braces via nodemon (GHSA-vfj7-8cjw-p6xm) — dev dep, fix requires breaking nodemon downgrade
+
+### 🟡 P2 - MEDIUM
+- #421 - fix(frontend): frontend lint — 18 errors (react-hooks violations, unused vars)
+- #116 - [P2][UX] Add Cost Tracking for Budget-Conscious Users
+
+### 🟢 P3 - LOW
+- #170 - ✨ Add photo capture and PDF upload for recipe creation
+- #84 - [P3][Feature] Add recipe document upload (PDF, images, DOCX)
+- #14 - Implement Nutrition Guideline Warnings
+- #13 - Implement Nutrition Dashboard
+- #12 - Integrate Nutrition Database for Auto-Population
+- #9 - MyFitnessPal Integration
+- #8 - Grocery List Optimization
+
+### 📋 P4 - FUTURE
+- #66 - Publish Meals to ICS Calendar feed
+- #64 - Implement Advanced Features (Nutrition Tracking, etc.)
+- #63 - Evaluate Scaling Strategy
+- #20 - Implement Pantry Integration with Grocery Lists
+
+### ⚠️ Unprioritized (No P-label)
+- #416 - Verify maintenance-script logs actually get pruned automatically
+- #406 - Grocery list generation likely 404s: frontend/backend route mismatch
 
 ## 📝 Workspace TODOs & Tasks
 Code comments and inline tasks found in the workspace that may need attention.
