@@ -1,6 +1,6 @@
 # Issue Prioritization
 
-**Last Updated:** 2026-10-27 03:45:23 UTC / 2026-10-26 22:45:23 CDT
+**Last Updated:** 2026-11-01 10:16:14 UTC / 2026-11-01 04:16:14 CST
 
 This file reflects the current state of GitHub issues organized by milestone and priority within each milestone.
 
@@ -33,12 +33,9 @@ This file reflects the current state of GitHub issues organized by milestone and
 
 These issues need to be assigned to a milestone and prioritized.
 
-### 🟡 P2 - MEDIUM
-- #421 - fix(frontend): frontend lint — 18 errors (react-hooks violations, unused vars)
-- #116 - [P2][UX] Add Cost Tracking for Budget-Conscious Users
-
 ### 🟢 P3 - LOW
 - #170 - ✨ Add photo capture and PDF upload for recipe creation
+- #116 - [P3][UX] Add Cost Tracking for Budget-Conscious Users
 - #84 - [P3][Feature] Add recipe document upload (PDF, images, DOCX)
 - #14 - Implement Nutrition Guideline Warnings
 - #13 - Implement Nutrition Dashboard
